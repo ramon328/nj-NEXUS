@@ -21,21 +21,21 @@ if (existsSync(DONE)) { log('ya está hecho (.historica-done); nada que hacer');
 const MESES = process.env.TEK_CARTOLA_MESES || '1,2,3,4,5,6'
 log('descargando cartola histórica meses', MESES, '2026…')
 const r = spawnSync(NODE, [join(DIR, 'login-humano.mjs')], {
-  cwd: DIR, encoding: 'utf8', timeout: 400_000,
+  cwd: DIR, encoding: 'utf8', timeout: 560_000,
   env: { ...process.env, TEK_EMPRESA: 'ANA CLARA', TEK_CARTOLA_HIST: 'bajar', TEK_CARTOLA_ANIO: '2026', TEK_CARTOLA_MESES: MESES },
 })
 const out = (r.stdout || '') + (r.stderr || '')
 const m = out.match(/RESULTADO:\s*(\{.*\})\s*$/m)
 let res = {}; try { res = m ? JSON.parse(m[1]) : {} } catch {}
-const totalFilas = res?.carthist?.filas_total ?? (res?.carthist?.filas_por_mes || []).reduce((a, x) => a + (x.filas || 0), 0)
+const totalFilas = (res?.carthist?.meses_resumen || []).length
 
 if (/error-seguridad/.test(res.url || '') || res.estado === 'error_seguridad') {
   log('banco CALIENTE (error-seguridad) — no bajó. Reintenta en la próxima corrida.'); process.exit(1)
 }
-if (totalFilas === 0) { log('bajó 0 filas (sesión o navegación falló) — reintenta luego. estado:', res.estado); process.exit(1) }
+if (totalFilas === 0) { log('bajó 0 meses (sesión o navegación falló) — reintenta luego. estado:', res.estado); process.exit(1) }
 
-log('bajó', totalFilas, 'filas en', filas.length, 'meses. Parseando + fusionando…')
-const p = spawnSync(NODE, [join(DIR, 'parse-carthist.mjs')], { cwd: DIR, encoding: 'utf8', timeout: 60_000 })
+log('bajó', totalFilas, 'meses con resumen. Actualizando el cerebro…')
+const p = spawnSync(NODE, [join(DIR, 'cerebro-cartolas.mjs')], { cwd: DIR, encoding: 'utf8', timeout: 60_000 })
 log('parse:', (p.stdout || '').trim() || (p.stderr || '').trim())
 
 // éxito → marcar hecho y autodesactivar el LaunchAgent (una sola vez)

@@ -1005,56 +1005,78 @@ async function cartolaHistorica(page, log) {
   const num = (s) => Number(String(s || '').replace(/[^\d-]/g, '')) || 0
   // texto combinado de TODOS los frames (la cabecera de la cartola vive en un frame
   // distinto al de la tabla) -> asi el resumen no sale en 0.
-  const textoTodosFrames = async () => (await Promise.all(page.frames().map((fr) => fr.evaluate(() => document.body ? document.body.innerText : '').catch(() => '')))).join('\n').replace(/\u00a0/g, ' ')
+  const withTimeout = (p, ms, dflt) => Promise.race([Promise.resolve(p).catch(() => dflt), new Promise((r) => setTimeout(() => r(dflt), ms))])
+  const textoTodosFrames = async () => (await Promise.all(page.frames().map((fr) => withTimeout(fr.evaluate(() => document.body ? document.body.innerText : ''), 6000, '')))).join('\n').replace(/\u00a0/g, ' ')
   const locEnFrames = async (re) => { for (const fr of page.frames()) { const l = fr.getByText(re).first(); if (await l.isVisible().catch(() => false)) return l } return null }
   const resumenMeses = []
   for (const mes of meses) {
     try {
-      // RE-NAVEGAR por el MENU (rapido, sin volver al dashboard, para no timeoutear).
-      for (let i = 0; i < 4 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2200) }
-      await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(7000)
-      const f0 = fEob()
-      await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
-      await sleep(4000)
-      // seleccionar el MES (nombre completo) + año en los selects
-      const f = fEob()
-      for (const s of await f.locator('select').all()) {
-        const opts = (await s.locator('option').allTextContents().catch(() => [])).map((o) => o.trim())
-        const low = opts.map((o) => o.toLowerCase())
-        if (low.includes(MESNOM[mes].toLowerCase())) { await s.selectOption({ label: MESNOM[mes] }).catch(() => {}) }
-        else if (opts.includes(anio)) { await s.selectOption({ label: anio }).catch(() => {}) }
+      for (let i = 0; i < 4 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2000) }
+      await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(6000)
+      let R = null
+      for (let intento = 0; intento < 2 && !R; intento++) {
+        const f0 = fEob()
+        await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
+        await sleep(3500)
+        const f = fEob()
+        for (const sel of await f.locator('select').all()) {
+          const opts = (await sel.locator('option').allTextContents().catch(() => [])).map((o) => o.trim())
+          const low = opts.map((o) => o.toLowerCase())
+          let set = false
+          if (low.includes(MESNOM[mes].toLowerCase())) { await sel.selectOption({ label: MESNOM[mes] }).catch(() => {}); set = true }
+          else if (opts.includes(anio)) { await sel.selectOption({ label: anio }).catch(() => {}); set = true }
+          if (set) await sel.evaluate((el) => el.dispatchEvent(new Event('change', { bubbles: true }))).catch(() => {})
+        }
+        await sleep(1000)
+        const btn = await locEnFrames(/^buscar$/i)
+        if (btn) await clickHumano(page, btn)
+        log(`carthist ${MESNOM[mes]} ${anio}: Buscar (intento ${intento + 1})`)
+        await sleep(8000)
+        const txt = await withTimeout(textoTodosFrames(), 15000, '')
+        const g = (re) => { const m = txt.match(re); return m ? m[1].trim() : '' }
+        const hasta = g(/Fecha\s*hasta\s*([\d/]+)/i)
+        const mesHasta = Number((hasta.match(/\/(\d{2})\//) || [])[1])
+        if (mesHasta && mesHasta !== mes) { log(`  la cartola volvio del mes ${mesHasta}, pedi ${mes} -> reintento`); continue }
+        R = {
+          mes, anio: Number(anio),
+          n_cartola: g(/N[°º]\s*Cartola\s*([\d]+\s*-\s*[\d/]+)/i),
+          periodo: g(/Fecha\s*desde\s*([\d/]+)/i) + '-' + hasta,
+          saldo_inicial: num(g(/Saldo\s*inicial\s*\$?\s*([\d.]+)/i)),
+          cargos: num(g(/Cargos\s*\$?\s*([\d.]+)/i)),
+          abonos: num(g(/Abonos\s*\$?\s*([\d.]+)/i)),
+          saldo_final: num(g(/Saldo\s*final\s*\$?\s*([\d.]+)/i)),
+        }
       }
-      await sleep(1200)
-      const btn = f.getByText(/^buscar$/i).first()
-      if (await btn.isVisible().catch(() => false)) await clickHumano(page, btn)
-      log(`carthist ${MESNOM[mes]} ${anio}: Buscar`)
-      await sleep(9000)
-      // RESUMEN de la cabecera (Saldo inicial / Cargos / Abonos / Saldo final + N° y período)
-      // RESUMEN leyendo TODOS los frames (cabecera + tabla)
-      const txt = await textoTodosFrames()
-      const g = (re) => { const m = txt.match(re); return m ? m[1].trim() : '' }
-      const R = {
-        mes, anio: Number(anio),
-        n_cartola: g(/N[\u00b0\u00ba]\s*Cartola\s*([\d]+\s*-\s*[\d/]+)/i),
-        periodo: g(/Fecha\s*desde\s*([\d/]+)/i) + '-' + g(/Fecha\s*hasta\s*([\d/]+)/i),
-        saldo_inicial: num(g(/Saldo\s*inicial\s*\$?\s*([\d.]+)/i)),
-        cargos: num(g(/Cargos\s*\$?\s*([\d.]+)/i)),
-        abonos: num(g(/Abonos\s*\$?\s*([\d.]+)/i)),
-        saldo_final: num(g(/Saldo\s*final\s*\$?\s*([\d.]+)/i)),
-      }
+      if (!R) { log(`  ${MESNOM[mes]}: no fije el mes correcto -> salto (no guardo data equivocada)`); continue }
       resumenMeses.push(R)
-      log(`  ${MESNOM[mes]}: cartola ${R.n_cartola || '?'} · cargos ${R.cargos} · abonos ${R.abonos}`)
-      // DESCARGAR el PDF oficial
+      log(`  ${MESNOM[mes]}: cartola ${R.n_cartola || '?'} - ${R.periodo} - cargos ${R.cargos} - abonos ${R.abonos}`)
       try {
-        const dl = await locEnFrames(/^descargar$/i)
-        if (dl) {
-          const [download] = await Promise.all([page.waitForEvent('download', { timeout: 25_000 }).catch(() => null), clickHumano(page, dl)])
-          if (download) { const dest = join(PDFDIR, `Cartola ${anio}-${String(mes).padStart(2, '0')} ${MESNOM[mes]}.pdf`); await download.saveAs(dest).catch(() => {}); log(`  PDF guardado: ${dest.split('/').pop()}`) }
-          else log('  descarga no disparó download event')
-        } else log('  no vi botón Descargar')
-      } catch (e) { log('  descarga falló:', e.message) }
-      await sleep(1500)
-    } catch (e) { log(`carthist ${MESNOM[mes]} falló:`, e.message) }
+        const dest = join(PDFDIR, `Cartola ${anio}-${String(mes).padStart(2, '0')} ${MESNOM[mes]}.pdf`)
+        let hrefPdf = null
+        for (const fr of page.frames()) {
+          const a = fr.locator('a[href*=".pdf"], a[href*="descarg" i], a[download]').first()
+          if (await a.count().catch(() => 0)) { hrefPdf = await a.getAttribute('href').catch(() => null); if (hrefPdf) break }
+        }
+        if (hrefPdf) {
+          const abs = hrefPdf.startsWith('http') ? hrefPdf : new URL(hrefPdf, page.url()).href
+          const resp = await page.context().request.get(abs).catch(() => null)
+          if (resp && resp.ok()) { writeFileSync(dest, await resp.body()); log(`  PDF guardado (href): ${dest.split('/').pop()}`) } else log('  href PDF no respondio')
+        } else {
+          const dl = await locEnFrames(/descargar/i)
+          if (dl) {
+            const [download, popup] = await Promise.all([
+              page.waitForEvent('download', { timeout: 18000 }).catch(() => null),
+              page.waitForEvent('popup', { timeout: 18000 }).catch(() => null),
+              clickHumano(page, dl),
+            ])
+            if (download) { await download.saveAs(dest).catch(() => {}); log(`  PDF guardado (dl): ${dest.split('/').pop()}`) }
+            else if (popup) { await popup.waitForLoadState().catch(() => {}); const resp = await page.context().request.get(popup.url()).catch(() => null); if (resp && resp.ok()) { writeFileSync(dest, await resp.body()); log('  PDF guardado (popup)') } await popup.close().catch(() => {}) }
+            else log('  descarga no disparo download/popup')
+          } else log('  no vi enlace/boton Descargar')
+        }
+      } catch (e) { log('  descarga fallo:', e.message) }
+      await sleep(1000)
+    } catch (e) { log(`carthist ${MESNOM[mes]} fallo:`, e.message) }
   }
   writeFileSync(join(DATA, 'carthist-resumen.json'), JSON.stringify({ anio, actualizado: new Date().toISOString(), meses: resumenMeses }, null, 2))
   log(`carthist: ${resumenMeses.length} meses con resumen + PDF`)

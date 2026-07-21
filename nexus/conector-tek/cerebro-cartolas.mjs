@@ -98,7 +98,17 @@ export function exportar({ stamp } = {}) {
   R.push(`- **Última captura:** ${cob.ultima_captura || anual.actualizado || '—'}`)
   R.push(`- **Total movimientos:** ${movs.length}`)
   R.push('')
-  R.push('## Meses')
+  // Resumen mensual oficial (de la cartola histórica: carthist-resumen.json)
+  const hist = leer('carthist-resumen.json')
+  if (hist?.meses?.length) {
+    R.push('## Resumen mensual (cartola oficial)')
+    R.push('| Mes | N° Cartola | Ingresos (abonos) | Egresos (cargos) | Saldo final |')
+    R.push('|---|---|---:|---:|---:|')
+    for (const m of hist.meses.slice().sort((a, b) => a.mes - b.mes)) R.push(`| ${MESES[m.mes]} | ${esc(m.n_cartola)} | ${clp(m.abonos)} | ${clp(m.cargos)} | ${clp(m.saldo_final)} |`)
+    R.push('_PDFs oficiales en la subcarpeta `PDF/`._')
+    R.push('')
+  }
+  R.push('## Meses (detalle de movimientos)')
   for (const a of archivosMes) R.push(`- [[${a.nombre.replace('.md', '')}]] — ${a.n} movs · ingresos ${clp(a.abonos)} · egresos ${clp(a.cargos)}`)
   R.push(''); R.push('- [[Últimos movimientos]]')
   R.push(''); R.push('> Índice generado automáticamente por tek. Se actualiza solo.')

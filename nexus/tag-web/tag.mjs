@@ -7,6 +7,17 @@
 
 import { enviarCorreo, cuentaActiva } from './enviar.mjs'
 import { crear as crearRegistro } from './registro.mjs'
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+
+const __dirname = dirname(fileURLToPath(import.meta.url))
+// Interruptor GLOBAL: si tag-modo.json no dice { "real": true }, TODO va en modo prueba
+// (al correo de Ramón), NADA sale a Tag Tico. Se prende/apaga sin tocar código.
+const MODO_FILE = join(__dirname, 'tag-modo.json')
+export function realActivo() {
+  try { return JSON.parse(readFileSync(MODO_FILE, 'utf8')).real === true } catch { return false }
+}
 
 // Destinatarios oficiales (modo real).
 export const TAG_TO = process.env.TAG_TO || 'contacto@tagtico.cl'
@@ -85,7 +96,9 @@ export async function enviarSolicitudTag(d) {
   const adjuntos = (d.adjuntos || []).map((a) => ({ filename: a.filename, mime: 'application/pdf', buffer: a.buffer }))
   const asunto = t.asunto(d)
   const cuenta = cuentaActiva()
-  const prueba = d.prueba !== false // por defecto PRUEBA hasta que se pida real explícitamente
+  // Interruptor global manda: si el modo real NO está activo, SIEMPRE prueba (al correo
+  // de Ramón), pase lo que pase. Solo con real activo se respeta d.prueba.
+  const prueba = !realActivo() ? true : (d.prueba === true)
   const to = prueba ? TAG_PRUEBA : TAG_TO
   const cc = prueba ? '' : TAG_CC
   try {

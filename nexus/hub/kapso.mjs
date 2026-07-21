@@ -54,6 +54,37 @@ export async function enviarKapso(to, texto) {
   return ids
 }
 
+// Envía un mensaje de PLANTILLA (template) aprobada por Meta. Es el ÚNICO tipo de mensaje
+// que WhatsApp deja mandar FUERA de la ventana de 24h (para escribirle PRIMERO al usuario:
+// alertas, avisos, recordatorios). La plantilla debe existir y estar APPROVED en la WABA
+// (crear/revisar: POST/GET .../{WABA}/message_templates). `vars` = { param: valor } para
+// plantillas con parámetros NAMED (ej. { nombre: 'Ramón', mensaje: '…' }). Si la plantilla
+// no tiene variables, pasar {} y no se manda `components`. opts.idioma = code (def 'es').
+// Devuelve el message id. Lanza con el error de Meta si algo falla (ej. plantilla no
+// aprobada = 132001, número no válido, etc.).
+export async function enviarPlantillaKapso(to, nombrePlantilla, vars = {}, opts = {}) {
+  if (!kapsoConfigurado()) throw new Error('Kapso sin configurar (KAPSO_API_KEY/KAPSO_PHONE_ID)')
+  const dest = String(to || '').replace(/[^0-9]/g, '')
+  if (!dest) throw new Error('destino vacío')
+  if (!nombrePlantilla) throw new Error('falta el nombre de la plantilla')
+  const idioma = opts.idioma || 'es'
+  const params = Object.entries(vars || {}).filter(([, v]) => v != null)
+  const template = { name: nombrePlantilla, language: { code: idioma } }
+  if (params.length) {
+    template.components = [{
+      type: 'body',
+      parameters: params.map(([param_name, valor]) => ({ type: 'text', parameter_name: param_name, text: String(valor) })),
+    }]
+  }
+  const r = await fetch(`${META_BASE}/${PHONE_ID}/messages`, {
+    method: 'POST', headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
+    body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: dest, type: 'template', template }),
+  })
+  const txt = await r.text(); let data; try { data = JSON.parse(txt) } catch { data = txt }
+  if (!r.ok) throw new Error(`Kapso plantilla ${r.status}: ${typeof data === 'string' ? data : JSON.stringify(data)}`)
+  return data?.messages?.[0]?.id || ''
+}
+
 // Envía una imagen/documento por WhatsApp vía Kapso. `media` puede ser una URL http(s)
 // (se manda por link) o una ruta local (se sube primero y se manda por media_id).
 // opts.forceDocument = mandarlo como documento (PDF, sin compresión de imagen).
