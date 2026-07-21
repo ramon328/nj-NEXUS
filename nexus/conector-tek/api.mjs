@@ -32,14 +32,25 @@ const num = (v) => { const n = Number(String(v ?? '').replace(/[^\d,-]/g, '').re
 const fechaDe = (row) => { for (const k of Object.keys(row)) if (/fecha/i.test(k)) return String(row[k]); return '' }
 const isoFecha = (s) => { const m = String(s).match(/(\d{2})[/-](\d{2})[/-](\d{4})/); if (m) return `${m[3]}-${m[2]}-${m[1]}`; const m2 = String(s).match(/(\d{4})-(\d{2})-(\d{2})/); return m2 ? m2[0] : '' }
 
-function filtrarMovs({ desde, hasta, cuenta, q }) {
-  const d = leer('movimientos.json'); if (!d?.movimientos) return { movimientos: [], total: 0 }
-  let out = d.movimientos
+// Fuente de movimientos: PREFIERE el acumulador anual (cartola-anual.json, que nunca
+// pierde lo viejo); cae a movimientos.json (última captura) si aún no hay acumulado.
+function fuenteMovs() {
+  const anual = leer('cartola-anual.json')
+  if (anual?.movimientos?.length) return { ...anual, _fuente: 'cartola-anual' }
+  const m = leer('movimientos.json')
+  return m?.movimientos ? { ...m, _fuente: 'movimientos' } : { movimientos: [], _fuente: 'vacio' }
+}
+function filtrarMovs({ desde, hasta, cuenta, q, limit }) {
+  const d = fuenteMovs()
+  let out = d.movimientos || []
   if (desde) out = out.filter((r) => { const f = isoFecha(fechaDe(r)); return !f || f >= desde })
   if (hasta) out = out.filter((r) => { const f = isoFecha(fechaDe(r)); return !f || f <= hasta })
   if (cuenta) out = out.filter((r) => JSON.stringify(r).includes(cuenta))
   if (q) { const re = new RegExp(q, 'i'); out = out.filter((r) => re.test(JSON.stringify(r))) }
-  return { actualizado: d.actualizado, desde: desde || d.desde, hasta: hasta || d.hasta, total: out.length, movimientos: out }
+  const total = out.length
+  const lim = Number(limit) > 0 ? Number(limit) : 0
+  if (lim) out = out.slice(0, lim)   // acumulador viene ordenado desc → los más recientes
+  return { actualizado: d.actualizado, fuente: d._fuente, cobertura: d.cobertura, desde: desde || d.desde, hasta: hasta || d.hasta, total, mostrados: out.length, movimientos: out }
 }
 
 function resumen(params) {
@@ -87,7 +98,14 @@ createServer((req, res) => {
   if (u.pathname === '/health') {
     // /health NUNCA dispara login (idle = no se re-loguea)
     const e = leer('estado.json')
-    return send(res, 200, { ok: true, puerto: PORT, data: e, frescura_min: edadMin('movimientos.json'), fresca: dataFresca() })
+    const a = leer('cartola-anual.json')
+    const sesionViva = !/logout\/error-seguridad|\/login/i.test(String(e?.url || ''))
+    return send(res, 200, {
+      ok: true, puerto: PORT, data: e,
+      sesion_viva: sesionViva,   // discriminante real: la URL, no el estado "ok"
+      anual: a ? { total: a.total, desde: a.cobertura?.min_fecha, hasta: a.cobertura?.max_fecha, capturas: a.cobertura?.capturas } : null,
+      frescura_min: edadMin('movimientos.json'), fresca: dataFresca(),
+    })
   }
   if (tok !== TOKEN) return send(res, 401, { error: 'token inválido', hint: 'usa ?token= o header x-api-token' })
   const p = Object.fromEntries(u.searchParams)

@@ -335,27 +335,51 @@ async function capturarData(ctx, page, log) {
   const okCart = (await esVisible(itemRe)) ? await clickHumano(page, page.getByText(itemRe).first()) : false
   log('clic Saldos y movimientos:', okCart)
   await sleep(rnd(11000, 13_000))   // carga iframe eob + auto-consulta 1ª cuenta
-  // 3) fijar rango 90 días y Consultar dentro del iframe eob de la cartola
+  // 3) fijar rango y Consultar dentro del iframe eob de la cartola.
+  //    Consultamos MES A MES dentro de la ventana de 90 días: la cartola tiende a
+  //    paginar/limitar por rango, así que un rango mensual devuelve más filas que uno
+  //    de 90 días de una sola vez. El acumulador anual junta todo sin perder nada.
   const eob = () => page.frames().find((f) => /eob\.officebanking\.cl\/CTA\.UI\.Web\/saldoctacte/i.test(f.url()))
-  const consultar = async (f) => {
+  const mesesRango = (desde, hasta) => {
+    const out = []; let [y, m] = desde.split('-').map(Number)
+    const [hy, hm] = hasta.split('-').map(Number)
+    let guardia = 0
+    while ((y < hy || (y === hy && m <= hm)) && guardia++ < 24) {
+      const pad = (n) => String(n).padStart(2, '0')
+      const d = `${y}-${pad(m)}-01`
+      const finMes = new Date(y, m, 0).getDate()
+      const h = `${y}-${pad(m)}-${pad(finMes)}`
+      out.push({ d: d < desde ? desde : d, h: h > hasta ? hasta : h })
+      m++; if (m > 12) { m = 1; y++ }
+    }
+    return out.reverse()   // de más reciente a más viejo
+  }
+  const consultar = async (f, d, h) => {
     const fechas = f.locator('input[type="date"], input[type="text"], input[placeholder*="/" i], input[class*="fecha" i]')
     if ((await fechas.count().catch(() => 0)) < 2) return false
-    for (const [idx, val] of [[0, DESDE], [1, hoy]]) {
+    for (const [idx, val] of [[0, d], [1, h]]) {
       const el = fechas.nth(idx); const tipo = await el.getAttribute('type').catch(() => 'text')
       const v = tipo === 'date' ? val : `${val.slice(8, 10)}/${val.slice(5, 7)}/${val.slice(0, 4)}`
       await el.click().catch(() => {}); await el.fill('').catch(() => {}); await el.fill(v).catch(() => {})
       await el.evaluate((e) => e.dispatchEvent(new Event('change', { bubbles: true }))).catch(() => {}); await sleep(400)
     }
     const btn = f.locator('button:has-text("Consultar"), a:has-text("Consultar"), input[value*="onsult" i]').first()
-    if (await btn.isVisible().catch(() => false)) { await clickHumano(page, btn); log('consulté cartola', DESDE, '→', hoy); return true }
+    if (await btn.isVisible().catch(() => false)) { await clickHumano(page, btn); log('consulté cartola', d, '→', h); return true }
     return false
   }
-  let f = eob(); if (f) { await consultar(f).catch(() => {}); await sleep(rnd(8000, 10_000)) } else log('  ⚠ sin iframe eob (uso lo auto-cargado)')
-  // 4) recorrer las demás cuentas del selector (si hay)
+  const meses = mesesRango(DESDE, hoy)
+  log(`consultaré ${meses.length} tramos mensuales (${DESDE}→${hoy})`)
+  let f = eob()
+  if (f) { for (const mm of meses) { await consultar(f, mm.d, mm.h).catch(() => {}); await sleep(rnd(6000, 8000)); f = eob() || f } }
+  else log('  ⚠ sin iframe eob (uso lo auto-cargado)')
+  // 4) recorrer las demás cuentas del selector (si hay), mes a mes también
   try {
     f = eob()
     if (f) { const sel = f.locator('select').first(); const nop = await sel.locator('option').count().catch(() => 0)
-      for (let i = 1; i < Math.min(nop, 4); i++) { await sel.selectOption({ index: i }).catch(() => {}); await sleep(2000); const f2 = eob(); if (f2) { await consultar(f2).catch(() => {}); await sleep(rnd(7000, 9000)) } } }
+      for (let i = 1; i < Math.min(nop, 4); i++) {
+        await sel.selectOption({ index: i }).catch(() => {}); await sleep(2000)
+        for (const mm of meses) { const f2 = eob(); if (f2) { await consultar(f2, mm.d, mm.h).catch(() => {}); await sleep(rnd(5000, 7000)) } }
+      } }
   } catch {}
   ctx.off('response', onResp)
   // consolidar movimientos (dedup por nroMov+fecha+saldo)
@@ -365,13 +389,28 @@ async function capturarData(ctx, page, log) {
   }
   movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
   const actualizado = new Date().toISOString()
+  // ── ACUMULADOR ANUAL: fusiona esta captura en cartola-anual.json (nunca pierde lo
+  //    ya capturado) y guarda los últimos 50 movimientos CRUDOS. Ver almacen.mjs.
+  //    IMPORTANTE: solo acumulamos si la captura trajo algo, para no marcar una
+  //    corrida vacía (sesión caída) como snapshot bueno.
+  let anual = null
+  if (movs.length) {
+    try {
+      const alm = await import('/Users/AIagenteia/nexus/conector-tek/almacen.mjs')
+      const meta = { empresa: empresaActiva || 'ANA CLARA SPA', desde: DESDE, hasta: hoy }
+      anual = alm.fusionar(movs, meta)
+      alm.guardarUltimos(lotesMov.flat(), meta, 50)
+      log(`acumulador anual: ${anual.total} movs del año (+${anual.nuevos} nuevos) rango ${anual.min || '?'}→${anual.max || '?'}`)
+    } catch (e) { log('acumulador falló:', e.message) }
+  }
   writeFileSync(join(DATA, 'raw-capturas.json'), JSON.stringify(raw, null, 2))
-  writeFileSync(join(DATA, 'estado.json'), JSON.stringify({ estado: 'ok', actualizado, empresa: empresaActiva || 'ANA CLARA SPA', desde: DESDE, hasta: hoy, limite_banco_dias: 90, saldos: saldosFilas?.length || 0, movimientos: movs.length, url: page.url() }, null, 2))
+  writeFileSync(join(DATA, 'estado.json'), JSON.stringify({ estado: 'ok', actualizado, empresa: empresaActiva || 'ANA CLARA SPA', desde: DESDE, hasta: hoy, limite_banco_dias: 90, saldos: saldosFilas?.length || 0, movimientos: movs.length, movimientos_anual: anual?.total ?? null, url: page.url() }, null, 2))
   if (saldosFilas) writeFileSync(join(DATA, 'saldos.json'), JSON.stringify({ actualizado, empresa: empresaActiva || 'ANA CLARA SPA', cuentas: saldosFilas }, null, 2))
+  // movimientos.json = SOLO la última captura (compat). El acumulado del año vive en cartola-anual.json.
   writeFileSync(join(DATA, 'movimientos.json'), JSON.stringify({ actualizado, desde: DESDE, hasta: hoy, limite_banco_dias: 90, total: movs.length, movimientos: movs }, null, 2))
   await page.screenshot({ path: join(DATA, 'fin-captura.png') }).catch(() => {})
-  log(`captura: ${saldosFilas?.length || 0} saldos, ${movs.length} movimientos (desde ${DESDE})`)
-  return { saldos: saldosFilas?.length || 0, movimientos: movs.length }
+  log(`captura: ${saldosFilas?.length || 0} saldos, ${movs.length} movimientos (desde ${DESDE}); anual=${anual?.total ?? '—'}`)
+  return { saldos: saldosFilas?.length || 0, movimientos: movs.length, anual: anual?.total ?? 0 }
 }
 
 // entra a la empresa objetivo si estamos en el "Listado de Empresas".
