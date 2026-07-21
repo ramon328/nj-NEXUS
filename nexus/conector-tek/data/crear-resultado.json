@@ -1,5 +1,4 @@
 {
-  "paso": 1,
   "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1784610587167",
   "forms": [
     {
@@ -18,34 +17,61 @@
         {
           "tag": "input",
           "type": "text",
-          "id": "txtMonto",
+          "id": "",
           "name": "",
-          "placeholder": "Ingrese monto",
+          "placeholder": "Ingrese cuenta destino",
+          "maxlength": "12",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "moneda",
+          "name": "",
+          "placeholder": "Ingrese moneda",
           "maxlength": "",
           "label": ""
         },
         {
           "tag": "input",
           "type": "text",
-          "id": "mensaje-100",
+          "id": "rut",
           "name": "",
-          "placeholder": "Ingrese motivo (máx. 100 caracteres)",
-          "maxlength": "100",
+          "placeholder": "Ingrese RUT",
+          "maxlength": "",
           "label": ""
         },
         {
           "tag": "input",
           "type": "text",
-          "id": "email",
-          "name": "email",
-          "placeholder": "Ingrese email",
+          "id": "nombre",
+          "name": "",
+          "placeholder": "Ingrese nombre",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "",
+          "name": "",
+          "placeholder": "Ingrese Email",
           "maxlength": "60",
+          "label": ""
+        },
+        {
+          "tag": "textarea",
+          "type": "textarea",
+          "id": "mensaje",
+          "name": "",
+          "placeholder": "Ingrese mensaje (máx. 200 caracteres)",
+          "maxlength": "200",
           "label": ""
         }
       ],
       "botones": [
-        "0-000-8028093-9 | PESOS DE CHILE",
-        "Continuar"
+        "Buscar Destinatario",
+        "Crear"
       ],
       "titulos": [
         "Creación transferencia a cuenta de tercero\nMartes 21 de Julio de 2026, 1:09 hrs."
