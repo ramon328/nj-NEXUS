@@ -1,9 +1,20 @@
 {
-  "actualizado": "2026-07-21T14:19:55.294Z",
-  "desde": "2026-04-24",
+  "actualizado": "2026-07-21T14:19:55.296Z",
+  "empresa": "ANA CLARA SPA",
+  "anio": 2026,
+  "desde": "2026-01-01",
   "hasta": "2026-07-21",
-  "limite_banco_dias": 90,
   "total": 50,
+  "cobertura": {
+    "min_fecha": "2026-07-14",
+    "max_fecha": "2026-07-21",
+    "ultima_captura": "2026-07-21T14:19:55.296Z",
+    "ventana_capturada": {
+      "desde": "2026-04-24",
+      "hasta": "2026-07-21"
+    },
+    "capturas": 1
+  },
   "movimientos": [
     {
       "fecha": "2026-07-21",
