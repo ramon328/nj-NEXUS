@@ -138,11 +138,17 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
       if (!resultado) {
         return resolve({ ok: false, estado: 'sin_resultado', error: `login-humano no devolvió RESULTADO (code ${code}).`, stderr: err.slice(-500) })
       }
-      // El estado real de la creación va anidado en `crear` (crear_click = apretó "Crear").
+      // El estado real de la creación va anidado en `crear`. SOLO 'creada' cuenta como
+      // éxito (el banco confirmó la solicitud). 'no_creada' / 'crear_click' NO son éxito:
+      // antes se daba por bueno con solo apretar "Crear" → falso positivo (no llegaba nada).
       const crear = resultado.crear || null
       const estado = crear?.estado || resultado.estado
-      const ok = estado === 'crear_click' || estado === 'logueado'
-      resolve({ ok, estado, resultado, pendiente: crear?.estado === 'crear_click' })
+      const ok = estado === 'creada'
+      resolve({
+        ok, estado, resultado,
+        pendiente: estado === 'creada',
+        motivo: crear?.pista || crear?.motivo || (crear?.faltan ? `faltan campos: ${crear.faltan.join(', ')}` : null),
+      })
     }
 
     hijo.on('close', terminar)

@@ -272,7 +272,7 @@ async function autoGraficarResumen(r, ctx) {
     }
   } catch (e) { /* best-effort */ }
 }
-export async function aliaceResumenMes(fecha) {
+async function aliaceResumenMes(fecha) {
   const P = resumenMesPeriodo(fecha)
   const num = (n) => Math.round(Number(n || 0))
   // Las 5 consultas son INDEPENDIENTES entre sí: las disparamos EN PARALELO (Promise.all)
@@ -455,7 +455,7 @@ export async function aliaceResumenMes(fecha) {
 // (aliaceFacturasApp), así el total del año cuadra al peso con la suma de los meses y
 // con el tool aliace_resumen. La CxC NO va aquí: es un snapshot a fecha de corte (no se
 // acumula); para CxC usa aliace_resumen. anio opcional → por defecto el año en curso.
-export async function aliaceResumenAnual(anio) {
+async function aliaceResumenAnual(anio) {
   const num = (n) => Math.round(Number(n || 0))
   const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
   const anioHoy = Number(hoy.slice(0, 4)); const mesHoy = Number(hoy.slice(5, 7))
@@ -575,7 +575,8 @@ export async function aliaceResumenAnual(anio) {
     instruccion: '⭐ ENVÍA `reporte_texto` TAL CUAL (informe anual ya armado: NO lo reescribas, NO cambies cifras, NO quites meses). ' +
       'Las cifras son la SUMA de los meses con la MISMA réplica de la pantalla Facturas de la app; repórtalas TAL CUAL, NO recalcules con aliace_sql. ' +
       'La CxC NO está aquí (es snapshot, no anual): para vencidas/por vencer usa aliace_resumen. ' +
-      'ACOMPAÑA SIEMPRE con un gráfico (tool graficar): facturado por mes (barras) y/o margen % por mes.',
+      'ACOMPAÑA SIEMPRE con un gráfico (tool graficar): facturado por mes (barras) y/o margen % por mes. ' +
+      `⚠️ OBLIGATORIO EN EL TEXTO (aunque mandes gráfico y aunque resumas): di SIEMPRE el FACTURADO TOTAL del año en pesos = ${clp(facturacion.facturado_neto)} y el AVANCE de meta = ${avance_pct == null ? 's/d' : avance_pct + '%'}. Ese total es la RESPUESTA directa a "cuánto llevamos en el año"; NUNCA respondas solo con el mejor mes, un comentario o el % sin el monto absoluto.`,
   }
 }
 
@@ -871,7 +872,7 @@ async function aliaceMargenEstimado(anio, mes, ncMonto = 0) {
   }
 }
 
-export async function aliaceMargen({ fecha, id } = {}) {
+async function aliaceMargen({ fecha, id } = {}) {
   const num = (n) => Math.round(Number(n || 0))
   if (id) {
     const uuid = String(id).trim()
@@ -3535,7 +3536,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       // CANAL DESKTOP/WEB: NO se manda por WhatsApp; se DEVUELVE para mostrarlo en la app.
       if (ctx.web) {
         if (Array.isArray(ctx.graficos)) ctx.graficos.push({ tipo, titulo: String(input.titulo || ''), subtitulo: String(input.subtitulo || ''), etiquetas, valores })
-        return JSON.stringify({ ok: true, mostrado: 'grafico', tipo, nota: 'Gráfico MOSTRADO en la pantalla del usuario (en la app). En tu respuesta deja SOLO el titular/conclusión; NO repitas todos los números, ya van en el gráfico. EXCEPCIÓN: si en este turno un tool te dio un "reporte_texto" (informe ya armado, ej. aliace_resumen), ENVÍA ESE INFORME COMPLETO igual — el gráfico va ADEMÁS, NO lo reemplaza.' })
+        return JSON.stringify({ ok: true, mostrado: 'grafico', tipo, nota: 'Gráfico MOSTRADO en la pantalla del usuario (en la app). En tu respuesta de texto deja el titular/conclusión PERO SIEMPRE con la(s) cifra(s) PRINCIPAL(es) en pesos que responden la pregunta (ej. facturación total, margen bruto + margen %, deuda vencida). NO botes la cifra clave ni respondas solo "ahí va el gráfico" o solo un comentario; solo evita repetir el DESGLOSE completo y las tablas (eso sí va en el gráfico). EXCEPCIÓN: si en este turno un tool te dio un "reporte_texto" (informe ya armado, ej. aliace_resumen), ENVÍA ESE INFORME COMPLETO igual — el gráfico va ADEMÁS, NO lo reemplaza.' })
       }
       const target = destinoValido(ctx.de)
       if (!target) return 'No pude identificar a quién enviarle el gráfico (número no reconocido). Responde en texto.'
@@ -3552,7 +3553,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         enviarMediaWhatsApp(target, archivo, String(input.titulo || ''))
           .then(() => glog(`OK grafico ${tipo} -> ${target}`))
           .catch((e) => glog(`FALLO grafico: ${String(e.message).slice(0, 150)}`))
-        return JSON.stringify({ ok: true, enviado: 'grafico', tipo, nota: 'Gráfico enviado al WhatsApp del usuario (llega en ~1 min). En tu respuesta de texto deja SOLO el titular/conclusión; NO repitas todos los números, ya van en el gráfico. EXCEPCIÓN: si en este turno un tool te dio un "reporte_texto" (informe ya armado, ej. aliace_resumen), ENVÍA ESE INFORME COMPLETO igual — el gráfico va ADEMÁS, NO lo reemplaza.' })
+        return JSON.stringify({ ok: true, enviado: 'grafico', tipo, nota: 'Gráfico enviado al WhatsApp del usuario (llega en ~1 min). En tu respuesta de texto deja el titular/conclusión PERO SIEMPRE con la(s) cifra(s) PRINCIPAL(es) en pesos que responden la pregunta (ej. facturación total, margen bruto + margen %, deuda vencida). NO botes la cifra clave ni respondas solo "ahí va el gráfico" o solo un comentario; solo evita repetir el DESGLOSE completo y las tablas (eso sí va en el gráfico). EXCEPCIÓN: si en este turno un tool te dio un "reporte_texto" (informe ya armado, ej. aliace_resumen), ENVÍA ESE INFORME COMPLETO igual — el gráfico va ADEMÁS, NO lo reemplaza.' })
       } catch (e) { return `No pude generar el gráfico: ${e.message}` }
     }
     if (nombre === 'enviar_audio') {
@@ -4024,7 +4025,7 @@ export async function responder(historial, opts = {}) {
       'TRATO SIN NOMBRE (regla dura de esta app): NUNCA te dirijas al usuario por su nombre — NADA de "Ramón" NI "Nico" NI ningún nombre propio. Trátalo SIEMPRE de USTED o "señor" (ej. "Claro, señor", "¿le muestro…?", "aquí tiene"). AUNQUE en tu contexto/perfil aparezca su nombre, NO lo uses al hablarle: es solo para que sepas quién es, no para nombrarlo. Ni al saludar ni al cerrar uses el nombre. ' +
       'RESPONDE SIEMPRE AQUÍ, EN LA WEB: lo que te pidan en esta app se contesta en la propia app, NO por WhatsApp. ' +
       'Para VER AUTOS / STOCK usa igual enviar_fotos_autos: en la web NO va a WhatsApp, ABRE una ventana con la ficha y FOTO de cada auto dentro de la app; tú solo responde una frase corta (no los listes en texto, ya se ven en la ventana). ' +
-      'Para FINANZAS/CIFRAS de Ali o Mallorca (facturación, ventas, deuda, márgenes, pagos, ranking de clientes, tendencias por mes): 1) SIEMPRE trae los datos FRESCOS en ESTE turno con su tool (aliace_resumen / aliace_rpc / aliace_margen / consultar_mallorca) — NUNCA reutilices ni inventes cifras de mensajes anteriores, cambian. 2) SIEMPRE llama graficar (barra=comparar/ranking, torta=distribución %, linea=tendencia mensual) con etiquetas+valores en PESOS chilenos; en la web eso ABRE una VENTANA con los gráficos y datos. Puedes mandar VARIOS gráficos. 3) Responde con un RESUMEN claro y ordenado: las cifras PRINCIPALES en pocas líneas (facturación, margen %, deuda vencida, avance de meta) — detallado pero SIN el volcado gigante del reporte_texto completo; el detalle fino y los gráficos se ven en la ventana. TODO en CLP, nunca en dólares. ' +
+      'Para FINANZAS/CIFRAS de Ali o Mallorca (facturación, ventas, deuda, márgenes, pagos, ranking de clientes, tendencias por mes): 1) SIEMPRE trae los datos FRESCOS en ESTE turno con su tool (aliace_resumen / aliace_rpc / aliace_margen / consultar_mallorca) — NUNCA reutilices ni inventes cifras de mensajes anteriores, cambian. 2) SIEMPRE llama graficar (barra=comparar/ranking, torta=distribución %, linea=tendencia mensual) con etiquetas+valores en PESOS chilenos; en la web eso ABRE una VENTANA con los gráficos y datos. Puedes mandar VARIOS gráficos. 3) Responde con un RESUMEN claro y ordenado: las cifras PRINCIPALES en pocas líneas (facturación, margen %, deuda vencida, avance de meta) — detallado pero SIN el volcado gigante del reporte_texto completo; el detalle fino y los gráficos se ven en la ventana. TODO en CLP, nunca en dólares. ⚠️ LA CIFRA QUE RESPONDE LA PREGUNTA VA SIEMPRE EN EL TEXTO, EN PESOS, aunque hayas mandado gráfico: "cuánto se facturó en el año" → di el MONTO total del año ($…); "margen del mes" → di Costo de Ventas, Margen Bruto y Margen %; "deuda vencida" → di el monto. NUNCA respondas solo "ahí va el gráfico", solo el mejor mes, o solo un % sin el monto: eso deja al usuario sin la respuesta. ' +
       'El resto (datos sueltos) va como texto corto aquí. ' +
       'ÚNICA excepción para WhatsApp: si el usuario pide EXPLÍCITAMENTE enviar algo a un WhatsApp/número/correo concreto ("mándale un ws a Juan", "envía esto al +569…"), eso SÍ hazlo con normalidad.' })
   }

@@ -591,35 +591,98 @@ async function crearTransferencia(page, log) {
   const modo = process.env.TEK_CREAR   // 'mapear' | 'llenar' | 'crear'
   if (modo === 'llenar' || modo === 'crear') {
     const f2 = page.frames().find((f) => /TEF\.UI\.Web/i.test(f.url())) || f1
-    const setVal = async (sel, val) => {
-      if (val == null || val === '') return
+    const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
+    const setVal = async (sel, valTxt) => {
+      if (valTxt == null || valTxt === '') return
       const loc = f2.locator(sel).first()
       if (!(await loc.count().catch(() => 0))) { log('destino: no vi campo', sel); return }
       await loc.click().catch(() => {}); await sleep(rnd(250, 500))
       await loc.fill('').catch(() => {})
-      await loc.type(String(val), { delay: rnd(70, 150) }).catch(() => {})
+      await loc.type(String(valTxt), { delay: rnd(70, 150) }).catch(() => {})
       await sleep(rnd(300, 700))
     }
+    // 1) cuenta destino → blur para gatillar validación/resolución del banco
     await setVal('input[placeholder*="cuenta destino" i]', process.env.TEK_DEST_CUENTA)
-    await setVal('#moneda', process.env.TEK_DEST_MONEDA || 'PESOS')
-    await sleep(rnd(500, 1000))   // por si "moneda" abre autocompletar
+    await page.keyboard.press('Tab').catch(() => {})
+    await sleep(rnd(1200, 2000))
+    // 2) MONEDA: es un AUTOCOMPLETE → hay que ELEGIR la opción, no basta tipear.
+    //    (este era el bug: se apretaba "Crear" con la moneda vacía → el form no avanza)
+    const monedaTxt = process.env.TEK_DEST_MONEDA || 'PESOS'
+    const monLoc = f2.locator('#moneda').first()
+    if (await monLoc.count().catch(() => 0)) {
+      await monLoc.click().catch(() => {}); await sleep(rnd(250, 500))
+      await monLoc.fill('').catch(() => {})
+      await monLoc.type(monedaTxt, { delay: rnd(90, 160) }).catch(() => {})
+      await sleep(rnd(1000, 1600))
+      let elegida = false
+      for (const f of page.frames()) {
+        const opt = f.getByText(/pesos\s+de\s+chile|pesos\s+chilenos|\bCLP\b/i).filter({ hasNotText: /ingrese/i }).first()
+        if (await opt.isVisible().catch(() => false)) { await clickHumano(page, opt); elegida = true; break }
+      }
+      if (!elegida) { await monLoc.press('ArrowDown').catch(() => {}); await sleep(350); await monLoc.press('Enter').catch(() => {}) }
+      await sleep(rnd(500, 900))
+    }
+    // 3) RUT + nombre + email + mensaje (tercero NO inscrito → los damos nosotros)
     await setVal('#rut', process.env.TEK_DEST_RUT)
     await setVal('#nombre', process.env.TEK_DEST_NOMBRE)
     await setVal('input[placeholder*="email" i]', process.env.TEK_DEST_EMAIL)
-    await setVal('#mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Prueba tek')
+    await setVal('#mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Transferencia')
     await sleep(rnd(600, 1200))
     await page.screenshot({ path: join(DATA, 'crear-03-destino-lleno.png') }).catch(() => {})
     writeFileSync(join(DATA, 'crear-destino-lleno.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2))
+
+    // 4) VERIFICAR que los campos clave quedaron poblados ANTES de apretar Crear
+    //    (la moneda llegaba tarde por el autocomplete → esperamos hasta 8s a que asiente)
+    let campos = {}
+    for (let i = 0; i < 8; i++) {
+      campos = {
+        cuenta: await val('input[placeholder*="cuenta destino" i]'),
+        moneda: await val('#moneda'),
+        rut: await val('#rut'),
+        nombre: await val('#nombre'),
+      }
+      if (campos.cuenta && campos.moneda && campos.rut && campos.nombre) break
+      await sleep(1000)
+    }
+    log('destino poblado:', JSON.stringify(campos))
+    const faltan = Object.entries(campos).filter(([, v]) => !v).map(([k]) => k)
+    if (faltan.length) {
+      log('✗ faltan campos antes de Crear:', faltan.join(','))
+      await page.screenshot({ path: join(DATA, 'crear-04-resultado.png') }).catch(() => {})
+      return { estado: 'no_creada', motivo: 'campos_incompletos', faltan, campos, url: page.url() }
+    }
+
     if (modo === 'llenar') { log('LLENO paso 2 — DETENIDO antes de Crear (revisá el screenshot)'); return { estado: 'lleno_sin_crear', url: page.url() } }
-    // modo === 'crear': apretar "Crear" (crea la transferencia PENDIENTE, no libera, no mueve plata)
+
+    // 5) CREAR (crea la transferencia PENDIENTE, no libera, no mueve plata)
     const crearBtn = f2.getByText(/^crear$/i).first()
     const bb = await crearBtn.boundingBox().catch(() => null)
     if (bb) { await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 12 }); await sleep(rnd(250, 550)); await page.mouse.down(); await sleep(60); await page.mouse.up(); log('CREAR clickeado') }
     else { log('no vi el botón Crear'); return { estado: 'sin_boton_crear', url: page.url() } }
-    await sleep(9000)
+
+    // 6) DETECTAR EL RESULTADO REAL — NO dar por creada solo por haber apretado el botón.
+    const OK_RE = /pendiente|autoriz|por\s+liberar|comprobante|solicitud\s+(de\s+)?transfer|se\s+(ha\s+)?cre[oó]|creada|exitos|realizada con [eé]xito|registrada/i
+    const ERRC_RE = /obligatori|requerid|debe\s+ingresar|ingrese\s+un|inv[aá]lid|no\s+coincide|insuficient|excede|no\s+se\s+pudo|rechaz|super[oó]\s+el\s+monto|fuera\s+de\s+horario|monto\s+m[ií]nimo/i
+    let veredicto = null, pista = ''
+    const dlv = Date.now() + 30_000
+    while (Date.now() < dlv) {
+      let txt = ''
+      for (const f of page.frames()) txt += (await f.locator('body').innerText().catch(() => '') || '').slice(0, 1400) + ' '
+      txt = txt.replace(/\s+/g, ' ')
+      if (ERRC_RE.test(txt)) { veredicto = 'no_creada'; pista = (txt.match(new RegExp('.{0,50}(?:' + ERRC_RE.source + ').{0,50}', 'i')) || [''])[0].trim(); break }
+      if (OK_RE.test(txt)) { veredicto = 'creada'; pista = (txt.match(new RegExp('.{0,40}(?:' + OK_RE.source + ').{0,50}', 'i')) || [''])[0].trim(); break }
+      await sleep(1500)
+    }
     await page.screenshot({ path: join(DATA, 'crear-04-resultado.png') }).catch(() => {})
-    writeFileSync(join(DATA, 'crear-resultado.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2))
-    return { estado: 'crear_click', url: page.url() }
+    writeFileSync(join(DATA, 'crear-resultado.json'), JSON.stringify({ url: page.url(), veredicto, pista, forms: await volcarFrames(page) }, null, 2))
+    if (!veredicto) {
+      // sin texto claro: si SIGUE visible el botón "Crear" del mismo form → no avanzó.
+      const sigueForm = await f2.getByText(/^crear$/i).first().isVisible().catch(() => false)
+      veredicto = sigueForm ? 'no_creada' : 'creada'
+      pista = sigueForm ? 'el formulario no avanzó (sigue el botón Crear)' : 'avanzó, sin texto reconocible'
+    }
+    log(`resultado creación: ${veredicto} — ${pista}`)
+    return { estado: veredicto, pista, url: page.url() }
   }
   return { estado: 'mapeado_destino', inputs_destino: nIn, url: page.url() }
 }
@@ -792,7 +855,7 @@ async function main() {
     const deadline = Date.now() + 300_000
     while (Date.now() < deadline) {
       if (page.isClosed()) break
-      let onHome = false; try { const u = new URL(page.url()); onHome = u.host.includes(PRIVADO) && !u.pathname.startsWith('/login') } catch {}
+      let onHome = false; try { const u = new URL(page.url()); onHome = u.host.includes(PRIVADO) && !/^\/(login|logout)|error-seguridad/i.test(u.pathname) } catch {}
       if (onHome) return acciones('asistido')
       await sleep(2000)
     }
@@ -811,8 +874,9 @@ async function main() {
   let mfaHecha = false
   while (Date.now() < deadline) {
     if (page.isClosed()) break
-    let onHome = false; try { const u = new URL(page.url()); onHome = u.host.includes(PRIVADO) && !u.pathname.startsWith('/login') } catch {}
+    let onHome = false; try { const u = new URL(page.url()); onHome = u.host.includes(PRIVADO) && !/^\/(login|logout)|error-seguridad/i.test(u.pathname) } catch {}
     if (onHome) return acciones('login')
+    if (/error-seguridad|\/logout/i.test(page.url())) return fin('error_seguridad', { nota: 'Santander botó la sesión al muro antifraude (Incapsula/BioCatch). Login manual por VNC para sembrar confianza, o IP más limpia.' })
     if (await textoVisible(page, DEVICE_RE)) return fin('device_trust')
     let texto = ''
     for (const f of page.frames()) texto += (await f.locator('body').innerText().catch(() => '') || '').slice(0, 500) + ' '
