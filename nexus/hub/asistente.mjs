@@ -872,6 +872,34 @@ async function aliaceMargenEstimado(anio, mes, ncMonto = 0) {
   }
 }
 
+// ── INFORME DE MARGEN YA FORMATEADO (mismo estándar ejecutivo que aliace_resumen) ──
+// aliace_margen ANTES no traía un texto armado: el modelo lo formateaba a mano y por
+// eso el margen salía DISTINTO en cada consulta y a veces con frases engañosas
+// ("21,6% sobre $771M de costo" — el % es SOBRE VENTAS NETAS, nunca sobre el costo).
+// Ahora devolvemos `reporte_texto` determinista (igual patrón que resumen/anual): el
+// modelo lo manda TAL CUAL → mismo dato, misma presentación, sin ambigüedad.
+const _clpM = (n) => '$' + Math.round(Number(n || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+const _MESES_M = ['', 'enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+const _DIVM = '━━━━━━━━━━━━━━━'
+const _capM = (s) => (s || '').charAt(0).toUpperCase() + (s || '').slice(1)
+// Margen del MES (WAC real o estimado). Muestra SOLO Costo / Margen Bruto / Margen % —
+// el % SIEMPRE sobre ventas netas—, con una única línea de aviso si aplica.
+function margenTextoMes({ anio, mes, fecha, costo, margen_bruto, margen_pct_texto, cobertura_pct, estimado, ventas_netas }) {
+  const dd = (fecha || '').slice(8, 10)
+  const L = []
+  L.push(`📊 *ALIACE · Margen · ${_capM(_MESES_M[mes])} ${anio}*`)
+  L.push(estimado
+    ? '_ESTIMADO con unit_costs — no es el WAC oficial · costos en revisión_'
+    : `_Neto de devoluciones (estilo Power BI)${dd ? ` · corte al ${dd}-${_MESES_M[mes].slice(0, 3)}` : ''} · costos en revisión (no oficial)_`)
+  L.push(_DIVM)
+  L.push(`*Costo de Ventas${estimado ? ' (estimado)' : ' (WAC)'}:* ${_clpM(costo)}`)
+  L.push(`*Margen Bruto:* ${_clpM(margen_bruto)} · *Margen %:* ${margen_pct_texto}`)
+  L.push(`_Sobre ventas netas de ${_clpM(ventas_netas)} (facturas − devoluciones)._`)
+  if (estimado) L.push(`_⚠️ ${_capM(_MESES_M[mes])} no tiene costeo WAC en Aliace; el costo se estimó con unit_costs (cobertura ${cobertura_pct ?? '—'}%). Validado a ~0,7 pto del WAC real; no es cifra oficial._`)
+  else if (cobertura_pct != null && cobertura_pct < 99) L.push(`_⚠️ Costeo del mes al ${pctTexto((cobertura_pct || 0) / 100)} — el margen puede afinarse al terminar de costear ${_MESES_M[mes]}._`)
+  return L.join('\n')
+}
+
 async function aliaceMargen({ fecha, id } = {}) {
   const num = (n) => Math.round(Number(n || 0))
   if (id) {
@@ -892,13 +920,25 @@ async function aliaceMargen({ fecha, id } = {}) {
     const ingreso = facturado > 0 ? facturado : num(r.nv_total)
     const costo = num(r.costo)
     const completo = Number(r.costeadas) >= Number(r.total_lineas) && Number(r.total_lineas) > 0
+    const mpTxt = ingreso ? Math.round((ingreso - costo) / ingreso * 1000) / 10 : null
+    const reporte_texto = [
+      '📊 *ALIACE · Margen de la NV*',
+      _DIVM,
+      `*Ingreso neto:* ${_clpM(ingreso)}`,
+      `_${facturado > 0 ? 'net_amount de la(s) factura(s) emitida(s)' : 'total de la NV (aún sin factura: estimado)'}_`,
+      `*Costo (WAC):* ${_clpM(costo)}`,
+      `*Margen:* ${_clpM(ingreso - costo)} · *Margen %:* ${mpTxt == null ? '—' : String(mpTxt).replace('.', ',') + '%'}`,
+      `_Cobertura: ${num(r.costeadas)}/${num(r.total_lineas)} líneas costeadas${completo ? '' : ' · ⚠️ faltan líneas por costear, el margen puede estar incompleto'}._`,
+    ].join('\n')
     return {
       fuente: 'aliace_margen (igual que la app: ingreso NETO de factura − costo WAC)', tipo: 'nota_venta', id: uuid,
       base_ingreso: facturado > 0 ? 'net_amount de la(s) factura(s) emitida(s)' : 'total de la NV (aún SIN factura: estimado)',
       ingreso_neto: ingreso, costo: costo, margen: ingreso - costo,
-      margen_pct: ingreso ? Math.round((ingreso - costo) / ingreso * 1000) / 10 : null,
+      margen_pct: mpTxt,
       cobertura_costeo: `${num(r.costeadas)}/${num(r.total_lineas)} líneas con costo`,
       nota: completo ? 'Todas las líneas costeadas.' : '⚠️ Faltan líneas por costear: el margen puede estar incompleto.',
+      reporte_texto,
+      instruccion: '⭐ ENVÍA `reporte_texto` TAL CUAL (informe de margen ya armado: NO lo reescribas, NO cambies cifras). El Margen % es sobre el INGRESO NETO, nunca "sobre el costo".',
     }
   }
   // MARGEN DEL MES — el CORRECTO es el NETO de devoluciones (estilo Power BI): ventas
@@ -930,9 +970,21 @@ async function aliaceMargen({ fecha, id } = {}) {
       monto_total_facturado_sin_iva: fa.monto_total_facturado_sin_iva,
       fuente_costo: est.fuente_costo, validacion: est.validacion,
       costeo: costeo || undefined,
-      instruccion: `⚠️ MARGEN ESTIMADO (no oficial): ${mesISO} NO tiene costeo WAC en Aliace, así que el costo se estimó con unit_costs (tabla de costo mensual por producto de Aliace), matcheado por nombre con ${est.cobertura_pct}% de cobertura. En el apartado "Margen" MUESTRA SOLO tres líneas: • Costo de Ventas (estimado) = costo_estimado • Margen Bruto = margen_bruto • Margen % = margen_pct_texto. NO pongas "Ventas netas" en ese apartado. Márcalo SIEMPRE como "estimado (unit_costs), no es el WAC oficial" con una línea de aviso debajo. Es fiable (validado a ~0,7 pto del WAC real de junio) pero NO lo presentes como cifra oficial. Los meses con WAC (costeo.meses_costeados) sí son oficiales. margen_pct es FRACCIÓN → usa margen_pct_texto.`,
+      reporte_texto: margenTextoMes({ anio: P.anio, mes: P.mes, fecha: P.fecha, costo: est.costo_estimado, margen_bruto: est.margen_bruto, margen_pct_texto: pctTexto(est.margen_pct), cobertura_pct: est.cobertura_pct, estimado: true, ventas_netas: est.ventas_netas }),
+      instruccion: '⭐ ENVÍA `reporte_texto` TAL CUAL (margen ESTIMADO ya armado). Es un ESTIMADO con unit_costs (no el WAC oficial), pero fiable (validado a ~0,7 pto del real de junio); NO lo presentes como cifra oficial. Los meses con WAC (costeo.meses_costeados) sí son oficiales. NO recalcules con aliace_sql.',
     }
   }
+  const reporte_texto = sinCosteo
+    ? [
+        `📊 *ALIACE · Margen · ${_capM(_MESES_M[P.mes])} ${P.anio}*`,
+        _DIVM,
+        `*Facturado (sin IVA):* ${_clpM(fa.monto_total_facturado_sin_iva)}`,
+        `⚠️ *Margen no disponible:* falta el costeo WAC de ${mesISO} (el equipo de costos aún no procesó el período).`,
+        (costeo && costeo.meses_costeados && costeo.meses_costeados.length)
+          ? `_Meses con costeo cargado: ${costeo.meses_costeados.join(', ')}._`
+          : '_Aún no hay ningún mes con costeo WAC cargado._',
+      ].join('\n')
+    : margenTextoMes({ anio: P.anio, mes: P.mes, fecha: P.fecha, costo: nb.costo_ventas_total, margen_bruto: nb.margen_bruto, margen_pct_texto: pctTexto(nb.margen_pct), cobertura_pct: nb.cobertura_costeo_pct, estimado: false, ventas_netas: nb.ventas_netas })
   return {
     fuente: 'aliace_margen (NETO de devoluciones, estilo Power BI · misma data que la app)', tipo: 'mes', mes: P.mes, anio: P.anio,
     // MARGEN CORRECTO (neto de NC), preciso:
@@ -948,10 +1000,9 @@ async function aliaceMargen({ fecha, id } = {}) {
     costeo: costeo || undefined,
     // COTEJO con la pantalla Facturas de la app (NO netea NC), solo para comparar:
     cotejo_app: { costo_ventas_wac: fa.costo_ventas_wac, ventas_con_costo: fa.ventas_con_costo, margen_bruto: fa.margen_bruto, margen_pct: fa.margen_pct },
-    instruccion: (sinCosteo
-      ? `⚠️ El margen de este mes NO es calculable: el costeo WAC de ${mesISO} tiene 0% de cobertura (el equipo de costos de Aliace aún no procesó ese período). NO inventes un margen. Reporta el Facturado (monto_total_facturado_sin_iva) y di claramente que el margen no está disponible por falta de costeo. Dile al usuario qué meses SÍ están costeados usando costeo.meses_costeados (y ultimo_costeado como referencia). `
-      : 'MARGEN CORRECTO = margen_bruto / margen_pct de este objeto (NETO de notas de crédito, calculado sobre ventas netas). En el apartado "Margen" MUESTRA SOLO estas TRES líneas, nada más: • Costo de Ventas (WAC) = costo_ventas_total • Margen Bruto = margen_bruto • Margen % = margen_pct_texto. NO pongas "Ventas netas" ni "Cobertura de costeo" en ese apartado (esas cifras pertenecen a Facturación, no a Margen). OJO: margen_pct es una FRACCIÓN — usa margen_pct_texto para mostrarlo. Si cobertura_costeo_pct es bajo (<99%), agrega DEBAJO de las tres líneas UNA sola línea corta de aviso ("costeo del mes incompleto, el margen puede afinarse al terminar de costear"), sin ponerla como métrica ni como porcentaje destacado. ') +
-      'cotejo_app es la pantalla Facturas de la app (sin netear NC); úsalo solo si te lo piden comparar. La app advierte: "Costos y márgenes: información en revisión, no oficial". Si hay margen, acompaña con un gráfico (Margen vs Costo).',
+    reporte_texto,
+    instruccion: '⭐ ENVÍA `reporte_texto` TAL CUAL (informe de margen ya armado y formateado: NO lo reescribas, NO cambies cifras, NO agregues líneas). El Margen % SIEMPRE es sobre las ventas netas, NUNCA "sobre el costo". ' +
+      'cotejo_app es la pantalla Facturas de la app (sin netear NC); úsalo solo si te lo piden comparar. La app advierte: "Costos y márgenes: información en revisión, no oficial". Si hay margen, acompaña con un gráfico (Margen vs Costo). NO recalcules con aliace_sql.',
   }
 }
 
@@ -1431,7 +1482,7 @@ FORMATO (tus respuestas van por WhatsApp):
   Status por auto: 🟢 disponible online · 🏢 disponible en local · 🔴 vendido.
 - Antes de la lista, un resumen corto (ej. "📊 *59 disponibles* · 41 online · 18 en local · 86 vendidos"). Claro y al grano; es un chat.
 - 💰 MONEDA — SIEMPRE pesos chilenos (CLP). NUNCA reportes ni conviertas montos a dólares (USD), salvo que te lo pidan EXPLÍCITAMENTE. TODO (precios, cifras, sueldos, deudas, márgenes, estimaciones y ejemplos) va en CLP con puntos de miles (ej. $1.250.000). Si alguna fuente trae un monto en USD, pásalo a pesos o acláralo, pero por defecto habla siempre en pesos chilenos.
-- 💼 FINANZAS / CIFRAS DE ALIACE Y MALLORCA — preséntalas SIEMPRE como un INFORME EJECUTIVO, para que se lea "de empresario": claro, preciso y ordenado, NUNCA un volcado plano ni un párrafo de números sueltos. Estructura: título en negrita + (mes/periodo y corte), secciones cortas con su etiqueta, montos en CLP con puntos de miles (ej $1.967.953.830), totales que cuadren, y al final una breve *Lectura ejecutiva* (1-3 viñetas) que diga QUÉ significan los números y dónde mirar — pero SOLO conclusiones DERIVADAS de las cifras reales, jamás inventadas ni estimadas. Si el tool te da un "reporte_texto" (aliace_resumen), ese ya viene en ese formato: mándalo TAL CUAL. Para cifras que armes tú (margen, un dato puntual, datos de Mallorca), respeta este MISMO estándar ejecutivo; si un dato no está, dilo, no lo rellenes.
+- 💼 FINANZAS / CIFRAS DE ALIACE Y MALLORCA — preséntalas SIEMPRE como un INFORME EJECUTIVO, para que se lea "de empresario": claro, preciso y ordenado, NUNCA un volcado plano ni un párrafo de números sueltos. Estructura: título en negrita + (mes/periodo y corte), secciones cortas con su etiqueta, montos en CLP con puntos de miles (ej $1.967.953.830), totales que cuadren, y al final una breve *Lectura ejecutiva* (1-3 viñetas) que diga QUÉ significan los números y dónde mirar — pero SOLO conclusiones DERIVADAS de las cifras reales, jamás inventadas ni estimadas. Si el tool te da un "reporte_texto" (aliace_resumen, aliace_anual, aliace_margen), ese ya viene en ese formato EXACTO: mándalo TAL CUAL (no lo reescribas, no cambies cifras, no lo vuelvas tabla). Para cifras que armes tú (un dato puntual, datos de Mallorca), respeta este MISMO estándar ejecutivo; si un dato no está, dilo, no lo rellenes.
 
 FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
 - AUTOS / VEHÍCULOS / PUBLICACIONES / STOCK de GoAutos o MallorcAutos: NUNCA navegues el portal (su tabla NO carga por scraping). "En stock" = DISPONIBLES (no vendidos).
@@ -2210,7 +2261,7 @@ const HERRAMIENTAS = [
   },
   {
     name: 'aliace_margen',
-    description: 'MARGEN / rentabilidad / utilidad de Aliace. Sin args o con fecha = margen del MES, RÉPLICA EXACTA de la pantalla "Facturas" de la app (mismos nombres y valores, verificado al peso): devuelve costo_ventas_wac, ventas_con_costo, margen_bruto, margen_pct. Con id (uuid de una NV) = margen de esa nota de venta (ingreso_neto, costo, margen, margen_pct). ⚠️ ÚSALO SIEMPRE para márgenes/rentabilidad/utilidad; NO los calcules a mano con aliace_sql. Es margen BRUTO sobre ventas con costo; la app advierte que costos/márgenes están "en revisión, no oficial". Repórtalo TAL CUAL y acompáñalo con un gráfico.',
+    description: 'MARGEN / rentabilidad / utilidad de Aliace. Sin args o con fecha = margen del MES, RÉPLICA EXACTA de la pantalla "Facturas" de la app (mismos nombres y valores, verificado al peso): devuelve costo_ventas_wac, ventas_con_costo, margen_bruto, margen_pct. Con id (uuid de una NV) = margen de esa nota de venta (ingreso_neto, costo, margen, margen_pct). ⚠️ ÚSALO SIEMPRE para márgenes/rentabilidad/utilidad; NO los calcules a mano con aliace_sql. TRAE un campo `reporte_texto` (informe de margen ya formateado, ejecutivo): MÁNDALO TAL CUAL (no lo reescribas, no cambies cifras). El Margen % es sobre las VENTAS NETAS, nunca "sobre el costo". Es margen BRUTO neto de devoluciones; la app advierte que costos/márgenes están "en revisión, no oficial". Acompáñalo con un gráfico (Margen vs Costo).',
     input_schema: {
       type: 'object',
       properties: {
