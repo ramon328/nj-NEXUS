@@ -1009,7 +1009,7 @@ async function aliaceMargen({ fecha, id } = {}) {
     cotejo_app: { costo_ventas_wac: fa.costo_ventas_wac, ventas_con_costo: fa.ventas_con_costo, margen_bruto: fa.margen_bruto, margen_pct: fa.margen_pct },
     reporte_texto,
     instruccion: '⭐ ENVÍA `reporte_texto` TAL CUAL (informe de margen ya armado y formateado: NO lo reescribas, NO cambies cifras, NO agregues líneas). El Margen % SIEMPRE es sobre las ventas netas, NUNCA "sobre el costo". ' +
-      'cotejo_app es la pantalla Facturas de la app (sin netear NC); úsalo solo si te lo piden comparar. La app advierte: "Costos y márgenes: información en revisión, no oficial". Si hay margen, acompaña con un gráfico (Margen vs Costo). NO recalcules con aliace_sql.',
+      'cotejo_app es la pantalla Facturas de la app (sin netear NC); úsalo solo si te lo piden comparar. La app advierte: "Costos y márgenes: información en revisión, no oficial". Si hay margen, acompaña con un gráfico (Margen vs Costo): barras Costo de Ventas (WAC) y Margen Bruto. ⛔ En el SUBTÍTULO del gráfico pon SOLO el corte/fecha (ej. "corte 21-jul"); NO pongas "Ventas netas $X" ni ninguna otra cifra en el subtítulo (confunde: parece que el margen fuera sobre las ventas netas). NO recalcules con aliace_sql.',
   }
 }
 
