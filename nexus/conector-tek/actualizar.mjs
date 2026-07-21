@@ -71,6 +71,9 @@ async function main() {
     if (lg.estado === 'logueado') {
       // capturarData ya escribió estado.json = ok con conteos
       log('OK:', JSON.stringify(lg.cap || {}))
+      // Volcar la cartola fresca al SEGUNDO CEREBRO (idempotente, se sobreescribe).
+      try { await correr('cerebro-cartolas.mjs', {}, 30_000); log('cerebro cartolas actualizado') }
+      catch (e) { log('cerebro export falló:', e.message) }
       console.log('RESULTADO:', JSON.stringify({ estado: 'ok', ...(lg.cap || {}) }))
       return
     }

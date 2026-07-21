@@ -13,6 +13,7 @@ export const STORE = join(__dirname, 'tag-registros.json')
 export const ESTADOS = {
   enviado: 'Enviado a Tag Tico',
   convenio_recibido: 'Convenio recibido',
+  en_camino: 'TAG en camino (Bloque Express)',
   rechazado: 'Rechazado',
   activo: 'TAG activo',
 }

@@ -38,6 +38,7 @@ const SCOPES = [
   'openid',
   'https://www.googleapis.com/auth/userinfo.email',
   'https://www.googleapis.com/auth/gmail.send',
+  'https://www.googleapis.com/auth/gmail.readonly', // leer correos de Bloque Express (avance de lead)
 ].join(' ')
 const HTML = readFileSync(join(__dirname, 'vincular.html'), 'utf8')
 

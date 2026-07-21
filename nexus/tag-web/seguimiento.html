@@ -34,6 +34,7 @@
   .badge{font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;flex:none}
   .b-enviado{background:#3a2a08;color:#ffd68a}
   .b-convenio_recibido{background:#0b2a16;color:#a7f0c1}
+  .b-en_camino{background:#2a1f08;color:#ffd68a}
   .b-rechazado{background:#2a0f0f;color:#f7cccc}
   .b-activo{background:#0b2536;color:#9fdcf7}
   .tl{margin:10px 0 0;border-top:1px solid var(--line);padding-top:8px}
@@ -113,6 +114,7 @@ function card(x){
     ${tl?`<div class="tl">${tl}</div>`:''}
     <div class="acc">
       ${x.estado!=='convenio_recibido'?`<button class="ok" onclick="setEstado('${x.id}','convenio_recibido')">✓ Convenio recibido</button>`:''}
+      ${x.estado!=='en_camino'?`<button onclick="setEstado('${x.id}','en_camino')">🚚 En camino</button>`:''}
       ${x.estado!=='activo'?`<button class="info" onclick="setEstado('${x.id}','activo')">● TAG activo</button>`:''}
       ${x.estado!=='rechazado'?`<button class="err" onclick="rechazar('${x.id}')">✕ Rechazado</button>`:''}
       <button onclick="nota('${x.id}')">+ Nota</button>
