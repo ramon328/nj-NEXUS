@@ -625,7 +625,12 @@ async function crearTransferencia(page, log) {
     // 3) RUT + nombre + email + mensaje (tercero NO inscrito → los damos nosotros)
     await setVal('#rut', process.env.TEK_DEST_RUT)
     await setVal('#nombre', process.env.TEK_DEST_NOMBRE)
-    await setVal('input[placeholder*="email" i]', process.env.TEK_DEST_EMAIL)
+    // El campo email tiene placeholder "Ingrese Email" (E MAYÚSCULA). El selector con flag
+    // `i` no lo matcheaba → el email quedaba VACÍO y el banco rechazaba "Crear" con "El correo
+    // del destinatario no tiene formato correcto". Selector robusto: cubre id/name + variantes
+    // de mayúsculas del placeholder.
+    const SEL_EMAIL = '#email, input[name*="mail" i], input[placeholder*="Email"], input[placeholder*="email" i]'
+    await setVal(SEL_EMAIL, process.env.TEK_DEST_EMAIL)
     await setVal('#mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Transferencia')
     await sleep(rnd(600, 1200))
     await page.screenshot({ path: join(DATA, 'crear-03-destino-lleno.png') }).catch(() => {})
@@ -640,8 +645,11 @@ async function crearTransferencia(page, log) {
         moneda: await val('#moneda'),
         rut: await val('#rut'),
         nombre: await val('#nombre'),
+        // email incluido en la validación: si quedó vacío, abortamos ANTES de apretar Crear
+        // (el banco lo exige para tercero no inscrito) en vez de que el banco rechace el form.
+        email: await val(SEL_EMAIL),
       }
-      if (campos.cuenta && campos.moneda && campos.rut && campos.nombre) break
+      if (campos.cuenta && campos.moneda && campos.rut && campos.nombre && campos.email) break
       await sleep(1000)
     }
     log('destino poblado:', JSON.stringify(campos))
