@@ -53,6 +53,33 @@ export function stockGoautos({ limite = 500 } = {}) {
   })
 }
 
+// Todas las patentes de MallorcAutos en GoAutos (disponibles + vendidos), cacheadas 5 min.
+let _patMallorca = { set: null, ts: 0 }
+export function patentesMallorca() {
+  if (_patMallorca.set && Date.now() - _patMallorca.ts < 5 * 60 * 1000) return Promise.resolve(_patMallorca.set)
+  return new Promise((resolve, reject) => {
+    const dir = join(process.env.HOME || '', 'nexus', 'conector-goautos')
+    const ch = spawn(process.execPath, [join(dir, 'goautos.mjs'), 'vehiculos', '--limite', '500'], { cwd: dir, env: { ...process.env } })
+    let out = '', err = ''
+    ch.stdout.on('data', (d) => (out += d)); ch.stderr.on('data', (d) => (err += d))
+    ch.on('close', () => {
+      try {
+        const set = new Set((JSON.parse(out).vehiculos || []).map((v) => normPatente(v.patente)).filter((p) => p.length >= 5))
+        _patMallorca = { set, ts: Date.now() }
+        resolve(set)
+      } catch (e) { reject(new Error('No pude leer los autos de Mallorca: ' + (err || e.message).slice(0, 160))) }
+    })
+    ch.on('error', (e) => reject(e))
+  })
+}
+
+// ¿La patente es de un auto de MallorcAutos? (para permitir solicitar/traspasar TAG)
+export async function esAutoMallorca(patente) {
+  const p = normPatente(patente)
+  if (p.length < 5) return false
+  try { return (await patentesMallorca()).has(p) } catch { return true } // si GoAutos falla, no bloquear
+}
+
 // Patentes que YA tienen TAG (según los leads), con su estado más reciente.
 export function patentesConTag() {
   const map = new Map()

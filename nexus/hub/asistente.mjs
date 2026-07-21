@@ -34,7 +34,7 @@ import { descargarAdjuntos as gmailDescargarAdjuntos } from '../conector-correo/
 import { recordarHecho, textoMemoria } from './memoria-usuarios.mjs'
 // TAG — solicitud/traspaso de TAG (envía desde el correo de Mallorca) + conteo de autos con TAG.
 import { enviarSolicitudTag, documentosRequeridos, validar as validarTag, TIPOS as TAG_TIPOS } from '../tag-web/tag.mjs'
-import { conteo as tagConteo, conteoExcel as tagConteoExcel, leerSnapshot as tagSnapshot } from '../tag-web/autos-tag.mjs'
+import { conteo as tagConteo, conteoExcel as tagConteoExcel, leerSnapshot as tagSnapshot, esAutoMallorca as tagEsAutoMallorca } from '../tag-web/autos-tag.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -2738,6 +2738,9 @@ async function ejecutar(nombre, input, ctx = {}) {
       const patente = String(input.patente || '').trim()
       if ((tipo === 'traspaso' || tipo === 'nuevo_tercero') && !patente)
         return JSON.stringify({ ok: false, error: 'Falta la patente del vehículo (obligatoria para traspaso y tercero).' })
+      // GUARDA: solo se solicita/traspasa TAG de autos de MallorcAutos (en su stock/inventario).
+      if (patente && !(await tagEsAutoMallorca(patente)))
+        return JSON.stringify({ ok: false, error: `La patente ${patente.toUpperCase()} no aparece en el stock de MallorcAutos. Solo se puede solicitar/traspasar TAG de autos de Mallorca. Verifica la patente (búscala con consultar_goautos) antes de continuar.` })
       const docs = documentosRequeridos(tipo, !!input.es_empresa)
       // PDF que la persona mandó por WhatsApp (rutas en ctx.media). Solo .pdf.
       const pdfs = (Array.isArray(ctx.media) ? ctx.media : []).filter((p) => /\.pdf$/i.test(String(p)))
