@@ -58,7 +58,7 @@
   </div>
 
   <div class="card">
-    <a class="btn g" href="/oauth/start">
+    <a class="btn g" href="{{BASE}}/oauth/start">
       <svg viewBox="0 0 48 48"><path fill="#EA4335" d="M24 9.5c3.5 0 6.6 1.2 9 3.6l6.7-6.7C35.6 2.4 30.2 0 24 0 14.6 0 6.5 5.4 2.6 13.2l7.8 6C12.3 13.2 17.6 9.5 24 9.5z"/><path fill="#4285F4" d="M46.1 24.5c0-1.6-.1-3.1-.4-4.5H24v9h12.4c-.5 2.9-2.1 5.3-4.5 7l7 5.4C43.6 37.4 46.1 31.5 46.1 24.5z"/><path fill="#FBBC05" d="M10.4 28.8c-.5-1.5-.8-3.1-.8-4.8s.3-3.3.8-4.8l-7.8-6C1 16.5 0 20.1 0 24s1 7.5 2.6 10.8l7.8-6z"/><path fill="#34A853" d="M24 48c6.2 0 11.4-2 15.2-5.5l-7-5.4c-2 1.3-4.5 2.1-8.2 2.1-6.4 0-11.7-3.7-13.6-9l-7.8 6C6.5 42.6 14.6 48 24 48z"/></svg>
       Entrar con Google (correo Mallorca)
     </a>
@@ -70,27 +70,27 @@
   <div class="card">
     <div class="st-t" style="margin-bottom:8px">Cómo vincular</div>
     <ol class="steps">
-      <li>Abre esta página <b>desde el navegador del Mac mini</b> (por Screen Sharing/VNC), en <code>http://localhost:3022</code>.</li>
       <li>Toca <b>Entrar con Google</b> e inicia sesión con el correo de Mallorca (ej. ventas@mallorcautos.cl).</li>
       <li>Si aparece "app no verificada", entra en <b>Avanzado → Continuar</b>.</li>
-      <li>Acepta el permiso de <b>enviar correo</b>. Listo: queda vinculado.</li>
+      <li>Acepta el permiso de <b>enviar correo</b>. Listo: queda vinculado y Nexus ya puede usarlo.</li>
     </ol>
     <div class="note">Nexus solo guarda un permiso para <b>enviar</b> correo desde ese buzón (no lee tu bandeja ni guarda tu contraseña). Puedes desvincular cuando quieras.</div>
   </div>
 </div>
 
 <script>
+const BASE="{{BASE}}";
 const dot=document.getElementById('dot'),stt=document.getElementById('stt'),std=document.getElementById('std');
 const probar=document.getElementById('probar'),desv=document.getElementById('desvincular'),msg=document.getElementById('msg');
 
 const qs=new URLSearchParams(location.search);
 if(qs.get('ok')) show('ok','✅ Correo vinculado: '+qs.get('ok'));
 if(qs.get('error')) show('err','⚠️ No se pudo vincular: '+qs.get('error'));
-if(qs.get('ok')||qs.get('error')) history.replaceState({},'','/');
+if(qs.get('ok')||qs.get('error')) history.replaceState({},'',BASE+'/');
 
 async function cargar(){
   try{
-    const s=await fetch('/estado').then(r=>r.json());
+    const s=await fetch(BASE+'/estado').then(r=>r.json());
     if(s.vinculado){
       dot.className='dot on'; stt.textContent='Vinculado';
       std.textContent=s.email+' — Nexus enviará desde aquí';
@@ -104,14 +104,14 @@ async function cargar(){
 }
 probar.onclick=async()=>{
   probar.disabled=true;probar.textContent='Enviando…';
-  try{const j=await fetch('/probar',{method:'POST'}).then(r=>r.json());
+  try{const j=await fetch(BASE+'/probar',{method:'POST'}).then(r=>r.json());
     show(j.ok?'ok':'err', j.ok?('✅ Prueba enviada desde '+j.cuenta+' a ramon@dropout.cl'):('⚠️ '+j.error));
   }catch(e){show('err','⚠️ '+e.message)}
   probar.disabled=false;probar.textContent='Enviar correo de prueba';
 };
 desv.onclick=async()=>{
   if(!confirm('¿Desvincular el correo de Mallorca?'))return;
-  await fetch('/desvincular',{method:'POST'});
+  await fetch(BASE+'/desvincular',{method:'POST'});
   show('ok','Correo desvinculado.');cargar();
 };
 function show(cls,t){msg.className=cls;msg.textContent=t}

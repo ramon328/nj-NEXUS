@@ -568,10 +568,16 @@ async function crearTransferencia(page, log) {
   await clickHumano(page, menu)
   await sleep(rnd(4000, 5500))
   await page.screenshot({ path: join(DATA, 'crear-00-menu.png') }).catch(() => {})
-  await page.mouse.move(280, 202, { steps: 10 }); await sleep(rnd(150, 320))
-  await page.mouse.move(320, 232, { steps: 8 }); await sleep(rnd(150, 300))
+  // COLUMNA del menú (shadow DOM cerrado → clic por PÍXEL). "A Tercero mismo Banco →
+  // Creación" está en (320,232); "A Tercero otros Bancos → Creación" (para transferir a
+  // OTRO banco, ej. Falabella) está una fila más abajo, en (320,320). TEK_TRANSFER_TIPO=otros
+  // selecciona esa columna (el form de otros bancos lleva un SELECTOR de banco destino).
+  const tipoOtros = /otro/i.test(process.env.TEK_TRANSFER_TIPO || '')
+  const yCreacion = tipoOtros ? 320 : 232
+  await page.mouse.move(280, yCreacion - 30, { steps: 10 }); await sleep(rnd(150, 320))
+  await page.mouse.move(320, yCreacion, { steps: 8 }); await sleep(rnd(150, 300))
   await page.mouse.down(); await sleep(60); await page.mouse.up()
-  log('clic pixel Creación (A Tercero mismo Banco)')
+  log('clic pixel Creación (' + (tipoOtros ? 'A Tercero OTROS Bancos' : 'A Tercero mismo Banco') + ')')
   await sleep(9000)
   await page.screenshot({ path: join(DATA, 'crear-01-form.png') }).catch(() => {})
   const fr = () => page.frames().find((f) => /TEF\.UI\.Web/i.test(f.url()))

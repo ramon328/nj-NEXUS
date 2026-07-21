@@ -40,10 +40,12 @@ export function cuentaActiva() {
 }
 
 // access_token fresco del token indicado (o del activo por defecto).
+// El refresh_token está atado al cliente que lo emitió: si el token file trae
+// client_id/client_secret propios (login web), se usan esos; si no, el Desktop.
 export async function accessToken(tokenPath) {
-  const c = oauthClient()
   const path = tokenPath || tokenActivo().path
   const t = JSON.parse(readFileSync(path, 'utf8'))
+  const c = (t.client_id && t.client_secret) ? { client_id: t.client_id, client_secret: t.client_secret } : oauthClient()
   const r = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },

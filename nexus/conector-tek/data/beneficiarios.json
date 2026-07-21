@@ -1,1 +1,40 @@
-{"_nota":"Libreta LOCAL de tek: gente a la que Nexus puede transferir por NOMBRE. Cada uno con alias para resolver 'envíale X a <nombre>'. NO son terceros inscritos en el banco (eso es aparte, vía 'Buscar Destinatario'). Editar a mano o con la app.","beneficiarios":[{"id":"joaquin-elias","alias":["joaquin","joaco","joaquin elias","elias","joaquin elias maluk"],"nombre":"JOAQUIN ALFONSO ELIAS MALUK","rut":"19689228-1","banco":"Santander","tipo_cuenta":"Cuenta Vista","cuenta":"0-070-31-42297-8","email":"jeliasm@udd.cl","notas":"contacto de prueba","creado":"2026-07-21"}]}
+{
+  "_nota": "Libreta LOCAL de tek: gente a la que Nexus puede transferir por NOMBRE. Cada uno con alias para resolver 'envíale X a <nombre>'. NO son terceros inscritos en el banco (eso es aparte, vía 'Buscar Destinatario'). Editar a mano o con la app.",
+  "beneficiarios": [
+    {
+      "id": "joaquin-elias",
+      "alias": [
+        "joaquin",
+        "joaco",
+        "joaquin elias",
+        "elias",
+        "joaquin elias maluk"
+      ],
+      "nombre": "JOAQUIN ALFONSO ELIAS MALUK",
+      "rut": "19689228-1",
+      "banco": "Santander",
+      "tipo_cuenta": "Cuenta Vista",
+      "cuenta": "0-070-31-42297-8",
+      "email": "jeliasm@udd.cl",
+      "notas": "contacto de prueba",
+      "creado": "2026-07-21"
+    },
+    {
+      "id": "joaquin-falabella",
+      "creado": "2026-07-21",
+      "alias": [
+        "joaquin falabella",
+        "joaco falabella",
+        "joaquin elias falabella",
+        "falabella joaquin"
+      ],
+      "nombre": "JOAQUIN ELIAS MALUK",
+      "rut": "19689228-1",
+      "banco": "Banco Falabella",
+      "tipo_cuenta": "Cuenta Corriente",
+      "cuenta": "19800476890",
+      "email": "joaquin.maluk@gmail.com",
+      "notas": "contacto de prueba — OTRO banco (Falabella)"
+    }
+  ]
+}
