@@ -2595,6 +2595,20 @@ const HERRAMIENTAS = [
       required: ['accion', 'nombre', 'monto'],
     },
   },
+  // ── Alertas a usuarios de Nexus, incluso FUERA de la ventana de 24h de WhatsApp ──
+  {
+    name: 'alertar_usuario',
+    description: 'Manda una ALERTA/aviso por WhatsApp a un usuario de Nexus, AUNQUE no te haya escrito en las últimas 24h. WhatsApp solo deja escribirle primero a alguien fuera de esa ventana con una PLANTILLA oficial de Meta: esta tool usa la plantilla "alerta_nexus" (le llega con encabezado "Alerta de Nexus" + saludo con su nombre + tu mensaje). Úsalo cuando Ramón o Nico digan "avísale a Joaquín que…", "mándale una alerta a Nico…", "notifícale que…", o "avísales a todos los usuarios que…". El `mensaje` es SOLO el texto del aviso: NO pongas saludo ni "Alerta de Nexus", eso lo agrega la plantilla. `destinatario` = un nombre conocido (Joaquín, Nico, Ramón) o un número +569…; o pon `a_todos:true` para avisarle a TODOS los usuarios. Solo Ramón o Nico pueden usar esta tool.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        mensaje: { type: 'string', description: 'El texto de la alerta, claro y directo. Sin saludo ni "Alerta de Nexus" (lo agrega la plantilla).' },
+        destinatario: { type: 'string', description: 'A quién avisar: un nombre conocido (Joaquín, Nico, Ramón) o un número +569…. Omítelo si usas a_todos.' },
+        a_todos: { type: 'boolean', description: 'true = mándasela a TODOS los usuarios de Nexus. Si es true, se ignora destinatario.' },
+      },
+      required: ['mensaje'],
+    },
+  },
 ]
 
 // Changelog propio de Nexus. Se lee UNA vez y se cachea (archivo local diminuto):
@@ -2618,6 +2632,10 @@ async function ejecutar(nombre, input, ctx = {}) {
     // Mensajes programados: pueden enviar a cualquier destino → solo fundadores.
     if (['programar_mensaje', 'listar_recordatorios', 'cancelar_recordatorio'].includes(nombre) && !esAdmin(ctx.de)) {
       return '🔒 Solo Ramón o Nico pueden programar mensajes.'
+    }
+    // Alertas a usuarios (pueden ir a cualquier número, fuera de 24h) → solo fundadores.
+    if (nombre === 'alertar_usuario' && !esAdmin(ctx.de)) {
+      return '🔒 Solo Ramón o Nico pueden mandar alertas a los usuarios de Nexus.'
     }
     // Resto: si la herramienta pertenece a un área (scope), el usuario debe tenerla
     // habilitada (los admin pasan todo). Las tools sin scope quedan libres.
@@ -2838,6 +2856,42 @@ async function ejecutar(nombre, input, ctx = {}) {
         return JSON.stringify({ ok: true, persona, guardado: texto, fecha: hoy, nota: `Anotado en los recordatorios de ${persona}. Se lo recuerdo por WhatsApp cada 10 días.` })
       } catch (e) {
         return JSON.stringify({ ok: false, error: 'No pude guardar el recordatorio: ' + e.message })
+      }
+    }
+    // ── Alerta a usuario(s) de Nexus, incluso fuera de la ventana de 24h ──
+    if (nombre === 'alertar_usuario') {
+      const mensaje = String(input.mensaje || '').trim()
+      if (!mensaje) return JSON.stringify({ ok: false, error: 'Falta el texto de la alerta.' })
+      let mod
+      try { mod = await import('./alertar.mjs') }
+      catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de alertas: ' + e.message }) }
+      const noAprobada = (m) => /132001|does not exist|not.*approv|PENDING|template.*paused|does not exist in.*translation/i.test(m || '')
+      try {
+        if (input.a_todos) {
+          const r = await mod.alertarTodos(mensaje)
+          return JSON.stringify({
+            ok: r.fallos.length === 0, enviadas: r.ok, total: r.total, fallos: r.fallos,
+            nota: `Alerta enviada a ${r.ok}/${r.total} usuarios${r.fallos.length ? '. Algunos fallaron (revisa fallos).' : '.'}`,
+          })
+        }
+        const destino = String(input.destinatario || '').trim()
+        if (!destino) return JSON.stringify({ ok: false, error: 'Dime a quién: un nombre (Joaquín, Nico, Ramón) o un número +569…, o pon a_todos.' })
+        // Nombre → número contra el registro; si ya viene un número, se usa tal cual.
+        let numero = destino, nombreDest = null
+        if (/[a-zA-Z]/.test(destino)) {
+          const sinTilde = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+          const q = sinTilde(destino)
+          const u = mod.usuariosNexus().find(x => sinTilde(x.nombre) === q)
+            || mod.usuariosNexus().find(x => sinTilde(x.nombre).includes(q))
+          if (!u) return JSON.stringify({ ok: false, error: `No tengo a "${destino}" en los usuarios de Nexus. Dame el número +569… o el nombre exacto.` })
+          numero = u.numero; nombreDest = u.nombre
+        }
+        const id = await mod.alertarUsuario(numero, mensaje, nombreDest)
+        return JSON.stringify({ ok: true, destinatario: nombreDest || numero, id, nota: `Alerta enviada a ${nombreDest || numero}.` })
+      } catch (e) {
+        const m = e.message || String(e)
+        if (noAprobada(m)) return JSON.stringify({ ok: false, error: 'La plantilla "alerta_nexus" todavía no está APROBADA por Meta (o no existe). Espera la aprobación y reintenta.', detalle: m })
+        return JSON.stringify({ ok: false, error: 'No pude enviar la alerta: ' + m })
       }
     }
     // ── tek · PAGO de factura de compra (SIMULACIÓN — no mueve plata todavía) ──
