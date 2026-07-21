@@ -2532,7 +2532,7 @@ const HERRAMIENTAS = [
   },
   {
     name: 'autos_con_tag',
-    description: 'CONTEO de autos de MallorcAutos CON y SIN TAG. Por defecto usa el STOCK del EXCEL de Mallorca (hoja STOCK VALORIZADO, la que ves con consultar_mallorca) y marca cada auto con/sin tag. El "con tag" se sabe de: los TAG que gestionó Nexus (leads de solicitar_tag) + el HISTORIAL de correos de Tag Tico (traspasos/convenios ya hechos). Úsalo para "¿qué autos del Excel tienen tag?", "¿cuántos autos tienen tag?", "¿a cuáles les falta?". Con fuente:"goautos" cruza contra el stock de GoAutos en vez del Excel. detalle:true trae la lista de patentes de cada grupo.',
+    description: 'CONTEO de autos de MallorcAutos CON y SIN TAG. Por defecto usa el STOCK del EXCEL de Mallorca (hoja STOCK VALORIZADO, la que ves con consultar_mallorca) y marca cada auto con/sin tag. El "con tag" se sabe de: los TAG que gestionó Nexus (leads de solicitar_tag) + el HISTORIAL de correos de Tag Tico (traspasos/convenios ya hechos). Úsalo para "¿qué autos del Excel tienen tag?", "¿cuántos autos tienen tag?", "¿a cuáles les falta?". Con fuente:"goautos" cruza contra el stock de GoAutos en vez del Excel. detalle:true trae la lista de patentes de cada grupo. ⚠️ SIEMPRE vuelve a LLAMAR esta herramienta para responder el conteo actual — NUNCA repitas una lista o un número que diste antes en la conversación (la data cambia y se corrige sola); el resultado más reciente de la herramienta es la única verdad.',
     input_schema: {
       type: 'object',
       properties: {
