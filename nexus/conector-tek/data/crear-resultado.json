@@ -1,10 +1,10 @@
 {
-  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1784642645881",
-  "veredicto": null,
-  "pista": "",
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1784644180207",
+  "veredicto": "creada",
+  "pista": ": 77.271.121-2 La transferencia ha sido creada con éxito Monto a transferir $ 1.000 Detalle de t",
   "forms": [
     {
-      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1784642645881",
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1784644180207",
       "inputs": [],
       "botones": [
         "Accesibilidad",
@@ -14,71 +14,14 @@
       "titulos": []
     },
     {
-      "url": "https://eob.officebanking.cl/TEF.UI.Web/TransferenciaCreacionCtaCteTercero/?servicioId=TRFCTA_CTE_CTE_TRO_C",
-      "inputs": [
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "",
-          "placeholder": "Ingrese cuenta destino",
-          "maxlength": "12",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "moneda",
-          "name": "",
-          "placeholder": "Ingrese moneda",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "rut",
-          "name": "",
-          "placeholder": "Ingrese RUT",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "nombre",
-          "name": "",
-          "placeholder": "Ingrese nombre",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "",
-          "placeholder": "Ingrese Email",
-          "maxlength": "60",
-          "label": ""
-        },
-        {
-          "tag": "textarea",
-          "type": "textarea",
-          "id": "mensaje",
-          "name": "",
-          "placeholder": "Ingrese mensaje (máx. 200 caracteres)",
-          "maxlength": "200",
-          "label": ""
-        }
-      ],
-      "botones": [
-        "Buscar Destinatario",
-        "Crear",
-        "Aceptar"
-      ],
+      "url": "https://eob.officebanking.cl//TEF.UI.Web/TransferenciaCreacionCtaCteTercero/FinCreacion",
+      "inputs": [],
+      "botones": [],
       "titulos": [
-        "Creación transferencia a cuenta de tercero\nMartes 21 de Julio de 2026, 10:04 hrs.",
-        "Se han encontrado los siguientes errores"
+        "Creación transferencia a cuenta de tercero\nMartes 21 de Julio de 2026, 10:33 hrs.",
+        "La transferencia ha sido creada con éxito",
+        "$ 1.000",
+        "Detalle de transferencia"
       ]
     }
   ]

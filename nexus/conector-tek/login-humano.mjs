@@ -51,13 +51,24 @@ function lockVivo() {
 }
 async function adquirirLock(esperaMs = Number(process.env.TEK_LOCK_WAIT_MS) || 8 * 60_000) {
   const t0 = Date.now(); let aviso = false
-  while (lockVivo()) {
+  for (;;) {
+    // ADQUISICIÓN ATÓMICA (arregla la carrera TOCTOU que dejaba correr DOS logins a la
+    // vez): 'wx' crea el archivo en modo EXCLUSIVO y FALLA si ya existe. Solo UN proceso
+    // puede crearlo; el resto recibe EEXIST y espera. Antes era chequear-luego-escribir
+    // (no atómico) → dos procesos veían el lock libre y ambos lo pisaban.
+    try {
+      writeFileSync(LOCK, JSON.stringify({ pid: process.pid, ts: Date.now() }), { flag: 'wx' })
+      return true                                   // lo creamos NOSOTROS → lock nuestro
+    } catch (e) {
+      if (e && e.code !== 'EEXIST') return true      // fallo raro de fs → no bloquear el banco por esto
+    }
+    // Ya existe un lock: ¿está vivo? Si el proceso murió o quedó colgado (>12 min), lo
+    // borramos y reintentamos (el próximo 'wx' lo recrea de forma atómica).
+    if (!lockVivo()) { try { unlinkSync(LOCK) } catch {} continue }
     if (Date.now() - t0 > esperaMs) return false
     if (!aviso) { log('ya hay una sesión de banco activa — espero a que termine (NO abro otra)'); aviso = true }
-    await sleep(5000)
+    await sleep(5000 + Math.floor(Math.random() * 2000))   // jitter: rompe empates entre procesos
   }
-  try { writeFileSync(LOCK, JSON.stringify({ pid: process.pid, ts: Date.now() })) } catch {}
-  return true
 }
 function soltarLock() { try { const j = JSON.parse(readFileSync(LOCK, 'utf8')); if (j.pid === process.pid) unlinkSync(LOCK) } catch {} }
 process.on('exit', soltarLock)
@@ -625,12 +636,22 @@ async function crearTransferencia(page, log) {
     // 3) RUT + nombre + email + mensaje (tercero NO inscrito → los damos nosotros)
     await setVal('#rut', process.env.TEK_DEST_RUT)
     await setVal('#nombre', process.env.TEK_DEST_NOMBRE)
-    // El campo email tiene placeholder "Ingrese Email" (E MAYÚSCULA). El selector con flag
-    // `i` no lo matcheaba → el email quedaba VACÍO y el banco rechazaba "Crear" con "El correo
-    // del destinatario no tiene formato correcto". Selector robusto: cubre id/name + variantes
-    // de mayúsculas del placeholder.
-    const SEL_EMAIL = '#email, input[name*="mail" i], input[placeholder*="Email"], input[placeholder*="email" i]'
-    await setVal(SEL_EMAIL, process.env.TEK_DEST_EMAIL)
+    // EMAIL — campo con placeholder EXACTO "Ingrese Email" en el frame f2, sin id ni name.
+    // Antes quedaba VACÍO (el selector con lista+`.first()` enganchaba un input oculto y
+    // `type()` no pegaba) → el banco rechazaba "Crear" con "El correo del destinatario no
+    // tiene formato correcto". Fix robusto: locator por placeholder EXACTO + VISIBLE, `fill()`
+    // (setea el valor directo, no depende del tecleo) y VERIFICA que quedó; reintenta con type.
+    const emailLoc = f2.locator('input[placeholder="Ingrese Email"]').first()
+    const emailVal = process.env.TEK_DEST_EMAIL || ''
+    if (emailVal && (await emailLoc.count().catch(() => 0))) {
+      await emailLoc.click().catch(() => {}); await sleep(rnd(200, 450))
+      await emailLoc.fill(emailVal).catch(() => {})
+      await sleep(rnd(300, 600))
+      let got = await emailLoc.inputValue().catch(() => '')
+      if (got !== emailVal) { await emailLoc.fill('').catch(() => {}); await emailLoc.type(emailVal, { delay: rnd(60, 130) }).catch(() => {}); await sleep(400); got = await emailLoc.inputValue().catch(() => '') }
+      await page.keyboard.press('Tab').catch(() => {})    // blur → gatilla la validación del banco
+      log('email poblado:', got || '(vacío)')
+    } else { log('✗ no vi el campo email (placeholder "Ingrese Email")') }
     await setVal('#mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Transferencia')
     await sleep(rnd(600, 1200))
     await page.screenshot({ path: join(DATA, 'crear-03-destino-lleno.png') }).catch(() => {})
@@ -647,7 +668,7 @@ async function crearTransferencia(page, log) {
         nombre: await val('#nombre'),
         // email incluido en la validación: si quedó vacío, abortamos ANTES de apretar Crear
         // (el banco lo exige para tercero no inscrito) en vez de que el banco rechace el form.
-        email: await val(SEL_EMAIL),
+        email: await f2.locator('input[placeholder="Ingrese Email"]').first().inputValue().catch(() => ''),
       }
       if (campos.cuenta && campos.moneda && campos.rut && campos.nombre && campos.email) break
       await sleep(1000)

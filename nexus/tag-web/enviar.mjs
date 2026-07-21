@@ -1,34 +1,55 @@
-// enviar.mjs — Envío de correo real vía la API de Gmail que ya está conectada
-// en Nexus (conector-correo/google/token.json, scope gmail.send).
+// enviar.mjs — Envío de correo real vía la API de Gmail.
+// Prefiere el CORREO DE MALLORCA vinculado (mallorca-token.json, gmail.send);
+// si no está vinculado, cae a la cuenta base de Nexus (conector-correo/google).
 // Arma un MIME multipart/mixed con adjuntos y lo manda con users.messages.send.
 //
-// Reutilizable: lo usa el server web de solicitud/traspaso de TAG y el tool de Meme.
+// Lo usa la web de vínculo (para probar) y el tool de Meme (solicitud/traspaso TAG).
 //
-//   import { enviarCorreo } from './enviar.mjs'
+//   import { enviarCorreo, cuentaActiva } from './enviar.mjs'
 //   await enviarCorreo({ to, cc, asunto, cuerpo, adjuntos:[{filename, mime, buffer}] })
 
-import { readFileSync } from 'node:fs'
-import { join } from 'node:path'
+import { readFileSync, existsSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const GDIR = join(process.env.HOME || '', 'nexus', 'conector-correo', 'google')
+const __dirname = dirname(fileURLToPath(import.meta.url))
+const HOME = process.env.HOME || ''
+const GDIR = join(HOME, 'nexus', 'conector-correo', 'google')
+const CLIENT_PATH = join(GDIR, 'oauth-client.json')
+// Token del correo de Mallorca (lo escribe la web de vínculo).
+export const MALLORCA_TOKEN = join(__dirname, 'mallorca-token.json')
+// Token base de Nexus (fallback).
+const BASE_TOKEN = join(GDIR, 'token.json')
 
-function oauthClient() {
-  const j = JSON.parse(readFileSync(join(GDIR, 'oauth-client.json'), 'utf8'))
+export function oauthClient() {
+  const j = JSON.parse(readFileSync(CLIENT_PATH, 'utf8'))
   return j.installed || j.web || {}
 }
 
-// Devuelve { at, email } con un access_token fresco de la cuenta conectada.
-export async function accessToken() {
+// Devuelve la ruta del token activo y si es el de Mallorca.
+export function tokenActivo() {
+  if (existsSync(MALLORCA_TOKEN)) return { path: MALLORCA_TOKEN, mallorca: true }
+  return { path: BASE_TOKEN, mallorca: false }
+}
+
+// { email, mallorca } de la cuenta que se usará para enviar (sin pedir token).
+export function cuentaActiva() {
+  const { path, mallorca } = tokenActivo()
+  try { const t = JSON.parse(readFileSync(path, 'utf8')); return { email: t.email || null, mallorca } }
+  catch { return { email: null, mallorca } }
+}
+
+// access_token fresco del token indicado (o del activo por defecto).
+export async function accessToken(tokenPath) {
   const c = oauthClient()
-  const t = JSON.parse(readFileSync(join(GDIR, 'token.json'), 'utf8'))
+  const path = tokenPath || tokenActivo().path
+  const t = JSON.parse(readFileSync(path, 'utf8'))
   const r = await fetch('https://oauth2.googleapis.com/token', {
     method: 'POST',
     headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
     body: new URLSearchParams({
-      client_id: c.client_id,
-      client_secret: c.client_secret,
-      refresh_token: t.refresh_token,
-      grant_type: 'refresh_token',
+      client_id: c.client_id, client_secret: c.client_secret,
+      refresh_token: t.refresh_token, grant_type: 'refresh_token',
     }),
     signal: AbortSignal.timeout(15000),
   })
@@ -37,18 +58,15 @@ export async function accessToken() {
   return { at: tok.access_token, email: t.email }
 }
 
-// Codifica una cabecera con caracteres no-ASCII (acentos) en formato RFC 2047.
 function encHeader(str) {
   if (/^[\x00-\x7F]*$/.test(str)) return str
   return '=?UTF-8?B?' + Buffer.from(str, 'utf8').toString('base64') + '?='
 }
 
-// Parte cuerpo/adjunto → base64 en líneas de 76.
 function b64lines(buf) {
   return buf.toString('base64').replace(/.{76}/g, '$&\r\n')
 }
 
-// Construye el mensaje RFC 822 completo (multipart/mixed).
 function construirMIME({ from, to, cc, replyTo, asunto, cuerpo, adjuntos = [] }) {
   const boundary = 'nexustag_' + Buffer.from(asunto + to).toString('hex').slice(0, 16)
   const L = []
@@ -60,13 +78,11 @@ function construirMIME({ from, to, cc, replyTo, asunto, cuerpo, adjuntos = [] })
   L.push('MIME-Version: 1.0')
   L.push(`Content-Type: multipart/mixed; boundary="${boundary}"`)
   L.push('')
-  // Cuerpo (texto plano UTF-8)
   L.push(`--${boundary}`)
   L.push('Content-Type: text/plain; charset="UTF-8"')
   L.push('Content-Transfer-Encoding: base64')
   L.push('')
   L.push(b64lines(Buffer.from(cuerpo, 'utf8')))
-  // Adjuntos
   for (const a of adjuntos) {
     const mime = a.mime || 'application/octet-stream'
     L.push(`--${boundary}`)
@@ -81,9 +97,8 @@ function construirMIME({ from, to, cc, replyTo, asunto, cuerpo, adjuntos = [] })
   return L.join('\r\n')
 }
 
-export async function enviarCorreo({ to, cc, replyTo, asunto, cuerpo, adjuntos = [], fromNombre }) {
-  const { at, email } = await accessToken()
-  // Gmail fuerza el From a la cuenta autenticada; ponemos nombre visible.
+export async function enviarCorreo({ to, cc, replyTo, asunto, cuerpo, adjuntos = [], fromNombre, tokenPath }) {
+  const { at, email } = await accessToken(tokenPath)
   const from = fromNombre ? `${encHeader(fromNombre)} <${email}>` : email
   const raw = construirMIME({ from, to, cc, replyTo, asunto, cuerpo, adjuntos })
   const rawB64 = Buffer.from(raw, 'utf8').toString('base64').replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/, '')
@@ -101,10 +116,11 @@ export async function enviarCorreo({ to, cc, replyTo, asunto, cuerpo, adjuntos =
 // CLI de prueba: node enviar.mjs correo@destino.cl
 if (import.meta.url === `file://${process.argv[1]}`) {
   const to = process.argv[2] || 'ramon@dropout.cl'
+  const c = cuentaActiva()
   enviarCorreo({
     to,
     asunto: 'Prueba envío TAG — Nexus',
-    cuerpo: 'Esto es una prueba del sistema de solicitud/traspaso de TAG.\n\n— Nexus',
-    fromNombre: 'MallorcAutos (vía Nexus)',
-  }).then((r) => console.log('OK enviado:', r)).catch((e) => { console.error('ERROR:', e.message); process.exit(1) })
+    cuerpo: `Prueba del sistema de TAG.\nEnviado desde: ${c.email} (${c.mallorca ? 'correo Mallorca' : 'cuenta base'}).\n\n— Nexus`,
+    fromNombre: c.mallorca ? 'MallorcAutos' : 'MallorcAutos (vía Nexus)',
+  }).then((r) => console.log('OK enviado desde', r.cuenta, '·', r.id)).catch((e) => { console.error('ERROR:', e.message); process.exit(1) })
 }
