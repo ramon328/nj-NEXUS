@@ -29,18 +29,19 @@ export const TIPOS = {
   },
 }
 
-// Documentos requeridos por caso (paso 1 del instructivo oficial).
+// Documentos típicos por caso. OJO: en MallorcAutos NO se exige el contrato de
+// compraventa firmado — basta poder + CAV/factura + carnet. Es una GUÍA, no un bloqueo:
+// si la persona manda sus documentos y confirma, se adjuntan TODOS y se envía.
 export function documentosRequeridos(tipo, es_empresa) {
   let docs
   if (tipo === 'nuevo_propio') {
-    // Propios (Ana Clara): basta poder + CAV, no exige contrato firmado.
     docs = ['Poder', 'CAV (Certificado de Anotaciones Vigentes)']
   } else {
-    // traspaso / tercero: contrato + carnet + documento de tag firmado.
+    // traspaso / tercero: carnet nuevo dueño + poder de gestión + CAV o factura de venta.
     docs = [
-      'Contrato de compraventa firmado por ambas partes',
       'Carnet por ambos lados del nuevo dueño',
-      'Documento de TAG firmado',
+      'Poder de gestión del TAG (o contrato/compraventa si lo tienen)',
+      'CAV o factura de venta como respaldo',
     ]
   }
   if (es_empresa) docs = docs.concat(['Escritura de la empresa', 'e-RUT'])

@@ -455,13 +455,23 @@ app.post('/api/chat', async (req, res) => {
       if (!(ult && ult.role === 'user' && ult.content === actual)) mem.msgs.push({ role: 'user', content: actual })
     }
 
-    // Adjuntos (foto del auto + documentos) recibidos por WhatsApp. Se guardan por
-    // remitente con TTL para que sigan disponibles en los turnos siguientes (subir un
-    // auto es conversacional: foto → preguntas → confirmación → crear).
-    if (media.length) mem.media = { paths: cachearMedia(media), ts: Date.now() }
-    // Adjuntos de ESTE turno (ya cacheados) para visión, y los mismos con TTL para crear.
-    const mediaTurno = media.length ? mem.media.paths : []
-    const mediaReciente = (mem.media && Date.now() - mem.media.ts < 20 * 60 * 1000) ? mem.media.paths : []
+    // Adjuntos (foto del auto + documentos) recibidos por WhatsApp. Se ACUMULAN por
+    // remitente con TTL: un traspaso de tag / subir un auto es conversacional y los PDF
+    // llegan en MENSAJES SEPARADOS (carnet, poder, factura…). Antes se sobrescribía y el
+    // tool solo veía el último → ahora se juntan todos los recientes (dedup por tamaño,
+    // porque Kapso reenvía el mismo archivo con otro path).
+    const TTL_MEDIA = 20 * 60 * 1000
+    const mediaTurno = media.length ? cachearMedia(media) : []   // los de ESTE turno (para visión)
+    const prevItems = (mem.media && Date.now() - mem.media.ts < TTL_MEDIA) ? (mem.media.items || []) : []
+    const items = prevItems.slice()
+    const seenSizes = new Set(items.map((it) => it.size))
+    for (const p of mediaTurno) {
+      let size = 0; try { size = statSync(p).size } catch { /* */ }
+      if (size && seenSizes.has(size)) continue   // mismo archivo reenviado → no duplicar
+      seenSizes.add(size); items.push({ p, size })
+    }
+    if (media.length || prevItems.length) mem.media = { items: items.slice(-12), ts: Date.now() }
+    const mediaReciente = (mem.media && Date.now() - mem.media.ts < TTL_MEDIA) ? (mem.media.items || []).map((it) => it.p) : []
 
     mem.ts = Date.now(); _memoria.set(key, mem)   // persiste el mensaje del usuario ya
     // Historial persistente del chat: mensaje ENTRANTE de la persona (solo con remitente).
