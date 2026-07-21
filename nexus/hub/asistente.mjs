@@ -899,7 +899,6 @@ function margenTextoMes({ anio, mes, fecha, costo, margen_bruto, margen_pct_text
   L.push(_DIVM)
   L.push(`*Costo de Ventas${estimado ? ' (estimado)' : ' (WAC)'}:* ${_clpM(costo)}`)
   L.push(`*Margen Bruto:* ${_clpM(margen_bruto)} · *Margen %:* ${margen_pct_texto}`)
-  L.push(`_Sobre ventas netas de ${_clpM(ventas_netas)} (facturas − devoluciones)._`)
   if (estimado) L.push(`_⚠️ ${_capM(_MESES_M[mes])} no tiene costeo WAC en Aliace; el costo se estimó con unit_costs (cobertura ${cobertura_pct ?? '—'}%). Validado a ~0,7 pto del WAC real; no es cifra oficial._`)
   else if (cobertura_pct != null && cobertura_pct < 99) L.push(`_⚠️ Costeo del mes al ${pctTexto((cobertura_pct || 0) / 100)} — el margen puede afinarse al terminar de costear ${_MESES_M[mes]}._`)
   // Cotejo con la pantalla Facturas de la app (NO netea NC): así el informe SIEMPRE
