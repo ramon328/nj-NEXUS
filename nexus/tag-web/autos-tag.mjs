@@ -4,9 +4,27 @@
 // convenio_recibido / activo (rechazado NO cuenta).
 
 import { spawn } from 'node:child_process'
-import { join } from 'node:path'
+import { readFileSync } from 'node:fs'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 import { listar } from './registro.mjs'
 import { patentesHistoricas } from './backfill-tag.mjs'
+
+const __dir = dirname(fileURLToPath(import.meta.url))
+const SNAP = join(__dir, 'stock-con-tag.json')
+
+// Lee el snapshot que genera snapshot-stock-tag.mjs cada 6 min (o null si no hay).
+export function leerSnapshot() {
+  try {
+    const d = JSON.parse(readFileSync(SNAP, 'utf8'))
+    return {
+      fuente: d.fuente, total: d.total, con_tag: d.con_tag, sin_tag: d.sin_tag,
+      actualizado: d.actualizado,
+      autos_con_tag: (d.autos || []).filter((a) => a.tag),
+      autos_sin_tag: (d.autos || []).filter((a) => !a.tag),
+    }
+  } catch { return null }
+}
 
 const GOAUTOS = join(process.env.HOME || '', 'nexus', 'conector-goautos', 'goautos.mjs')
 
@@ -48,11 +66,14 @@ export function patentesConTag() {
 }
 
 // Lista de autos del EXCEL de Mallorca (hoja STOCK VALORIZADO) vía mallorca.py.
-export function stockExcel() {
+// refrescar:true fuerza bajar la versión más fresca del OneDrive (--refrescar).
+export function stockExcel({ refrescar = false } = {}) {
   return new Promise((resolve, reject) => {
     const dir = join(process.env.HOME || '', 'nexus', 'conector-mallorca')
     const py = join(dir, '.venv', 'bin', 'python')
-    const ch = spawn(py, [join(dir, 'mallorca.py'), 'stock'], { cwd: dir, env: { ...process.env } })
+    const args = [join(dir, 'mallorca.py'), 'stock']
+    if (refrescar) args.push('--refrescar')
+    const ch = spawn(py, args, { cwd: dir, env: { ...process.env } })
     let out = '', err = ''
     ch.stdout.on('data', (d) => (out += d))
     ch.stderr.on('data', (d) => (err += d))
@@ -72,8 +93,8 @@ export function patentesTagTotales() {
 }
 
 // Conteo cruzando el EXCEL de Mallorca (STOCK VALORIZADO) con TAG. Es "el Excel con tag".
-export async function conteoExcel() {
-  const [stock, tagSet] = [await stockExcel(), patentesTagTotales()]
+export async function conteoExcel({ refrescar = false } = {}) {
+  const [stock, tagSet] = [await stockExcel({ refrescar }), patentesTagTotales()]
   const con = [], sin = []
   for (const v of stock) {
     const k = normPatente(v.patente)

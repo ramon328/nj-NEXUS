@@ -34,7 +34,7 @@ import { descargarAdjuntos as gmailDescargarAdjuntos } from '../conector-correo/
 import { recordarHecho, textoMemoria } from './memoria-usuarios.mjs'
 // TAG — solicitud/traspaso de TAG (envía desde el correo de Mallorca) + conteo de autos con TAG.
 import { enviarSolicitudTag, documentosRequeridos, validar as validarTag, TIPOS as TAG_TIPOS } from '../tag-web/tag.mjs'
-import { conteo as tagConteo, conteoExcel as tagConteoExcel } from '../tag-web/autos-tag.mjs'
+import { conteo as tagConteo, conteoExcel as tagConteoExcel, leerSnapshot as tagSnapshot } from '../tag-web/autos-tag.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -2789,8 +2789,9 @@ async function ejecutar(nombre, input, ctx = {}) {
           }
           return JSON.stringify(base)
         }
-        const c = await tagConteoExcel()
-        const base = { ok: true, fuente: c.fuente, total_stock: c.total, con_tag: c.con_tag, sin_tag: c.sin_tag }
+        // Lee el snapshot (se refresca cada 6 min); si no hay, calcula en vivo.
+        const c = tagSnapshot() || await tagConteoExcel()
+        const base = { ok: true, fuente: c.fuente, actualizado: c.actualizado, total_stock: c.total, con_tag: c.con_tag, sin_tag: c.sin_tag }
         if (input.detalle) {
           base.autos_con_tag = c.autos_con_tag.map((v) => `${v.patente} ${v.marca} ${v.modelo || ''}`.trim())
           base.autos_sin_tag = c.autos_sin_tag.map((v) => `${v.patente} ${v.marca} ${v.modelo || ''}`.trim())
