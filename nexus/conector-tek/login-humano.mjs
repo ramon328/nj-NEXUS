@@ -1050,6 +1050,8 @@ async function cartolaHistorica(page, log) {
       if (!R) { log(`  ${MESNOM[mes]}: no fije el mes correcto -> salto (no guardo data equivocada)`); continue }
       resumenMeses.push(R)
       log(`  ${MESNOM[mes]}: cartola ${R.n_cartola || '?'} - ${R.periodo} - cargos ${R.cargos} - abonos ${R.abonos}`)
+      /*INCREMENTAL*/ writeFileSync(join(DATA, 'carthist-resumen.json'), JSON.stringify({ anio, actualizado: new Date().toISOString(), meses: resumenMeses }, null, 2))
+      if (process.env.TEK_CARTOLA_PDF === '1') {
       try {
         const dest = join(PDFDIR, `Cartola ${anio}-${String(mes).padStart(2, '0')} ${MESNOM[mes]}.pdf`)
         let hrefPdf = null
@@ -1075,6 +1077,7 @@ async function cartolaHistorica(page, log) {
           } else log('  no vi enlace/boton Descargar')
         }
       } catch (e) { log('  descarga fallo:', e.message) }
+      }
       await sleep(1000)
     } catch (e) { log(`carthist ${MESNOM[mes]} fallo:`, e.message) }
   }
