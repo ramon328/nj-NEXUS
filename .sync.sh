@@ -69,22 +69,24 @@ for entry in "${PROJECTS[@]}"; do
   rsync -a --delete "${EXCLUDES[@]}" "$src/" "$BK/$dst/" 2>>"$LOG"
 done
 
-# --- scrub: redactar secretos que queden embebidos en el código copiado ---
+# --- scrub: redactar secretos embebidos en el código copiado ---
 # (no toca los originales; solo la copia del repo antes de commitear)
-scrub() {
-  grep -rlIZ -E "$1" "$BK" --include='*.ts' --include='*.tsx' --include='*.js' \
-      --include='*.jsx' --include='*.mjs' --include='*.py' --include='*.json' \
-      --include='*.env*' --include='*.txt' 2>/dev/null \
-    | grep -zv '/.git/' \
-    | xargs -0 -I{} perl -pi -e "s/$1/__REDACTED_SECRET__/g" {} 2>>"$LOG"
-}
-scrub 'pk\.ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'   # Mapbox público
-scrub 'sk\.ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+'   # Mapbox secreto
-scrub 'sk-ant-[A-Za-z0-9_-]{20,}'              # Anthropic
-scrub 'ghp_[A-Za-z0-9]{30,}'                   # GitHub PAT
-scrub 'xoxb-[0-9A-Za-z-]{20,}'                 # Slack
-scrub 'AKIA[0-9A-Z]{16}'                       # AWS
-scrub 'sbp_[a-z0-9]{20,}'                     # Supabase
+# macOS-safe: find -print0 + perl in-place con todos los patrones.
+find "$BK" -type f -not -path '*/.git/*' \
+  \( -name '*.ts' -o -name '*.tsx' -o -name '*.js' -o -name '*.jsx' -o -name '*.mjs' \
+     -o -name '*.cjs' -o -name '*.py' -o -name '*.json' -o -name '*.txt' \
+     -o -name '*.yml' -o -name '*.yaml' -o -name '*.env*' -o -name '*.md' -o -name '*.sh' \) \
+  -print0 2>/dev/null | xargs -0 perl -pi -e '
+    s/pk\.ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/__REDACTED_SECRET__/g;
+    s/sk\.ey[A-Za-z0-9_-]+\.[A-Za-z0-9_-]+/__REDACTED_SECRET__/g;
+    s/sk-ant-[A-Za-z0-9_-]{20,}/__REDACTED_SECRET__/g;
+    s/ghp_[A-Za-z0-9]{30,}/__REDACTED_SECRET__/g;
+    s/gho_[A-Za-z0-9]{30,}/__REDACTED_SECRET__/g;
+    s/xoxb-[0-9A-Za-z-]{20,}/__REDACTED_SECRET__/g;
+    s/AKIA[0-9A-Z]{16}/__REDACTED_SECRET__/g;
+    s/sbp_[a-f0-9]{20,}/__REDACTED_SECRET__/g;
+    s/AIza[0-9A-Za-z_-]{35}/__REDACTED_SECRET__/g;
+  ' 2>>"$LOG"
 
 # --- commit + push si hay cambios ---
 git add -A 2>>"$LOG"

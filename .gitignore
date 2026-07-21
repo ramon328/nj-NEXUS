@@ -152,3 +152,9 @@ session/
 mcp.json
 .mcp.json
 **/.cursor/mcp.json
+
+# internos del respaldo
+.sync.lock
+.sync.log
+.launchd.out.log
+.launchd.err.log
