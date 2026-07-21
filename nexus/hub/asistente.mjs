@@ -3581,10 +3581,24 @@ async function ejecutar(nombre, input, ctx = {}) {
           try {
             const out = await robot.generarBorrador({ borrador: r.borrador, empresaRut, apiToken: token })
             if (!out.ok) return JSON.stringify({ ok: false, error: out.error, borrador_texto: preview, instruccion: 'El robot no pudo armar el borrador en el SII. Dile el error al usuario tal cual, sin decir que se emitió.' })
-            if (ctx.de) { try { await enviarMediaWhatsApp(ctx.de, out.captura, '🧾 Borrador de la factura en el SII — revísalo. AÚN NO se ha emitido.') } catch { /* best-effort */ } }
+            // El robot deja el borrador en out.pdf (vista previa = PDF oficial del SII, el caso
+            // normal) o, si no pudo tomar el PDF, en out.captura (PNG). out.archivo apunta al que
+            // haya. ⚠️ Antes se mandaba out.captura fijo → en el caso PDF era undefined y solo se
+            // enviaba el texto SIN el documento. Usamos out.archivo para mandar SIEMPRE el archivo.
+            const archivo = out.archivo || out.pdf || out.captura
+            const esPdf = /\.pdf$/i.test(String(archivo || ''))
+            let enviado = false, errEnvio = ''
+            if (ctx.de && archivo) {
+              try { await enviarMediaWhatsApp(ctx.de, archivo, `🧾 Borrador ${esPdf ? '(PDF oficial)' : ''} de la factura en el SII — revísalo. AÚN NO se ha emitido.`); enviado = true }
+              catch (e) { errEnvio = e.message }
+            }
+            if (!enviado) return JSON.stringify({
+              ok: false, modo: 'borrador_no_enviado', archivo_local: archivo || null, error: errEnvio || 'no se generó archivo del borrador',
+              instruccion: `El borrador SÍ se armó en el SII pero NO se pudo mandar el ${esPdf ? 'PDF' : 'archivo'} al WhatsApp (${errEnvio || 'sin archivo'}). NO le digas al usuario que se lo mandaste. Dile que hubo un problema al enviar el documento y que lo reintentas. NO emitas.`,
+            })
             return JSON.stringify({
-              ok: true, modo: 'borrador_sii_enviado', total: (r.borrador?.totales?.total),
-              instruccion: 'Le MANDÉ la imagen del borrador OFICIAL del SII. Dile que lo revise. Si quiere EMITIRLA de verdad, ADVIÉRTELE que es IRREVERSIBLE (consume folio y le llega al cliente) y pídele una 2ª confirmación EXPLÍCITA ("¿la firmo y emito de verdad?"). Solo cuando diga que SÍ claramente, vuelve a llamar emitir con emitir_real=true (con los MISMOS datos). NO pongas emitir_real=true sin esa 2ª confirmación.',
+              ok: true, modo: 'borrador_sii_enviado', formato: esPdf ? 'pdf' : 'imagen', total: (r.borrador?.totales?.total),
+              instruccion: `Le MANDÉ el borrador OFICIAL del SII en ${esPdf ? 'PDF' : 'imagen'}. Dile que lo revise. Si quiere EMITIRLA de verdad, ADVIÉRTELE que es IRREVERSIBLE (consume folio y le llega al cliente) y pídele una 2ª confirmación EXPLÍCITA ("¿la firmo y emito de verdad?"). Solo cuando diga que SÍ claramente, vuelve a llamar emitir con emitir_real=true (con los MISMOS datos). NO pongas emitir_real=true sin esa 2ª confirmación.`,
             })
           } catch (e) { return `El robot de facturación falló: ${e.message}` }
         }
