@@ -132,6 +132,21 @@ export function hilo({ canal, contraparte, limite = 500 }) {
   `).all(canal, clave(canal, contraparte), limite)
 }
 
+// Últimos N mensajes de una conversación, en orden CRONOLÓGICO. Eficiente (usa el índice
+// contraparte,ts): trae los más recientes y los devuelve del más viejo al más nuevo.
+// Se usa para REHIDRATAR la memoria en RAM del hub tras un reinicio (así un "emítela"
+// después de reiniciar no pierde el borrador que se creó antes).
+export function recientes({ canal, contraparte, limite = 32 }) {
+  const filas = db().prepare(`
+    SELECT ts, direccion, texto
+    FROM mensajes
+    WHERE canal = ? AND contraparte = ?
+    ORDER BY ts DESC
+    LIMIT ?
+  `).all(canal, clave(canal, contraparte), limite)
+  return filas.reverse()
+}
+
 // Feed plano (para las pestañas de Correos y Llamadas).
 export function feed({ canal, limite = 200 }) {
   const where = canal ? 'WHERE canal = ?' : ''

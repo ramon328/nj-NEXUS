@@ -320,6 +320,27 @@ const _memoria = new Map()           // de -> { msgs:[{role,content}], ts }
 const MEM_TTL = 30 * 60 * 1000       // 30 min sin hablar => arranca limpio
 const MEM_MAX = 16                   // últimos 16 turnos
 
+// Rehidrata la conversación desde historial.db cuando la memoria en RAM está vacía
+// (típico tras un REINICIO del hub). Sin esto, un "emítela" después de reiniciar se
+// queda SIN el borrador que se creó antes → el asistente vuelve a pedir el borrador o
+// dice "no tengo nada pendiente". Trae los últimos mensajes RECIENTES (dentro del TTL,
+// para respetar el "arranca limpio si pasó mucho") y los mapea a {role,content}.
+function rehidratarMemoria(de, canal) {
+  try {
+    if (!de) return []
+    const lim = Date.now() - MEM_TTL
+    const filas = histDB.recientes({ canal, contraparte: de, limite: MEM_MAX * 2 }) || []
+    return filas
+      .filter((f) => {
+        if (!f.texto || (f.direccion !== 'entrante' && f.direccion !== 'saliente')) return false
+        const t = Date.parse(f.ts)
+        return Number.isFinite(t) ? t >= lim : true
+      })
+      .map((f) => ({ role: f.direccion === 'saliente' ? 'assistant' : 'user', content: String(f.texto) }))
+      .slice(-MEM_MAX)
+  } catch { return [] }
+}
+
 // Push de texto por WhatsApp (para respuestas largas que se entregan async).
 // Ahora vía Kapso (WhatsApp Cloud API oficial). Antes era OpenClaw/Baileys, que
 // baneaba el número (memoria whatsapp-baneo-por-autorespuesta) → retirado.
@@ -400,8 +421,14 @@ app.post('/api/chat', async (req, res) => {
       if (sa && sa.accesoSii(de)) {
         try {
           let m = _memoria.get(de)
-          if (!m || Date.now() - m.ts > MEM_TTL) m = { msgs: [], ts: Date.now() }
-          if (actual) m.msgs.push({ role: 'user', content: actual })
+          if (!m || Date.now() - m.ts > MEM_TTL) {
+            m = { msgs: [], ts: Date.now() }
+            m.msgs = rehidratarMemoria(de, 'whatsapp')   // sobrevive reinicios del hub
+          }
+          if (actual) {
+            const ult = m.msgs[m.msgs.length - 1]
+            if (!(ult && ult.role === 'user' && ult.content === actual)) m.msgs.push({ role: 'user', content: actual })
+          }
           m.ts = Date.now(); _memoria.set(de, m)
           const out = await sa.responderSii(de, m.msgs.slice(-MEM_MAX))
           if (out?.reply) { m.msgs.push({ role: 'assistant', content: out.reply }); m.msgs = m.msgs.slice(-MEM_MAX); _memoria.set(de, m) }
@@ -415,8 +442,18 @@ app.post('/api/chat', async (req, res) => {
     // Nexus admin CON memoria por remitente.
     const key = de || '_anon'
     let mem = _memoria.get(key)
-    if (!mem || Date.now() - mem.ts > MEM_TTL) mem = { msgs: [], ts: Date.now() }
-    if (actual) mem.msgs.push({ role: 'user', content: actual })
+    if (!mem || Date.now() - mem.ts > MEM_TTL) {
+      mem = { msgs: [], ts: Date.now() }
+      // Arranque en frío (o tras reiniciar el hub): recupera el hilo reciente desde la BD
+      // para NO perder el contexto (ej. el borrador de factura recién creado). Solo canales
+      // con historial persistente (WhatsApp/desktop), no el anónimo web sin remitente.
+      if (de) mem.msgs = rehidratarMemoria(de, canalHist)
+    }
+    // Evita duplicar el mensaje actual si ya vino en la rehidratación.
+    if (actual) {
+      const ult = mem.msgs[mem.msgs.length - 1]
+      if (!(ult && ult.role === 'user' && ult.content === actual)) mem.msgs.push({ role: 'user', content: actual })
+    }
 
     // Adjuntos (foto del auto + documentos) recibidos por WhatsApp. Se guardan por
     // remitente con TTL para que sigan disponibles en los turnos siguientes (subir un
