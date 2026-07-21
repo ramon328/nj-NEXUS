@@ -1,1 +1,32 @@
-{ "registros": [] }
+{
+  "registros": [
+    {
+      "id": "TAG-001",
+      "creado": "2026-07-21T15:45:38.648Z",
+      "tipo": "traspaso",
+      "tipo_label": "Traspaso de TAG — auto con tag nuestro que se vende",
+      "patente": "JKLM34",
+      "cantidad": null,
+      "es_empresa": false,
+      "solicitante": "Ramón (prueba)",
+      "asunto": "Traspaso Tag patente JKLM34",
+      "estado": "enviado",
+      "modo": "prueba",
+      "correo_id": "19f855aa75f6548c",
+      "enviado_desde": "ventas@mallorcautos.cl",
+      "destino": "ramon@dropout.cl",
+      "adjuntos": [
+        "CAV-JKLM34.pdf"
+      ],
+      "notas": "Correo de prueba del sistema de TAG",
+      "convenio_recibido": false,
+      "eventos": [
+        {
+          "ts": "2026-07-21T15:45:38.648Z",
+          "tipo": "enviado",
+          "detalle": "Solicitud enviada a ramon@dropout.cl"
+        }
+      ]
+    }
+  ]
+}
