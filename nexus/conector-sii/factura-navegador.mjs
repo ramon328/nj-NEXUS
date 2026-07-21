@@ -45,6 +45,17 @@ async function cookiesEmisor(apiToken) {
   if (!j?.ok || !j.cookies) throw new Error('No pude obtener la sesión del emisor del SII: ' + (j?.detail || JSON.stringify(j).slice(0, 120)))
   return j
 }
+
+// Clave del certificado centralizado (la que va en #myPass al firmar). Fuente única:
+// el .env del backend sii-web (dueño del certificado). El hub la pide por acá en vez
+// de tener el secreto duplicado en su propio .env.
+async function claveCertBackend(apiToken) {
+  try {
+    const r = await fetch(`${SII_API}/api/factura/cert-pass`, { headers: { 'X-API-Token': apiToken } })
+    const j = await r.json().catch(() => ({}))
+    return (j && j.ok && j.cert_pass) ? String(j.cert_pass) : ''
+  } catch { return '' }
+}
 const cookieHeader = (ck) => Object.entries(ck).map(([k, v]) => `${k}=${v}`).join('; ')
 
 // Trae la sesión del emisor del backend y la inyecta en el navegador.
@@ -172,8 +183,9 @@ export async function firmarYEmitir(opts = {}) {
   if (!habilitado || opts.CONFIRMO_EMITIR !== 'SI_EMITIR_DE_VERDAD') {
     return { ok: false, bloqueado: true, motivo: 'Emisión REAL deshabilitada por seguridad (freno doble). No se emitió nada.' }
   }
-  const clave = opts.claveCert || process.env.SII_CERT_PASS || ''
-  if (!clave) return { ok: false, error: 'Falta la clave del certificado centralizado (SII_CERT_PASS).' }
+  // Clave del certificado: opción explícita → env del hub → backend (fuente única).
+  const clave = opts.claveCert || process.env.SII_CERT_PASS || await claveCertBackend(opts.apiToken)
+  if (!clave) return { ok: false, error: 'Falta la clave del certificado centralizado (no está en SII_CERT_PASS del hub ni en el backend sii-web).' }
 
   // 1) Hay que estar en la VISTA PREVIA recién generada. Si no, el borrador expiró
   //    (el form se recarga y pierde la dirección forzada) → regenerar, NO firmar a ciegas.

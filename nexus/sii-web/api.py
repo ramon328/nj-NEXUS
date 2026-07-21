@@ -898,6 +898,18 @@ def sesion_cookies():
     return {"ok": True, "rut": rut, "cookies": cookies}
 
 
+@app.get("/api/factura/cert-pass")
+def cert_pass():
+    """Clave del CERTIFICADO CENTRALIZADO del emisor (la que el SII pide en #myPass
+    al firmar). El backend es el dueño del certificado (SII_CERT_PATH), así que la
+    clave vive SOLO acá (sii-web/.env) y el robot del hub la pide por este endpoint
+    en vez de duplicar el secreto. Protegido por el API_TOKEN del backend (localhost)."""
+    clave = os.getenv("SII_CERT_PASS", "").strip()
+    if not clave:
+        raise HTTPException(400, "Falta SII_CERT_PASS en el .env del backend (sii-web).")
+    return {"ok": True, "cert_pass": clave}
+
+
 @app.get("/api/health")
 def health():
     return {"ok": True}

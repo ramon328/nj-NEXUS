@@ -989,69 +989,77 @@ async function cartolaHistorica(page, log) {
   log('cartola histórica mapeada · frames:', dump.length)
   if (process.env.TEK_CARTOLA_HIST !== 'bajar') return { estado: entro ? 'mapeado_cartola_hist' : 'no_encontre_opcion', usada, url: page.url() }
 
-  // ── BAJAR: el form es un RANGO Desde→Hasta (2 selects de mes + 2 de año). Hacemos UNA
-  //    consulta Enero 2026 → mes actual (evita el bug de "el mes se pega") y PAGINAMOS para
-  //    traer TODOS los movimientos (el banco pagina de a ~60). ──
-  const MESABR = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+  // ── BAJAR: cada Cartola Histórica es una CARTOLA MENSUAL oficial (N° NN, con Saldo
+  //    inicial / Cargos / Abonos / Saldo final) + botón "Descargar" (PDF). La tabla de
+  //    detalle está VIRTUALIZADA (~60 filas visibles), por eso no se scrapea completa.
+  //    Por cada mes: seleccionamos la cartola, extraemos el RESUMEN (confiable) y
+  //    DESCARGAMOS el PDF oficial a la carpeta de cartolas del cerebro. ──
+  const MESNOM = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
   const anio = process.env.TEK_CARTOLA_ANIO || '2026'
-  const mesHasta = Number(process.env.TEK_CARTOLA_HASTA_MES || String(new Date().getMonth() + 1))
+  const meses = (process.env.TEK_CARTOLA_MESES || '1,2,3,4,5,6,7').split(',').map((x) => Number(x.trim())).filter(Boolean)
+  const PDFDIR = join(process.env.HOME, 'nexus', 'cerebro', '70 — Base de datos', 'Cartolas ANA CLARA', 'PDF')
+  mkdirSync(PDFDIR, { recursive: true })
   const fEob = () => page.frames().find((f) => /eob\.officebanking\.cl.*(CTLHT|Cartola|Historic|saldoctacte)/i.test(f.url()))
     || page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()))
     || page.mainFrame()
-  const extraerPagina = async () => {
-    const ff = fEob()
-    return await ff.evaluate(() => {
-      const tablas = [...document.querySelectorAll('table')]
-      let best = null, max = 0
-      for (const t of tablas) { const r = t.querySelectorAll('tr').length; if (r > max) { max = r; best = t } }
-      if (!best) return []
-      return [...best.querySelectorAll('tr')].map((tr) => [...tr.querySelectorAll('th,td')].map((c) => (c.innerText || '').trim()))
-    }).catch(() => [])
-  }
-  let filasAll = []
-  try {
-    // elegir cuenta ANA CLARA (índice 1) → revela los selectores de período
-    const f0 = fEob()
-    await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
-    await sleep(4200)
-    const f = fEob()
-    // Rango: month-full-name select → Enero (Desde); month-abbr select → mes actual (Hasta);
-    // todos los selects de año → 2026.
-    for (const s of await f.locator('select').all()) {
-      const opts = (await s.locator('option').allTextContents().catch(() => [])).map((o) => o.trim())
-      const low = opts.map((o) => o.toLowerCase())
-      if (low.includes('enero')) { await s.selectOption({ label: 'Enero' }).catch(() => {}) }                 // Desde = Enero
-      else if (low.includes(MESABR[mesHasta])) { await s.selectOption({ index: low.indexOf(MESABR[mesHasta]) }).catch(() => {}) } // Hasta = mes actual
-      else if (opts.includes(anio)) { await s.selectOption({ label: anio }).catch(() => {}) }                  // años → 2026
-    }
-    await sleep(1200)
-    const btn = f.getByText(/^buscar$/i).first()
-    if (await btn.isVisible().catch(() => false)) { await clickHumano(page, btn) } else { const b2 = f.getByText(/^aceptar$/i).first(); if (await b2.isVisible().catch(() => false)) await clickHumano(page, b2) }
-    log(`carthist RANGO Enero→mes${mesHasta} ${anio}: Buscar`)
-    await sleep(9000)
-    // PAGINACIÓN: extraer página, buscar "Siguiente"/número siguiente, repetir.
-    const vistas = new Set()
-    for (let pag = 1; pag <= 80; pag++) {
-      const filas = await extraerPagina()
-      let nuevas = 0
-      for (const r of filas) { const k = r.join('|'); if (!vistas.has(k)) { vistas.add(k); filasAll.push(r); nuevas++ } }
-      log(`  página ${pag}: ${filas.length} filas (${nuevas} nuevas)`)
-      if (pag <= 3) await page.screenshot({ path: join(DATA, `carthist-rango-p${pag}.png`) }).catch(() => {})
-      if (nuevas <= 1) break   // sin filas nuevas → fin de la paginación
+  const num = (s) => Number(String(s || '').replace(/[^\d-]/g, '')) || 0
+  const resumenMeses = []
+  for (const mes of meses) {
+    try {
+      // RE-NAVEGAR fresco desde el dashboard (resetea del todo el form de la cartola).
+      await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+      await sleep(6000); await cerrarPopups(page, log)
+      for (let i = 0; i < 3 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2400) }
+      await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(9000)
+      const f0 = fEob()
+      await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
+      await sleep(4000)
+      // seleccionar el MES (nombre completo) + año en los selects
+      const f = fEob()
+      for (const s of await f.locator('select').all()) {
+        const opts = (await s.locator('option').allTextContents().catch(() => [])).map((o) => o.trim())
+        const low = opts.map((o) => o.toLowerCase())
+        if (low.includes(MESNOM[mes].toLowerCase())) { await s.selectOption({ label: MESNOM[mes] }).catch(() => {}) }
+        else if (opts.includes(anio)) { await s.selectOption({ label: anio }).catch(() => {}) }
+      }
+      await sleep(1200)
+      const btn = f.getByText(/^buscar$/i).first()
+      if (await btn.isVisible().catch(() => false)) await clickHumano(page, btn)
+      log(`carthist ${MESNOM[mes]} ${anio}: Buscar`)
+      await sleep(9000)
+      // RESUMEN de la cabecera (Saldo inicial / Cargos / Abonos / Saldo final + N° y período)
       const ff = fEob()
-      const next = ff.getByText(/^(siguiente|next|»|›)$/i).first()
-      const nextNum = ff.getByText(new RegExp(`^\\s*${pag + 1}\\s*$`)).first()
-      let clicked = false
-      if (await next.isVisible().catch(() => false)) { await clickHumano(page, next); clicked = true }
-      else if (await nextNum.isVisible().catch(() => false)) { await clickHumano(page, nextNum); clicked = true }
-      if (!clicked) { log('  sin control de página siguiente → fin'); break }
-      await sleep(5000)
-    }
-  } catch (e) { log('carthist rango falló:', e.message) }
-  // una sola "captura" con mes=null → parse-carthist conserva TODOS los meses del año.
-  writeFileSync(join(DATA, 'carthist-crudo.json'), JSON.stringify({ anio, meses: 'rango', capturas: [{ anio, mes: null, filas: filasAll }] }, null, 2))
-  log(`carthist rango: ${filasAll.length} filas totales`)
-  return { estado: 'cartola_hist_bajada', usada, filas_total: filasAll.length, url: page.url() }
+      const resumen = await ff.evaluate(() => {
+        const txt = (document.body.innerText || '').replace(/ /g, ' ')
+        const g = (re) => { const m = txt.match(re); return m ? m[1].trim() : '' }
+        return {
+          n_cartola: g(/N[°º]\s*Cartola\s*([\d]+\s*-\s*[\d/]+)/i),
+          desde: g(/Fecha\s*desde\s*([\d/]+)/i), hasta: g(/Fecha\s*hasta\s*([\d/]+)/i),
+          saldo_inicial: g(/Saldo\s*inicial\s*\$?\s*([\d.]+)/i),
+          cargos: g(/Cargos\s*\$?\s*([\d.]+)/i),
+          abonos: g(/Abonos\s*\$?\s*([\d.]+)/i),
+          saldo_final: g(/Saldo\s*final\s*\$?\s*([\d.]+)/i),
+        }
+      }).catch(() => ({}))
+      const R = { mes, anio: Number(anio), n_cartola: resumen.n_cartola, periodo: `${resumen.desde}→${resumen.hasta}`,
+        saldo_inicial: num(resumen.saldo_inicial), cargos: num(resumen.cargos), abonos: num(resumen.abonos), saldo_final: num(resumen.saldo_final) }
+      resumenMeses.push(R)
+      log(`  ${MESNOM[mes]}: cartola ${R.n_cartola || '?'} · cargos ${R.cargos} · abonos ${R.abonos}`)
+      // DESCARGAR el PDF oficial
+      try {
+        const dl = ff.getByText(/^descargar$/i).first()
+        if (await dl.isVisible().catch(() => false)) {
+          const [download] = await Promise.all([page.waitForEvent('download', { timeout: 25_000 }).catch(() => null), clickHumano(page, dl)])
+          if (download) { const dest = join(PDFDIR, `Cartola ${anio}-${String(mes).padStart(2, '0')} ${MESNOM[mes]}.pdf`); await download.saveAs(dest).catch(() => {}); log(`  PDF guardado: ${dest.split('/').pop()}`) }
+          else log('  descarga no disparó download event')
+        } else log('  no vi botón Descargar')
+      } catch (e) { log('  descarga falló:', e.message) }
+      await sleep(1500)
+    } catch (e) { log(`carthist ${MESNOM[mes]} falló:`, e.message) }
+  }
+  writeFileSync(join(DATA, 'carthist-resumen.json'), JSON.stringify({ anio, actualizado: new Date().toISOString(), meses: resumenMeses }, null, 2))
+  log(`carthist: ${resumenMeses.length} meses con resumen + PDF`)
+  return { estado: 'cartola_hist_bajada', usada, meses_resumen: resumenMeses.map((r) => ({ mes: r.mes, cartola: r.n_cartola, cargos: r.cargos, abonos: r.abonos })), url: page.url() }
 }
 
 async function main() {
@@ -1081,6 +1089,7 @@ async function main() {
     headless, channel: 'chrome',
     args: perfilReal ? ['--profile-directory=Default', '--disable-background-networking', '--disable-sync', '--no-first-run'] : [],
     viewport: { width: 1360, height: 860 }, locale: 'es-CL', timezoneId: 'America/Santiago',
+    acceptDownloads: true,   // para bajar los PDF de la cartola histórica
   })
   const mapearOn = process.env.TEK_MAPEAR === '1'
   const capturarOn = process.env.TEK_CAPTURAR === '1'
