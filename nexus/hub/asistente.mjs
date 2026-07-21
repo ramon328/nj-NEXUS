@@ -358,7 +358,7 @@ async function aliaceResumenMes(fecha) {
     total: num(vencida_limpia + por_vencer + siniestro + judicial),
     detalle: { notas_venta: { vencida: num(nvB.vencida), por_vencer: num(nvB.por_vencer), siniestro: num(nvB.siniestro), judicial: num(nvB.judicial) },
       manual_facturas: { vencida: num(mfB.vencida), por_vencer: num(mfB.por_vencer), siniestro: num(mfB.siniestro), judicial: num(mfB.judicial) } },
-    nota: '"vencida_total_como_app" = vencido tal como lo muestra la app (incluye judiciales+siniestros). "vencida_limpia" = esa vencida DESCONTANDO judiciales y siniestros (van en sus propios buckets). Por defecto reporta vencida_limpia para decisiones de cobranza; usa vencida_total_como_app si Ramón quiere cuadrar con la pantalla de Deudas. Suma NV + facturas manuales.',
+    nota: '"vencida_total_como_app" = vencido tal como lo muestra la app (incluye judiciales+siniestros). "vencida_limpia" = esa vencida DESCONTANDO judiciales y siniestros (van en sus propios buckets). Por defecto reporta vencida_limpia para decisiones de cobranza; usa vencida_total_como_app si Ramón quiere cuadrar con la pantalla de Deudas. ⚠️ "por_vencer" aquí = TODO lo NO vencido (deuda sana + pronto a vencer juntas): la pantalla de Deudas de la web las muestra en 2 líneas separadas ("sana" y "pronto a vencer"), pero get_reporte_deuda las junta en un solo bucket "Por Vencer". No lo compares con la línea "pronto a vencer" de la web (que es solo un subconjunto). El TOTAL CxC sí cuadra con la web. Suma NV + facturas manuales.',
   }
   // ── REPORTE YA FORMATEADO (profesional, listo para enviar) ──────────────────
   // Para que la presentación sea SIEMPRE ordenada, clara y profesional (y nunca
@@ -371,13 +371,16 @@ async function aliaceResumenMes(fecha) {
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
   const potencial = num(facturacion.neto + nv_pendientes_aprobacion.total_monto + nv_aprobadas_sin_facturar.total_monto)
   const DIV = '━━━━━━━━━━━━━━━'
-  const pct = meta.avance_pct == null ? 's/d' : `${meta.avance_pct}%`
+  // % en formato chileno (coma, no punto). margen_pct/avance_pct ya vienen como número
+  // de porcentaje (22.1), no como fracción → NO usar pctTexto (ése divide entre 100).
+  const pctp = (n) => (n == null ? '—' : String(n).replace('.', ',') + '%')
+  const pct = meta.avance_pct == null ? 's/d' : pctp(meta.avance_pct)
   const metaLinea = meta.avance_pct == null
     ? '_Sin meta cargada para el mes._'
     : (meta.gap >= 0 ? `✅ Meta cumplida: +${clp(meta.gap)} sobre lo proyectado.` : `Faltan ${clp(Math.abs(meta.gap))} para cumplir la meta.`)
   const L = []
   // Encabezado tipo informe ejecutivo (para leerse "de empresario": titular, mes, corte).
-  const mpct = margen.margen_pct == null ? '—' : `${margen.margen_pct}%`
+  const mpct = pctp(margen.margen_pct)
   L.push(`📊 *ALIACE · Informe ejecutivo*`)
   L.push(`_${cap(MESES[P.mes])} ${P.anio} · corte al ${dd}-${MESES[P.mes].slice(0, 3)} · idéntico a la app (pantalla Facturas)_`)
   L.push(DIV)
@@ -416,7 +419,8 @@ async function aliaceResumenMes(fecha) {
   L.push('')
   L.push('*Cuentas por cobrar*')
   L.push(`▸ Vencida (cobranza real): *${clp(cxc.vencida_limpia)}*`)
-  L.push(`▸ Por vencer: ${clp(cxc.por_vencer)}`)
+  L.push(`▸ Por vencer (al día): ${clp(cxc.por_vencer)}`)
+  L.push('_Incluye deuda sana + pronto a vencer (en la web esas son 2 líneas aparte)._')
   L.push(`▸ Siniestro ${clp(cxc.siniestro)} · Judicial ${clp(cxc.judicial)}`)
   L.push(`▸ Total CxC: *${clp(cxc.total)}*`)
   L.push('')
@@ -429,8 +433,8 @@ async function aliaceResumenMes(fecha) {
   const nvEnJuego = num(nv_pendientes_aprobacion.total_monto + nv_aprobadas_sin_facturar.total_monto)
   const lectura = []
   if (meta.avance_pct != null) lectura.push(meta.gap >= 0
-    ? `• Meta de ${MESES[P.mes]} cumplida (${meta.avance_pct}%).`
-    : `• Facturación al ${meta.avance_pct}% de la meta: faltan ${clp(Math.abs(meta.gap))} para cerrar el mes.`)
+    ? `• Meta de ${MESES[P.mes]} cumplida (${pctp(meta.avance_pct)}).`
+    : `• Facturación al ${pctp(meta.avance_pct)} de la meta: faltan ${clp(Math.abs(meta.gap))} para cerrar el mes.`)
   if (nvEnJuego > 0) lectura.push(`• ${clp(nvEnJuego)} en notas de venta por destrabar (pendientes + aprobadas sin facturar): la vía más directa para acercarse a la meta.`)
   if (cxc.vencida_limpia > 0) lectura.push(`• Cobranza prioritaria: ${clp(cxc.vencida_limpia)} ya vencidos (sin judiciales ni siniestros).`)
   if (!lectura.length) lectura.push('• Mes al día: sin brecha de meta ni cobranza vencida relevante.')
@@ -529,6 +533,7 @@ async function aliaceResumenAnual(anio) {
   // ── REPORTE YA FORMATEADO (profesional, formato WhatsApp, listo para enviar) ──
   const clp = (n) => '$' + Math.round(Number(n || 0)).toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.')
   const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1)
+  const pctp = (n) => (n == null ? '—' : String(n).replace('.', ',') + '%')  // % chileno (coma)
   const DIV = '━━━━━━━━━━━━━━━'
   const L = []
   L.push(`📊 *ALIACE · Informe ANUAL ${Y}*`)
@@ -542,11 +547,11 @@ async function aliaceResumenAnual(anio) {
   L.push(`*Ventas netas (costeadas − NC):* ${clp(nbA.ventas_netas)}`)
   L.push(`*Costo de Ventas (WAC):* ${clp(nbA.costo_ventas_total)}`)
   L.push(`*Margen Bruto:* ${clp(Math.round(nbA.margen_bruto))} · *Margen %:* ${pctTexto(nbA.margen_pct)}`)
-  L.push(`_Cotejo app (sin netear NC): ${clp(margen.margen_bruto)} · ${margen.margen_pct == null ? '—' : margen.margen_pct + '%'}._`)
+  L.push(`_Cotejo app (sin netear NC): ${clp(margen.margen_bruto)} · ${pctp(margen.margen_pct)}._`)
   L.push('_Costos y márgenes: en revisión, no oficial (como advierte la app)._')
   L.push(DIV)
   L.push('*Meta del año*')
-  L.push(`Meta ${clp(meta.meta_anual)} · Avance *${avance_pct == null ? 's/d' : avance_pct + '%'}*`)
+  L.push(`Meta ${clp(meta.meta_anual)} · Avance *${avance_pct == null ? 's/d' : pctp(avance_pct)}*`)
   if (avance_pct != null) L.push(gap >= 0 ? `✅ +${clp(gap)} sobre la meta acumulada.` : `Faltan ${clp(Math.abs(gap))} para la meta acumulada.`)
   L.push(DIV)
   L.push('*Facturado por mes* (neto · margen %)')
@@ -562,7 +567,7 @@ async function aliaceResumenAnual(anio) {
   }
   if (avance_pct != null) lectura.push(gap >= 0
     ? `• Año por sobre la meta acumulada (+${clp(gap)}).`
-    : `• Año al ${avance_pct}% de la meta: faltan ${clp(Math.abs(gap))}.`)
+    : `• Año al ${pctp(avance_pct)} de la meta: faltan ${clp(Math.abs(gap))}.`)
   if (!lectura.length) lectura.push('• Sin facturación registrada en el año.')
   L.push('🧭 *Lectura ejecutiva*')
   for (const x of lectura) L.push(x)
@@ -576,7 +581,7 @@ async function aliaceResumenAnual(anio) {
       'Las cifras son la SUMA de los meses con la MISMA réplica de la pantalla Facturas de la app; repórtalas TAL CUAL, NO recalcules con aliace_sql. ' +
       'La CxC NO está aquí (es snapshot, no anual): para vencidas/por vencer usa aliace_resumen. ' +
       'ACOMPAÑA SIEMPRE con un gráfico (tool graficar): facturado por mes (barras) y/o margen % por mes. ' +
-      `⚠️ OBLIGATORIO EN EL TEXTO (aunque mandes gráfico y aunque resumas): di SIEMPRE el FACTURADO TOTAL del año en pesos = ${clp(facturacion.facturado_neto)} y el AVANCE de meta = ${avance_pct == null ? 's/d' : avance_pct + '%'}. Ese total es la RESPUESTA directa a "cuánto llevamos en el año"; NUNCA respondas solo con el mejor mes, un comentario o el % sin el monto absoluto.`,
+      `⚠️ OBLIGATORIO EN EL TEXTO (aunque mandes gráfico y aunque resumas): di SIEMPRE el FACTURADO TOTAL del año en pesos = ${clp(facturacion.facturado_neto)} y el AVANCE de meta = ${avance_pct == null ? 's/d' : pctp(avance_pct)}. Ese total es la RESPUESTA directa a "cuánto llevamos en el año"; NUNCA respondas solo con el mejor mes, un comentario o el % sin el monto absoluto.`,
   }
 }
 
@@ -884,7 +889,7 @@ const _DIVM = '━━━━━━━━━━━━━━━'
 const _capM = (s) => (s || '').charAt(0).toUpperCase() + (s || '').slice(1)
 // Margen del MES (WAC real o estimado). Muestra SOLO Costo / Margen Bruto / Margen % —
 // el % SIEMPRE sobre ventas netas—, con una única línea de aviso si aplica.
-function margenTextoMes({ anio, mes, fecha, costo, margen_bruto, margen_pct_texto, cobertura_pct, estimado, ventas_netas }) {
+function margenTextoMes({ anio, mes, fecha, costo, margen_bruto, margen_pct_texto, cobertura_pct, estimado, ventas_netas, cotejo }) {
   const dd = (fecha || '').slice(8, 10)
   const L = []
   L.push(`📊 *ALIACE · Margen · ${_capM(_MESES_M[mes])} ${anio}*`)
@@ -897,6 +902,9 @@ function margenTextoMes({ anio, mes, fecha, costo, margen_bruto, margen_pct_text
   L.push(`_Sobre ventas netas de ${_clpM(ventas_netas)} (facturas − devoluciones)._`)
   if (estimado) L.push(`_⚠️ ${_capM(_MESES_M[mes])} no tiene costeo WAC en Aliace; el costo se estimó con unit_costs (cobertura ${cobertura_pct ?? '—'}%). Validado a ~0,7 pto del WAC real; no es cifra oficial._`)
   else if (cobertura_pct != null && cobertura_pct < 99) L.push(`_⚠️ Costeo del mes al ${pctTexto((cobertura_pct || 0) / 100)} — el margen puede afinarse al terminar de costear ${_MESES_M[mes]}._`)
+  // Cotejo con la pantalla Facturas de la app (NO netea NC): así el informe SIEMPRE
+  // reconcilia con lo que Ramón ve en la web (la app muestra el margen sin netear NC).
+  if (cotejo && cotejo.margen_bruto != null) L.push(`_En la app (pantalla Facturas, sin netear NC): ${_clpM(cotejo.margen_bruto)} · ${cotejo.margen_pct == null ? '—' : String(cotejo.margen_pct).replace('.', ',') + '%'}._`)
   return L.join('\n')
 }
 
@@ -984,7 +992,7 @@ async function aliaceMargen({ fecha, id } = {}) {
           ? `_Meses con costeo cargado: ${costeo.meses_costeados.join(', ')}._`
           : '_Aún no hay ningún mes con costeo WAC cargado._',
       ].join('\n')
-    : margenTextoMes({ anio: P.anio, mes: P.mes, fecha: P.fecha, costo: nb.costo_ventas_total, margen_bruto: nb.margen_bruto, margen_pct_texto: pctTexto(nb.margen_pct), cobertura_pct: nb.cobertura_costeo_pct, estimado: false, ventas_netas: nb.ventas_netas })
+    : margenTextoMes({ anio: P.anio, mes: P.mes, fecha: P.fecha, costo: nb.costo_ventas_total, margen_bruto: nb.margen_bruto, margen_pct_texto: pctTexto(nb.margen_pct), cobertura_pct: nb.cobertura_costeo_pct, estimado: false, ventas_netas: nb.ventas_netas, cotejo: { margen_bruto: fa.margen_bruto, margen_pct: fa.margen_pct } })
   return {
     fuente: 'aliace_margen (NETO de devoluciones, estilo Power BI · misma data que la app)', tipo: 'mes', mes: P.mes, anio: P.anio,
     // MARGEN CORRECTO (neto de NC), preciso:
