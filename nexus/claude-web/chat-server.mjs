@@ -349,6 +349,7 @@ function renderMd(src){
 
 /* ---------- Chat ---------- */
 let ws=null, typingEl=null, curAi=null, busy=false, reconnTO=null
+let hbTO=null, wdTO=null, lastRx=0, connecting=false
 let ROLE='owner', curTerm=null, termList=[], headerName='Claude Code', wantTerm=null, curModel=''
 const MODELOS=[{id:'',nombre:'Por defecto',desc:'el que trae Claude Code'},{id:'opus',nombre:'Opus 4.8',desc:'el más capaz'},{id:'sonnet',nombre:'Sonnet',desc:'equilibrado y rápido'},{id:'haiku',nombre:'Haiku',desc:'el más veloz y económico'}]
 const feed=$('#feed')
@@ -401,13 +402,36 @@ function resolvePerm(id,allow,name){
   delete perms[id];if(busy)showTyping()
 }
 
+/* Latido: el móvil mata la conexión en silencio (bloqueo de pantalla, WiFi↔datos).
+   Sin ping/pong el socket queda "medio-abierto": readyState sigue OPEN pero no llega
+   nada y onclose NUNCA dispara → la app se cuelga. Mandamos ping cada 20s y, si no
+   llega NADA en 45s, forzamos el cierre para que reconecte. */
+function startHB(){
+  stopHB()
+  hbTO=setInterval(()=>{if(ws&&ws.readyState===1){try{ws.send('{"t":"ping"}')}catch(e){}}},20000)
+  wdTO=setInterval(()=>{if(ws&&ws.readyState===1&&Date.now()-lastRx>45000){try{ws.close()}catch(e){}}},10000)
+}
+function stopHB(){if(hbTO){clearInterval(hbTO);hbTO=null}if(wdTO){clearInterval(wdTO);wdTO=null}}
+function reconnectNow(){
+  if(connecting)return
+  if(ws&&(ws.readyState===0||ws.readyState===1))return  // ya está conectando/vivo
+  clearTimeout(reconnTO);connect()
+}
 function connect(){
+  if(connecting)return
+  connecting=true
+  clearTimeout(reconnTO)
+  const old=ws
+  if(old){try{old.onopen=old.onmessage=old.onclose=old.onerror=null;old.close()}catch(e){}}
   const proto=location.protocol==='https:'?'wss':'ws'
   ws=new WebSocket(proto+'://'+location.host+'/ws')
-  ws.onopen=()=>{setBusy(false);if(wantTerm&&ROLE==='owner'){try{ws.send(JSON.stringify({t:'attach',term:wantTerm}))}catch(e){}}}
-  ws.onclose=()=>{setBusy(false);$('#dot').className='dot';clearTimeout(reconnTO);reconnTO=setTimeout(connect,1500)}
+  ws.onopen=()=>{connecting=false;lastRx=Date.now();startHB();setBusy(false);if(wantTerm&&ROLE==='owner'){try{ws.send(JSON.stringify({t:'attach',term:wantTerm}))}catch(e){}}}
+  ws.onclose=()=>{connecting=false;stopHB();setBusy(false);$('#dot').className='dot';clearTimeout(reconnTO);reconnTO=setTimeout(connect,1500)}
+  ws.onerror=()=>{try{ws.close()}catch(e){}}
   ws.onmessage=e=>{
+    lastRx=Date.now()
     let m;try{m=JSON.parse(e.data)}catch(_){return}
+    if(m.t==='pong'){return}
     if(m.t==='session'){return}
     if(m.t==='terms'){ROLE=m.role||ROLE;termList=m.list||[];curTerm=m.current;applyRole();return}
     if(m.t==='attached'){curTerm=m.term;headerName=m.name||headerName;if(m.model!=null)curModel=m.model;if(ROLE==='owner')wantTerm=m.term;updateHeader();renderTerms();return}
@@ -445,6 +469,18 @@ const inp=$('#inp')
 inp.addEventListener('input',()=>{inp.style.height='auto';inp.style.height=Math.min(inp.scrollHeight,140)+'px'})
 inp.addEventListener('keydown',e=>{if(e.key==='Enter'&&!e.shiftKey){e.preventDefault();send()}})
 $('#nuevo').addEventListener('click',()=>{ws&&ws.send(JSON.stringify({t:'new'}))})
+/* Volver a la app / recuperar red: reconecta al toque en vez de quedarse colgado.
+   Al volver visible, si el socket dice estar vivo lo probamos con un ping; el watchdog
+   lo tumba y reconecta si estaba muerto. */
+document.addEventListener('visibilitychange',()=>{
+  if(document.visibilityState==='visible'){
+    if(!ws||ws.readyState!==1){reconnectNow()}
+    else{lastRx=Date.now();try{ws.send('{"t":"ping"}')}catch(e){}}
+  }
+})
+window.addEventListener('online',reconnectNow)
+window.addEventListener('focus',()=>{if(!ws||ws.readyState!==1)reconnectNow()})
+window.addEventListener('pageshow',()=>{if(!ws||ws.readyState!==1)reconnectNow()})
 /* ---------- Terminales, compartir y modelo ---------- */
 function updateHeader(){
   const cur=(termList.find(t=>t.id===curTerm)||{}).name||headerName||'Claude Code'
@@ -864,6 +900,8 @@ server.on('upgrade', (req, socket, head) => {
 
 function sesion(ws) {
   ALL.add(ws)
+  ws.isAlive = true
+  ws.on('pong', () => { ws.isAlive = true })
   ws._term = null
   if (ws._role === 'guest') {
     const gt = TERMS.get(ws._gterm)
@@ -876,6 +914,7 @@ function sesion(ws) {
 
   ws.on('message', (raw) => {
     let o; try { o = JSON.parse(raw.toString()) } catch { return }
+    if (o.t === 'ping') { send(ws, { t: 'pong' }); return }
     const cur = TERMS.get(ws._term)
     const owner = ws._role === 'owner'
     if (o.t === 'msg' && cur && (o.text || (Array.isArray(o.images) && o.images.length) || (Array.isArray(o.files) && o.files.length))) {
@@ -956,3 +995,14 @@ const HOST = process.env.CLAUDE_WEB_HOST || '0.0.0.0'
 server.listen(PORT, HOST, () => {
   console.log(`[claude-chat] chat en http://${HOST}:${PORT} | PIN ${PIN.length} dígitos | perm=${PERM}${MODEL ? ' | model=' + MODEL : ''} | multi-terminal + compartir`)
 })
+
+// Latido del servidor: cada 25s ping a todos; el que no contestó el ciclo anterior
+// se da por muerto y se expulsa (terminate). Así no seguimos escribiendo a sockets
+// zombis del teléfono (fuga de memoria) y el cliente reconecta limpio.
+setInterval(() => {
+  for (const ws of ALL) {
+    if (ws.isAlive === false) { try { ws.terminate() } catch { /* */ } continue }
+    ws.isAlive = false
+    try { ws.ping() } catch { /* */ }
+  }
+}, 25000)
