@@ -622,7 +622,10 @@ async function crearTransferencia(page, log) {
     // mayúscula), otros bancos "Ingrese email" (minúscula). getByPlaceholder con regex /i
     // matchea ambos. fill() + verifica + reintenta con type (antes quedaba vacío → el banco
     // rechazaba "El correo del destinatario no tiene formato correcto").
-    const emailLocator = () => f2.getByPlaceholder(/^\s*ingrese email\s*$/i).first()
+    // Placeholder EXACTO por CSS (probado en Santander): cubre "Ingrese email" (otros bancos,
+    // minúscula) y "Ingrese Email" (mismo banco, mayúscula). Exacto = no engancha inputs
+    // ocultos ni el campo "nombre" (el getByPlaceholder con regex sí lo hacía).
+    const emailLocator = () => f2.locator('input[placeholder="Ingrese email"], input[placeholder="Ingrese Email"]').first()
     const llenarEmail = async () => {
       const emailVal = process.env.TEK_DEST_EMAIL || ''
       const loc = emailLocator()
