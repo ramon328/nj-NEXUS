@@ -3560,7 +3560,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           // 2ª confirmación explícita del usuario. firmarYEmitir tiene freno propio.
           if (input.emitir_real === true) {
             try {
-              const em = await robot.firmarYEmitir({ CONFIRMO_EMITIR: 'SI_EMITIR_DE_VERDAD', apiToken: token })
+              const em = await robot.firmarYEmitir({ CONFIRMO_EMITIR: 'SI_EMITIR_DE_VERDAD', apiToken: token, borrador: r.borrador, empresaRut })
               if (em.bloqueado) return JSON.stringify({ ok: false, modo: 'emision_bloqueada', motivo: em.motivo, instruccion: 'La emisión real está deshabilitada por seguridad. Dile al usuario que la factura NO se emitió y que Ramón debe habilitarla.' })
               if (!em.ok) return JSON.stringify({ ok: false, error: em.error, detalle: em.detalle, instruccion: 'NO se emitió. Si dice que el borrador expiró, vuelve a llamar emitir con confirmado=true (regenera el borrador) y firma enseguida. Dile el error tal cual; NUNCA afirmes que se emitió.' })
               if (ctx.de && em.pdf) { try { await enviarMediaWhatsApp(ctx.de, em.pdf, `✅ *Factura N° ${em.folio || ''} EMITIDA* en el SII.`, { forceDocument: true }) } catch { /* best-effort */ } }

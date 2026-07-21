@@ -37,6 +37,18 @@ const escribir = (selector, texto) => nav('/escribir', { selector, texto: String
 const click = (selector) => nav('/click', { selector })
 const ir = (url) => nav('/ir', { url })
 
+// Espera (sondeando) hasta que la URL del navegador contenga `frag`. Más robusto que
+// un sleep fijo: las pantallas del SII (firma, envío) tardan distinto cada vez.
+async function esperarUrl(frag, timeoutMs = 10000) {
+  const t0 = Date.now()
+  while (Date.now() - t0 < timeoutMs) {
+    const est = await nav('/estado').catch(() => ({}))
+    if (String(est?.url || '').includes(frag)) return true
+    await sleep(800)
+  }
+  return false
+}
+
 // Pide al backend las cookies de la sesión del emisor (Nico). Se usan para inyectarlas
 // en el navegador y también para bajar el PDF oficial del DTE emitido.
 async function cookiesEmisor(apiToken) {
@@ -187,30 +199,48 @@ export async function firmarYEmitir(opts = {}) {
   const clave = opts.claveCert || process.env.SII_CERT_PASS || await claveCertBackend(opts.apiToken)
   if (!clave) return { ok: false, error: 'Falta la clave del certificado centralizado (no está en SII_CERT_PASS del hub ni en el backend sii-web).' }
 
-  // 1) Hay que estar en la VISTA PREVIA recién generada. Si no, el borrador expiró
-  //    (el form se recarga y pierde la dirección forzada) → regenerar, NO firmar a ciegas.
+  // 1) VISTA PREVIA FRESCA — ATÓMICO. Firmar depende de estar EXACTAMENTE en la vista
+  //    previa del SII (mipeDisplayPreView), y ese estado del navegador COMPARTIDO expira
+  //    y lo pisa cualquier otra acción (el tiempo que el usuario se demora en confirmar,
+  //    regenerar el borrador de nuevo, otra pestaña...). Depender del generarBorrador
+  //    ANTERIOR era la causa real de "no llegué a la pantalla de firma / no confirmó el
+  //    envío". Solución: si nos pasan el borrador, lo REGENERAMOS aquí mismo (idempotente,
+  //    NO consume folio) y firmamos enseguida. Sin ventana de tiempo para que expire.
+  if (opts.borrador && opts.empresaRut) {
+    const g = await generarBorrador({ borrador: opts.borrador, empresaRut: opts.empresaRut, apiToken: opts.apiToken })
+    if (!g.ok) return { ok: false, error: 'No pude preparar el borrador antes de firmar: ' + (g.error || ''), detalle: g.nota }
+    if (!g.en_vista_previa) return { ok: false, error: 'El borrador se armó pero el SII no llegó a la vista previa (suele faltar un dato obligatorio del receptor). NO se firmó.', detalle: g.nota }
+  }
   let est = await nav('/estado')
   if (!String(est?.url || '').includes('mipeDisplayPreView')) {
-    return { ok: false, error: 'No estoy en la vista previa (el borrador expiró). Hay que regenerar el borrador y firmar enseguida.' }
+    return { ok: false, error: 'No estoy en la vista previa del SII. No se firmó (hay que regenerar el borrador y firmar enseguida).' }
   }
 
-  // 2) "Firmar" → pantalla de firma
-  await click('[name=btnSign]'); await sleep(8000)
-  est = await nav('/estado')
-  if (!String(est?.url || '').includes('mipeGenXMLFirma')) {
-    return { ok: false, error: 'No llegué a la pantalla de firma del SII. No se emitió.' }
+  // 2) "Firmar" → pantalla de firma (mipeGenXMLFirma). A veces demora; sondeo hasta 12s
+  //    y reintento el click una vez antes de rendirme.
+  await click('[name=btnSign]')
+  let enFirma = await esperarUrl('mipeGenXMLFirma', 12000)
+  if (!enFirma) { await click('[name=btnSign]').catch(() => {}); enFirma = await esperarUrl('mipeGenXMLFirma', 8000) }
+  if (!enFirma) {
+    return { ok: false, error: 'No llegué a la pantalla de firma del SII (la vista previa pudo expirar). No se emitió.' }
   }
 
   // 3) Clave del certificado centralizado + botón Firmar (ojo: #btnFirma NO tiene name)
   await escribir('#myPass', clave)
   await sleep(600)
   await click('#btnFirma')
-  await sleep(20000)   // firmar + enviar al SII demora; el SII avisa que puede tardar
 
-  // 4) Confirmar que el SII lo recibió
-  est = await nav('/estado')
-  const texto = (await (await fetch(`${NAV}/leer`)).json().catch(() => ({})))?.texto || ''
-  const enviado = String(est?.url || '').includes('mipeSendXML') && /ENVIADO\s+EXITOSAMENTE/i.test(texto)
+  // 4) Confirmar que el SII lo recibió. Firmar+enviar demora distinto cada vez → sondeo
+  //    hasta 45s buscando "DOCUMENTO ENVIADO EXITOSAMENTE" en mipeSendXML.
+  let texto = ''
+  const t0 = Date.now()
+  let enviado = false
+  while (Date.now() - t0 < 45000) {
+    await sleep(3000)
+    est = await nav('/estado').catch(() => ({}))
+    texto = (await (await fetch(`${NAV}/leer`)).json().catch(() => ({})))?.texto || ''
+    if (String(est?.url || '').includes('mipeSendXML') && /ENVIADO\s+EXITOSAMENTE/i.test(texto)) { enviado = true; break }
+  }
   if (!enviado) {
     return { ok: false, error: 'El SII no confirmó el envío (puede ser la clave del certificado o un rechazo). NO des por emitida la factura.', detalle: texto.slice(0, 300) }
   }
