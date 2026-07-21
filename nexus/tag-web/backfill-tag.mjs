@@ -1,63 +1,62 @@
-// backfill-tag.mjs — Deduce qué PATENTES ya tienen TAG a partir del HISTORIAL de correos
-// del buzón de Mallorca (asuntos de Tag Tico: "Contrato ... PPU", y los "Traspaso Tag" /
-// "Tag nuevo" enviados). Cachea el set en tag-patentes-historicas.json para que el conteo
-// del Excel sea rápido. Complementa a los leads de registro.mjs (que son los nuevos).
+// backfill-tag.mjs — FUENTE OFICIAL de patentes con TAG: baja el Excel mensual que
+// Tag Tico manda a ventas@mallorcautos.cl ("DETALLE TAG ... / FACTURA TAG", adjunto
+// "ANA CLARA ... .xlsx" con hojas por año: PLACA, ACCION=TAG NUEVO/TRASPASO...) y extrae
+// todas las placas con tag. Cachea en tag-patentes-historicas.json.
+// (Antes se escaneaban asuntos de correos → incompleto; este Excel es la lista real.)
 
-import { writeFileSync, readFileSync, existsSync } from 'node:fs'
+import { writeFileSync, readFileSync, existsSync, mkdirSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { spawn } from 'node:child_process'
 import { accessToken } from './enviar.mjs'
-import { normPatente } from './autos-tag.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const CACHE = join(__dirname, 'tag-patentes-historicas.json')
-// Patente chilena: LLLL## | LL#### | LLL### (autos/motos)
-const PAT_RE = /\b([A-Z]{4}\d{2}|[A-Z]{2}\d{4}|[A-Z]{3}\d{3})\b/g
+const XLSX = join(__dirname, 'cache', 'tagtico-tags.xlsx')
+const PARSER = join(__dirname, 'parse-tagtico.py')
+const PY = join(process.env.HOME || '', 'nexus', 'conector-mallorca', '.venv', 'bin', 'python')
 
-const api = (at, p) => fetch('https://gmail.googleapis.com/gmail/v1/users/me/' + p, { headers: { Authorization: 'Bearer ' + at }, signal: AbortSignal.timeout(20000) }).then((r) => r.json())
+const api = (at, p) => fetch('https://gmail.googleapis.com/gmail/v1/users/me/' + p, { headers: { Authorization: 'Bearer ' + at }, signal: AbortSignal.timeout(30000) }).then((r) => r.json())
 
-async function enChunks(items, n, fn) {
-  const out = []
-  for (let i = 0; i < items.length; i += n) out.push(...await Promise.all(items.slice(i, i + n).map(fn)))
-  return out
+function parsear(path) {
+  return new Promise((resolve, reject) => {
+    const ch = spawn(PY, [PARSER, path], { env: { ...process.env } })
+    let out = '', err = ''
+    ch.stdout.on('data', (d) => (out += d)); ch.stderr.on('data', (d) => (err += d))
+    ch.on('close', () => { try { resolve(JSON.parse(out).patentes || []) } catch (e) { reject(new Error('parser: ' + (err || e.message).slice(0, 160))) } })
+    ch.on('error', reject)
+  })
 }
 
-export async function backfill({ meses = 12, max = 300 } = {}) {
+export async function backfill() {
   const { at } = await accessToken()
-  const q = `(from:tagtico.cl OR subject:("traspaso tag") OR subject:("tag nuevo") OR subject:(contrato)) newer_than:${meses}m`
-  // Junta ids (paginado, con tope)
-  const ids = []
-  let tok = ''
-  do {
-    const r = await api(at, 'messages?maxResults=100&q=' + encodeURIComponent(q) + (tok ? '&pageToken=' + tok : ''))
-    if (r.error) throw new Error(JSON.stringify(r.error).slice(0, 120))
-    for (const mm of (r.messages || [])) ids.push(mm.id)
-    tok = r.nextPageToken || ''
-  } while (tok && ids.length < max)
-
-  // Trae solo el Subject de cada uno, en paralelo (chunks de 12)
-  const subs = await enChunks(ids.slice(0, max), 12, async (id) => {
-    const d = await api(at, 'messages/' + id + '?format=metadata&metadataHeaders=Subject')
-    return (d.payload?.headers || []).find((x) => x.name === 'Subject')?.value || ''
-  })
-
-  const pats = new Set()
-  for (const s of subs) for (const mt of String(s).toUpperCase().matchAll(PAT_RE)) pats.add(normPatente(mt[1]))
-
-  const data = { actualizado: new Date().toISOString(), correos: ids.length, patentes: [...pats] }
+  // Último correo de Tag Tico con el Excel adjunto (detalle/factura mensual).
+  const q = 'from:tagtico.cl filename:xlsx (subject:("detalle tag") OR subject:("factura tag") OR filename:("ANA CLARA"))'
+  const r = await api(at, 'messages?maxResults=1&q=' + encodeURIComponent(q))
+  if (r.error) throw new Error(JSON.stringify(r.error).slice(0, 120))
+  if (!(r.messages || []).length) throw new Error('no encontré el Excel mensual de Tag Tico en el buzón')
+  const d = await api(at, 'messages/' + r.messages[0].id + '?format=full')
+  let att = null
+  const walk = (p) => { if (!p) return; if ((p.filename || '').toLowerCase().endsWith('.xlsx') && p.body?.attachmentId) att = { fn: p.filename, aid: p.body.attachmentId }; for (const c of p.parts || []) walk(c) }
+  walk(d.payload)
+  if (!att) throw new Error('el correo de Tag Tico no trae adjunto .xlsx')
+  const a = await api(at, 'messages/' + r.messages[0].id + '/attachments/' + att.aid)
+  const buf = Buffer.from(a.data.replace(/-/g, '+').replace(/_/g, '/'), 'base64')
+  if (!existsSync(dirname(XLSX))) mkdirSync(dirname(XLSX), { recursive: true })
+  writeFileSync(XLSX, buf)
+  const patentes = await parsear(XLSX)
+  const data = { actualizado: new Date().toISOString(), fuente: att.fn, correo_fecha: (d.payload?.headers || []).find((h) => h.name === 'Date')?.value || '', patentes }
   writeFileSync(CACHE, JSON.stringify(data, null, 2))
   return data
 }
 
-// Lee el cache (set de patentes normalizadas). Vacío si no existe.
 export function patentesHistoricas() {
   try { return new Set(JSON.parse(readFileSync(CACHE, 'utf8')).patentes || []) } catch { return new Set() }
 }
 export function cacheInfo() {
-  try { const d = JSON.parse(readFileSync(CACHE, 'utf8')); return { actualizado: d.actualizado, total: (d.patentes || []).length, correos: d.correos } } catch { return null } }
+  try { const d = JSON.parse(readFileSync(CACHE, 'utf8')); return { actualizado: d.actualizado, total: (d.patentes || []).length, fuente: d.fuente } } catch { return null } }
 
-// CLI: node backfill-tag.mjs [meses]
+// CLI: node backfill-tag.mjs
 if (import.meta.url === `file://${process.argv[1]}`) {
-  const meses = Number(process.argv[2] || 12)
-  backfill({ meses }).then((d) => console.log(`OK · ${d.correos} correos · ${d.patentes.length} patentes con TAG detectadas`)).catch((e) => { console.error('ERR', e.message); process.exit(1) })
+  backfill().then((d) => console.log(`OK · ${d.patentes.length} patentes con TAG · fuente: ${d.fuente} (${d.correo_fecha})`)).catch((e) => { console.error('ERR', e.message); process.exit(1) })
 }

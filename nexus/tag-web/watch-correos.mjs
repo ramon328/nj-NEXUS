@@ -100,7 +100,7 @@ async function refrescarBackfill() {
   try {
     const info = cacheInfo()
     const viejo = !info || (Date.now() - new Date(info.actualizado).getTime() > 24 * 60 * 60 * 1000)
-    if (viejo) { const d = await backfill({ meses: 12 }); console.log(`[backfill] ${d.patentes.length} patentes con TAG (de ${d.correos} correos)`) }
+    if (viejo) { const d = await backfill(); console.log(`[backfill] ${d.patentes.length} patentes con TAG · fuente ${d.fuente}`) }
   } catch (e) { console.log('[backfill] error:', e.message) }
 }
 

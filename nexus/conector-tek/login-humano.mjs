@@ -1001,14 +1001,16 @@ async function cartolaHistorica(page, log) {
     || page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()))
     || page.mainFrame()
   const todos = []
-  // elegir cuenta ANA CLARA (índice 1) — revela los selectores de período
-  try {
-    const f0 = fEob()
-    await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
-    await sleep(4500)
-  } catch (e) { log('carthist: no pude elegir cuenta:', e.message) }
   for (const mes of meses) {
     try {
+      // RE-NAVEGAR fresco a la Cartola Histórica cada mes: el form quedaba cacheado y
+      // repetía el 1er mes (las 6 consultas daban enero). Volver a entrar lo resetea.
+      for (let i = 0; i < 3 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2200) }
+      await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(9000)
+      // elegir cuenta ANA CLARA (índice 1) → revela los selectores de período
+      const f0 = fEob()
+      await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
+      await sleep(3800)
       const f = fEob()
       // setear TODOS los selects de mes (nombre completo o abreviado) y de año
       for (const s of await f.locator('select').all()) {

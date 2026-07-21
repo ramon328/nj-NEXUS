@@ -1,14 +1,56 @@
 {
-  "actualizado": "2026-07-21T17:00:53.637Z",
+  "actualizado": "2026-07-21T17:15:48.305Z",
   "fuente": "Excel Mallorca · STOCK VALORIZADO",
   "total": 42,
-  "con_tag": 19,
-  "sin_tag": 23,
+  "con_tag": 33,
+  "sin_tag": 9,
   "autos": [
+    {
+      "patente": "VFYG69",
+      "marca": "CHEVROLET",
+      "modelo": "SUBURBAN",
+      "tag": true
+    },
+    {
+      "patente": "HWJF12",
+      "marca": "FORD",
+      "modelo": "F150",
+      "tag": true
+    },
+    {
+      "patente": "WH2884",
+      "marca": "PORSCHE ",
+      "modelo": "CAYENNE S ",
+      "tag": true
+    },
+    {
+      "patente": "GYRG43",
+      "marca": "FORD",
+      "modelo": "RAPTOR ",
+      "tag": true
+    },
+    {
+      "patente": "JCGV83",
+      "marca": "BMW",
+      "modelo": "M3 3.0 AUT",
+      "tag": true
+    },
+    {
+      "patente": "KZCW87",
+      "marca": "BMW ",
+      "modelo": "M3 3.0 AUT",
+      "tag": true
+    },
     {
       "patente": "KPDT21",
       "marca": "BMW ",
       "modelo": "M3 3.0 AUT",
+      "tag": true
+    },
+    {
+      "patente": "HSDX59",
+      "marca": "BMW ",
+      "modelo": "M3 3.0 AUT AUTO DE CARRERA",
       "tag": true
     },
     {
@@ -18,9 +60,21 @@
       "tag": true
     },
     {
+      "patente": "PH5432",
+      "marca": "HONDA ",
+      "modelo": "CIVIC 1.6",
+      "tag": true
+    },
+    {
       "patente": "PRYX93",
       "marca": "BMW",
       "modelo": 128,
+      "tag": true
+    },
+    {
+      "patente": "TWRB38",
+      "marca": "AUDI",
+      "modelo": "RSQ3",
       "tag": true
     },
     {
@@ -30,9 +84,21 @@
       "tag": true
     },
     {
+      "patente": "TWGX29",
+      "marca": "CHEVROLET ",
+      "modelo": "SILVERADO",
+      "tag": true
+    },
+    {
       "patente": "KXTK54",
       "marca": "SUBARU",
       "modelo": "FORESTER",
+      "tag": true
+    },
+    {
+      "patente": "STVB52",
+      "marca": "BMW ",
+      "modelo": "320 DYNAMIC",
       "tag": true
     },
     {
@@ -51,6 +117,24 @@
       "patente": "TZRK98",
       "marca": "CHEVROLET",
       "modelo": "SILVERADO 4X4 3.0L AUT",
+      "tag": true
+    },
+    {
+      "patente": "CFKS77",
+      "marca": "JAGUAR",
+      "modelo": "XK R COUPE 4.2",
+      "tag": true
+    },
+    {
+      "patente": "VFBL93",
+      "marca": "OPEL",
+      "modelo": "NEW GRANDLAND",
+      "tag": true
+    },
+    {
+      "patente": "RKSS71",
+      "marca": "CHEVROLET ",
+      "modelo": "SILVERADO DCAB",
       "tag": true
     },
     {
@@ -96,12 +180,6 @@
       "tag": true
     },
     {
-      "patente": "TKXY30",
-      "marca": "RAM",
-      "modelo": "1500 REBEL CREW DCAB 4X4",
-      "tag": true
-    },
-    {
       "patente": "LWLL89",
       "marca": "CHEVROLET",
       "modelo": "SILVERADO",
@@ -120,15 +198,15 @@
       "tag": true
     },
     {
+      "patente": "KXRK86",
+      "marca": "AUDI",
+      "modelo": "Q3",
+      "tag": true
+    },
+    {
       "patente": "PT0454-4",
       "marca": "MOTORRAD",
       "modelo": "FB100 DAX",
-      "tag": false
-    },
-    {
-      "patente": "VFYG69",
-      "marca": "CHEVROLET",
-      "modelo": "SUBURBAN",
       "tag": false
     },
     {
@@ -150,87 +228,15 @@
       "tag": false
     },
     {
-      "patente": "HWJF12",
-      "marca": "FORD",
-      "modelo": "F150",
-      "tag": false
-    },
-    {
-      "patente": "WH2884",
-      "marca": "PORSCHE ",
-      "modelo": "CAYENNE S ",
-      "tag": false
-    },
-    {
-      "patente": "GYRG43",
-      "marca": "FORD",
-      "modelo": "RAPTOR ",
-      "tag": false
-    },
-    {
-      "patente": "JCGV83",
-      "marca": "BMW",
-      "modelo": "M3 3.0 AUT",
-      "tag": false
-    },
-    {
-      "patente": "KZCW87",
-      "marca": "BMW ",
-      "modelo": "M3 3.0 AUT",
-      "tag": false
-    },
-    {
-      "patente": "HSDX59",
-      "marca": "BMW ",
-      "modelo": "M3 3.0 AUT AUTO DE CARRERA",
-      "tag": false
-    },
-    {
-      "patente": "PH5432",
-      "marca": "HONDA ",
-      "modelo": "CIVIC 1.6",
-      "tag": false
-    },
-    {
-      "patente": "TWRB38",
-      "marca": "AUDI",
-      "modelo": "RSQ3",
-      "tag": false
-    },
-    {
-      "patente": "TWGX29",
-      "marca": "CHEVROLET ",
-      "modelo": "SILVERADO",
-      "tag": false
-    },
-    {
-      "patente": "STVB52",
-      "marca": "BMW ",
-      "modelo": "320 DYNAMIC",
-      "tag": false
-    },
-    {
-      "patente": "CFKS77",
-      "marca": "JAGUAR",
-      "modelo": "XK R COUPE 4.2",
-      "tag": false
-    },
-    {
-      "patente": "VFBL93",
-      "marca": "OPEL",
-      "modelo": "NEW GRANDLAND",
-      "tag": false
-    },
-    {
-      "patente": "RKSS71",
-      "marca": "CHEVROLET ",
-      "modelo": "SILVERADO DCAB",
-      "tag": false
-    },
-    {
       "patente": "SJ8771-8",
       "marca": "VOLKSWAGEN",
       "modelo": "ESCARABAJO",
+      "tag": false
+    },
+    {
+      "patente": "TKXY30",
+      "marca": "RAM",
+      "modelo": "1500 REBEL CREW DCAB 4X4",
       "tag": false
     },
     {
@@ -249,12 +255,6 @@
       "patente": "RGVG27-1",
       "marca": "SSANGYONG",
       "modelo": "MUSSO",
-      "tag": false
-    },
-    {
-      "patente": "KXRK86",
-      "marca": "AUDI",
-      "modelo": "Q3",
       "tag": false
     }
   ],
