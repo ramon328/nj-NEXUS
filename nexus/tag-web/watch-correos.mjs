@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { accessToken } from './enviar.mjs'
 import { listar, actualizarEstado, agregarEvento } from './registro.mjs'
 import { normPatente } from './autos-tag.mjs'
+import { backfill, cacheInfo } from './backfill-tag.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const VISTOS = join(__dirname, 'correos-vistos.json')
@@ -94,8 +95,18 @@ async function revisar() {
   guardarVistos(seen)
 }
 
+// Refresca el historial de patentes con TAG (para el conteo del Excel) 1 vez al día.
+async function refrescarBackfill() {
+  try {
+    const info = cacheInfo()
+    const viejo = !info || (Date.now() - new Date(info.actualizado).getTime() > 24 * 60 * 60 * 1000)
+    if (viejo) { const d = await backfill({ meses: 12 }); console.log(`[backfill] ${d.patentes.length} patentes con TAG (de ${d.correos} correos)`) }
+  } catch (e) { console.log('[backfill] error:', e.message) }
+}
+
 async function loop() {
   try { await revisar() } catch (e) { console.log('[watch] error:', e.message) }
+  try { await refrescarBackfill() } catch { /* */ }
   setTimeout(loop, INTERVALO)
 }
 console.log(`[watch-correos] vigilando ventas@mallorcautos.cl cada ${Math.round(INTERVALO / 60000)} min`)

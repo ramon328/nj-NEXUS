@@ -995,7 +995,11 @@ async function cartolaHistorica(page, log) {
   const MESABR = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
   const anio = process.env.TEK_CARTOLA_ANIO || '2026'
   const meses = (process.env.TEK_CARTOLA_MESES || '1,2,3').split(',').map((x) => Number(x.trim())).filter(Boolean)
-  const fEob = () => page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()) && /select/i.test('x')) || page.frames().find((f) => /eob\.officebanking\.cl.*(CTLHT|Cartola|Historic|saldoctacte)/i.test(f.url())) || page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()))
+  // Frame eob de la cartola histórica; si aún no cargó, cae al frame principal (así nunca
+  // es undefined). Prioriza el que tenga la URL de cartola histórica.
+  const fEob = () => page.frames().find((f) => /eob\.officebanking\.cl.*(CTLHT|Cartola|Historic|saldoctacte)/i.test(f.url()))
+    || page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()))
+    || page.mainFrame()
   const todos = []
   // elegir cuenta ANA CLARA (índice 1) — revela los selectores de período
   try {

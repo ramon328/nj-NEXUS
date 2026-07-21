@@ -34,7 +34,7 @@ import { descargarAdjuntos as gmailDescargarAdjuntos } from '../conector-correo/
 import { recordarHecho, textoMemoria } from './memoria-usuarios.mjs'
 // TAG — solicitud/traspaso de TAG (envía desde el correo de Mallorca) + conteo de autos con TAG.
 import { enviarSolicitudTag, documentosRequeridos, validar as validarTag, TIPOS as TAG_TIPOS } from '../tag-web/tag.mjs'
-import { conteo as tagConteo } from '../tag-web/autos-tag.mjs'
+import { conteo as tagConteo, conteoExcel as tagConteoExcel } from '../tag-web/autos-tag.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -2532,11 +2532,12 @@ const HERRAMIENTAS = [
   },
   {
     name: 'autos_con_tag',
-    description: 'CONTEO de autos de MallorcAutos CON y SIN TAG. Cruza el STOCK de GoAutos (la fuente que ves con consultar_goautos, NO el Excel de SAI) con los TAG ya solicitados/traspasados (los leads de solicitar_tag). Úsalo para "¿cuántos autos tienen tag?", "¿a qué autos les falta el tag?", "conteo de tag". Devuelve total en stock, cuántos con tag, cuántos sin tag, y (con detalle:true) la lista de patentes de cada grupo. Un auto cuenta "con TAG" si tiene una solicitud/traspaso en curso o activa (los rechazados no cuentan).',
+    description: 'CONTEO de autos de MallorcAutos CON y SIN TAG. Por defecto usa el STOCK del EXCEL de Mallorca (hoja STOCK VALORIZADO, la que ves con consultar_mallorca) y marca cada auto con/sin tag. El "con tag" se sabe de: los TAG que gestionó Nexus (leads de solicitar_tag) + el HISTORIAL de correos de Tag Tico (traspasos/convenios ya hechos). Úsalo para "¿qué autos del Excel tienen tag?", "¿cuántos autos tienen tag?", "¿a cuáles les falta?". Con fuente:"goautos" cruza contra el stock de GoAutos en vez del Excel. detalle:true trae la lista de patentes de cada grupo.',
     input_schema: {
       type: 'object',
       properties: {
         detalle: { type: 'boolean', description: 'true = incluye las listas de patentes con y sin tag; false = solo los números.' },
+        fuente: { type: 'string', enum: ['excel', 'goautos'], description: 'excel (por defecto) = stock del Excel de Mallorca; goautos = stock de GoAutos.' },
       },
       required: [],
     },
@@ -2779,11 +2780,20 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     if (nombre === 'autos_con_tag') {
       try {
-        const c = await tagConteo()
-        const base = { ok: true, total_stock: c.total_stock, con_tag: c.con_tag, sin_tag: c.sin_tag, tag_fuera_de_stock: c.tag_fuera_de_stock.length }
+        if (input.fuente === 'goautos') {
+          const c = await tagConteo()
+          const base = { ok: true, fuente: 'GoAutos', total_stock: c.total_stock, con_tag: c.con_tag, sin_tag: c.sin_tag, tag_fuera_de_stock: c.tag_fuera_de_stock.length }
+          if (input.detalle) {
+            base.autos_con_tag = c.autos_con_tag.map((v) => ({ patente: v.patente, auto: `${v.marca} ${v.modelo} ${v.anio || ''}`.trim(), estado_tag: v.tag_estado }))
+            base.autos_sin_tag = c.autos_sin_tag.map((v) => ({ patente: v.patente, auto: `${v.marca} ${v.modelo} ${v.anio || ''}`.trim() }))
+          }
+          return JSON.stringify(base)
+        }
+        const c = await tagConteoExcel()
+        const base = { ok: true, fuente: c.fuente, total_stock: c.total, con_tag: c.con_tag, sin_tag: c.sin_tag }
         if (input.detalle) {
-          base.autos_con_tag = c.autos_con_tag.map((v) => ({ patente: v.patente, auto: `${v.marca} ${v.modelo} ${v.anio || ''}`.trim(), estado_tag: v.tag_estado }))
-          base.autos_sin_tag = c.autos_sin_tag.map((v) => ({ patente: v.patente, auto: `${v.marca} ${v.modelo} ${v.anio || ''}`.trim() }))
+          base.autos_con_tag = c.autos_con_tag.map((v) => `${v.patente} ${v.marca} ${v.modelo || ''}`.trim())
+          base.autos_sin_tag = c.autos_sin_tag.map((v) => `${v.patente} ${v.marca} ${v.modelo || ''}`.trim())
         }
         return JSON.stringify(base)
       } catch (e) { return JSON.stringify({ ok: false, error: e.message }) }
