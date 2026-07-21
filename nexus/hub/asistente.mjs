@@ -3557,6 +3557,19 @@ async function ejecutar(nombre, input, ctx = {}) {
           const robot = await import('../conector-sii/factura-navegador.mjs')
           const empresaRut = (r.borrador?.emisor?.rut) || '77271121-2'
 
+          // ── Estado de EMISIÓN PENDIENTE por usuario (persistente, sobrevive reinicios) ──
+          // Rompe el catch-22 "emítela → regenero el borrador → emítela → regenero…": una vez
+          // que el borrador OFICIAL de un documento ya se mandó, el siguiente "emítela" del
+          // MISMO documento NO regenera, va directo a firmar. La firma que hace el trabajo es
+          // atómica (regenera el borrador y firma sola), así que no perdemos nada.
+          const PEND_PATH = join(__dirname, '.factura-pendiente.json')
+          const sig = `${b.tipo_dte || input.tipo_dte || 33}|${String(rec.rut || '').replace(/[.\-\s]/g, '')}|${t.total || 0}`
+          const dekey = ctx.de || '_anon'
+          const leerPend = () => { try { return JSON.parse(readFileSync(PEND_PATH, 'utf8')) } catch { return {} } }
+          const guardarPend = (o) => { try { writeFileSync(PEND_PATH, JSON.stringify(o)) } catch { /* best-effort */ } }
+          const _pend = leerPend()
+          const borradorYaEnviado = _pend[dekey] && _pend[dekey].sig === sig && (Date.now() - Number(_pend[dekey].ts || 0)) < 30 * 60 * 1000
+
           // Paso 3 (emitir_real): FIRMAR y EMITIR de verdad. IRREVERSIBLE. Requiere que
           // el borrador ya se haya generado (el navegador queda en la vista previa) y una
           // 2ª confirmación explícita del usuario. firmarYEmitir tiene freno propio.
@@ -3564,7 +3577,9 @@ async function ejecutar(nombre, input, ctx = {}) {
             try {
               const em = await robot.firmarYEmitir({ CONFIRMO_EMITIR: 'SI_EMITIR_DE_VERDAD', apiToken: token, borrador: r.borrador, empresaRut })
               if (em.bloqueado) return JSON.stringify({ ok: false, modo: 'emision_bloqueada', motivo: em.motivo, instruccion: 'La emisión real está deshabilitada por seguridad. Dile al usuario que la factura NO se emitió y que Ramón debe habilitarla.' })
-              if (!em.ok) return JSON.stringify({ ok: false, error: em.error, detalle: em.detalle, instruccion: 'NO se emitió. Si dice que el borrador expiró, vuelve a llamar emitir con confirmado=true (regenera el borrador) y firma enseguida. Dile el error tal cual; NUNCA afirmes que se emitió.' })
+              if (!em.ok) return JSON.stringify({ ok: false, error: em.error, detalle: em.detalle, instruccion: 'NO se emitió. Dile al usuario el error TAL CUAL y ofrécele REINTENTAR. Para reintentar, vuelve a llamar emitir con **emitir_real=true** (el sistema regenera el borrador solo y firma; NO uses confirmado=true, no hace falta rehacer el borrador aparte). NUNCA afirmes que se emitió.' })
+              // Emitida OK → limpiar el pendiente de este usuario.
+              try { const p = leerPend(); delete p[dekey]; guardarPend(p) } catch { /* */ }
               if (ctx.de && em.pdf) { try { await enviarMediaWhatsApp(ctx.de, em.pdf, `✅ *Factura N° ${em.folio || ''} EMITIDA* en el SII.`, { forceDocument: true }) } catch { /* best-effort */ } }
               return JSON.stringify({ ok: true, modo: 'emitida', folio: em.folio, instruccion: `La factura QUEDÓ EMITIDA en el SII con el FOLIO N° ${em.folio || '(no leído)'} y te mandé el PDF oficial. Confírmaselo al usuario en una frase corta, diciendo el número de folio.` })
             } catch (e) { return `La firma/emisión falló: ${e.message}. NO afirmes que se emitió.` }
@@ -3578,6 +3593,17 @@ async function ejecutar(nombre, input, ctx = {}) {
               listo_para_emitir: r.listo_para_emitir,
             })
           }
+          // 🔁 GUARD ANTI-LOOP (determinista): si el borrador OFICIAL de ESTE mismo documento
+          // ya se le mandó al usuario hace poco y ahora vuelve a llegar confirmado=true, el
+          // usuario está CONFIRMANDO la emisión, no pidiendo otro borrador. NO lo regeneres:
+          // manda a firmar. Esto rompe el loop donde cada "emítela" rehacía el borrador.
+          if (input.confirmado === true && borradorYaEnviado) {
+            return JSON.stringify({
+              ok: true, modo: 'listo_para_firmar',
+              instruccion: 'El borrador OFICIAL de ESTA factura YA se le envió al usuario hace un rato y ahora está confirmando la emisión. ⛔ NO generes el borrador de nuevo (NO uses confirmado=true otra vez). Para EMITIRLA de verdad, vuelve a llamar sii accion:emitir con los MISMOS datos y **emitir_real=true**. Si aún no le advertiste que es IRREVERSIBLE (consume folio y le llega al cliente), dilo en la misma respuesta. Si el usuario cambió algún dato de la factura, entonces sí regenera con confirmado=true.',
+            })
+          }
+
           // Paso 2 (confirmado): ROBOT genera el borrador oficial en el SII y lo manda en
           // imagen. Deja el navegador en la VISTA PREVIA, listo para firmar si se confirma.
           try {
@@ -3598,9 +3624,12 @@ async function ejecutar(nombre, input, ctx = {}) {
               ok: false, modo: 'borrador_no_enviado', archivo_local: archivo || null, error: errEnvio || 'no se generó archivo del borrador',
               instruccion: `El borrador SÍ se armó en el SII pero NO se pudo mandar el ${esPdf ? 'PDF' : 'archivo'} al WhatsApp (${errEnvio || 'sin archivo'}). NO le digas al usuario que se lo mandaste. Dile que hubo un problema al enviar el documento y que lo reintentas. NO emitas.`,
             })
+            // Marca este documento como "borrador oficial ya enviado" para este usuario
+            // (persistente). El próximo "emítela" del MISMO doc irá directo a firmar.
+            try { const p = leerPend(); p[dekey] = { sig, ts: Date.now() }; guardarPend(p) } catch { /* */ }
             return JSON.stringify({
               ok: true, modo: 'borrador_sii_enviado', formato: esPdf ? 'pdf' : 'imagen', total: (r.borrador?.totales?.total),
-              instruccion: `Le MANDÉ el borrador OFICIAL del SII en ${esPdf ? 'PDF' : 'imagen'}. Dile que lo revise. Si quiere EMITIRLA de verdad, ADVIÉRTELE que es IRREVERSIBLE (consume folio y le llega al cliente) y pídele una 2ª confirmación EXPLÍCITA ("¿la firmo y emito de verdad?"). Solo cuando diga que SÍ claramente, vuelve a llamar emitir con emitir_real=true (con los MISMOS datos). NO pongas emitir_real=true sin esa 2ª confirmación.`,
+              instruccion: `Le MANDÉ el borrador OFICIAL del SII en ${esPdf ? 'PDF' : 'imagen'}. Dile que lo revise y ADVIÉRTELE que emitir es IRREVERSIBLE (consume folio y le llega al cliente): "¿la firmo y emito de verdad?". Cuando confirme (un "sí"/"emítela"/"dale" basta), vuelve a llamar emitir con **emitir_real=true** y los MISMOS datos. ⛔ NO vuelvas a llamar confirmado=true para esta misma factura: el borrador ya está enviado; repetir el borrador en vez de emitir es el error a evitar.`,
             })
           } catch (e) { return `El robot de facturación falló: ${e.message}` }
         }

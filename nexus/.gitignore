@@ -78,3 +78,6 @@ conector-tek/chrome-profile
 session.json
 reservo/.creds.json
 conector-reservo/session.json
+
+# Estado de emisión de facturas pendientes (por usuario)
+hub/.factura-pendiente.json
