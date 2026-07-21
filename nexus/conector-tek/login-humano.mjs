@@ -925,6 +925,119 @@ async function masivaImportar(page, log) {
   return { estado: 'mapeado_import', url: page.url() }
 }
 
+// ── CARTOLA HISTÓRICA (Cuentas Corrientes → Cartola/Histórico) ──────────────────
+// El banco online da ~90 días en "Saldos y movimientos"; los meses viejos (ene-mar 2026)
+// salen de la CARTOLA HISTÓRICA (estados mensuales, normalmente descargables). Este flujo
+// primero MAPEA el submenú de Cuentas Corrientes (para ubicar la opción exacta) y la
+// pantalla de la cartola histórica (selector de mes + descarga).
+//   TEK_CARTOLA_HIST=map   → navega y VUELCA submenú + pantalla (screenshots + JSON).
+//   TEK_CARTOLA_HIST=bajar → además intenta seleccionar mes(es) y descargar.
+async function cartolaHistorica(page, log) {
+  mkdirSync(DATA, { recursive: true })
+  await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+  await sleep(8000)
+  await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
+  await sleep(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
+  await cerrarPopups(page, log)
+  // clic por texto (mouse real) reutilizable
+  const clickTexto = async (re) => {
+    const loc = page.getByText(re).first()
+    const box = await loc.boundingBox().catch(() => null)
+    if (!box) return false
+    await page.mouse.move(box.x + box.width * 0.5, box.y + box.height * 0.5, { steps: 12 }).catch(() => {})
+    await sleep(220); await page.mouse.down(); await sleep(70); await page.mouse.up()
+    return true
+  }
+  const esVisible = async (re) => page.getByText(re).first().isVisible().catch(() => false)
+  // 1) abrir el acordeón "Cuentas Corrientes" y VOLCAR su submenú
+  log('abriendo Cuentas Corrientes…')
+  for (let i = 0; i < 3 && !(await esVisible(/cartola|hist[oó]ric|saldos y movimientos/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2600) }
+  await page.screenshot({ path: join(DATA, 'carthist-00-submenu.png') }).catch(() => {})
+  const submenu = await page.evaluate(() => {
+    const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1 }
+    return [...document.querySelectorAll('a,button,li,span,[role="menuitem"]')]
+      .filter((e) => vis(e) && (e.innerText || '').trim().length > 1 && (e.innerText || '').trim().length < 45)
+      .map((e) => (e.innerText || '').trim())
+      .filter((t, i, arr) => arr.indexOf(t) === i)
+      .slice(0, 80)
+  }).catch(() => [])
+  writeFileSync(join(DATA, 'carthist-submenu.json'), JSON.stringify({ url: page.url(), submenu }, null, 2))
+  log('submenú Cuentas Corrientes:', submenu.filter((t) => /cartola|hist|movim|saldo|estado/i.test(t)).join(' · ') || '(sin ítems obvios)')
+
+  // 2) entrar a la opción de cartola histórica (probamos varios nombres)
+  const CAND = [/Cartola\s+Hist[oó]rica/i, /Cartolas?\b/i, /Estado\s+de\s+cuenta/i, /Hist[oó]rico/i, /Cartola\s+Mensual/i]
+  let entro = false, usada = null
+  for (const re of CAND) { if (await esVisible(re)) { entro = await clickTexto(re); usada = re.source; if (entro) break } }
+  log('clic cartola histórica (' + usada + '):', entro)
+  await sleep(11000); await idle(page, rnd(800, 1500))
+  await page.screenshot({ path: join(DATA, 'carthist-01-pantalla.png') }).catch(() => {})
+  // 3) volcar la pantalla (selector de mes/período, botones de descarga, links a PDF)
+  const dump = []
+  for (const f of page.frames()) {
+    const d = await f.evaluate(() => {
+      const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1 }
+      const selects = [...document.querySelectorAll('select')].map((s) => ({ id: s.id, name: s.name, opciones: [...s.options].map((o) => o.text).slice(0, 40) }))
+      const inputs = [...document.querySelectorAll('input')].map((e) => ({ type: e.type, id: e.id, placeholder: e.placeholder || '', vis: vis(e) }))
+      const botones = [...document.querySelectorAll('button,a[role="button"],[class*="btn"]')].map((b) => (b.innerText || '').trim()).filter((t) => t && t.length < 40).slice(0, 40)
+      const links = [...document.querySelectorAll('a')].map((a) => ({ text: (a.innerText || '').trim().slice(0, 50), href: a.href || '' })).filter((x) => x.text || /\.pdf|cartola|descarg/i.test(x.href)).slice(0, 40)
+      const textos = (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 700)
+      return { url: location.href, selects, inputs, botones, links, textos }
+    }).catch(() => null)
+    if (d && (d.selects.length || d.botones.length || d.links.length)) dump.push(d)
+  }
+  writeFileSync(join(DATA, 'carthist-pantalla.json'), JSON.stringify({ url: page.url(), entro, usada, dump }, null, 2))
+  log('cartola histórica mapeada · frames:', dump.length)
+  if (process.env.TEK_CARTOLA_HIST !== 'bajar') return { estado: entro ? 'mapeado_cartola_hist' : 'no_encontre_opcion', usada, url: page.url() }
+
+  // ── BAJAR: por cada mes de TEK_CARTOLA_MESES (nº de mes de 2026), elige cuenta+mes+año,
+  //    Buscar, y extrae la tabla de movimientos. Devuelve todos los movimientos crudos. ──
+  const MESNOM = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+  const MESABR = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
+  const anio = process.env.TEK_CARTOLA_ANIO || '2026'
+  const meses = (process.env.TEK_CARTOLA_MESES || '1,2,3').split(',').map((x) => Number(x.trim())).filter(Boolean)
+  const fEob = () => page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()) && /select/i.test('x')) || page.frames().find((f) => /eob\.officebanking\.cl.*(CTLHT|Cartola|Historic|saldoctacte)/i.test(f.url())) || page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()))
+  const todos = []
+  // elegir cuenta ANA CLARA (índice 1) — revela los selectores de período
+  try {
+    const f0 = fEob()
+    await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
+    await sleep(4500)
+  } catch (e) { log('carthist: no pude elegir cuenta:', e.message) }
+  for (const mes of meses) {
+    try {
+      const f = fEob()
+      // setear TODOS los selects de mes (nombre completo o abreviado) y de año
+      for (const s of await f.locator('select').all()) {
+        const opts = await s.locator('option').allTextContents().catch(() => [])
+        const low = opts.map((o) => o.trim().toLowerCase())
+        if (low.includes(MESNOM[mes].toLowerCase())) { await s.selectOption({ label: MESNOM[mes] }).catch(() => {}) }
+        else if (low.includes(MESABR[mes])) { const idx = low.indexOf(MESABR[mes]); await s.selectOption({ index: idx }).catch(() => {}) }
+        else if (opts.map((o) => o.trim()).includes(anio)) { await s.selectOption({ label: anio }).catch(() => {}) }
+      }
+      await sleep(1200)
+      const btn = f.getByText(/^buscar$/i).first()
+      if (await btn.isVisible().catch(() => false)) { await clickHumano(page, btn) } else { const b2 = f.getByText(/^aceptar$/i).first(); if (await b2.isVisible().catch(() => false)) await clickHumano(page, b2) }
+      log(`carthist ${MESNOM[mes]} ${anio}: Buscar`)
+      await sleep(9000)
+      await page.screenshot({ path: join(DATA, `carthist-${anio}-${String(mes).padStart(2, '0')}.png`) }).catch(() => {})
+      // extraer filas de la tabla más grande del frame eob
+      const ff = fEob()
+      const filas = await ff.evaluate(() => {
+        const tablas = [...document.querySelectorAll('table')]
+        let best = null, max = 0
+        for (const t of tablas) { const r = t.querySelectorAll('tr').length; if (r > max) { max = r; best = t } }
+        if (!best) return []
+        return [...best.querySelectorAll('tr')].map((tr) => [...tr.querySelectorAll('th,td')].map((c) => (c.innerText || '').trim()))
+      }).catch(() => [])
+      writeFileSync(join(DATA, `carthist-${anio}-${String(mes).padStart(2, '0')}.json`), JSON.stringify({ mes, anio, filas }, null, 2))
+      log(`carthist ${MESNOM[mes]}: ${filas.length} filas`)
+      todos.push({ mes, anio, filas })
+    } catch (e) { log(`carthist ${MESNOM[mes]} falló:`, e.message) }
+  }
+  writeFileSync(join(DATA, 'carthist-crudo.json'), JSON.stringify({ anio, meses, capturas: todos }, null, 2))
+  return { estado: 'cartola_hist_bajada', usada, meses, filas_por_mes: todos.map((t) => ({ mes: t.mes, filas: t.filas.length })), url: page.url() }
+}
+
 async function main() {
   setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, 600_000).unref?.()
   // Credenciales: primero la BÓVEDA cifrada (por usuario+empresa), con fallback al
@@ -974,7 +1087,9 @@ async function main() {
     if (['mapear', 'llenar', 'crear'].includes(process.env.TEK_CREAR)) { try { crear = await crearTransferencia(page, log) } catch (e) { log('crear falló:', e.message) } }
     let masiva = null
     if (['map', 'subir'].includes(process.env.TEK_MASIVA)) { try { masiva = await masivaImportar(page, log) } catch (e) { log('masiva falló:', e.message) } }
-    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}) })
+    let carthist = null
+    if (['map', 'bajar'].includes(process.env.TEK_CARTOLA_HIST)) { try { carthist = await cartolaHistorica(page, log) } catch (e) { log('carthist falló:', e.message) } }
+    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}) })
   }
 
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión
