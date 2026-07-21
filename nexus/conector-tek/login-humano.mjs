@@ -618,47 +618,79 @@ async function crearTransferencia(page, log) {
       await loc.type(String(valTxt), { delay: rnd(70, 150) }).catch(() => {})
       await sleep(rnd(300, 700))
     }
-    // 1) cuenta destino → blur para gatillar validación/resolución del banco
-    await setVal('input[placeholder*="cuenta destino" i]', process.env.TEK_DEST_CUENTA)
-    await page.keyboard.press('Tab').catch(() => {})
-    await sleep(rnd(1200, 2000))
-    // 2) MONEDA: es un AUTOCOMPLETE → hay que ELEGIR la opción, no basta tipear.
-    //    (este era el bug: se apretaba "Crear" con la moneda vacía → el form no avanza)
-    const monedaTxt = process.env.TEK_DEST_MONEDA || 'PESOS'
-    const monLoc = f2.locator('#moneda').first()
-    if (await monLoc.count().catch(() => 0)) {
-      await monLoc.click().catch(() => {}); await sleep(rnd(250, 500))
-      await monLoc.fill('').catch(() => {})
-      await monLoc.type(monedaTxt, { delay: rnd(90, 160) }).catch(() => {})
-      await sleep(rnd(1000, 1600))
-      let elegida = false
-      for (const f of page.frames()) {
-        const opt = f.getByText(/pesos\s+de\s+chile|pesos\s+chilenos|\bCLP\b/i).filter({ hasNotText: /ingrese/i }).first()
-        if (await opt.isVisible().catch(() => false)) { await clickHumano(page, opt); elegida = true; break }
-      }
-      if (!elegida) { await monLoc.press('ArrowDown').catch(() => {}); await sleep(350); await monLoc.press('Enter').catch(() => {}) }
-      await sleep(rnd(500, 900))
-    }
-    // 3) RUT + nombre + email + mensaje (tercero NO inscrito → los damos nosotros)
-    await setVal('#rut', process.env.TEK_DEST_RUT)
-    await setVal('#nombre', process.env.TEK_DEST_NOMBRE)
-    // EMAIL — campo con placeholder EXACTO "Ingrese Email" en el frame f2, sin id ni name.
-    // Antes quedaba VACÍO (el selector con lista+`.first()` enganchaba un input oculto y
-    // `type()` no pegaba) → el banco rechazaba "Crear" con "El correo del destinatario no
-    // tiene formato correcto". Fix robusto: locator por placeholder EXACTO + VISIBLE, `fill()`
-    // (setea el valor directo, no depende del tecleo) y VERIFICA que quedó; reintenta con type.
-    const emailLoc = f2.locator('input[placeholder="Ingrese Email"]').first()
-    const emailVal = process.env.TEK_DEST_EMAIL || ''
-    if (emailVal && (await emailLoc.count().catch(() => 0))) {
-      await emailLoc.click().catch(() => {}); await sleep(rnd(200, 450))
-      await emailLoc.fill(emailVal).catch(() => {})
+    // EMAIL robusto y CASE-INSENSITIVE: mismo banco usa placeholder "Ingrese Email" (E
+    // mayúscula), otros bancos "Ingrese email" (minúscula). getByPlaceholder con regex /i
+    // matchea ambos. fill() + verifica + reintenta con type (antes quedaba vacío → el banco
+    // rechazaba "El correo del destinatario no tiene formato correcto").
+    const emailLocator = () => f2.getByPlaceholder(/^\s*ingrese email\s*$/i).first()
+    const llenarEmail = async () => {
+      const emailVal = process.env.TEK_DEST_EMAIL || ''
+      const loc = emailLocator()
+      if (!emailVal || !(await loc.count().catch(() => 0))) { log('✗ no vi el campo email'); return }
+      await loc.click().catch(() => {}); await sleep(rnd(200, 450))
+      await loc.fill(emailVal).catch(() => {})
       await sleep(rnd(300, 600))
-      let got = await emailLoc.inputValue().catch(() => '')
-      if (got !== emailVal) { await emailLoc.fill('').catch(() => {}); await emailLoc.type(emailVal, { delay: rnd(60, 130) }).catch(() => {}); await sleep(400); got = await emailLoc.inputValue().catch(() => '') }
-      await page.keyboard.press('Tab').catch(() => {})    // blur → gatilla la validación del banco
+      let got = await loc.inputValue().catch(() => '')
+      if (got !== emailVal) { await loc.fill('').catch(() => {}); await loc.type(emailVal, { delay: rnd(60, 130) }).catch(() => {}); await sleep(400); got = await loc.inputValue().catch(() => '') }
+      await page.keyboard.press('Tab').catch(() => {})
       log('email poblado:', got || '(vacío)')
-    } else { log('✗ no vi el campo email (placeholder "Ingrese Email")') }
-    await setVal('#mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Transferencia')
+    }
+
+    if (tipoOtros) {
+      // ── OTROS BANCOS: elegir BANCO DESTINO + cuenta/rut/nombre/email/mensaje (SIN moneda
+      //    ni tipo de cuenta; "Tipo transferencia" queda en "En línea" por defecto). ──
+      const bancoTxt = process.env.TEK_DEST_BANCO || ''
+      if (bancoTxt) {
+        // 1) BANCO DESTINO: dropdown "Seleccione Banco Destino" → elegir el banco por nombre.
+        const bancoDrop = f2.getByText(/seleccione banco destino/i).first()
+        if (await bancoDrop.count().catch(() => 0)) { await clickHumano(page, bancoDrop); await sleep(rnd(900, 1500)) }
+        const key = bancoTxt.replace(/^banco\s+/i, '').trim()   // "Banco Falabella" → "Falabella"
+        // si el dropdown trae buscador, tipear el nombre para filtrar
+        for (const f of page.frames()) {
+          const search = f.locator('input[type="search"], input[placeholder*="banco" i], input[placeholder*="buscar" i]').first()
+          if (await search.isVisible().catch(() => false)) { await search.type(key, { delay: rnd(80, 150) }).catch(() => {}); await sleep(rnd(800, 1300)); break }
+        }
+        let elegido = false
+        const keyRe = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+        for (const f of page.frames()) {
+          const opt = f.getByText(keyRe).filter({ hasNotText: /seleccione/i }).first()
+          if (await opt.isVisible().catch(() => false)) { await clickHumano(page, opt); elegido = true; break }
+        }
+        log('banco destino elegido (' + key + '):', elegido)
+        await sleep(rnd(700, 1100))
+      }
+      // 2) cuenta destino (id #cuenta) + blur, rut, nombre, email, mensaje
+      await setVal('#cuenta', process.env.TEK_DEST_CUENTA)
+      await page.keyboard.press('Tab').catch(() => {}); await sleep(rnd(900, 1500))
+      await setVal('#rut', process.env.TEK_DEST_RUT)
+      await setVal('#nombre', process.env.TEK_DEST_NOMBRE)
+      await llenarEmail()
+      await setVal('#mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Transferencia')
+    } else {
+      // ── MISMO BANCO (Santander→Santander): cuenta + MONEDA (autocomplete) + rut/nombre/email/mensaje ──
+      await setVal('input[placeholder*="cuenta destino" i]', process.env.TEK_DEST_CUENTA)
+      await page.keyboard.press('Tab').catch(() => {})
+      await sleep(rnd(1200, 2000))
+      const monedaTxt = process.env.TEK_DEST_MONEDA || 'PESOS'
+      const monLoc = f2.locator('#moneda').first()
+      if (await monLoc.count().catch(() => 0)) {
+        await monLoc.click().catch(() => {}); await sleep(rnd(250, 500))
+        await monLoc.fill('').catch(() => {})
+        await monLoc.type(monedaTxt, { delay: rnd(90, 160) }).catch(() => {})
+        await sleep(rnd(1000, 1600))
+        let elegida = false
+        for (const f of page.frames()) {
+          const opt = f.getByText(/pesos\s+de\s+chile|pesos\s+chilenos|\bCLP\b/i).filter({ hasNotText: /ingrese/i }).first()
+          if (await opt.isVisible().catch(() => false)) { await clickHumano(page, opt); elegida = true; break }
+        }
+        if (!elegida) { await monLoc.press('ArrowDown').catch(() => {}); await sleep(350); await monLoc.press('Enter').catch(() => {}) }
+        await sleep(rnd(500, 900))
+      }
+      await setVal('#rut', process.env.TEK_DEST_RUT)
+      await setVal('#nombre', process.env.TEK_DEST_NOMBRE)
+      await llenarEmail()
+      await setVal('#mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Transferencia')
+    }
     await sleep(rnd(600, 1200))
     await page.screenshot({ path: join(DATA, 'crear-03-destino-lleno.png') }).catch(() => {})
     writeFileSync(join(DATA, 'crear-destino-lleno.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2))
@@ -667,16 +699,22 @@ async function crearTransferencia(page, log) {
     //    (la moneda llegaba tarde por el autocomplete → esperamos hasta 8s a que asiente)
     let campos = {}
     for (let i = 0; i < 8; i++) {
-      campos = {
-        cuenta: await val('input[placeholder*="cuenta destino" i]'),
-        moneda: await val('#moneda'),
-        rut: await val('#rut'),
-        nombre: await val('#nombre'),
-        // email incluido en la validación: si quedó vacío, abortamos ANTES de apretar Crear
-        // (el banco lo exige para tercero no inscrito) en vez de que el banco rechace el form.
-        email: await f2.locator('input[placeholder="Ingrese Email"]').first().inputValue().catch(() => ''),
+      const emailV = await emailLocator().inputValue().catch(() => '')
+      if (tipoOtros) {
+        // otros bancos: NO hay moneda; exigimos cuenta/rut/nombre/email (el banco destino se
+        // eligió del dropdown). Si falta alguno, abortamos ANTES de apretar Crear.
+        campos = { cuenta: await val('#cuenta'), rut: await val('#rut'), nombre: await val('#nombre'), email: emailV }
+        if (campos.cuenta && campos.rut && campos.nombre && campos.email) break
+      } else {
+        campos = {
+          cuenta: await val('input[placeholder*="cuenta destino" i]'),
+          moneda: await val('#moneda'),
+          rut: await val('#rut'),
+          nombre: await val('#nombre'),
+          email: emailV,
+        }
+        if (campos.cuenta && campos.moneda && campos.rut && campos.nombre && campos.email) break
       }
-      if (campos.cuenta && campos.moneda && campos.rut && campos.nombre && campos.email) break
       await sleep(1000)
     }
     log('destino poblado:', JSON.stringify(campos))

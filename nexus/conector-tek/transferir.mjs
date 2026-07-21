@@ -98,11 +98,16 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
     }
 
     const b = borrador.beneficiario
+    // Santander→Santander usa el form "A Tercero mismo Banco"; a CUALQUIER otro banco (ej.
+    // Falabella) usa "A Tercero otros Bancos" (form distinto, con selector de banco destino).
+    const esOtroBanco = !/santander/i.test(b.banco || '')
     const env = {
       ...process.env,
       // Sin TEK_FORZAR_LOGIN: login-humano intenta REUSAR la sesión viva primero (si ya
       // hay una del capture/otro flujo, la usa y NO reloguea) y solo loguea si no sirve.
       TEK_CREAR: 'crear',
+      TEK_TRANSFER_TIPO: esOtroBanco ? 'otros' : 'mismo',
+      TEK_DEST_BANCO: esOtroBanco ? (b.banco || '') : '',
       TEK_MONTO: String(borrador.monto),
       TEK_MOTIVO: borrador.motivo || 'Transferencia',
       TEK_DEST_CUENTA: soloDigitos(b.cuenta),   // dígitos, sin guiones
