@@ -866,6 +866,65 @@ async function llenarSuperclave(page, log) {
   return true
 }
 
+// ── IMPORTACIÓN MASIVA (Transferencias Masivas → Importación) ───────────────────
+// TEK_MASIVA=map   → navega y VUELCA la pantalla (busca link "descargar plantilla" +
+//                    input de archivo) para construir el formato exacto.
+// TEK_MASIVA=subir + TEK_MASIVA_FILE=<ruta .xlsx> → sube el archivo (crea el LOTE;
+//                    NO libera, no mueve plata: la liberación es aparte y manual).
+async function masivaImportar(page, log) {
+  mkdirSync(DATA, { recursive: true })
+  await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+  await sleep(8000)
+  await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
+  await sleep(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
+  const menu = page.getByText(/^transferencias?$/i).first()
+  await clickHumano(page, menu)
+  await sleep(rnd(4000, 5500))
+  await page.screenshot({ path: join(DATA, 'masiva-00-menu.png') }).catch(() => {})
+  // "Transferencias Masivas → Importación" por TEXTO; fallback a clic de PÍXEL (columna 3).
+  const entro = await clickColumna(page, /^Transferencias Masivas$/i, /^Importaci[oó]n$/i, log)
+  if (!entro) {
+    await page.mouse.move(760, 300, { steps: 10 }); await sleep(rnd(150, 320))
+    await page.mouse.move(790, 320, { steps: 8 }); await sleep(rnd(150, 300))
+    await page.mouse.down(); await sleep(60); await page.mouse.up()
+    log('masiva: clic pixel Importación (fallback)')
+  }
+  await sleep(9000); await idle(page, rnd(800, 1600))
+  await page.screenshot({ path: join(DATA, 'masiva-01-import.png') }).catch(() => {})
+  // Volcar pantalla: inputs (file), links (plantilla), botones, texto.
+  const dump = []
+  for (const f of page.frames()) {
+    const d = await f.evaluate(() => {
+      const vis = (el) => { const r = el.getBoundingClientRect(); return r.width > 1 && r.height > 1 }
+      const inputs = [...document.querySelectorAll('input')].map((e) => ({ type: e.type, id: e.id, name: e.name, accept: e.getAttribute('accept') || '', vis: vis(e) }))
+      const links = [...document.querySelectorAll('a')].map((a) => ({ text: (a.innerText || '').trim().slice(0, 70), href: a.href || '' })).filter((x) => x.text || /\.xls|plantilla|formato|descarg/i.test(x.href))
+      const botones = [...document.querySelectorAll('button,[role="button"],[class*="btn"]')].map((b) => (b.innerText || '').trim()).filter((t) => t && t.length < 45)
+      const textos = (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 900)
+      return { url: location.href, inputs, links, botones, textos }
+    }).catch(() => null)
+    if (d && (d.inputs.length || d.links.length || d.botones.length)) dump.push(d)
+  }
+  writeFileSync(join(DATA, 'masiva-import.json'), JSON.stringify({ url: page.url(), dump }, null, 2))
+  log('masiva importación mapeada · frames con contenido:', dump.length)
+
+  const archivo = process.env.TEK_MASIVA_FILE
+  if (process.env.TEK_MASIVA === 'subir' && archivo) {
+    let subido = false
+    for (const f of page.frames()) {
+      const fileInput = f.locator('input[type="file"]').first()
+      if (await fileInput.count().catch(() => 0)) {
+        await fileInput.setInputFiles(archivo).catch((e) => log('setInputFiles falló:', e.message))
+        subido = true; log('archivo seteado en input file:', archivo); break
+      }
+    }
+    await sleep(7000)
+    await page.screenshot({ path: join(DATA, 'masiva-02-subido.png') }).catch(() => {})
+    writeFileSync(join(DATA, 'masiva-subido.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2))
+    return { estado: subido ? 'archivo_subido' : 'sin_input_file', url: page.url() }
+  }
+  return { estado: 'mapeado_import', url: page.url() }
+}
+
 async function main() {
   setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, 600_000).unref?.()
   // Credenciales: primero la BÓVEDA cifrada (por usuario+empresa), con fallback al
@@ -913,7 +972,9 @@ async function main() {
     if (transferirMapear) { try { transf = await mapearTransferencia(ctx, page, log) } catch (e) { log('transf falló:', e.message) } }
     let crear = null
     if (['mapear', 'llenar', 'crear'].includes(process.env.TEK_CREAR)) { try { crear = await crearTransferencia(page, log) } catch (e) { log('crear falló:', e.message) } }
-    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}) })
+    let masiva = null
+    if (['map', 'subir'].includes(process.env.TEK_MASIVA)) { try { masiva = await masivaImportar(page, log) } catch (e) { log('masiva falló:', e.message) } }
+    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}) })
   }
 
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión

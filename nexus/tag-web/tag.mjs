@@ -6,6 +6,7 @@
 //   await enviarSolicitudTag({ tipo:'traspaso', patente:'ABCD12', adjuntos:[...] , prueba:true })
 
 import { enviarCorreo, cuentaActiva } from './enviar.mjs'
+import { crear as crearRegistro } from './registro.mjs'
 
 // Destinatarios oficiales (modo real).
 export const TAG_TO = process.env.TAG_TO || 'contacto@tagtico.cl'
@@ -77,11 +78,25 @@ export async function enviarSolicitudTag(d) {
       adjuntos,
       fromNombre: cuenta.mallorca ? 'MallorcAutos' : 'MallorcAutos (vía Nexus)',
     })
+    const destinoTxt = cc ? `${to} (copia: ${cc})` : to
+    // Registra el "lead" de TAG (seguimiento interno).
+    let registro = null
+    try {
+      registro = crearRegistro({
+        tipo: d.tipo, tipo_label: t.label,
+        patente: d.patente, cantidad: d.cantidad, es_empresa: d.es_empresa,
+        solicitante: d.solicitante, asunto,
+        correo_id: r.id, enviado_desde: r.cuenta, destino: destinoTxt,
+        modo: prueba ? 'prueba' : 'real',
+        adjuntos: adjuntos.map((a) => a.filename), notas: d.notas,
+      })
+    } catch { /* el envío ya salió; no bloquear por el registro */ }
     return {
       ok: true, modo: prueba ? 'prueba' : 'real', asunto,
-      destino: cc ? `${to} (copia: ${cc})` : to,
+      destino: destinoTxt,
       adjuntos: adjuntos.length, enviado_desde: r.cuenta,
-      desde_mallorca: cuenta.mallorca, id: r.id,
+      desde_mallorca: cuenta.mallorca, correo_id: r.id,
+      registro_id: registro ? registro.id : null,
     }
   } catch (e) { return { ok: false, error: 'No se pudo enviar: ' + e.message } }
 }

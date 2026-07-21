@@ -1,0 +1,138 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Seguimiento de TAG · MallorcAutos</title>
+<style>
+  :root{--bg:#0f1720;--card:#182430;--card2:#1e2c3a;--line:#2b3c4d;--ink:#eef4f9;--mut:#93a6b8;
+    --accent:#2f6df6;--ok:#22c55e;--warn:#f59e0b;--err:#ef4444;--info:#38bdf8}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:15px/1.5 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) 0 40px}
+  .wrap{max-width:640px;margin:0 auto;padding:16px}
+  header{display:flex;align-items:center;gap:12px;margin:6px 2px 14px}
+  .logo{width:42px;height:42px;border-radius:11px;background:linear-gradient(135deg,var(--accent),#7aa2ff);
+    display:grid;place-items:center;font-weight:800;color:#fff;font-size:19px;flex:none}
+  h1{font-size:18px;margin:0}
+  .sub{color:var(--mut);font-size:12.5px;margin-top:2px}
+  .kpis{display:flex;gap:8px;overflow:auto;margin-bottom:12px;padding-bottom:2px}
+  .kpi{background:var(--card);border:1px solid var(--line);border-radius:12px;padding:9px 12px;flex:none;text-align:center;min-width:78px}
+  .kpi b{display:block;font-size:19px}
+  .kpi span{font-size:11px;color:var(--mut)}
+  .alerta{background:#2a0f0f;border:1px solid #6b2020;color:#f7cccc;border-radius:12px;padding:11px 13px;margin-bottom:12px;font-size:13px}
+  .alerta b{color:#fff}
+  .filtros{display:flex;gap:6px;overflow:auto;margin-bottom:12px}
+  .filtros button{background:var(--card2);border:1px solid var(--line);color:var(--mut);border-radius:20px;
+    padding:6px 13px;font-size:12.5px;cursor:pointer;white-space:nowrap}
+  .filtros button.on{background:var(--accent);border-color:var(--accent);color:#fff;font-weight:600}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px;margin-bottom:10px}
+  .top{display:flex;justify-content:space-between;align-items:flex-start;gap:10px}
+  .idp{font-size:11px;color:var(--mut);font-family:ui-monospace,monospace}
+  .asunto{font-weight:700;font-size:15px;margin:2px 0}
+  .meta{color:var(--mut);font-size:12.5px}
+  .badge{font-size:11px;font-weight:700;padding:4px 9px;border-radius:20px;white-space:nowrap;flex:none}
+  .b-enviado{background:#3a2a08;color:#ffd68a}
+  .b-convenio_recibido{background:#0b2a16;color:#a7f0c1}
+  .b-rechazado{background:#2a0f0f;color:#f7cccc}
+  .b-activo{background:#0b2536;color:#9fdcf7}
+  .tl{margin:10px 0 0;border-top:1px solid var(--line);padding-top:8px}
+  .tl div{font-size:12px;color:var(--mut);padding:2px 0}
+  .tl .dot{display:inline-block;width:6px;height:6px;border-radius:50%;background:var(--accent);margin-right:7px;vertical-align:middle}
+  .acc{display:flex;flex-wrap:wrap;gap:6px;margin-top:10px}
+  .acc button{border:1px solid var(--line);background:var(--card2);color:var(--ink);border-radius:9px;
+    padding:7px 11px;font-size:12.5px;cursor:pointer}
+  .acc button.ok{border-color:#1f6b3c;color:#a7f0c1}
+  .acc button.err{border-color:#6b2020;color:#f7cccc}
+  .acc button.info{border-color:#255;color:#9fdcf7}
+  .vacio{color:var(--mut);text-align:center;padding:30px;font-size:14px}
+  .ref{background:transparent;border:1px solid var(--line);color:var(--mut);border-radius:9px;padding:6px 12px;font-size:12px;cursor:pointer}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="logo">M</div>
+    <div style="flex:1">
+      <h1>Seguimiento de TAG</h1>
+      <div class="sub">Solicitudes y traspasos · MallorcAutos</div>
+    </div>
+    <button class="ref" onclick="cargar()">↻</button>
+  </header>
+
+  <div class="kpis" id="kpis"></div>
+  <div id="alerta"></div>
+  <div class="filtros" id="filtros"></div>
+  <div id="lista"></div>
+</div>
+
+<script>
+let DATA={estados:{},registros:[],resumen:{}}, FILTRO='';
+const $=(id)=>document.getElementById(id);
+const fmt=(iso)=>{try{return new Date(iso).toLocaleString('es-CL',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'})}catch{return iso}};
+
+async function cargar(){
+  DATA=await fetch('/api/registros').then(r=>r.json());
+  render();
+}
+function render(){
+  const e=DATA.estados, r=DATA.resumen||{};
+  // KPIs
+  $('kpis').innerHTML =
+    kpi(r.total||0,'Total') +
+    Object.keys(e).map(k=>kpi((r.por_estado&&r.por_estado[k])||0, e[k])).join('');
+  // Alerta hoy sin convenio
+  const al=(r.alerta_hoy_sin_convenio||[]);
+  $('alerta').innerHTML = al.length
+    ? `<div class="alerta">⚠️ <b>${al.length} solicitud(es) enviadas HOY sin convenio recibido.</b> Si no llega el convenio hoy, el auto queda sin TAG y caen multas. (${al.map(x=>x.patente||x.id).join(', ')})</div>`
+    : '';
+  // Filtros
+  $('filtros').innerHTML =
+    fbtn('','Todas') + Object.keys(e).map(k=>fbtn(k,e[k])).join('');
+  // Lista
+  let regs=DATA.registros;
+  if(FILTRO) regs=regs.filter(x=>x.estado===FILTRO);
+  $('lista').innerHTML = regs.length ? regs.map(card).join('') : '<div class="vacio">Sin solicitudes todavía.</div>';
+}
+function kpi(n,l){return `<div class="kpi"><b>${n}</b><span>${l}</span></div>`}
+function fbtn(k,l){return `<button class="${FILTRO===k?'on':''}" onclick="FILTRO='${k}';render()">${l}</button>`}
+function card(x){
+  const tl=(x.eventos||[]).slice().reverse().map(ev=>`<div><span class="dot"></span>${fmt(ev.ts)} — ${ev.detalle}</div>`).join('');
+  const info=[x.tipo_label, x.patente?('Patente '+x.patente):'', x.cantidad?('Cant. '+x.cantidad):'', x.es_empresa?'Empresa':'', x.solicitante?('por '+x.solicitante):'']
+    .filter(Boolean).join(' · ');
+  const adj=(x.adjuntos||[]).length;
+  return `<div class="card">
+    <div class="top">
+      <div style="min-width:0">
+        <div class="idp">${x.id} · ${fmt(x.creado)}${x.modo==='prueba'?' · (prueba)':''}</div>
+        <div class="asunto">${x.asunto||''}</div>
+        <div class="meta">${info}${adj?` · ${adj} PDF`:''}</div>
+      </div>
+      <span class="badge b-${x.estado}">${DATA.estados[x.estado]||x.estado}</span>
+    </div>
+    ${tl?`<div class="tl">${tl}</div>`:''}
+    <div class="acc">
+      ${x.estado!=='convenio_recibido'?`<button class="ok" onclick="setEstado('${x.id}','convenio_recibido')">✓ Convenio recibido</button>`:''}
+      ${x.estado!=='activo'?`<button class="info" onclick="setEstado('${x.id}','activo')">● TAG activo</button>`:''}
+      ${x.estado!=='rechazado'?`<button class="err" onclick="rechazar('${x.id}')">✕ Rechazado</button>`:''}
+      <button onclick="nota('${x.id}')">+ Nota</button>
+    </div>
+  </div>`;
+}
+async function setEstado(id,estado,detalle){
+  await fetch('/api/estado',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,estado,detalle})});
+  cargar();
+}
+function rechazar(id){
+  const m=prompt('Motivo del rechazo (documentos faltantes / firma disconforme):');
+  if(m!==null) setEstado(id,'rechazado',m||'Rechazado');
+}
+async function nota(id){
+  const m=prompt('Nota / evento:');
+  if(m){await fetch('/api/nota',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({id,detalle:m})});cargar();}
+}
+cargar();
+setInterval(cargar,60000);
+</script>
+</body>
+</html>
