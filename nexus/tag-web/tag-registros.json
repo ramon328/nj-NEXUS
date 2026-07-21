@@ -1,1 +1,32 @@
-{ "registros": [] }
+{
+  "registros": [
+    {
+      "id": "TAG-001",
+      "creado": "2026-07-21T19:12:49.862Z",
+      "tipo": "traspaso",
+      "tipo_label": "Traspaso de TAG — auto con tag nuestro que se vende",
+      "patente": "PRYX93",
+      "cantidad": null,
+      "es_empresa": false,
+      "solicitante": null,
+      "asunto": "Traspaso Tag patente PRYX93",
+      "estado": "enviado",
+      "modo": "real",
+      "correo_id": "19f86185693b5b91",
+      "enviado_desde": "ventas@mallorcautos.cl",
+      "destino": "contacto@tagtico.cl (copia: ventas@mallorcautos.cl)",
+      "adjuntos": [
+        "1784661152904_nexus-wa-in-1784661152727.pdf"
+      ],
+      "notas": null,
+      "convenio_recibido": false,
+      "eventos": [
+        {
+          "ts": "2026-07-21T19:12:49.862Z",
+          "tipo": "enviado",
+          "detalle": "Solicitud enviada a contacto@tagtico.cl (copia: ventas@mallorcautos.cl)"
+        }
+      ]
+    }
+  ]
+}

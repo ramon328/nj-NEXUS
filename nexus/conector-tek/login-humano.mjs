@@ -1003,6 +1003,10 @@ async function cartolaHistorica(page, log) {
     || page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()))
     || page.mainFrame()
   const num = (s) => Number(String(s || '').replace(/[^\d-]/g, '')) || 0
+  // texto combinado de TODOS los frames (la cabecera de la cartola vive en un frame
+  // distinto al de la tabla) -> asi el resumen no sale en 0.
+  const textoTodosFrames = async () => (await Promise.all(page.frames().map((fr) => fr.evaluate(() => document.body ? document.body.innerText : '').catch(() => '')))).join('\n').replace(/\u00a0/g, ' ')
+  const locEnFrames = async (re) => { for (const fr of page.frames()) { const l = fr.getByText(re).first(); if (await l.isVisible().catch(() => false)) return l } return null }
   const resumenMeses = []
   for (const mes of meses) {
     try {
@@ -1026,27 +1030,24 @@ async function cartolaHistorica(page, log) {
       log(`carthist ${MESNOM[mes]} ${anio}: Buscar`)
       await sleep(9000)
       // RESUMEN de la cabecera (Saldo inicial / Cargos / Abonos / Saldo final + N° y período)
-      const ff = fEob()
-      const resumen = await ff.evaluate(() => {
-        const txt = (document.body.innerText || '').replace(/ /g, ' ')
-        const g = (re) => { const m = txt.match(re); return m ? m[1].trim() : '' }
-        return {
-          n_cartola: g(/N[°º]\s*Cartola\s*([\d]+\s*-\s*[\d/]+)/i),
-          desde: g(/Fecha\s*desde\s*([\d/]+)/i), hasta: g(/Fecha\s*hasta\s*([\d/]+)/i),
-          saldo_inicial: g(/Saldo\s*inicial\s*\$?\s*([\d.]+)/i),
-          cargos: g(/Cargos\s*\$?\s*([\d.]+)/i),
-          abonos: g(/Abonos\s*\$?\s*([\d.]+)/i),
-          saldo_final: g(/Saldo\s*final\s*\$?\s*([\d.]+)/i),
-        }
-      }).catch(() => ({}))
-      const R = { mes, anio: Number(anio), n_cartola: resumen.n_cartola, periodo: `${resumen.desde}→${resumen.hasta}`,
-        saldo_inicial: num(resumen.saldo_inicial), cargos: num(resumen.cargos), abonos: num(resumen.abonos), saldo_final: num(resumen.saldo_final) }
+      // RESUMEN leyendo TODOS los frames (cabecera + tabla)
+      const txt = await textoTodosFrames()
+      const g = (re) => { const m = txt.match(re); return m ? m[1].trim() : '' }
+      const R = {
+        mes, anio: Number(anio),
+        n_cartola: g(/N[\u00b0\u00ba]\s*Cartola\s*([\d]+\s*-\s*[\d/]+)/i),
+        periodo: g(/Fecha\s*desde\s*([\d/]+)/i) + '-' + g(/Fecha\s*hasta\s*([\d/]+)/i),
+        saldo_inicial: num(g(/Saldo\s*inicial\s*\$?\s*([\d.]+)/i)),
+        cargos: num(g(/Cargos\s*\$?\s*([\d.]+)/i)),
+        abonos: num(g(/Abonos\s*\$?\s*([\d.]+)/i)),
+        saldo_final: num(g(/Saldo\s*final\s*\$?\s*([\d.]+)/i)),
+      }
       resumenMeses.push(R)
       log(`  ${MESNOM[mes]}: cartola ${R.n_cartola || '?'} · cargos ${R.cargos} · abonos ${R.abonos}`)
       // DESCARGAR el PDF oficial
       try {
-        const dl = ff.getByText(/^descargar$/i).first()
-        if (await dl.isVisible().catch(() => false)) {
+        const dl = await locEnFrames(/^descargar$/i)
+        if (dl) {
           const [download] = await Promise.all([page.waitForEvent('download', { timeout: 25_000 }).catch(() => null), clickHumano(page, dl)])
           if (download) { const dest = join(PDFDIR, `Cartola ${anio}-${String(mes).padStart(2, '0')} ${MESNOM[mes]}.pdf`); await download.saveAs(dest).catch(() => {}); log(`  PDF guardado: ${dest.split('/').pop()}`) }
           else log('  descarga no disparó download event')
