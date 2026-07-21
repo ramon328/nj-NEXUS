@@ -1,0 +1,69 @@
+{
+  "page": {
+    "superadminTitle": "Gestión de Clientes",
+    "superadminSubtitle": "Administra los clientes de la plataforma.",
+    "title": "Clientes",
+    "subtitle": "Gestión de clientes."
+  },
+  "buttons": {
+    "newClient": "Nuevo Cliente",
+    "createCustomer": "Crear Cliente",
+    "bulkUpload": "Carga Masiva",
+    "exportTransactions": "Exportar Base de Datos",
+    "exporting": "Exportando..."
+  },
+  "export": {
+    "noData": "Sin datos",
+    "noDataDescription": "No hay transacciones para exportar",
+    "success": "Exportación exitosa",
+    "successDescription": "Se exportaron las transacciones correctamente",
+    "error": "Error",
+    "errorDescription": "No se pudieron exportar las transacciones"
+  },
+  "search": {
+    "placeholder": "Buscar cliente por nombre, email o RUT"
+  },
+  "empty": {
+    "title": "No hay clientes registrados",
+    "superadminDescription": "Haz clic en 'Nuevo Cliente' para agregar un cliente.",
+    "description": "No hay clientes registrados."
+  },
+  "dialog": {
+    "newCustomerTitle": "Nuevo Cliente"
+  },
+  "superadminTable": {
+    "caption": "Lista de clientes registrados en la plataforma",
+    "headers": {
+      "company": "Empresa",
+      "name": "Nombre",
+      "contact": "Contacto",
+      "domain": "Dominio",
+      "status": "Estado",
+      "registered": "Registro"
+    },
+    "labels": {
+      "id": "ID"
+    }
+  },
+  "table": {
+    "caption": "Lista de clientes",
+    "headers": {
+      "name": "Nombre",
+      "email": "Email",
+      "phone": "Teléfono",
+      "rut": "RUT",
+      "address": "Dirección",
+      "registeredAt": "Fecha de registro"
+    }
+  },
+  "badges": {
+    "demoActive": "Demo Activa",
+    "production": "Producción"
+  },
+  "bulk": {
+    "title": "Carga Masiva de Clientes",
+    "embeddingsNote": "Este proceso puede tomar varios minutos. Por favor no cierres esta ventana.",
+    "processing": "Procesando datos de importación...",
+    "confirm": "Confirmar Importación"
+  }
+}

@@ -1,0 +1,17 @@
+BIBLIOTECA DE MÚSICA (public/musica)
+
+Aquí van las pistas de fondo que la IA puede elegir para los videos editados.
+Formato aceptado: .mp3 (loops cortos funcionan mejor: se repiten hasta cubrir el video).
+La IA elige la pista SOLO por el nombre del archivo, así que usa nombres descriptivos
+en español con el estilo/vibra: ej. "rock-energetico.mp3", nunca "track01.mp3".
+Para agregar más música, simplemente suelta el .mp3 en esta carpeta: se detecta solo.
+Las 25 pistas incluidas son loops de GarageBand (Apple Loops), libres de regalías.
+
+Moods disponibles (por el nombre): hiphop, electro, dubstep, chill, disco, retro,
+blues, rock, rnb, indie y, agregados recientemente:
+  bateria-energetica  batería EDM potente para intros/drops
+  trap-oscuro         beat trap/hip-hop oscuro y grave
+  cinematica-epica    cuerdas orquestales, momentos emotivos/reveal
+  lofi-relajado       synth lo-fi chill para fondo tranquilo
+  corporativo-limpio  pad limpio y neutro para videos de marca/producto
+  percusion-latina    congas/percusión latina para energía tropical

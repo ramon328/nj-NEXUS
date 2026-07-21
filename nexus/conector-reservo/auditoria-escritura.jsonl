@@ -1,0 +1,40 @@
+{"ts":"2026-07-20T03:30:33.578Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T03:30:33.593Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_uuid":"x","fecha":"2026-07-25","hora":"10:00","tratamiento_uuid":"y","paciente_uuid":"z"},"error":"acción no habilitada: faltan los params exactos de /appointment/makeAppointment/ (capturar Form Data del Network) y/o RESERVO_ESCRITURA≠1"}
+{"ts":"2026-07-20T03:30:53.327Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T21:17:48.181Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T21:17:48.183Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_uuid":"x","fecha":"2026-08-01","hora":"10:00","tratamiento_uuid":"y","paciente_uuid":"z"},"error":"acción no habilitada: faltan los params exactos de /appointment/makeAppointment/ (capturar Form Data del Network) y/o RESERVO_ESCRITURA≠1"}
+{"ts":"2026-07-20T21:17:48.184Z","accion":"estado","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_uuid":"x"},"error":"falta campo obligatorio: estado"}
+{"ts":"2026-07-20T21:20:32.792Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T21:20:34.579Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T21:20:34.580Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_uuid":"x","fecha":"2026-08-01","hora":"10:00","tratamiento_uuid":"y","paciente_uuid":"z"},"error":"acción no habilitada: faltan los params exactos de /appointment/makeAppointment/ (capturar Form Data del Network) y/o RESERVO_ESCRITURA≠1"}
+{"ts":"2026-07-20T21:20:34.581Z","accion":"estado","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_uuid":"x"},"error":"falta campo obligatorio: estado"}
+{"ts":"2026-07-20T21:21:48.388Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T21:22:16.895Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T21:22:16.896Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_uuid":"x","fecha":"2026-08-01","hora":"10:00","tratamiento_uuid":"y","paciente_uuid":"z"},"error":"acción no habilitada: faltan los params exactos de /appointment/makeAppointment/ (capturar Form Data del Network) y/o RESERVO_ESCRITURA≠1"}
+{"ts":"2026-07-20T21:22:16.897Z","accion":"estado","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_uuid":"x"},"error":"falta campo obligatorio: estado"}
+{"ts":"2026-07-20T21:36:53.044Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T21:51:56.897Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T22:07:01.648Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T22:22:05.945Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T22:37:09.908Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T22:52:14.195Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T23:07:18.364Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T23:22:22.038Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T23:37:25.614Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-20T23:52:30.499Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T00:07:34.548Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T01:19:20.434Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T01:34:24.382Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T01:49:35.127Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T02:04:40.944Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T02:19:47.121Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T02:34:52.347Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T02:49:55.995Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T03:05:02.290Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T03:20:05.785Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T03:35:09.482Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T03:50:12.956Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T04:05:16.681Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T04:20:21.092Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T04:35:24.983Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-21T04:50:28.846Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}

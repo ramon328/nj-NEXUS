@@ -1,0 +1,91 @@
+{
+  "page": {
+    "title": "Solicitudes de Vehículos",
+    "subtitle": "Gestiona las solicitudes de clientes que buscan vehículos específicos"
+  },
+  "columns": {
+    "open": "Abiertas",
+    "in_progress": "En Progreso",
+    "fulfilled": "Cumplidas",
+    "cancelled": "Canceladas"
+  },
+  "status": {
+    "open": "Abierta",
+    "in_progress": "En Progreso",
+    "fulfilled": "Cumplida",
+    "expired": "Expirada",
+    "cancelled": "Cancelada"
+  },
+  "card": {
+    "vehicleNotSpecified": "Vehículo no especificado",
+    "noRequests": "Sin solicitudes"
+  },
+  "time": {
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "daysAgo": "hace {{count}}d"
+  },
+  "budget": {
+    "from": "Desde {{amount}}",
+    "upTo": "Hasta {{amount}}"
+  },
+  "detail": {
+    "title": "Detalle de solicitud",
+    "customer": "Cliente",
+    "vehicleWanted": "Vehículo buscado",
+    "year": "Año: {{range}}",
+    "notes": "Notas",
+    "dates": "Fechas",
+    "created": "Creada: {{date}}",
+    "expires": "Expira: {{date}}",
+    "takeRequest": "Tomar solicitud",
+    "markFulfilled": "Marcar como cumplida",
+    "cancelRequest": "Cancelar solicitud",
+    "assignedTo": "Asignado a"
+  },
+  "create": {
+    "title": "Nueva solicitud de vehículo",
+    "customerData": "Datos del cliente",
+    "customerName": "Nombre del cliente *",
+    "customerNamePlaceholder": "Nombre completo",
+    "phone": "Teléfono",
+    "phonePlaceholder": "+56 9 1234 5678",
+    "email": "Email",
+    "emailPlaceholder": "correo@ejemplo.cl",
+    "vehicleWanted": "Vehículo buscado",
+    "brand": "Marca",
+    "brandPlaceholder": "Ej: Toyota",
+    "model": "Modelo",
+    "modelPlaceholder": "Ej: Corolla",
+    "yearFrom": "Año desde",
+    "yearTo": "Año hasta",
+    "budgetMin": "Presupuesto mín.",
+    "budgetMax": "Presupuesto máx.",
+    "notes": "Notas adicionales",
+    "notesPlaceholder": "Ej: Cliente busca SUV color rojo, máximo 80.000km...",
+    "cancel": "Cancelar",
+    "submit": "Crear solicitud",
+    "submitting": "Creando...",
+    "success": "Solicitud creada",
+    "successDescription": "Se ha notificado a los vendedores",
+    "errorRequired": "El nombre del cliente es requerido"
+  },
+  "buttons": {
+    "newRequest": "Nueva solicitud",
+    "new": "Nueva"
+  },
+  "statusChange": {
+    "title": "Cambiar estado",
+    "description": "Confirma el cambio de estado de esta solicitud",
+    "noteLabel": "Nota del proceso (opcional)",
+    "notePlaceholder": "Ej: Contacté al cliente, está interesado en ver opciones...",
+    "cancelWarning": "Esta acción cancelará la solicitud. No se podrá revertir fácilmente.",
+    "cancel": "Cancelar",
+    "confirm": "Confirmar"
+  },
+  "history": {
+    "title": "Historial de cambios",
+    "entry": "{{from}} → {{to}}",
+    "noNote": "Sin nota"
+  }
+}

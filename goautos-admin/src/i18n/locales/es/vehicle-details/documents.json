@@ -1,0 +1,178 @@
+{
+  "viewer": {
+    "title": "VISTA PREVIA",
+    "loading": "Cargando cotización...",
+    "loadingGeneric": "Cargando documento...",
+    "notFound": {
+      "title": "Documento no encontrado",
+      "description": "No se encontró información para este documento."
+    }
+  },
+  "download": {
+    "preparing": "Preparando...",
+    "print": "Imprimir",
+    "download": "Descargar",
+    "errors": {
+      "notFound": "No se pudo encontrar el documento. Por favor, intenta nuevamente.",
+      "generate": "Hubo un error al generar el documento. Por favor, intenta nuevamente.",
+      "popupBlocked": "Tu navegador bloqueó la ventana emergente. Por favor, permite ventanas emergentes e intenta nuevamente.",
+      "process": "Ocurrió un error al procesar el documento. Por favor, intenta nuevamente."
+    }
+  },
+  "upload": {
+    "title": "Añadir Documento",
+    "adding": "Añadiendo...",
+    "form": {
+      "title": {
+        "placeholder": "Título",
+        "hint": "Ej: Cambio de aceite"
+      },
+      "description": {
+        "placeholder": "Descripción (opcional)",
+        "hint": "Añade detalles adicionales"
+      },
+      "drop": {
+        "selectButton": "Seleccionar documento",
+        "hint": "o arrastra y suelta aquí (máximo {{max}})",
+        "maxFilesTitle": "Máximo {{max}} archivos",
+        "maxFilesDescription": "Solo puede subir hasta {{max}} documentos a la vez",
+        "selectedHeader": "Archivo seleccionado:"
+      }
+    }
+  },
+  "header": {
+    "logoPlaceholder": "Logo",
+    "number": "N°",
+    "date": "Fecha:",
+    "fields": {
+      "rut": "RUT:",
+      "phone": "Teléfono:",
+      "email": "Email:",
+      "web": "Web:",
+      "address": "Dirección:"
+    }
+  },
+  "customer": {
+    "title": "DATOS DEL CLIENTE",
+    "name": "Nombre:",
+    "phone": "Teléfono:",
+    "rut": "RUT:",
+    "email": "Email:",
+    "address": "Dirección:"
+  },
+  "vehicle": {
+    "title": "DETALLES DEL VEHÍCULO",
+    "brand": "Marca:",
+    "model": "Modelo:",
+    "year": "Año:",
+    "version": "Versión:",
+    "color": "Color:",
+    "license": "Patente:",
+    "mileage": "Kilometraje:",
+    "engine": "Número de Motor:",
+    "chassis": "Número de Chasis:"
+  },
+  "quotation": {
+    "type": "COTIZACIÓN",
+    "price": "PRECIO ESTIMADO",
+    "date": "Fecha:",
+    "validUntil": "Válido hasta:",
+    "observations": "OBSERVACIONES",
+    "noObservations": "Sin observaciones",
+    "terms": "TÉRMINOS Y CONDICIONES",
+    "editablePreview": "Vista previa de la cotización. Los textos editables se mostrarán resaltados.",
+    "placeholders": {
+      "clientFirst": "Cliente",
+      "clientLast": "Ejemplo",
+      "email": "cliente@ejemplo.com",
+      "phone": "+56 9 1234 5678",
+      "address": "Calle Ejemplo 123, Ciudad",
+      "rut": "12.345.678-9",
+      "brand": "Toyota",
+      "model": "Corolla",
+      "version": "Limited",
+      "color": "Blanco",
+      "condition": "Nuevo"
+    }
+  },
+  "signatures": {
+    "legalRep": "Representante Legal",
+    "company": "Empresa"
+  },
+  "sale": {
+    "type": "NOTA DE VENTA",
+    "editablePreview": "Vista previa de la nota de venta. Los textos editables se mostrarán resaltados.",
+    "detail": {
+      "title": "DETALLE DE LA VENTA"
+    },
+    "tradeIn": {
+      "title": "VEHÍCULO EN PARTE DE PAGO"
+    },
+    "financial": {
+      "totalLabel": "Total",
+      "paymentsTitle": "Pagos realizados:",
+      "tradeInLabel": "- Vehículo en parte de pago",
+      "totalPaid": "Total pagado",
+      "defaultCashLabel": "Pago en efectivo",
+      "defaultTotalLabel": "Pago total"
+    }
+  },
+  "purchase": {
+    "type": "ORDEN DE COMPRA",
+    "editablePreview": "Vista previa de la orden de compra. Los textos editables se mostrarán resaltados.",
+    "sellerFallback": "Vendedor",
+    "total": {
+      "title": "TOTAL ORDEN DE COMPRA",
+      "purchasePrice": "Precio de compra:"
+    },
+    "payment": {
+      "title": "FORMA DE PAGO",
+      "methodLabel": "Método:",
+      "totalLabel": "TOTAL",
+      "accept": "Acepto la suma indicada ({{amount}}) en {{method}} a mi entera satisfacción y sin ningún tipo de reparo posterior."
+    }
+  },
+  "reservation": {
+    "type": "RESERVA DE VEHÍCULO",
+    "editablePreview": "Vista previa del documento de reserva. Los textos editables se mostrarán resaltados.",
+    "detail": {
+      "title": "DETALLE DE RESERVA",
+      "agreedPriceLabel": "Precio de venta acordado:",
+      "vehiclePriceLabel": "Precio del vehículo:",
+      "reservationAmount": "Monto de reserva:",
+      "additionals": {
+        "title": "COSTOS ADICIONALES:",
+        "total": "Total adicionales:"
+      },
+      "remaining": "Saldo pendiente:",
+      "reservationDate": "Fecha de reserva:",
+      "validUntil": "Válido hasta:"
+    }
+  },
+  "consignment": {
+    "type": "CONTRATO DE CONSIGNACIÓN",
+    "editablePreview": "Vista previa del contrato de consignación. Los textos editables se mostrarán resaltados.",
+    "prices": {
+      "client": "PRECIO CLIENTE",
+      "publication": "PRECIO PUBLICACIÓN"
+    }
+  },
+  "closeDeal": {
+    "type": "LIQUIDACIÓN DE VENTA",
+    "detail": {
+      "title": "DETALLE DE LA LIQUIDACIÓN",
+      "totalSalePrice": "Precio de venta total",
+      "additionalExpenses": "Gastos adicionales",
+      "commission": "Comisión {{company}}",
+      "salePrice": "Precio de venta",
+      "transferValue": "Valor de transferencia",
+      "subtotal": "Subtotal",
+      "clientLiquidation": "Liquidación a favor del cliente"
+    },
+    "payment": {
+      "title": "MEDIO DE PAGO",
+      "methodLabel": "Método:"
+    },
+    "accept": "Acepto la suma indicada ({{amountWords}}) en {{method}} a mi entera satisfacción y sin ningún tipo de reparo posterior."
+  }
+}

@@ -1,0 +1,51 @@
+{
+  "page": {
+    "title": "Notificaciones",
+    "unreadCount": "{{count}} sin leer",
+    "allRead": "Todas las notificaciones leídas"
+  },
+  "actions": {
+    "markAllRead": "Marcar todas como leídas",
+    "send": "Enviar notificación"
+  },
+  "filters": {
+    "all": "Todas",
+    "leads": "Leads",
+    "requests": "Solicitudes",
+    "fastSales": "Ventas rápidas",
+    "sales": "Ventas",
+    "reservations": "Reservas",
+    "deals": "Cierres",
+    "consignments": "Consignaciones",
+    "purchases": "Compras",
+    "general": "General",
+    "unreadOnly": "Solo sin leer",
+    "readAll": "Todas"
+  },
+  "types": {
+    "vehicleRequest": "Solicitud de vehículo",
+    "fastSale": "Venta rápida",
+    "saleCompleted": "Venta registrada",
+    "newLead": "Nuevo lead",
+    "leadAssigned": "Lead asignado",
+    "reservationCreated": "Reserva creada",
+    "dealClosed": "Cierre de negocio",
+    "consignmentCreated": "Consignación",
+    "purchaseCreated": "Compra registrada",
+    "general": "General"
+  },
+  "time": {
+    "now": "Ahora",
+    "minutesAgo": "hace {{count}}m",
+    "hoursAgo": "hace {{count}}h",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "daysAgo": "hace {{count}} días",
+    "older": "Anteriores"
+  },
+  "empty": {
+    "title": "No hay notificaciones",
+    "filtered": "Prueba ajustando los filtros",
+    "default": "Te avisaremos cuando haya novedades importantes"
+  }
+}

@@ -1,0 +1,132 @@
+{
+  "dialog": {
+    "titles": {
+      "customer": "Select Customer",
+      "details": "Reservation Details",
+      "paymentsFor": "Reservation for {{brand}} {{model}}"
+    }
+  },
+  "form": {
+    "validityTitle": "Reservation Validity",
+    "selectedCustomerLabel": "Selected customer",
+    "noCustomerSelected": "No customer selected",
+    "vehicleLabel": "Vehicle",
+    "agreedPriceLabel": "Agreed sale price",
+    "validityDaysLabel": "Validity days",
+    "validityDaysPlaceholder": "Eg: 3",
+    "expirationDateLabel": "Expiration date",
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Add notes or special conditions...",
+    "createButton": "Create Reservation",
+    "validation": {
+      "validityDaysMin": "Validity must be at least 1 day",
+      "agreedPriceMin": "Agreed price must be greater than or equal to 0"
+    }
+  },
+  "customerSelection": {
+    "title": "Customer",
+    "searchPlaceholder": "Search customer by name or email",
+    "newCustomer": "New customer",
+    "loading": "Loading customers...",
+    "empty": "No customers found with that criteria",
+    "noEmail": "No email",
+    "noPhone": "No phone",
+    "rut": "Tax ID"
+  },
+  "payments": {
+    "tabs": {
+      "payments": "Payments",
+      "additionals": "Additionals"
+    },
+    "list": {
+      "paymentsTitle": "Payments",
+      "additionalsTitle": "Additionals"
+    },
+    "buttons": {
+      "addPayment": "Add Payment",
+      "addAdditional": "Add Additional"
+    },
+    "empty": {
+      "title": "No payments registered for this reservation.",
+      "subtitle": "You must add at least one payment to create the reservation.",
+      "registerFirst": "Register first payment"
+    },
+    "item": {
+      "defaultTitle": "Payment"
+    },
+    "form": {
+      "validation": {
+        "amountMin": "Amount must be greater than zero",
+        "titleRequired": "Title is required"
+      },
+      "defaultTitle": "Reservation payment",
+      "editTitle": "Edit Payment",
+      "createTitle": "Register Payment",
+      "amountLabel": "Payment amount *",
+      "titleLabel": "Title",
+      "titlePlaceholder": "Eg: Initial payment, Partial payment, etc.",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Additional details about this payment...",
+      "updateButton": "Update Payment",
+      "saveButton": "Save Payment"
+    },
+    "totalPayments": "Total Payments:"
+  },
+  "additionals": {
+    "empty": {
+      "title": "No additionals registered",
+      "subtitle": "Additionals are extra costs added to the agreed price"
+    },
+    "badge": "Additional",
+    "total": "Total Additionals:",
+    "form": {
+      "editTitle": "Edit Additional",
+      "createTitle": "Add Additional",
+      "titleLabel": "Concept",
+      "titlePlaceholder": "Eg: Vehicle transfer",
+      "amountLabel": "Amount",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Additional description (optional)",
+      "updateButton": "Update Additional",
+      "createButton": "Add Additional",
+      "validation": {
+        "titleRequired": "Title is required",
+        "amountMin": "Amount must be greater than 0"
+      }
+    }
+  },
+  "details": {
+    "title": "Reservation Details",
+    "vehicleLabel": "Vehicle",
+    "reservationDate": "Reservation date",
+    "expirationDate": "Expiration date",
+    "totalPaid": "Total paid",
+    "agreedPrice": "Agreed price",
+    "agreedPricePlaceholder": "Enter agreed price",
+    "agreedPriceNotSet": "Agreed price not set",
+    "statusLabel": "Status",
+    "selectStatus": "Select status",
+    "status": {
+      "active": "Active",
+      "completed": "Completed",
+      "cancelled": "Cancelled",
+      "expired": "Expired"
+    },
+    "notesLabel": "Notes",
+    "notesPlaceholder": "Add notes...",
+    "noNotes": "No notes"
+  },
+  "summary": {
+    "title": "Financial Summary",
+    "empty": {
+      "title": "No financial information available",
+      "subtitle": "The summary will appear once the agreed price is set"
+    },
+    "agreedPrice": "Agreed Price:",
+    "totalPaid": "Total Paid:",
+    "totalAdditionals": "Total Additionals:",
+    "remaining": "Remaining Balance:",
+    "overpayment": "Overpayment:"
+  }
+}
+

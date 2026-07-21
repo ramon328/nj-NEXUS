@@ -1,0 +1,186 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+🧠 Project Standards – GoAuto Web
+Code Style and Structure
+Escribir código conciso, funcional y declarativo en TypeScript.
+
+Usar funciones puras y composición funcional; evitar clases.
+
+Modularizar todo: helpers, tipos, hooks, componentes, servicios.
+
+Nombres descriptivos con verbos auxiliares (e.g., isLoading, hasPermission).
+
+Estructura por dominio o feature con carpetas por entidad (e.g., features/vehicles, components/ui, pages/dashboard).
+
+Usar named exports para todo.
+
+Organizar archivos de componentes como:
+
+index.tsx (componente principal)
+
+subcomponents/ (si aplica)
+
+hooks.ts, helpers.ts, types.ts, constants.ts
+
+Tech Stack
+Frontend: React + Vite
+
+Lenguaje: TypeScript (Strict mode)
+
+Styling: Tailwind CSS
+
+Backend/Auth: Supabase (PostgreSQL, Auth, Edge Functions, Storage)
+
+Routing: React Router (SPA con rutas protegidas)
+
+Deploy: Vercel (preview + prod)
+
+Testing: Vitest + React Testing Library
+
+TypeScript Usage
+Usar interface por sobre type para estructuras exportables.
+
+Evitar enum; preferir as const con map/record.
+
+Activar strict en tsconfig.
+
+Tipar funciones siempre, especialmente props y respuestas de APIs.
+
+Validar con Zod cuando se interactúe con el backend o inputs de usuario.
+
+Syntax and Formatting
+Usar funciones puras (function keyword) por defecto.
+
+Condicionales y returns concisos (if (x) return, evitar else).
+
+Declarar componentes funcionales usando FC<Props> o ({ prop }) => {}.
+
+Seguir Prettier (config con .prettierrc) y ESLint (airbnb/next como base).
+
+Usar .tsx solo si el archivo contiene JSX.
+
+UI and Styling
+Estilizar todo con Tailwind; evitar CSS-in-JS.
+
+Componentizar elementos reutilizables: botones, inputs, cards.
+
+Seguir sistema de diseño visual con tokens utilitarios y variantes (variant, size, intent).
+
+Soporte para dark mode con class="dark" y lógica desde useTheme().
+
+State Management
+Usar React Context + useReducer para estado global controlado.
+
+Evitar useState innecesario; preferir useMemo, useCallback, zustand si crece.
+
+Para datos externos: react-query (TanStack Query) para fetching/caching.
+
+Prefetch de data con loaders o hooks dedicados (useVehicles, useLeads, etc.).
+
+Auth & Routing
+Integración con Supabase Auth (correo/contraseña + OAuth si aplica).
+
+Rutas protegidas por middleware o wrapper (<ProtectedRoute />).
+
+Persistencia de sesión y manejo de loading states globales.
+
+Almacenar access_token y user vía useSession() + context global.
+
+Forms & Validation
+Manejo de formularios con react-hook-form.
+
+Validación robusta con Zod + integración directa con hook-form resolver.
+
+Mostrar errores inmediatos, validar onBlur y onSubmit.
+
+Formularios deben ser accesibles (labels, ARIA, aria-invalid).
+
+Data Fetching & APIs
+react-query como base para queries y mutations.
+
+Supabase como backend principal con uso de from() y rpc().
+
+Separar lógica en services/ o lib/api/ con funciones tipo:
+
+ts
+Copiar
+Editar
+export function getVehicles(): Promise<Vehicle[]> { ... }
+Use select() específico, sin overfetching.
+
+Performance Optimization
+Memoizar componentes donde aplique (memo, useMemo, useCallback).
+
+Carga perezosa (lazy() + Suspense) para secciones pesadas.
+
+Split de rutas y layouts con React.lazy.
+
+Optimizar imágenes (uso de next/image si se usa Next, o carga optimizada en <img>).
+
+Animaciones y transiciones con framer-motion.
+
+Accessibility (a11y)
+Cumplir con ARIA roles, aria-* props y etiquetas semánticas.
+
+Contraste alto, navegación con teclado, enfoque visual.
+
+Textos escalables y responsivos (text-base, lg:text-lg, etc.).
+
+Soporte para lectores de pantalla (sr-only, aria-label, etc.).
+
+Notifications & Alerts
+Usar toast para feedback rápido (éxito, error, info).
+
+Componentes accesibles (role="alert") y autodestructivos (setTimeout).
+
+Error Handling & Logging
+Validar todo lo que venga del backend con Zod.
+
+try/catch con early returns, sin nesting innecesario.
+
+Logs relevantes a consola solo en dev; para prod usar Sentry o console.warn suprimido.
+
+Captura de errores globales con ErrorBoundary.
+
+Testing
+Vitest + React Testing Library para unit tests de componentes y lógica.
+
+Testear:
+
+Renders condicionales
+
+Manejo de formularios
+
+Peticiones con mocks
+
+Snapshots solo si hay UI muy estática (cards, layouts).
+
+No testear implementación (focus en comportamiento).
+
+Deployment & CI/CD
+Deploy en Vercel con previsualizaciones automáticas por branch.
+
+.env controlado (uso de import.meta.env.VITE_*).
+
+Variables seguras: Supabase URL, keys, configuración de entorno.
+
+Uso de turbo, pnpm o yarn para workspaces si crece el proyecto.
+
+SEO & Web Standards
+Si es SPA, configurar metadata con react-helmet.
+
+Favicon, OG tags, y accesibilidad básica (lang, viewport, etc.).
+
+Si algún sitio es público, usar sitemap.xml, robots.txt, y SEO básico.
+
+Misc
+Uso de clsx() o cn() para componer clases Tailwind.
+
+dayjs para fechas.
+
+react-hook-form + zod como base para todos los forms.
+
+@supabase/supabase-js como única lib de conexión a Supabase.

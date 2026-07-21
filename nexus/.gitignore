@@ -1,0 +1,80 @@
+# === Secretos — NUNCA subir al repo ===
+.env
+.env.local
+*.pem
+*.key
+*.p12
+*.cer
+credentials.json
+credenciales.json
+
+# === Dependencias ===
+node_modules/
+.venv/
+venv/
+__pycache__/
+*.pyc
+
+# === Builds ===
+dist/
+build/
+.vite/
+
+# === Efímeros / runtime ===
+logs/*.log
+*.pid
+.DS_Store
+.cache/
+
+# === OpenClaw / sesiones WhatsApp (contienen tokens de sesión) ===
+.openclaw/
+*.session
+auth_info*/
+
+# === ENDURECIDO (Claude) — datos/runtime/secretos que NO van a GitHub ===
+# Bases de datos locales (¡app.db tiene claves tributarias SII en claro!)
+*.db
+*.sqlite
+*.sqlite-shm
+*.sqlite-wal
+# Documentos tributarios descargados y datos de runtime
+sii-web/data/
+**/data/empresas/
+# Perfiles de navegador (cookies/sesiones)
+.perfil/
+**/.perfil/
+# Tokens OAuth de correo / Google
+conector-correo/google/
+**/*token*.json
+**/.last-good
+# Builds del frontend
+.next/
+**/.next/
+# Respaldos automáticos
+*.bak
+*.bak.*
+*.bak-*
+# Estados con posibles tokens
+estado-*.json
+
+# Caché de adjuntos del Hub (fotos/documentos entrantes)
+hub/.media-cache/
+
+# Conector Mallorca: entorno y cache del Excel (no versionar)
+conector-mallorca/.venv/
+conector-mallorca/cache/
+
+# === Claude: excluidos por Ramon (datos de usuarios / logs de runtime) ===
+usuarios.json
+**/usuarios.json
+conector-navegador/diagnostico.log
+**/diagnostico.log
+
+# Certificados digitales de facturación (NUNCA a GitHub)
+*.pfx
+secretos-facturacion/
+conector-tek/.creds.json
+conector-tek/chrome-profile
+session.json
+reservo/.creds.json
+conector-reservo/session.json

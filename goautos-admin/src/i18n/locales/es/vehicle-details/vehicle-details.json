@@ -1,0 +1,92 @@
+{
+  "notFoundTitle": "Vehículo no encontrado",
+  "notFoundDescription": "El vehículo solicitado no existe o no tienes permisos para verlo.",
+  "header": {
+    "publishInstagram": "Publicar en Instagram",
+    "actionsButton": "ACCIONES",
+    "actionsTitle": "Acciones del vehículo",
+    "viewReservation": "Ver reserva",
+    "generateReservation": "Generar reserva",
+    "generateQuotation": "Generar cotización",
+    "addExpense": "Añadir Gasto",
+    "addIncome": "Añadir Ingreso",
+    "editSale": "Editar venta",
+    "sellVehicle": "Vender vehículo",
+    "editCloseDeal": "Editar cierre de negocio",
+    "closeDeal": "Cierre de negocio"
+  },
+  "tabs": {
+    "resume": "Resumen",
+    "timeline": "Línea de tiempo",
+    "details": "Detalles",
+    "documents": "Documentos",
+    "instagram": "Instagram"
+  },
+  "resume": {
+    "titles": {
+      "generalInfo": "Información general",
+      "details": "Detalles del vehículo",
+      "legalFinancial": "Información Legal y Financiera",
+      "expiryDates": "Fechas de Vencimiento",
+      "extras": "Extras (Uso Interno)",
+      "description": "Descripción"
+    },
+    "labels": {
+      "brand": "Marca",
+      "model": "Modelo",
+      "year": "Año",
+      "color": "Color",
+      "mileage": "Kilometraje",
+      "licensePlate": "Patente",
+      "keys": "Número de Llaves",
+      "engineNumber": "Número de Motor",
+      "chassisNumber": "Número de Chasis",
+      "condition": "Condición",
+      "fuelType": "Combustible",
+      "transmission": "Transmisión",
+      "category": "Categoría",
+      "owners": "Número de Dueños",
+      "hasLien": "Tiene Prenda",
+      "isBillable": "Es Facturable",
+      "techInspection": "Revisión Técnica",
+      "emissions": "SOAP",
+      "circulationPermit": "Venc. Permiso de Circulación",
+      "municipalityPermit": "Municipalidad",
+      "daysInStock": "Días en stock",
+      "status": "Estado",
+      "review": "Revisión",
+      "mechanicalReview": "Revisión Mecánica"
+    },
+    "kmSuffix": "km",
+    "unspecified": "No especificado"
+  },
+  "documents": {
+    "title": "Documentos del Vehículo",
+    "missingLegalInfo": "Falta información legal en su perfil. La generación de documentos no estará completa sin esta información.",
+    "additional": "Documentos Adicionales",
+    "addDocuments": "Añadir Documentos"
+  },
+  "financial": {
+    "title": "Resumen Financiero",
+    "detailOf": "Detalle de {{label}}",
+    "untitled": "Sin título",
+    "noDetails": "No hay detalles disponibles.",
+    "expenses": {
+      "title": "Gastos",
+      "purchasePrice": "Precio de compra",
+      "agreedPriceConsignment": "Precio acordado (consignación)",
+      "otherExpenses": "Otros gastos",
+      "total": "Total gastos"
+    },
+    "income": {
+      "title": "Ingresos",
+      "salePrice": "Precio de venta",
+      "customerPayment": "Pago del cliente",
+      "otherIncome": "Otros ingresos",
+      "tradeInVehicle": "Vehículo en parte de pago",
+      "total": "Total ingresos"
+    },
+    "transferValue": "Valor de transferencia",
+    "netResult": "Resultado neto"
+  }
+}

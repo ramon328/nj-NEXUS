@@ -1,0 +1,17 @@
+{
+  "title": "Sales Management",
+  "accessDeniedTitle": "Access Denied",
+  "accessDeniedDesc": "You don't have permissions to access this page.",
+  "tabs": {
+    "pending": "Pending Approval",
+    "approved": "Approved",
+    "rejected": "Rejected",
+    "all": "All"
+  },
+  "descriptions": {
+    "pending": "Review and approve sales made by your sellers",
+    "approved": "History of sales approved by the administrator",
+    "rejected": "Sales that have been rejected by the administrator",
+    "all": "Complete list of all registered sales"
+  }
+}

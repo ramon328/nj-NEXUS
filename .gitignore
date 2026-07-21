@@ -1,0 +1,154 @@
+# ============================================================
+#  nj-NEXUS  — respaldo de código del Mac mini
+#  .gitignore BLINDADO: fuera pesados y TODOS los secretos
+# ============================================================
+
+# ---------- Dependencias / entornos (se regeneran) ----------
+node_modules/
+.pnp/
+.pnp.js
+bower_components/
+.venv/
+venv/
+env/
+.env-venv/
+__pycache__/
+*.pyc
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+.cargo/
+target/
+.rustup/
+
+# ---------- Builds / caches ----------
+dist/
+build/
+.next/
+.nuxt/
+out/
+.turbo/
+.cache/
+.parcel-cache/
+.svelte-kit/
+*.tsbuildinfo
+.remotion/
+coverage/
+
+# ---------- Modelos IA / binarios grandes ----------
+*.onnx
+*.bin
+*.gguf
+*.pt
+*.pth
+*.safetensors
+*.wasm
+*.node
+*.dylib
+*.so
+*.a
+*.o
+ffmpeg
+ffprobe
+whisper.cpp/
+kokoro/
+**/obscura
+chrome-headless-shell*
+
+# ---------- Perfiles de navegador / sesiones ----------
+chrome-profile/
+*-chrome/
+.nexus-vista-chrome/
+.wwebjs_auth/
+.wwebjs_cache/
+Default/
+user-data-dir/
+
+# ============================================================
+#  SECRETOS — NUNCA a GitHub
+# ============================================================
+.env
+.env.*
+!.env.example
+*.pem
+*.pfx
+*.p12
+*.key
+*.crt
+*.cer
+*.pkcs12
+secretos-facturacion/
+**/secretos*/
+*creds*
+*cred*.json
+credenciales*
+credentials*
+*.creds.json
+.creds.json
+.centro-cred.json
+api_token.txt
+.api-token
+*.enc.json
+token.json
+*token*.json
+*.superclave
+uploads/
+shots/
+certs/
+google/token*
+
+# ---------- Bases de datos con datos ----------
+*.db
+*.db-shm
+*.db-wal
+*.sqlite
+*.sqlite3
+*.db.bak.*
+
+# ---------- Logs / temporales / OS ----------
+*.log
+logs/
+tmp/
+.tmp/
+*.tmp
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.pid
+*.seed
+.pm2/
+
+# ---------- Media pesada (respaldar aparte, no en git) ----------
+*.mp4
+*.mov
+*.avi
+*.mkv
+*.webm
+*.wav
+*.mp3
+*.aac
+*.psd
+EstudioMedia/
+estudio-media/
+estudio/.next/
+
+# binarios sueltos
+cloudflared
+**/cloudflared
+*.tar.gz
+*.zip
+*.dmg
+*.pkg
+
+# sesiones WhatsApp (credenciales de login)
+.wwebjs_auth*
+.wwebjs_cache*
+session/
+*BrowserMetrics*
+*DawnCache*
+
+# configs MCP con tokens
+mcp.json
+.mcp.json
+**/.cursor/mcp.json

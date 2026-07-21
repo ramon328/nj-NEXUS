@@ -1,0 +1,26 @@
+{
+  "name": "nexus-hub",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Hub Nexus — panel de control de servicios",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.104.1",
+    "@supabase/supabase-js": "^2.45.0",
+    "3d-force-graph": "^1.80.0",
+    "express": "^4.19.2",
+    "undici": "^8.5.0"
+  },
+  "devDependencies": {
+    "@vitejs/plugin-react": "^4.3.1",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "vite": "^5.4.0"
+  }
+}

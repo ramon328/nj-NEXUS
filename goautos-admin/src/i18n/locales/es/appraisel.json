@@ -1,0 +1,30 @@
+{
+  "title": "Tasador de Vehículos",
+  "stats": {
+    "dealersUsed": "Automotoras han usado el tasador",
+    "vehiclesAppraised": "Autos tasados"
+  },
+  "frequency": {
+    "title": "Frecuencia de uso por automotora:",
+    "loading": "Cargando...",
+    "empty": "No hay automotoras que hayan usado el tasador en el periodo seleccionado"
+  },
+  "tooltip": {
+    "appraisals_one": "{{count}} tasación",
+    "appraisals_other": "{{count}} tasaciones"
+  },
+  "page": {
+    "heroTitle": "Tasa tu vehículo en segundos",
+    "heroSubtitle": "Nuestro asistente de IA te ayudará a conocer el valor real de tu vehículo en el mercado actual",
+    "question": "¿Qué deseas tasar hoy?",
+    "examples": {
+      "ex1": "¿Cuánto vale un Toyota Corolla 2018?",
+      "ex2": "¿Qué factores afectan el valor de un SUV usado?",
+      "ex3": "Compara el valor de un Nissan Versa vs un Hyundai Accent",
+      "ex4": "¿Cuál es el mejor momento para vender mi auto?"
+    },
+    "errors": {
+      "fetch": "No pudimos completar la tasación. Por favor intenta nuevamente."
+    }
+  }
+}

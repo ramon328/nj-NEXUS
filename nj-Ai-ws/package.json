@@ -1,0 +1,22 @@
+{
+  "name": "nj-ai-ws",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "description": "Worker de WhatsApp (no oficial, vía QR) para la captación con IA — desplegable 24/7 en Render detrás de proxy chilena.",
+  "scripts": {
+    "start": "node whatsapp-worker.mjs"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@supabase/supabase-js": "^2.45.0",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "proxy-chain": "^2.5.6",
+    "qrcode": "^1.5.4",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.26.0"
+  }
+}

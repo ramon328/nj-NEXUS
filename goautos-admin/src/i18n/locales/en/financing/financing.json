@@ -1,0 +1,129 @@
+{
+  "page": {
+    "title": "Direct Credit",
+    "subtitle": "Manage your dealership's direct financing",
+    "newFinancing": "New Financing"
+  },
+  "toasts": {
+    "loadVehiclesError": "Could not load vehicle list",
+    "loadFinancingError": "Could not load financing list",
+    "added": "Financing added successfully"
+  },
+  "list": {
+    "empty": "No financing records found.",
+    "headers": {
+      "customer": "Customer",
+      "vehicle": "Vehicle",
+      "downPayment": "Down Payment",
+      "installment": "Installment",
+      "status": "Status",
+      "nextPayment": "Next Payment",
+      "progress": "Progress"
+    },
+    "labels": {
+      "customerUnavailable": "Customer unavailable",
+      "vehicleUnavailable": "Vehicle unavailable"
+    },
+    "buttons": {
+      "viewDetail": "View Detail"
+    }
+  },
+  "status": {
+    "completed": "Completed",
+    "late": "Late",
+    "inProgress": "In Progress",
+    "pending": "Pending"
+  },
+  "nextPayment": {
+    "none": "No scheduled payments",
+    "completed": "All payments completed"
+  },
+  "form": {
+    "titleNew": "New Financing",
+    "titleEdit": "Edit Financing",
+    "descNew": "Complete the information to register a new direct financing",
+    "descEdit": "Complete the information to update the direct financing",
+    "save": "Save Financing",
+    "noPlate": "No plate",
+    "noRut": "No Tax ID",
+    "labels": {
+      "vehicle": "Vehicle",
+      "customer": "Customer",
+      "downPayment": "Down Payment (CLP)",
+      "monthlyInstallment": "Monthly Installment (CLP)",
+      "paymentDay": "Payment Day",
+      "totalInstallments": "Total Installments",
+      "startDate": "Start Date",
+      "notes": "Notes"
+    },
+    "placeholders": {
+      "selectVehicle": "Select a vehicle",
+      "selectCustomer": "Select a customer",
+      "downPayment": "e.g.: 1000000",
+      "monthlyInstallment": "e.g.: 150000",
+      "paymentDay": "Select payment day",
+      "totalInstallments": "e.g.: 36",
+      "selectDate": "Select a date",
+      "notes": "Additional information about this financing"
+    },
+    "descriptions": {
+      "paymentDay": "The day of the month when installments are due",
+      "totalInstallments": "Total number of monthly payments",
+      "startDate": "Date from which the financing begins"
+    }
+  },
+  "detail": {
+    "title": "Customer and Vehicle Information",
+    "financingDetailsTitle": "Financing Details",
+    "labels": {
+      "customer": "Customer",
+      "rut": "Tax ID",
+      "vehicle": "Vehicle",
+      "licensePlate": "License Plate"
+    },
+    "paymentForm": {
+      "labels": {
+        "installmentNumber": "Installment Number",
+        "amount": "Amount",
+        "interest": "Late Interest (if applicable)",
+        "paymentDate": "Payment Date",
+        "notes": "Notes (Optional)"
+      },
+      "placeholders": {
+        "installmentNumber": "e.g.: 1",
+        "amount": "e.g.: 150000",
+        "interest": "e.g.: 5000",
+        "notes": "Additional observations"
+      },
+      "toasts": {
+        "noPaymentSelected": "No payment selected to update",
+        "saved": "Payment has been recorded successfully",
+        "saveError": "Could not register payment"
+      }
+    },
+    "paymentSchedule": {
+      "title": "Payment Schedule",
+      "headers": {
+        "installment": "Installment #",
+        "dueDate": "Due Date",
+        "amount": "Amount",
+        "status": "Status",
+        "paymentDate": "Payment Date",
+        "interest": "Interest",
+        "notes": "Notes",
+        "actions": "Actions"
+      },
+      "buttons": {
+        "markPaid": "Mark as Paid"
+      },
+      "status": {
+        "paid": "Paid",
+        "late": "Late",
+        "pending": "Pending"
+      },
+      "empty": "No payments registered",
+      "totalAmount": "Total Amount",
+      "remainingBalance": "Remaining Balance"
+    }
+  }
+}

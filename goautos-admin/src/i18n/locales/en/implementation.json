@@ -1,0 +1,39 @@
+{
+  "title": "Your dealership is at <strong>{{score}}%</strong>",
+  "header": "Initial setup",
+  "expand": "View all steps",
+  "collapse": "Hide steps",
+  "progress": "{{completed}} of {{total}} steps completed",
+  "milestones": {
+    "dealershipData": {
+      "label": "Details",
+      "nextStep": "Complete your dealership details",
+      "subtitle": "Name, logo, and at least one branch — your customers will see this"
+    },
+    "firstVehicle": {
+      "label": "1st vehicle",
+      "nextStep": "Upload your first vehicle",
+      "subtitle": "With license plate auto-fill, it takes just 2 minutes"
+    },
+    "fiveVehicles": {
+      "label": "Inventory",
+      "nextStep": "Keep uploading your inventory",
+      "subtitle": "Customers look for variety — 5 vehicles is a great start"
+    },
+    "builder": {
+      "label": "Website",
+      "nextStep": "Customize your website",
+      "subtitle": "Your website is your storefront — make it yours"
+    },
+    "leadManaged": {
+      "label": "Leads",
+      "nextStep": "Manage your first lead",
+      "subtitle": "When inquiries come in from your website, they will appear here"
+    },
+    "documentGenerated": {
+      "label": "Documents",
+      "nextStep": "Generate your first quotation or sale note",
+      "subtitle": "From the vehicle detail page you can generate documents in one click"
+    }
+  }
+}

@@ -1,0 +1,33 @@
+# Blueprint de Render. En Render: New + → Blueprint → conectá este repo.
+# Crea un web service Docker, siempre prendido, con disco persistente para la
+# sesión de WhatsApp (así NO hay que re-escanear el QR en cada deploy).
+services:
+  - type: web
+    name: nj-ai-ws
+    runtime: docker
+    plan: starter            # Starter = siempre prendido + permite disco persistente
+    dockerfilePath: ./Dockerfile
+    healthCheckPath: /health
+    autoDeploy: true
+    disk:
+      name: wa-session
+      mountPath: /data       # WWEBJS_DATA_PATH apunta acá → la sesión persiste
+      sizeGB: 1
+    envVars:
+      - key: WWEBJS_DATA_PATH
+        value: /data/.wwebjs_auth
+      - key: CHROME_PATH
+        value: /usr/bin/chromium
+      - key: WA_AUTO_REPLY
+        value: "1"
+      - key: OUTREACH_API_URL
+        value: https://autosintel.vercel.app/api/outreach
+      # Estas van marcadas como secretas: las cargás en el dashboard de Render.
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: PROXY_URL
+        sync: false
+      - key: QR_TOKEN
+        sync: false

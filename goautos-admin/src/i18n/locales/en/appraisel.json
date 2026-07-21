@@ -1,0 +1,30 @@
+{
+  "title": "Vehicle Appraiser",
+  "stats": {
+    "dealersUsed": "Dealerships have used the appraiser",
+    "vehiclesAppraised": "Vehicles appraised"
+  },
+  "frequency": {
+    "title": "Usage frequency by dealership:",
+    "loading": "Loading...",
+    "empty": "No dealerships used the appraiser in the selected period"
+  },
+  "tooltip": {
+    "appraisals_one": "{{count}} appraisal",
+    "appraisals_other": "{{count}} appraisals"
+  },
+  "page": {
+    "heroTitle": "Appraise your vehicle in seconds",
+    "heroSubtitle": "Our AI assistant will help you discover your vehicle's real value in today's market",
+    "question": "What would you like to appraise today?",
+    "examples": {
+      "ex1": "How much is a 2018 Toyota Corolla worth?",
+      "ex2": "Which factors affect the value of a used SUV?",
+      "ex3": "Compare the value of a Nissan Versa vs a Hyundai Accent",
+      "ex4": "When is the best time to sell my car?"
+    },
+    "errors": {
+      "fetch": "We couldn't complete the appraisal. Please try again."
+    }
+  }
+}

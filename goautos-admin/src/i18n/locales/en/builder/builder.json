@@ -1,0 +1,66 @@
+{
+  "topbar": {
+    "title": "Website Builder",
+    "save": "Save",
+    "saving": "Saving...",
+    "actions": "Actions"
+  },
+  "devices": {
+    "desktop": "Desktop",
+    "tablet": "Tablet",
+    "mobile": "Mobile"
+  },
+  "messages": {
+    "saveSuccess": "Builder state saved successfully!",
+    "loadSuccess": "Builder state loaded successfully!",
+    "resetSuccess": "Builder reset with personalized values!",
+    "websiteEnabled": "Website activated successfully!",
+    "websiteDisabled": "Website deactivated successfully!",
+    "colorSchemeChanged": "Navigation bar theme changed successfully!",
+    "noClient": "Error: No client selected",
+    "noStateSaved": "No saved state found",
+    "copiedToClipboard": "State copied to clipboard!",
+    "linkCopied": "Link copied"
+  },
+  "popover": {
+    "pageStatus": {
+      "title": "Page Status",
+      "active": "Active",
+      "inactive": "Inactive"
+    },
+    "pageTheme": {
+      "title": "Page Theme",
+      "light": "Light",
+      "dark": "Dark"
+    },
+    "copyLink": {
+      "title": "Copy Link",
+      "button": "Copy page link"
+    },
+    "actions": {
+      "resetFromScratch": "Start from Scratch",
+      "discardChanges": "Discard Changes"
+    }
+  },
+  "dialogs": {
+    "reset": {
+      "title": "Start from Scratch",
+      "description": "Are you sure you want to reset the builder with default components? This action will delete all current changes.",
+      "cancel": "Cancel",
+      "confirm": "Reset"
+    },
+    "discard": {
+      "title": "Discard Changes",
+      "description": "Are you sure you want to discard all current changes and return to the last saved state?",
+      "cancel": "Cancel",
+      "confirm": "Discard Changes"
+    },
+    "load": {
+      "title": "Load Saved State",
+      "description": "Paste the compressed state that was previously exported here",
+      "placeholder": "Paste the saved state here...",
+      "cancel": "Cancel",
+      "confirm": "Load"
+    }
+  }
+}

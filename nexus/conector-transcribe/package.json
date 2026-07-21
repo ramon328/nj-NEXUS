@@ -1,0 +1,17 @@
+{
+  "name": "conector-transcribe",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Servidor local OpenAI-compatible de transcripcion (Whisper ONNX, sin API externa) para Nexus/OpenClaw",
+  "main": "server.js",
+  "type": "commonjs",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "express": "^5.1.0",
+    "ffmpeg-static": "^5.2.0",
+    "multer": "^2.0.0",
+    "@huggingface/transformers": "^3.7.6"
+  }
+}

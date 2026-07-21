@@ -1,0 +1,5 @@
+requests>=2.31.0
+python-dotenv>=1.0.0
+certifi>=2024.0.0
+# Yapo migró a una SPA (Encuentra24) con token cifrado → se scrapea con navegador headless.
+playwright>=1.40.0

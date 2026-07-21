@@ -1,0 +1,109 @@
+{
+  "appointment": [
+    "/appointment/AppointmentDay/",
+    "/appointment/estadoAppt/",
+    "/appointment/get_url_videconferencia_cita/",
+    "/appointment/listAppointmentDay/37863/",
+    "/appointment/makeAppointment/",
+    "/appointment/registroconfirmacioncancelaciononline/",
+    "/appointment/sala_de_espera/37863/",
+    "/appointment/simboloappt/",
+    "/appointment/viewAllAppts/",
+    "/appointment/viewAllAppts2/",
+    "/appointment/viewTicket/"
+  ],
+  "atencion": [
+    "/atencion/get_botones_personalizados_centro/",
+    "/atencion/get_url_formateada_boton_personalizado/"
+  ],
+  "bloqueosHorario": [
+    "/bloqueosHorario/obtenerBloqueoAgenda/",
+    "/bloqueosHorario/obtenerBloqueoProfesional/"
+  ],
+  "caja": [
+    "/caja/finanzasinicial/"
+  ],
+  "capacitaciones": [
+    "/capacitaciones/agendar_primera_capacitacion/"
+  ],
+  "chatReservo": [
+    "/chatReservo/notificationSounds/"
+  ],
+  "cliente": [
+    "/cliente/crear_profesional/",
+    "/cliente/editempresa/",
+    "/cliente/hidepasosiniciales/",
+    "/cliente/list_profesional/",
+    "/cliente/seepersonales/",
+    "/cliente/validarmail/"
+  ],
+  "comunicacioninterna": [
+    "/comunicacioninterna/gettareasajax/",
+    "/comunicacioninterna/referidos/"
+  ],
+  "configuracion": [
+    "/configuracion/EscogerCliente/",
+    "/configuracion/SaveAgendasSeleccionadas/"
+  ],
+  "dashboard": [
+    "/dashboard/dashboard_personalizado/"
+  ],
+  "disponibilidad": [
+    "/disponibilidad/obtenerColores/",
+    "/disponibilidad/obtenerDisponibilidad/",
+    "/disponibilidad/obtenerschedule/"
+  ],
+  "fichas": [
+    "/fichas/delete_orden_medica/",
+    "/fichas/ordenes_medicas/"
+  ],
+  "fidelizacion": [
+    "/fidelizacion/listcampaigns/",
+    "/fidelizacion/tareasprogramadas/"
+  ],
+  "insumos": [
+    "/insumos/create_insumo/"
+  ],
+  "pacienteDentista": [
+    "/pacienteDentista/buscarPerson/",
+    "/pacienteDentista/cambiar_orientacion/",
+    "/pacienteDentista/editPerson/",
+    "/pacienteDentista/eliminar_foto/",
+    "/pacienteDentista/obtener_fotos_perfil/",
+    "/pacienteDentista/subir_foto/",
+    "/pacienteDentista/verDatoCampoPerfilExtendido/"
+  ],
+  "reservopago": [
+    "/reservopago/facturasycomprobantes/"
+  ],
+  "schedule": [
+    "/schedule/changeschedulename/",
+    "/schedule/getFeriadosCliente/",
+    "/schedule/listSchedule/",
+    "/schedule/obtenerschedule/"
+  ],
+  "tratamiento": [
+    "/tratamiento/choosetratamiento/",
+    "/tratamiento/crear_tratamiento/",
+    "/tratamiento/gettratamientoajax/",
+    "/tratamiento/makeedittratamientofast/"
+  ],
+  "tutoriales": [
+    "/tutoriales/gettutoriales/",
+    "/tutoriales/listtutoriales/",
+    "/tutoriales/solicitartutorial/"
+  ],
+  "upload": [
+    "/upload/get_url_orden_medica/",
+    "/upload/getlogochico/",
+    "/upload/sign_s3_orden_medica/",
+    "/upload/subirlogochico/"
+  ],
+  "usuarios": [
+    "/usuarios/logout/",
+    "/usuarios/mensajesusuario/"
+  ],
+  "wiremonkey": [
+    "/wiremonkey/dist/"
+  ]
+}

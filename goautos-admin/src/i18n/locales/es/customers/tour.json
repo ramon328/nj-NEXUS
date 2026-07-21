@@ -1,0 +1,28 @@
+{
+  "welcome": {
+    "title": "Gestion de Clientes",
+    "description": "Aqui administras tu base de datos de clientes. Puedes crear, editar, buscar y exportar informacion de tus clientes."
+  },
+  "header": {
+    "title": "Acciones de Clientes",
+    "description": "Desde aqui puedes:\n\nCrear clientes individuales\nImportar clientes masivamente desde Excel\n\nLos administradores tienen acceso a todas las opciones."
+  },
+  "search": {
+    "title": "Busqueda Rapida",
+    "description": "Busca clientes por nombre, email o RUT.\n\nLos resultados se filtran en tiempo real mientras escribes."
+  },
+  "table": {
+    "title": "Tabla de Clientes",
+    "description": "Lista completa de tus clientes con nombre, contacto, RUT, direccion y fecha de registro.\n\nHaz clic en el boton de editar para actualizar la informacion de un cliente."
+  },
+  "finish": {
+    "title": "Listo!",
+    "description": "Ya conoces la gestion de clientes. Mantener tu base de datos actualizada te ayudara a gestionar mejor tus ventas y leads."
+  },
+  "buttons": {
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "done": "Finalizar",
+    "skip": "Omitir"
+  }
+}

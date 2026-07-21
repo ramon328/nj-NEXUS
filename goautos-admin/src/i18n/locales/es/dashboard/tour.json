@@ -1,0 +1,40 @@
+{
+  "welcome": {
+    "title": "Panel de Control",
+    "description": "Este es tu centro de comando. Desde aqui puedes monitorear ventas, inventario, rendimiento web y el desempeno de tu equipo.\n\nTe guiaremos paso a paso por cada seccion."
+  },
+  "pills": {
+    "title": "Secciones del Dashboard",
+    "description": "Navega entre las diferentes areas de tu negocio:\n\nComercial: Ventas, costos y rendimiento general\nInventario: Estado de tu stock, analisis por marca\nWeb: Visitas, leads y vehiculos mas vistos\nVendedores: Ranking y comisiones de tu equipo"
+  },
+  "timeFilter": {
+    "title": "Filtros de Tiempo y Stock",
+    "description": "Ajusta el periodo de los datos que ves:\n\nTodo el tiempo, este ano, este mes, ultimos 7 dias, o un rango personalizado.\n\nTambien puedes filtrar entre vehiculos propios y consignados."
+  },
+  "stats": {
+    "title": "Indicadores Clave (KPIs)",
+    "description": "Resumen rapido de lo mas importante: ingresos, gastos, utilidad neta y vehiculos vendidos.\n\nEstos numeros se actualizan segun el filtro de tiempo que selecciones."
+  },
+  "performanceChart": {
+    "title": "Rendimiento del Negocio",
+    "description": "Grafico combinado que muestra la evolucion mensual de ventas, costos, visitas web y valor del inventario.\n\nPasa el cursor sobre los puntos para ver el detalle de cada mes."
+  },
+  "smartAlerts": {
+    "title": "Alertas",
+    "description": "El sistema analiza tus datos y genera alertas automaticas:\n\nVentas pendientes de aprobacion\nVehiculos con muchos dias en stock\nLeads sin atender\nRecomendaciones de que marcas comprar\n\nHaz clic en cualquier alerta para ir directo a solucionarla."
+  },
+  "salesSummary": {
+    "title": "Resumen de Ventas y Costos",
+    "description": "Tabla detallada de cada venta con precios, costos y utilidad. Puedes alternar entre vista de tarjetas y tabla.\n\nCambia a la pestana 'Resumen de Costos' para ver el desglose de gastos por vehiculo.\n\nTambien puedes exportar todo a Excel."
+  },
+  "finish": {
+    "title": "Listo!",
+    "description": "Ya conoces tu Panel de Control. Recuerda que puedes cambiar entre las secciones Comercial, Inventario, Web y Vendedores para explorar cada area.\n\nHaz clic en la lamparita en cualquier momento para volver a ver este tour."
+  },
+  "buttons": {
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "done": "Finalizar",
+    "skip": "Saltar"
+  }
+}

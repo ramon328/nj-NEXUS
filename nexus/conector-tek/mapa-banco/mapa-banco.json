@@ -1,0 +1,800 @@
+{
+  "empresa": null,
+  "url_final": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCART_CON&ts=1784588847621",
+  "resumen": {
+    "endpoints": 67,
+    "hosts": [
+      "1.a79ab95c1589a13f8a4cab612bc71f9f7.com",
+      "1.b406929acabac9b095f124c81bdfcf57f.com",
+      "1.c81358859121583b7adf2ace89cb39f44.com",
+      "api.officebanking.cl",
+      "apideveloper.santander.cl",
+      "bancosantanderinversiones.finmarketslive.cl",
+      "cdn.opinator.com",
+      "empresas.officebanking.cl",
+      "eob.officebanking.cl",
+      "fonts.googleapis.com",
+      "privado.officebanking.cl",
+      "wslogin.officebanking.cl",
+      "www.google.com",
+      "www.officebanking.cl",
+      "www.opinator.com",
+      "log-7b4df495.santander.cl",
+      "wup-7b4df495.santander.cl"
+    ],
+    "bundles": 72,
+    "menu": 20,
+    "visitadas": 8
+  },
+  "menu": [
+    {
+      "texto": "Inicio",
+      "href": "/dashboard"
+    },
+    {
+      "texto": "Accesibilidad",
+      "href": ""
+    },
+    {
+      "texto": "Indicadores",
+      "href": ""
+    },
+    {
+      "texto": "Empresa / Rol",
+      "href": ""
+    },
+    {
+      "texto": "Cuentas Corrientes",
+      "href": ""
+    },
+    {
+      "texto": "Linea de Crédito",
+      "href": ""
+    },
+    {
+      "texto": "Resumen de Productos",
+      "href": ""
+    },
+    {
+      "texto": "Tarjetas",
+      "href": ""
+    },
+    {
+      "texto": "Transferencias",
+      "href": ""
+    },
+    {
+      "texto": "Pago de Cuentas y Servicios",
+      "href": ""
+    },
+    {
+      "texto": "Vales Vista en Línea",
+      "href": ""
+    },
+    {
+      "texto": "PAC - Pago Automático de Cuentas",
+      "href": ""
+    },
+    {
+      "texto": "Comercio Exterior",
+      "href": ""
+    },
+    {
+      "texto": "Compra y Venta de Divisas",
+      "href": ""
+    },
+    {
+      "texto": "Créditos",
+      "href": ""
+    },
+    {
+      "texto": "Fondos Mutuos",
+      "href": ""
+    },
+    {
+      "texto": "Depósito a Plazo",
+      "href": ""
+    },
+    {
+      "texto": "Pagos Masivos",
+      "href": ""
+    },
+    {
+      "texto": "Factoring",
+      "href": ""
+    },
+    {
+      "texto": "Expandir Menú",
+      "href": ""
+    }
+  ],
+  "secciones_visitadas": [
+    {
+      "seccion": "Inicio",
+      "nuevas": 0,
+      "url": "https://privado.officebanking.cl/dashboard"
+    },
+    {
+      "seccion": "Cuentas Corrientes",
+      "nuevas": 0,
+      "url": "https://privado.officebanking.cl/dashboard"
+    },
+    {
+      "seccion": "Linea de Crédito",
+      "nuevas": 0,
+      "url": "https://privado.officebanking.cl/dashboard"
+    },
+    {
+      "seccion": "Resumen de Productos",
+      "nuevas": 15,
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCART_CON&ts=1784588847621"
+    },
+    {
+      "seccion": "Tarjetas",
+      "nuevas": 0,
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCART_CON&ts=1784588847621"
+    },
+    {
+      "seccion": "Vales Vista en Línea",
+      "nuevas": 0,
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCART_CON&ts=1784588847621"
+    },
+    {
+      "seccion": "Créditos",
+      "nuevas": 0,
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCART_CON&ts=1784588847621"
+    },
+    {
+      "seccion": "Depósito a Plazo",
+      "nuevas": 0,
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCART_CON&ts=1784588847621"
+    }
+  ],
+  "endpoints": [
+    {
+      "endpoint": "GET 1.a79ab95c1589a13f8a4cab612bc71f9f7.com/scripts/prod/crossdomain.html",
+      "veces": 6,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET 1.b406929acabac9b095f124c81bdfcf57f.com/scripts/prod/crossdomain.html",
+      "veces": 6,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET 1.c81358859121583b7adf2ace89cb39f44.com/scripts/prod/crossdomain.html",
+      "veces": 6,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET api.officebanking.cl/cust_reference_data_mgt/cash_mgmt_services_ms/v1/create_credentials/lgu",
+      "veces": 4,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET api.officebanking.cl/party-authentication-enterprise-wslogin/validate",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/account_summary",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/{id}",
+      "veces": 2,
+      "status": [
+        204
+      ]
+    },
+    {
+      "endpoint": "GET apideveloper.santander.cl/sancl/privado/customer_offer/campaigns_ob/v1/campaigns/{n}/{n}/{n}/{n}/{n}/multiple",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET apideveloper.santander.cl/sancl/privado/customer_ref_data_mgt/v1/customers/{id}/basic-contact-information",
+      "veces": 4,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET apideveloper.santander.cl/sancl/privado/v1/hz_conntext",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET apideveloper.santander.cl/sancl/privado/v1/users/{id}/company",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET apideveloper.santander.cl/sancl/privado/v1/users/{id}/company/{id}/services/1",
+      "veces": 4,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET apideveloper.santander.cl/sancl/privado/v1/users/{id}/companys/12/services",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET bancosantanderinversiones.finmarketslive.cl/json/instruments.html",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET cdn.opinator.com/api/image/{id}/original-image/",
+      "veces": 30,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET empresas.officebanking.cl/",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET empresas.officebanking.cl/_Incapsula_Resource",
+      "veces": 4,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET empresas.officebanking.cl/assets/fonts/SantanderIcons/SantanderIcons.ttf",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET empresas.officebanking.cl/assets/huincha.json",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET empresas.officebanking.cl/assets/params.json",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/_bm/get_params",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl//COPE.UI.Web/Account/Ping",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/COPE.UI.Services/api/consolidado/obtenerListadoEstadoCuenta",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/COPE.UI.Web/Account/Login",
+      "veces": 2,
+      "status": [
+        302
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/COPE.UI.Web/bundles/BioCatchHeartBeat",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/COPE.UI.Web/consolidado",
+      "veces": 4,
+      "status": [
+        302,
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/COPE.UI.Web/css/main",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/COPE.UI.Web/fonts/santanderIcon.ttf",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/COPE.UI.Web/scripts/consolidado",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET eob.officebanking.cl/DXoy0/W0/bar/SL/8yXog60-/uOGfwhJuaNa3zp/bjl5/NmFrV/Bh0PxAB",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET fonts.googleapis.com/css",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET privado.officebanking.cl/",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET privado.officebanking.cl/_Incapsula_Resource",
+      "veces": 4,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET privado.officebanking.cl/assets/params.json",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET privado.officebanking.cl/SantanderWebFont.0401cbb803e0890d.ttf",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET wslogin.officebanking.cl/",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET wslogin.officebanking.cl/Hr6Cu2/fqnl/D/C/aaqE8ru_AH-ItwU/mu5Lz6r3Eb3XL0/YwpHIloC/Bj/gBfTJxLFwB",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET wslogin.officebanking.cl/ping",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET wslogin.officebanking.cl/static/fonts/icons/SantanderWebFont.ttf",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.google.com/gmp/conversion/_dc_unique_id=10122401379275284071;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-NqpHFNqIFcQ4IYzOdm5q4a5_U_Fjh27N-REw;_dc_time=1784588826;cid=CAQS4gEAEQoqgVkOj3fZw3bmA6Slg4y_dikeUpE-cxH-ruWb15BwV2oNjwK0FSKj_TE4ps1-6N6WeG192cPtfuW3Z21AryOLVW-s0LKnTzPpCxOAxocs6I0dhyDl81ex98JSWdMx1FNlFEeDHVdwpCJYBfi7JN9-ZgSYqGkGgwLT3MFvrOdL5oEO0Ska8pDcgrWdlYDb4sFRj_wgIRjuTJx5r537c7lHZw4hA09X7e_XpUXyH0sk8sJA4byLpPD2Wnbb2uYyvqcNWecL2apilMBrWgEwdbRJ9fW2bfwUgnrR7y0zBvGV;eps=AHas8cCnM6ThaZ6ug8TG2Hbf3h1MHRK0BT-rCTc0MZpW8M2rYGmGMUP0gLl7NumgrlMY8mxCo42X-F5OBRAtbX578bhygtY3lCWOJ1iAAHn4b8Gu5w;dc_pre=CP7Fxriv4pUDFYIEHgAdFPsRHg;src=857732;type=banco01h;cat=lpg_o0;ord=4967467021826.395",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.google.com/gmp/conversion/_dc_unique_id=1246021756385607834;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-PWx0b1nASWOU7tNj0HGtx0g_7fSmhea2VQJg;_dc_time=1784588848;cid=CAQS4gEAEQoqgYOwuWZb9fqEAsgW0tuOr-xck5_hYStmJ6YkyNNhao1LvaHR7tTqL10hqq9WJkPgYO4UtdLsh5AYh10SBvTXE2Fp-KyKlZEX4mx-VAMPyhg45LIW7EF-irfwT5wtYVPD-d-QkweuYilvSl9LKKiv43yqCixd-SLGFcCLcgK0pzpEepyCRLLxhIJvZbVByHjytz0XTJ0ZrgGTAkfjkyBtFPWK6H1Unqll1snuOL4-dVNpiMkgBLk_krPFOYmqgt3lP5vgMeS7NyeA7dFEsB3yJxqyI7HPpI_Dr24onHre;eps=AHas8cBmMf9Rux0dCWAaKzROuq9BKCSSyrHfukn1iTCXw_Jd9ItqV3y5SPEICBljcDXADJuwvSFAshKJVOK9XScqraP9NcCLuJjQdaCfI6hMXZhWPQ;dc_pre=CIvDh8Ov4pUDFUsWHgAdnlAjOQ;src=857732;type=banco01h;cat=lpg_o0;ord=1479347437017.5608",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.google.com/gmp/conversion/_dc_unique_id=1364883067897414232;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-MzvaF44lvRr99XFhoK8uQzChKQ7awh8BRIXw;_dc_time=1784588816;cid=CAQS4gEAEQoqgWg4FJ51GgB03yBU60iqtt4oML_A_nirwfZpMYCOpp-bTQVa_A4ulUQ0HnR-Ziwr-R6gNZceJZpWO217N6l0HeQqusvSyN-ybCfyhWdjL7_ej9fR1RomYLvVVzwx95l1k91vOrYtmu2QrK0CnnYPF40xQknjsB4R6ZVC-uK4HB-kr6yP-VNkYR8C1oBN_HrcloB08qeMe0KhJh4rh3yVobZokng-9qytN2CySD-BYFTQAeEaWUXv8r8yfXEHHMJaYjoFIT0d6UiYPyaRm6gx74ZWeapcusRPJLlUQzU7;eps=AHas8cAxeES7DEDQVpPWjMkQXu0tTuGmarNyTF0F8iYgi4IJEW29L4tSPuBCWrouXrgSPwT7ZVHHktTyQugI5NEHE08r4wXxXEQAa4PvSI6fbp2mQw;dc_pre=CISD2LOv4pUDFZLJoAYdVzES6Q;src=857732;type=banco01h;cat=lpg_o0;ord=9797541437049.525",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.google.com/gmp/conversion/_dc_unique_id=14407316206874729693;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-OMv_SuyP51-PAzs6T8EIU0sJCG69cXqHzVHg;_dc_time=1784588850;cid=CAQS4gEAEQoqgY1bb6ikdTcOP8yiky5UXUvOAWhPOb9fM1yQRdsZLB46wXaSLDti7wDR2shxkQvDH-r1fq4QxPomDRzDWJssUer8AvT3WtXihH5M0wuec5lyV-TzuqUCKtP7Z9wD4OHwg7XbIegQ7OfPlIurZo1-FzV8GtKTj_kQUgEcV8Cnz19IKw2cEbqWn5a1UFnd7TfQK3f0hDiv483qOIcJf0fFUhH9y4Y2Efy5OTiMXL9roQXBKjIjMJmKTDR0_xmI9KRYVGiqfCuYnBsQ2Tp4-SdqyRADgeSYXrImxC8sHVBa;eps=AHas8cAHrSC1HToCO1CcdMT9y4b7gIFS23YimcxSnwT-quUAja7emVwpN3HthoWT_Qvv7uZcgzT4KajV4CerwTGoZ-PCCM4_-GPj_h3O-TkfkU06wQ;dc_pre=CMrH6cOv4pUDFb0OHgAdJaUMnw;src=857732;type=banco01h;cat=lpg_o0;ord=7984584385037.572",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.google.com/gmp/conversion/_dc_unique_id=5014570034683122665;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-Py475r0SLm8jZN9y_p71OXdaX17g5WHzbFkQ;_dc_time=1784588776;cid=CAQS4gEAEQoqgWJjqJNkp8j7wle6RKvtCwRYEFLBGIhWdCR5_-6ok86Yf22XfjnMYTw5URcViWLV2q_G3aFZiPsBRPhOnqdrdw5wlgtQ2kIsgvVck3Az318Qg3Y_voxPYMcG38-FfqwRtrRzyj-ugH8hZM_VI2jAcKe3_LwCOJndfVl5qksu85dv3QIdx-xB3ntzV6JRN9kg-vtqFqBXeFEjXXIVXJJChAAQI_9DdWOMy_qq-LKKryAJLO3zxoK2s0LX4ED4Bxdyg6Hbsd7-K_2qjNcWJIVM_C5udvos_ycvOYpZx9sH;eps=AHas8cDcOYGG8fdYPPdRRv3-TyEO099oO4KYqTnZorB5jrdcwqPUAlCuQuFZVcMlMmm7ELl9OJ605lIL2E-WbF-5YQNjUyks4XW7BMU25xGK_1qPIw;dc_pre=CMra6KCv4pUDFdc-HgAd0l0r0g;src=857732;type=banco01h;cat=lpg_o0;ord=375865566532.7293",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.google.com/gmp/conversion/_dc_unique_id=5261403503227346516;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-PVLtKGnlgEoe1h3Fwtd9vb-MGM9WbD_W_6KA;_dc_time=1784588818;cid=CAQS4gEAEQoqgWw-EQGbEYJweAAbE1avP7VO59O6czR3pqEaaSSvKjMjuAuQ1pAE2mfq5vtlWEXjeXL1NFxb8d7uek-ZhYSrjxVcziA9zYlq-F7g6ebDCdvJHeZb-g0lYwyeNd5z0ZusGhZxEUN82tltgv4Yr_m4D_88GWZy9lQu-5QuO60XMVtz0M_VKYEtxsec3vqrDoY6O8J0AYo7TmhXi3ppOzxBqVRaA0vxzOGXD_JiKvoyeDmhlZxJdc8oM0J22yuoCCxfDY978lN9WjepNfoUBeQ21tlfoPvbUhICneSDsV-P;eps=AHas8cAqPP8Wa7SikufY2j_BGJ1Cuj_1cmmeumKcmKNFhSu6PzRU04MD9Hwal8MJat8elZc4lErZgyoKzB3DCyiyEWXya1QvBwvVvhHSMdo0ofvJBw;dc_pre=CKqg8LSv4pUDFRrJoAYdSoULVg;src=857732;type=banco01h;cat=lpg_o0;ord=9162082709554.209",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.google.com/gmp/conversion/_dc_unique_id=735239682118622360;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-NHfrsy8Z7tF5QN643FDmCN3Z0wmnuhYOFvpA;_dc_time=1784588827;cid=CAQS4gEAEQoqgcKe1fI8Ub-Uj7Kd2YahkufXsJeBNp3i0ImlNiLZ7CBPUsBfaBhUr7_v0Uc_9wbeCr039lJvKJJNTBFksj6ZW1L2Vm2_GFKYvu4W__bjcG1tA2dGp0YpldrlDq8vbelDV3TtyTdF3xaOQcUBcKFw0mZ2T9SbZ_jwzXUHF6K9oezvt513uzSD5fQoK6o9-X1qmMsw22VoV1gZt2ie1IFORXoEUbUnAnvFs30-sdc-zGH8p12XOUedUTcbIoAlOuEJND9V_hU4DYLGXMwSu6bu4xTP8xaW-Ufgf4FW_aeL;eps=AHas8cBVS---piQjlM5UB74oyJ3uZHZkQViMe4byD-sMGjYeD-Qwrpda2cbGIf_rFmTM8bbz4KpFikSzrsj0BSo2NQs9C3SFcW1ju3v8Dl7618Kxiw;dc_pre=CNiU-riv4pUDFSYpHgAdEFYpmw;src=857732;type=banco01h;cat=lpg_o0;ord=499982787875.05066",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.officebanking.cl/_bm/get_params",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.officebanking.cl/campna/CAMPANAS_OB/TC_GESTION_CLAVES/Dash.aspx",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.officebanking.cl/EOB/keepalive.asp",
+      "veces": 3,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.officebanking.cl/poc/eob/validar.asp",
+      "veces": 2,
+      "status": [
+        302
+      ]
+    },
+    {
+      "endpoint": "GET www.officebanking.cl/WhFUy3nKHQJn1kYy-sro4M60/t1Gk4XQ9VOt9Lm/Z1VmRmZ6JA/ZEV6T/X0lHhsB",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.opinator.com/api/file/scl_bluebg/",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.opinator.com/api/i18n/es/",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.opinator.com/external-api/api/v2/opis/context.json",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.opinator.com/external-api/api/v2/opis/saturation.json",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.opinator.com/opi/SCL_0034_OB_NPS_LOGIN_nuevoOB",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "GET www.opinator.com/resources/js/embed.main.min.js/",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "HEAD privado.officebanking.cl/",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "POST apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/data_preparation",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "POST apideveloper.santander.cl/sancl/privado/party_authentication/behavioral_biometrics/v1/customers/biocatch_init",
+      "veces": 4,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "POST eob.officebanking.cl/COPE.UI.Services/Token",
+      "veces": 2,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "POST log-7b4df495.santander.cl/api/v1/sendLogs",
+      "veces": 10,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "POST wslogin.officebanking.cl/Hr6Cu2/fqnl/D/C/aaqE8ru_AH-ItwU/mu5Lz6r3Eb3XL0/YwpHIloC/Bj/gBfTJxLFwB",
+      "veces": 4,
+      "status": [
+        201
+      ]
+    },
+    {
+      "endpoint": "POST wslogin.officebanking.cl/login",
+      "veces": 2,
+      "status": [
+        302
+      ]
+    },
+    {
+      "endpoint": "POST wup-7b4df495.santander.cl/client/v3.1/web/wup",
+      "veces": 18,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "POST wup-7b4df495.santander.cl/client/v3/web/wup",
+      "veces": 24,
+      "status": [
+        200
+      ]
+    },
+    {
+      "endpoint": "POST www.google.com/g/collect",
+      "veces": 1,
+      "status": []
+    }
+  ],
+  "por_host": {
+    "1.a79ab95c1589a13f8a4cab612bc71f9f7.com": [
+      "GET 1.a79ab95c1589a13f8a4cab612bc71f9f7.com/scripts/prod/crossdomain.html"
+    ],
+    "1.b406929acabac9b095f124c81bdfcf57f.com": [
+      "GET 1.b406929acabac9b095f124c81bdfcf57f.com/scripts/prod/crossdomain.html"
+    ],
+    "1.c81358859121583b7adf2ace89cb39f44.com": [
+      "GET 1.c81358859121583b7adf2ace89cb39f44.com/scripts/prod/crossdomain.html"
+    ],
+    "api.officebanking.cl": [
+      "GET api.officebanking.cl/cust_reference_data_mgt/cash_mgmt_services_ms/v1/create_credentials/lgu",
+      "GET api.officebanking.cl/party-authentication-enterprise-wslogin/validate"
+    ],
+    "apideveloper.santander.cl": [
+      "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/account_summary",
+      "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/{id}",
+      "GET apideveloper.santander.cl/sancl/privado/customer_offer/campaigns_ob/v1/campaigns/{n}/{n}/{n}/{n}/{n}/multiple",
+      "GET apideveloper.santander.cl/sancl/privado/customer_ref_data_mgt/v1/customers/{id}/basic-contact-information",
+      "GET apideveloper.santander.cl/sancl/privado/v1/hz_conntext",
+      "GET apideveloper.santander.cl/sancl/privado/v1/users/{id}/company",
+      "GET apideveloper.santander.cl/sancl/privado/v1/users/{id}/company/{id}/services/1",
+      "GET apideveloper.santander.cl/sancl/privado/v1/users/{id}/companys/12/services",
+      "POST apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/data_preparation",
+      "POST apideveloper.santander.cl/sancl/privado/party_authentication/behavioral_biometrics/v1/customers/biocatch_init"
+    ],
+    "bancosantanderinversiones.finmarketslive.cl": [
+      "GET bancosantanderinversiones.finmarketslive.cl/json/instruments.html"
+    ],
+    "cdn.opinator.com": [
+      "GET cdn.opinator.com/api/image/{id}/original-image/"
+    ],
+    "empresas.officebanking.cl": [
+      "GET empresas.officebanking.cl/",
+      "GET empresas.officebanking.cl/_Incapsula_Resource",
+      "GET empresas.officebanking.cl/assets/fonts/SantanderIcons/SantanderIcons.ttf",
+      "GET empresas.officebanking.cl/assets/huincha.json",
+      "GET empresas.officebanking.cl/assets/params.json"
+    ],
+    "eob.officebanking.cl": [
+      "GET eob.officebanking.cl/_bm/get_params",
+      "GET eob.officebanking.cl//COPE.UI.Web/Account/Ping",
+      "GET eob.officebanking.cl/COPE.UI.Services/api/consolidado/obtenerListadoEstadoCuenta",
+      "GET eob.officebanking.cl/COPE.UI.Web/Account/Login",
+      "GET eob.officebanking.cl/COPE.UI.Web/bundles/BioCatchHeartBeat",
+      "GET eob.officebanking.cl/COPE.UI.Web/consolidado",
+      "GET eob.officebanking.cl/COPE.UI.Web/css/main",
+      "GET eob.officebanking.cl/COPE.UI.Web/fonts/santanderIcon.ttf",
+      "GET eob.officebanking.cl/COPE.UI.Web/scripts/consolidado",
+      "GET eob.officebanking.cl/DXoy0/W0/bar/SL/8yXog60-/uOGfwhJuaNa3zp/bjl5/NmFrV/Bh0PxAB",
+      "POST eob.officebanking.cl/COPE.UI.Services/Token"
+    ],
+    "fonts.googleapis.com": [
+      "GET fonts.googleapis.com/css"
+    ],
+    "privado.officebanking.cl": [
+      "GET privado.officebanking.cl/",
+      "GET privado.officebanking.cl/_Incapsula_Resource",
+      "GET privado.officebanking.cl/assets/params.json",
+      "GET privado.officebanking.cl/SantanderWebFont.0401cbb803e0890d.ttf",
+      "HEAD privado.officebanking.cl/"
+    ],
+    "wslogin.officebanking.cl": [
+      "GET wslogin.officebanking.cl/",
+      "GET wslogin.officebanking.cl/Hr6Cu2/fqnl/D/C/aaqE8ru_AH-ItwU/mu5Lz6r3Eb3XL0/YwpHIloC/Bj/gBfTJxLFwB",
+      "GET wslogin.officebanking.cl/ping",
+      "GET wslogin.officebanking.cl/static/fonts/icons/SantanderWebFont.ttf",
+      "POST wslogin.officebanking.cl/Hr6Cu2/fqnl/D/C/aaqE8ru_AH-ItwU/mu5Lz6r3Eb3XL0/YwpHIloC/Bj/gBfTJxLFwB",
+      "POST wslogin.officebanking.cl/login"
+    ],
+    "www.google.com": [
+      "GET www.google.com/gmp/conversion/_dc_unique_id=10122401379275284071;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-NqpHFNqIFcQ4IYzOdm5q4a5_U_Fjh27N-REw;_dc_time=1784588826;cid=CAQS4gEAEQoqgVkOj3fZw3bmA6Slg4y_dikeUpE-cxH-ruWb15BwV2oNjwK0FSKj_TE4ps1-6N6WeG192cPtfuW3Z21AryOLVW-s0LKnTzPpCxOAxocs6I0dhyDl81ex98JSWdMx1FNlFEeDHVdwpCJYBfi7JN9-ZgSYqGkGgwLT3MFvrOdL5oEO0Ska8pDcgrWdlYDb4sFRj_wgIRjuTJx5r537c7lHZw4hA09X7e_XpUXyH0sk8sJA4byLpPD2Wnbb2uYyvqcNWecL2apilMBrWgEwdbRJ9fW2bfwUgnrR7y0zBvGV;eps=AHas8cCnM6ThaZ6ug8TG2Hbf3h1MHRK0BT-rCTc0MZpW8M2rYGmGMUP0gLl7NumgrlMY8mxCo42X-F5OBRAtbX578bhygtY3lCWOJ1iAAHn4b8Gu5w;dc_pre=CP7Fxriv4pUDFYIEHgAdFPsRHg;src=857732;type=banco01h;cat=lpg_o0;ord=4967467021826.395",
+      "GET www.google.com/gmp/conversion/_dc_unique_id=1246021756385607834;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-PWx0b1nASWOU7tNj0HGtx0g_7fSmhea2VQJg;_dc_time=1784588848;cid=CAQS4gEAEQoqgYOwuWZb9fqEAsgW0tuOr-xck5_hYStmJ6YkyNNhao1LvaHR7tTqL10hqq9WJkPgYO4UtdLsh5AYh10SBvTXE2Fp-KyKlZEX4mx-VAMPyhg45LIW7EF-irfwT5wtYVPD-d-QkweuYilvSl9LKKiv43yqCixd-SLGFcCLcgK0pzpEepyCRLLxhIJvZbVByHjytz0XTJ0ZrgGTAkfjkyBtFPWK6H1Unqll1snuOL4-dVNpiMkgBLk_krPFOYmqgt3lP5vgMeS7NyeA7dFEsB3yJxqyI7HPpI_Dr24onHre;eps=AHas8cBmMf9Rux0dCWAaKzROuq9BKCSSyrHfukn1iTCXw_Jd9ItqV3y5SPEICBljcDXADJuwvSFAshKJVOK9XScqraP9NcCLuJjQdaCfI6hMXZhWPQ;dc_pre=CIvDh8Ov4pUDFUsWHgAdnlAjOQ;src=857732;type=banco01h;cat=lpg_o0;ord=1479347437017.5608",
+      "GET www.google.com/gmp/conversion/_dc_unique_id=1364883067897414232;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-MzvaF44lvRr99XFhoK8uQzChKQ7awh8BRIXw;_dc_time=1784588816;cid=CAQS4gEAEQoqgWg4FJ51GgB03yBU60iqtt4oML_A_nirwfZpMYCOpp-bTQVa_A4ulUQ0HnR-Ziwr-R6gNZceJZpWO217N6l0HeQqusvSyN-ybCfyhWdjL7_ej9fR1RomYLvVVzwx95l1k91vOrYtmu2QrK0CnnYPF40xQknjsB4R6ZVC-uK4HB-kr6yP-VNkYR8C1oBN_HrcloB08qeMe0KhJh4rh3yVobZokng-9qytN2CySD-BYFTQAeEaWUXv8r8yfXEHHMJaYjoFIT0d6UiYPyaRm6gx74ZWeapcusRPJLlUQzU7;eps=AHas8cAxeES7DEDQVpPWjMkQXu0tTuGmarNyTF0F8iYgi4IJEW29L4tSPuBCWrouXrgSPwT7ZVHHktTyQugI5NEHE08r4wXxXEQAa4PvSI6fbp2mQw;dc_pre=CISD2LOv4pUDFZLJoAYdVzES6Q;src=857732;type=banco01h;cat=lpg_o0;ord=9797541437049.525",
+      "GET www.google.com/gmp/conversion/_dc_unique_id=14407316206874729693;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-OMv_SuyP51-PAzs6T8EIU0sJCG69cXqHzVHg;_dc_time=1784588850;cid=CAQS4gEAEQoqgY1bb6ikdTcOP8yiky5UXUvOAWhPOb9fM1yQRdsZLB46wXaSLDti7wDR2shxkQvDH-r1fq4QxPomDRzDWJssUer8AvT3WtXihH5M0wuec5lyV-TzuqUCKtP7Z9wD4OHwg7XbIegQ7OfPlIurZo1-FzV8GtKTj_kQUgEcV8Cnz19IKw2cEbqWn5a1UFnd7TfQK3f0hDiv483qOIcJf0fFUhH9y4Y2Efy5OTiMXL9roQXBKjIjMJmKTDR0_xmI9KRYVGiqfCuYnBsQ2Tp4-SdqyRADgeSYXrImxC8sHVBa;eps=AHas8cAHrSC1HToCO1CcdMT9y4b7gIFS23YimcxSnwT-quUAja7emVwpN3HthoWT_Qvv7uZcgzT4KajV4CerwTGoZ-PCCM4_-GPj_h3O-TkfkU06wQ;dc_pre=CMrH6cOv4pUDFb0OHgAdJaUMnw;src=857732;type=banco01h;cat=lpg_o0;ord=7984584385037.572",
+      "GET www.google.com/gmp/conversion/_dc_unique_id=5014570034683122665;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-Py475r0SLm8jZN9y_p71OXdaX17g5WHzbFkQ;_dc_time=1784588776;cid=CAQS4gEAEQoqgWJjqJNkp8j7wle6RKvtCwRYEFLBGIhWdCR5_-6ok86Yf22XfjnMYTw5URcViWLV2q_G3aFZiPsBRPhOnqdrdw5wlgtQ2kIsgvVck3Az318Qg3Y_voxPYMcG38-FfqwRtrRzyj-ugH8hZM_VI2jAcKe3_LwCOJndfVl5qksu85dv3QIdx-xB3ntzV6JRN9kg-vtqFqBXeFEjXXIVXJJChAAQI_9DdWOMy_qq-LKKryAJLO3zxoK2s0LX4ED4Bxdyg6Hbsd7-K_2qjNcWJIVM_C5udvos_ycvOYpZx9sH;eps=AHas8cDcOYGG8fdYPPdRRv3-TyEO099oO4KYqTnZorB5jrdcwqPUAlCuQuFZVcMlMmm7ELl9OJ605lIL2E-WbF-5YQNjUyks4XW7BMU25xGK_1qPIw;dc_pre=CMra6KCv4pUDFdc-HgAd0l0r0g;src=857732;type=banco01h;cat=lpg_o0;ord=375865566532.7293",
+      "GET www.google.com/gmp/conversion/_dc_unique_id=5261403503227346516;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-PVLtKGnlgEoe1h3Fwtd9vb-MGM9WbD_W_6KA;_dc_time=1784588818;cid=CAQS4gEAEQoqgWw-EQGbEYJweAAbE1avP7VO59O6czR3pqEaaSSvKjMjuAuQ1pAE2mfq5vtlWEXjeXL1NFxb8d7uek-ZhYSrjxVcziA9zYlq-F7g6ebDCdvJHeZb-g0lYwyeNd5z0ZusGhZxEUN82tltgv4Yr_m4D_88GWZy9lQu-5QuO60XMVtz0M_VKYEtxsec3vqrDoY6O8J0AYo7TmhXi3ppOzxBqVRaA0vxzOGXD_JiKvoyeDmhlZxJdc8oM0J22yuoCCxfDY978lN9WjepNfoUBeQ21tlfoPvbUhICneSDsV-P;eps=AHas8cAqPP8Wa7SikufY2j_BGJ1Cuj_1cmmeumKcmKNFhSu6PzRU04MD9Hwal8MJat8elZc4lErZgyoKzB3DCyiyEWXya1QvBwvVvhHSMdo0ofvJBw;dc_pre=CKqg8LSv4pUDFRrJoAYdSoULVg;src=857732;type=banco01h;cat=lpg_o0;ord=9162082709554.209",
+      "GET www.google.com/gmp/conversion/_dc_unique_id=735239682118622360;_dc_ptd=ChEI8I730gYQ5_u-uJSZ5_HLARIfADpQe-NHfrsy8Z7tF5QN643FDmCN3Z0wmnuhYOFvpA;_dc_time=1784588827;cid=CAQS4gEAEQoqgcKe1fI8Ub-Uj7Kd2YahkufXsJeBNp3i0ImlNiLZ7CBPUsBfaBhUr7_v0Uc_9wbeCr039lJvKJJNTBFksj6ZW1L2Vm2_GFKYvu4W__bjcG1tA2dGp0YpldrlDq8vbelDV3TtyTdF3xaOQcUBcKFw0mZ2T9SbZ_jwzXUHF6K9oezvt513uzSD5fQoK6o9-X1qmMsw22VoV1gZt2ie1IFORXoEUbUnAnvFs30-sdc-zGH8p12XOUedUTcbIoAlOuEJND9V_hU4DYLGXMwSu6bu4xTP8xaW-Ufgf4FW_aeL;eps=AHas8cBVS---piQjlM5UB74oyJ3uZHZkQViMe4byD-sMGjYeD-Qwrpda2cbGIf_rFmTM8bbz4KpFikSzrsj0BSo2NQs9C3SFcW1ju3v8Dl7618Kxiw;dc_pre=CNiU-riv4pUDFSYpHgAdEFYpmw;src=857732;type=banco01h;cat=lpg_o0;ord=499982787875.05066",
+      "POST www.google.com/g/collect"
+    ],
+    "www.officebanking.cl": [
+      "GET www.officebanking.cl/_bm/get_params",
+      "GET www.officebanking.cl/campna/CAMPANAS_OB/TC_GESTION_CLAVES/Dash.aspx",
+      "GET www.officebanking.cl/EOB/keepalive.asp",
+      "GET www.officebanking.cl/poc/eob/validar.asp",
+      "GET www.officebanking.cl/WhFUy3nKHQJn1kYy-sro4M60/t1Gk4XQ9VOt9Lm/Z1VmRmZ6JA/ZEV6T/X0lHhsB"
+    ],
+    "www.opinator.com": [
+      "GET www.opinator.com/api/file/scl_bluebg/",
+      "GET www.opinator.com/api/i18n/es/",
+      "GET www.opinator.com/external-api/api/v2/opis/context.json",
+      "GET www.opinator.com/external-api/api/v2/opis/saturation.json",
+      "GET www.opinator.com/opi/SCL_0034_OB_NPS_LOGIN_nuevoOB",
+      "GET www.opinator.com/resources/js/embed.main.min.js/"
+    ],
+    "log-7b4df495.santander.cl": [
+      "POST log-7b4df495.santander.cl/api/v1/sendLogs"
+    ],
+    "wup-7b4df495.santander.cl": [
+      "POST wup-7b4df495.santander.cl/client/v3.1/web/wup",
+      "POST wup-7b4df495.santander.cl/client/v3/web/wup"
+    ]
+  },
+  "bundles": [
+    "https://empresas.officebanking.cl/ruxitagentjs_ICA7NVfghqrux_10341260622154106.js",
+    "https://empresas.officebanking.cl/assets/js/OB_biocatch.js",
+    "https://empresas.officebanking.cl/chunk-BR5BLKGT.js",
+    "https://empresas.officebanking.cl/chunk-4QINXQ6I.js",
+    "https://empresas.officebanking.cl/chunk-6REFULHD.js",
+    "https://empresas.officebanking.cl/chunk-OQ6CFJTV.js",
+    "https://empresas.officebanking.cl/chunk-CKMECCOM.js",
+    "https://empresas.officebanking.cl/chunk-V4B65EBK.js",
+    "https://empresas.officebanking.cl/polyfills-EJ46DL77.js",
+    "https://empresas.officebanking.cl/main-U2QCBE2N.js",
+    "https://bcdn-7b4df495.santander.cl/scripts/7b4df495/7b4df495.js",
+    "https://empresas.officebanking.cl/chunk-UJ7YWI3H.js",
+    "https://empresas.officebanking.cl/chunk-TL3WV63N.js",
+    "https://tags.tiqcdn.com/utag/santander/ch-office-banking/prod/utag.js",
+    "https://ajax.googleapis.com/ajax/libs/jquery/3.3.1/jquery.min.js",
+    "https://tags.tiqcdn.com/utag/santander/ch-office-banking/prod/utag.4.js",
+    "https://tags.tiqcdn.com/utag/santander/ch-office-banking/prod/utag.5.js",
+    "https://1.a79ab95c1589a13f8a4cab612bc71f9f7.com/scripts/prod/crossdomain2.12.0.5273.b96c35cc.min.js",
+    "https://1.b406929acabac9b095f124c81bdfcf57f.com/scripts/prod/crossdomain2.12.0.5273.b96c35cc.min.js",
+    "https://1.c81358859121583b7adf2ace89cb39f44.com/scripts/prod/crossdomain2.12.0.5273.b96c35cc.min.js",
+    "https://wslogin.officebanking.cl/static/js/main.js",
+    "https://www.google.com/recaptcha/api.js",
+    "https://wslogin.officebanking.cl/static/js/RutHelper.js",
+    "https://www.gstatic.com/recaptcha/releases/A7KpaEASfhDcK0nXxgQEyyYv/recaptcha__es_419.js",
+    "https://api.officebanking.cl/ruxitagentjs_ICA7NVfghqrux_10341260622154106.js",
+    "https://privado.officebanking.cl/ruxitagentjs_ICA7NVfghqrux_10341260622154106.js",
+    "https://privado.officebanking.cl/runtime.109cb72aa91b5fd8.js",
+    "https://privado.officebanking.cl/polyfills.ebf424aa1d2192b3.js",
+    "https://privado.officebanking.cl/main.6c1562a4d73367d7.js",
+    "https://privado.officebanking.cl/scripts.d5b02297ccc1296c.js",
+    "https://privado.officebanking.cl/537.a3a89e0b1f972e02.js",
+    "https://privado.officebanking.cl/413.5d376f79119038c7.js",
+    "https://privado.officebanking.cl/489.db9f9d37ac72cd37.js",
+    "https://privado.officebanking.cl/common.3b5bb5ffa32950c8.js",
+    "https://privado.officebanking.cl/269.94c06c94c349b954.js",
+    "https://bcdn-god.we-stats.com/scripts/7b4df495/7b4df495.js",
+    "https://privado.officebanking.cl/328.c1de977f61eb4f82.js",
+    "https://privado.officebanking.cl/974.4ff41eea6960755c.js",
+    "https://privado.officebanking.cl/211.8e4c8ed6ffe86fd8.js",
+    "https://privado.officebanking.cl/323.deaf0f4e3b202826.js",
+    "https://privado.officebanking.cl/653.f5461b7a91e194f8.js",
+    "https://privado.officebanking.cl/811.e18dd2d42597fa51.js",
+    "https://www.officebanking.cl/campna/ruxitagentjs_ICA7NVfghqrux_10341260622154106.js",
+    "https://www.officebanking.cl/campna/CAMPANAS_OB/CLASES/Scripts/google_analytics.js",
+    "https://www.officebanking.cl/campna/CAMPANAS_OB/CLASES/Scripts/tealium_analytics.js",
+    "https://www.google-analytics.com/analytics.js",
+    "https://cdn.opinator.com/resources/lib/jquery/current/v3/jquery.min.js",
+    "https://cdn.opinator.com/resources/lib/jquery/current/jquery-migrate.min.js",
+    "https://cdn.opinator.com/resources/js/frontendno18minified.9.14.0.min.js",
+    "https://cdn.opinator.com/resources/lib/jquery/current/jquery-ui/jquery-ui.min.js",
+    "https://cdn.opinator.com/resources/lib/jquery/jquery.autogrow.min.js",
+    "https://cdn.opinator.com/resources/lib/jplayer/jquery.jplayer.min.js",
+    "https://cdn.opinator.com/resources/lib/typeahead/jquery.typeahead.min.js",
+    "https://cdn.opinator.com/resources/lib/jquery/jquery.validate.js",
+    "https://cdn.opinator.com/resources/lib/jquery/jquery.opiValidate.js",
+    "https://cdn.opinator.com/resources/lib/jquery/jquery.example.min.js",
+    "https://cdn.opinator.com/resources/lib/plupload/plupload.full.min.js",
+    "https://www.opinator.com/resources/js/multiplechoiceminified.9.14.0.min.js",
+    "https://www.opinator.com/resources/js/questionfreetextminified.9.14.0.min.js",
+    "https://www.opinator.com/resources/js/questionautocompleteminified.9.14.0.min.js",
+    "https://www.opinator.com/resources/js/closingblademinified.9.14.0.min.js",
+    "https://privado.officebanking.cl/912.90fffe07ca833ecf.js",
+    "https://eob.officebanking.cl/COPE.UI.Web/ruxitagentjs_ICA7NVfghqrux_10341260622154106.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/jquery-bundle.min.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/globalize-bundle.min.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/fwkV2.min.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/jquery-inputmask-bundle.min.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/ko-bundleV2.min.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/jquery.fileDownload.min.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/ko-components-bundle.min.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/ko-validation-bundle.min.js",
+    "https://eob.officebanking.cl/Static.UI.Web/js/jquery.tablesorter.js"
+  ]
+}

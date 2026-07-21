@@ -1,0 +1,62 @@
+<!doctype html><html lang="es"><head><meta charset="utf-8">
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { width:900px; background:#0b1220; color:#e6edf6; font-family:-apple-system,'Segoe UI',Roboto,sans-serif; padding:44px 48px; }
+  .brand { display:flex; align-items:center; gap:12px; margin-bottom:6px; }
+  .dot { width:14px; height:14px; border-radius:50%; background:#ec0000; box-shadow:0 0 16px #ec0000; }
+  h1 { font-size:34px; font-weight:800; letter-spacing:-.5px; }
+  .sub { color:#8aa0bd; font-size:16px; margin:6px 0 26px; }
+  .card { background:#131c2e; border:1px solid #223047; border-radius:16px; padding:20px 22px; margin-bottom:16px; }
+  .card h2 { font-size:15px; text-transform:uppercase; letter-spacing:1.5px; color:#5fb0ff; margin-bottom:14px; }
+  .row { display:flex; justify-content:space-between; padding:8px 0; border-bottom:1px solid #1c2740; font-size:17px; }
+  .row:last-child { border-bottom:0; }
+  .k { color:#9fb3cf; } .v { color:#e6edf6; font-weight:600; }
+  .ep { font-family:'SF Mono',Menlo,monospace; font-size:15px; padding:9px 0; border-bottom:1px solid #1c2740; }
+  .ep:last-child { border-bottom:0; }
+  .m { color:#26d07c; font-weight:700; } .path { color:#e6edf6; } .desc { color:#8aa0bd; font-size:14px; }
+  .pill { display:inline-block; background:#1a2942; color:#5fb0ff; font-size:13px; padding:3px 10px; border-radius:20px; margin-right:6px; }
+  .tok { font-family:monospace; font-size:13px; color:#f0b429; word-break:break-all; }
+  ol { padding-left:22px; } ol li { padding:5px 0; font-size:16px; color:#c8d6ea; }
+  .foot { color:#5a7architecture; }
+  .safe { color:#26d07c; }
+  .money { font-size:24px; font-weight:800; color:#26d07c; }
+</style></head>
+<body>
+  <div class="brand"><span class="dot"></span><h1>API Banco Santander — tek</h1></div>
+  <div class="sub">Solo lectura · ANA CLARA SPA · saldos y movimientos reales · re-login bajo demanda</div>
+
+  <div class="card">
+    <h2>Conexión</h2>
+    <div class="row"><span class="k">Base URL (Tailscale)</span><span class="v">http://100.91.97.70:7692</span></div>
+    <div class="row"><span class="k">Base URL (local)</span><span class="v">http://127.0.0.1:7692</span></div>
+    <div class="row"><span class="k">Auth</span><span class="v">header x-api-token &nbsp;·&nbsp; o ?token=</span></div>
+    <div class="row"><span class="k">Servicio</span><span class="v">com.nexus.tek-api (KeepAlive)</span></div>
+    <div class="row"><span class="k">Token</span><span class="tok">3ac6668cdb7613b9acdd3bdba7245e76e634fb3615316b44</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Endpoints</h2>
+    <div class="ep"><span class="m">GET</span> <span class="path">/health</span> &nbsp;<span class="pill">sin token</span><br><span class="desc">estado y frescura de la data</span></div>
+    <div class="ep"><span class="m">GET</span> <span class="path">/saldos</span><br><span class="desc">saldo por cuenta</span></div>
+    <div class="ep"><span class="m">GET</span> <span class="path">/movimientos?desde=2026-01-01&amp;hasta=&amp;cuenta=&amp;q=</span><br><span class="desc">movimientos filtrados por fecha / cuenta / texto</span></div>
+    <div class="ep"><span class="m">GET</span> <span class="path">/resumen?desde=&amp;hasta=</span><br><span class="desc">ingresos, egresos y neto del rango</span></div>
+    <div class="ep"><span class="m">POST</span> <span class="path">/refresh</span><br><span class="desc">fuerza actualización (login humano si la sesión venció)</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Saldos actuales (reales)</h2>
+    <div class="row"><span class="k">Cta Cte CLP · 000080280939</span><span class="money">$137.180.592</span></div>
+    <div class="row"><span class="k">Cta USD · 005102607637</span><span class="v">US$ 2.615,14</span></div>
+  </div>
+
+  <div class="card">
+    <h2>Anti-bloqueo · rápido y seguro</h2>
+    <ol>
+      <li>En reposo NO se re-loguea. Solo al pedir data vencida.</li>
+      <li>Reutiliza la sesión guardada mientras siga viva.</li>
+      <li>Cache 15 min: si es reciente, responde sin tocar el banco.</li>
+      <li>Todo el flujo imita a un humano (mouse real, tecleo natural).</li>
+      <li class="safe">Solo lectura — nunca transfiere ni firma nada.</li>
+    </ol>
+  </div>
+</body></html>

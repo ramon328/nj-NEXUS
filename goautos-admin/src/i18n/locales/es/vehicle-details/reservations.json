@@ -1,0 +1,131 @@
+{
+  "dialog": {
+    "titles": {
+      "customer": "Seleccionar Cliente",
+      "details": "Detalles de la Reserva",
+      "paymentsFor": "Reserva para {{brand}} {{model}}"
+    }
+  },
+  "form": {
+    "validityTitle": "Validez de la Reserva",
+    "selectedCustomerLabel": "Cliente seleccionado",
+    "noCustomerSelected": "Sin cliente seleccionado",
+    "vehicleLabel": "Vehículo",
+    "agreedPriceLabel": "Precio pactado en la reserva",
+    "validityDaysLabel": "Días de validez",
+    "validityDaysPlaceholder": "Ej: 3",
+    "expirationDateLabel": "Fecha de expiración",
+    "notesLabel": "Observaciones",
+    "notesPlaceholder": "Agregar observaciones o condiciones especiales...",
+    "createButton": "Crear Reserva",
+    "validation": {
+      "validityDaysMin": "La vigencia debe ser de al menos 1 día",
+      "agreedPriceMin": "El precio acordado debe ser mayor o igual a 0"
+    }
+  },
+  "customerSelection": {
+    "title": "Cliente",
+    "searchPlaceholder": "Buscar cliente por nombre o email",
+    "newCustomer": "Nuevo cliente",
+    "loading": "Cargando clientes...",
+    "empty": "No se encontraron clientes con ese criterio",
+    "noEmail": "Sin correo",
+    "noPhone": "Sin teléfono",
+    "rut": "RUT"
+  },
+  "payments": {
+    "tabs": {
+      "payments": "Abonos",
+      "additionals": "Adicionales"
+    },
+    "list": {
+      "paymentsTitle": "Abonos",
+      "additionalsTitle": "Adicionales"
+    },
+    "buttons": {
+      "addPayment": "Agregar Abono",
+      "addAdditional": "Agregar Adicional"
+    },
+    "empty": {
+      "title": "No hay abonos registrados para esta reserva.",
+      "subtitle": "Debe agregar al menos un abono para generar la reserva.",
+      "registerFirst": "Registrar primer abono"
+    },
+    "item": {
+      "defaultTitle": "Abono"
+    },
+    "form": {
+      "validation": {
+        "amountMin": "El monto debe ser mayor a cero",
+        "titleRequired": "El título es requerido"
+      },
+      "defaultTitle": "Abono de reserva",
+      "editTitle": "Editar Abono",
+      "createTitle": "Registrar Abono",
+      "amountLabel": "Monto del abono *",
+      "titleLabel": "Título",
+      "titlePlaceholder": "Ej: Abono inicial, Pago parcial, etc.",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Detalles adicionales sobre este abono...",
+      "updateButton": "Actualizar Abono",
+      "saveButton": "Guardar Abono"
+    },
+    "totalPayments": "Total Abonos:"
+  },
+  "additionals": {
+    "empty": {
+      "title": "No hay adicionales registrados",
+      "subtitle": "Los adicionales son costos extra que se suman al precio acordado"
+    },
+    "badge": "Adicional",
+    "total": "Total Adicionales:",
+    "form": {
+      "editTitle": "Editar Adicional",
+      "createTitle": "Agregar Adicional",
+      "titleLabel": "Concepto",
+      "titlePlaceholder": "Ej: Transferencia del vehículo",
+      "amountLabel": "Monto",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Descripción adicional (opcional)",
+      "updateButton": "Actualizar Adicional",
+      "createButton": "Agregar Adicional",
+      "validation": {
+        "titleRequired": "El título es requerido",
+        "amountMin": "El monto debe ser mayor a 0"
+      }
+    }
+  },
+  "details": {
+    "title": "Detalles de la Reserva",
+    "vehicleLabel": "Vehículo",
+    "reservationDate": "Fecha de reserva",
+    "expirationDate": "Fecha de expiración",
+    "totalPaid": "Monto total abonado",
+    "agreedPrice": "Precio pactado",
+    "agreedPricePlaceholder": "Ingresar precio pactado",
+    "agreedPriceNotSet": "Precio no pactado",
+    "statusLabel": "Estado",
+    "selectStatus": "Seleccionar estado",
+    "status": {
+      "active": "Activa",
+      "completed": "Completada",
+      "cancelled": "Cancelada",
+      "expired": "Vencida"
+    },
+    "notesLabel": "Observaciones",
+    "notesPlaceholder": "Agregar observaciones...",
+    "noNotes": "Sin observaciones"
+  },
+  "summary": {
+    "title": "Resumen Financiero",
+    "empty": {
+      "title": "No hay información financiera disponible",
+      "subtitle": "El resumen se mostrará una vez que se establezca el precio acordado"
+    },
+    "agreedPrice": "Precio Acordado:",
+    "totalPaid": "Total Abonado:",
+    "totalAdditionals": "Total Adicionales:",
+    "remaining": "Saldo Pendiente:",
+    "overpayment": "Saldo a Favor:"
+  }
+}

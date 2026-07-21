@@ -1,0 +1,59 @@
+EFECTOS DE SONIDO PARA REELS (public/audio/fx/)
+================================================
+
+Todos los efectos son 48kHz, MP3 (-q:a 4), cortos y libres de regalías:
+se generan sinteticamente con ffmpeg (ffmpeg-static), asi que NO dependen
+de ninguna descarga ni licencia propietaria.
+
+QUE ES CADA EFECTO
+------------------
+whoosh.mp3        (~0.5s) Barrido de aire brillante. Para transiciones rapidas,
+                          entradas/salidas de texto o cambios de escena.
+whoosh-suave.mp3  (~0.7s) Variante mas grave y lenta del whoosh. Transiciones
+                          suaves, movimientos de camara lentos.
+pop.mp3           (~0.12s) "Pop" agudo. Para que aparezca un sticker, un emoji o
+                          una palabra de golpe.
+ding.mp3          (~0.5s) Campanita con cola larga. Para destacar un dato, un
+                          precio o una notificacion positiva.
+riser.mp3         (~1s)   Tension que sube (ruido + tono ascendente). Se pone
+                          JUSTO ANTES de un golpe/drop o de una revelacion.
+impacto.mp3       (~0.4s) Golpe grave (sub-bass) con ataque. Combina genial
+                          despues del riser, o en cortes fuertes.
+shutter.mp3       (~0.2s) Dos clics de camara de fotos. Para "captura", fotos,
+                          before/after.
+tick.mp3          (~0.05s) Click seco muy corto. Para conteos, listas item por
+                          item o cambios rapidos frame a frame.
+
+COMO USARLOS EN EL MOTOR
+------------------------
+El campo de audio del plan de edicion (misma logica que public/musica) puede
+mezclar estos fx en momentos concretos del video. Se recomienda bajarles el
+volumen respecto a la voz/musica principal si se solapan.
+
+COMO AGREGAR MAS EFECTOS
+------------------------
+1) Resuelve el binario correcto (el ffmpeg de Homebrew NO trae drawtext, pero
+   para audio cualquiera sirve; para ser consistentes usa ffmpeg-static):
+     FF=$(node -e "process.stdout.write(require('ffmpeg-static'))")
+
+2) Genera el efecto con una fuente lavfi. Ejemplos utiles:
+   - Tono puro:        -f lavfi -i "sine=frequency=800:duration=0.3"
+   - Ruido:            -f lavfi -i "anoisesrc=d=0.5:c=pink:a=0.5"  (c: white|pink|brown|blue|violet)
+   - Silencio base:    -f lavfi -i "anullsrc=r=48000:cl=stereo"
+
+3) Filtros de audio mas usados (-af):
+   - highpass=f=200 / lowpass=f=5000   recorta graves/agudos
+   - afade=t=in:st=0:d=0.1             fundido de entrada
+   - afade=t=out:st=0.2:d=0.3          fundido de salida (st = inicio, d = dur)
+   - volume=1.5 o volume='0.1+1.5*t':eval=frame   volumen fijo o creciente
+
+4) Exporta SIEMPRE 48kHz, estereo, mp3 q4:
+     "$FF" -y -f lavfi -i "..." -af "..." -ar 48000 -ac 2 \
+       -c:a libmp3lame -q:a 4 nuevo-efecto.mp3
+
+5) Verifica que no quedo en silencio:
+     ffprobe -show_entries format=duration -of default=nk=1:nw=1 nuevo-efecto.mp3
+     ffmpeg -i nuevo-efecto.mp3 -af volumedetect -f null /dev/null 2>&1 | grep mean_volume
+   (mean_volume debe ser mayor a -50 dB)
+
+Nombra en espanol y con guiones: whoosh-metalico.mp3, glitch-corto.mp3, etc.

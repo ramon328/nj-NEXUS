@@ -1,0 +1,51 @@
+{
+  "form": {
+    "titleEdit": "Edit transaction",
+    "titleAdd": "Add transaction",
+    "fields": {
+      "title": {
+        "label": "Title",
+        "placeholder": "e.g., Engine repair"
+      },
+      "type": {
+        "label": "Type",
+        "placeholder": "Select a type",
+        "options": {
+          "expense": "Expense",
+          "income": "Income"
+        }
+      },
+      "category": {
+        "label": "Category",
+        "placeholder": "Select a category",
+        "search": "Search category...",
+        "noResults": "No results found."
+      },
+      "amount": {
+        "label": "Amount",
+        "placeholder": "0"
+      },
+      "description": {
+        "label": "Description",
+        "placeholder": "Details about this transaction"
+      },
+      "documents": {
+        "label": "Documents",
+        "attach": "Attach documents",
+        "hint": "You can attach invoices, receipts, or other related documents.",
+        "editingNotAvailable": "Editing documents is not available."
+      },
+      "assumedBy": {
+        "label": "Assumed by",
+        "placeholder": "Select who assumes the expense",
+        "options": {
+          "dealership": "Dealership",
+          "customer": "Customer",
+          "consignor": "Consignor"
+        },
+        "hint": "Indicates whether this expense is assumed by the dealership or the customer."
+      }
+    }
+  }
+}
+

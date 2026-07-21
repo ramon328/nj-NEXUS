@@ -1,0 +1,28 @@
+{
+  "welcome": {
+    "title": "Gestion de Ventas",
+    "description": "Aqui administras todas las ventas de tu automotora. Puedes aprobar, rechazar y revisar cada operacion.\n\nVeamos como funciona."
+  },
+  "header": {
+    "title": "Encabezado de Ventas",
+    "description": "Informacion general de la seccion. La descripcion cambia automaticamente segun la pestana que tengas activa."
+  },
+  "tabs": {
+    "title": "Pestanas por Estado",
+    "description": "Filtra tus ventas por estado:\n\nPendientes: Ventas que esperan tu aprobacion\nAprobadas: Ventas ya confirmadas\nRechazadas: Ventas que fueron rechazadas\nTodas: Vista completa de todas las ventas"
+  },
+  "table": {
+    "title": "Tabla de Ventas",
+    "description": "Detalle de cada venta: fecha, vehiculo, cliente, precio, vendedor, comision y estado.\n\nDesde las ventas pendientes puedes aprobar o rechazar, ajustar comisiones y agregar observaciones.\n\nLas ventas aprobadas se reflejan automaticamente en tus reportes financieros."
+  },
+  "finish": {
+    "title": "Listo!",
+    "description": "Ya conoces la gestion de ventas. Recuerda revisar las ventas pendientes regularmente para mantener tu operacion al dia."
+  },
+  "buttons": {
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "done": "Finalizar",
+    "skip": "Saltar"
+  }
+}

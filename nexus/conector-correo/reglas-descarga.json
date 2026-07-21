@@ -1,0 +1,13 @@
+{
+  "_instrucciones": "Cada regla define qué correo es 'específico'. Criterios opcionales (los que pongas, deben cumplirse TODOS): 'remitente' (texto contenido en el de), 'asunto_contiene', 'empresa', 'solo_importantes'. Debe haber al menos un criterio. Pon 'activa': true para encenderla. El contenido se guarda como nota en el cerebro (90-Agente/Correos).",
+  "reglas": [
+    {
+      "nombre": "EJEMPLO — facturas de un proveedor",
+      "activa": false,
+      "remitente": "facturacion@proveedor.cl",
+      "asunto_contiene": "factura",
+      "empresa": null,
+      "solo_importantes": false
+    }
+  ]
+}

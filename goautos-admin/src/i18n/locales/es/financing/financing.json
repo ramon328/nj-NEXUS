@@ -1,0 +1,129 @@
+{
+  "page": {
+    "title": "Crédito Directo",
+    "subtitle": "Gestiona los financiamientos directos de tu automotora",
+    "newFinancing": "Nuevo Financiamiento"
+  },
+  "toasts": {
+    "loadVehiclesError": "No se pudo cargar la lista de vehículos",
+    "loadFinancingError": "No se pudo cargar la lista de financiamientos",
+    "added": "Financiamiento agregado correctamente"
+  },
+  "list": {
+    "empty": "No hay financiamientos registrados.",
+    "headers": {
+      "customer": "Cliente",
+      "vehicle": "Vehículo",
+      "downPayment": "Pie",
+      "installment": "Cuota",
+      "status": "Estado",
+      "nextPayment": "Próximo Pago",
+      "progress": "Progreso"
+    },
+    "labels": {
+      "customerUnavailable": "Cliente no disponible",
+      "vehicleUnavailable": "Vehículo no disponible"
+    },
+    "buttons": {
+      "viewDetail": "Ver Detalle"
+    }
+  },
+  "status": {
+    "completed": "Completado",
+    "late": "Con atraso",
+    "inProgress": "En progreso",
+    "pending": "Pendiente"
+  },
+  "nextPayment": {
+    "none": "No hay pagos programados",
+    "completed": "Todos los pagos completados"
+  },
+  "form": {
+    "titleNew": "Nuevo Financiamiento",
+    "titleEdit": "Editar Financiamiento",
+    "descNew": "Complete la información para registrar un nuevo financiamiento directo",
+    "descEdit": "Complete la información para actualizar el financiamiento directo",
+    "save": "Guardar Financiamiento",
+    "noPlate": "Sin placa",
+    "noRut": "Sin RUT",
+    "labels": {
+      "vehicle": "Vehículo",
+      "customer": "Cliente",
+      "downPayment": "Pie (CLP)",
+      "monthlyInstallment": "Cuota Mensual (CLP)",
+      "paymentDay": "Día de Pago",
+      "totalInstallments": "Total de Cuotas",
+      "startDate": "Fecha de Inicio",
+      "notes": "Notas"
+    },
+    "placeholders": {
+      "selectVehicle": "Seleccione un vehículo",
+      "selectCustomer": "Seleccione un cliente",
+      "downPayment": "Ej: 1000000",
+      "monthlyInstallment": "Ej: 150000",
+      "paymentDay": "Seleccione el día de pago",
+      "totalInstallments": "Ej: 36",
+      "selectDate": "Seleccione una fecha",
+      "notes": "Información adicional sobre este financiamiento"
+    },
+    "descriptions": {
+      "paymentDay": "El día del mes en que se vencen las cuotas",
+      "totalInstallments": "Número total de pagos mensuales",
+      "startDate": "Fecha desde la cual comienza el financiamiento"
+    }
+  },
+  "detail": {
+    "title": "Información del Cliente y Vehículo",
+    "financingDetailsTitle": "Detalles del Financiamiento",
+    "labels": {
+      "customer": "Cliente",
+      "rut": "RUT",
+      "vehicle": "Vehículo",
+      "licensePlate": "Patente"
+    },
+    "paymentForm": {
+      "labels": {
+        "installmentNumber": "Número de Cuota",
+        "amount": "Monto",
+        "interest": "Interés por Mora (si aplica)",
+        "paymentDate": "Fecha de Pago",
+        "notes": "Notas (Opcional)"
+      },
+      "placeholders": {
+        "installmentNumber": "Ej: 1",
+        "amount": "Ej: 150000",
+        "interest": "Ej: 5000",
+        "notes": "Observaciones adicionales"
+      },
+      "toasts": {
+        "noPaymentSelected": "No se seleccionó un pago para actualizar",
+        "saved": "El pago ha sido registrado correctamente",
+        "saveError": "No se pudo registrar el pago"
+      }
+    },
+    "paymentSchedule": {
+      "title": "Calendario de Pagos",
+      "headers": {
+        "installment": "N° Cuota",
+        "dueDate": "Fecha Vencimiento",
+        "amount": "Monto",
+        "status": "Estado",
+        "paymentDate": "Fecha de Pago",
+        "interest": "Interés",
+        "notes": "Notas",
+        "actions": "Acciones"
+      },
+      "buttons": {
+        "markPaid": "Marcar Pagado"
+      },
+      "status": {
+        "paid": "Pagado",
+        "late": "Atrasado",
+        "pending": "Pendiente"
+      },
+      "empty": "No hay pagos registrados",
+      "totalAmount": "Monto Total",
+      "remainingBalance": "Saldo Pendiente"
+    }
+  }
+}

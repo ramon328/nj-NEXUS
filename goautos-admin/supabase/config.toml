@@ -1,0 +1,66 @@
+
+project_id = "miuiujntdjrjhhcysiba"
+
+[functions.instagram-auth]
+verify_jwt = false
+
+[functions.instagram-posts]
+verify_jwt = true
+
+[functions.create-instagram-post]
+verify_jwt = false
+
+[functions.refresh-instagram-token]
+verify_jwt = true
+
+[functions.send-push-notification]
+verify_jwt = true
+
+[functions.chileautos-auth]
+verify_jwt = false
+
+[functions.chileautos-sync]
+verify_jwt = false
+
+[functions.chileautos-lead-webhook]
+verify_jwt = false
+
+[functions.vercel-domain]
+verify_jwt = true
+
+[functions.process-scheduled-instagram]
+verify_jwt = false
+
+[functions.inventory-api]
+verify_jwt = false
+
+# Webhook de MercadoPago (suscripciones): MP NO manda JWT de Supabase, así que el
+# gateway NO debe exigirlo. La autenticidad la da la firma x-signature (hoy log-only).
+# CRÍTICO: sin esta entrada el deploy usa verify_jwt=true por default y MP recibe 401.
+[functions.mp-webhook-subscription]
+verify_jwt = false
+
+# Tablero de conciliación: valida superadmin DENTRO de la función (getUser + rol).
+# verify_jwt=true es defensa en profundidad; el anon key igual pasa el gateway, por
+# eso la verificación real vive en el código.
+[functions.superadmin-reconciliation]
+verify_jwt = true
+
+# Cancelar suscripción: valida usuario + rol DENTRO de la función (getUser).
+[functions.mp-cancel-subscription]
+verify_jwt = true
+
+# send-email: el control de acceso vive EN la función (x-internal-secret o usuario
+# autenticado con rol). verify_jwt=false para que los callers server-to-server con
+# el secreto interno puedan llegar sin un JWT de usuario.
+[functions.send-email]
+verify_jwt = false
+
+# slack-notification: gate por x-internal-secret / service-role DENTRO de la función.
+[functions.slack-notification]
+verify_jwt = false
+
+# Reconciliación de suscripciones: server-to-server (cron pg_net). La función
+# exige Bearer == service_role_key DENTRO del código; el cron lo lee de Vault.
+[functions.reconcile-subscriptions]
+verify_jwt = false

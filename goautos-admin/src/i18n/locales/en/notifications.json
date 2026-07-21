@@ -1,0 +1,43 @@
+{
+  "page": {
+    "title": "Notifications",
+    "unreadCount": "{{count}} unread",
+    "allRead": "All notifications read"
+  },
+  "actions": {
+    "markAllRead": "Mark all as read",
+    "send": "Send notification"
+  },
+  "filters": {
+    "all": "All",
+    "leads": "Leads",
+    "requests": "Requests",
+    "fastSales": "Fast sales",
+    "sales": "Sales",
+    "general": "General",
+    "unreadOnly": "Unread only",
+    "readAll": "All"
+  },
+  "types": {
+    "vehicleRequest": "Vehicle request",
+    "fastSale": "Fast sale",
+    "saleCompleted": "Sale completed",
+    "newLead": "New lead",
+    "leadAssigned": "Lead assigned",
+    "general": "General"
+  },
+  "time": {
+    "now": "Now",
+    "minutesAgo": "{{count}}m ago",
+    "hoursAgo": "{{count}}h ago",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}} days ago",
+    "older": "Older"
+  },
+  "empty": {
+    "title": "No notifications",
+    "filtered": "Try adjusting the filters",
+    "default": "We'll notify you when there's something important"
+  }
+}

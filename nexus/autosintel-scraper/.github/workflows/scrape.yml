@@ -1,0 +1,55 @@
+name: Scrape autos
+
+# Corre el scraper en cron + manualmente. Escribe directo a Supabase.
+on:
+  schedule:
+    # Cron en UTC. Chile = UTC-4 (invierno) / UTC-3 (verano DST).
+    # Objetivo ~9:00 y ~21:00 hora Chile (calculado sobre UTC-4).
+    - cron: '0 13 * * *'   # ~09:00 Chile
+    - cron: '0 1 * * *'    # ~21:00 Chile (día anterior en UTC)
+  workflow_dispatch:        # botón "Run workflow" para correr manualmente
+    inputs:
+      source:
+        description: 'Sitio específico (chileautos | mercadolibre | yapo). Vacío = todos.'
+        required: false
+        default: ''
+      max_pages:
+        description: 'Límite de páginas por marca (debug). Vacío = sin límite.'
+        required: false
+        default: ''
+
+# Evita que dos corridas se pisen
+concurrency:
+  group: scrape
+  cancel-in-progress: false
+
+jobs:
+  scrape:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Install Playwright Chromium (para el adapter de Yapo)
+        run: python -m playwright install --with-deps chromium
+
+      - name: Run scraper
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+        run: |
+          ARGS=""
+          if [ -n "${{ github.event.inputs.source }}" ]; then ARGS="$ARGS --source ${{ github.event.inputs.source }}"; fi
+          if [ -n "${{ github.event.inputs.max_pages }}" ]; then ARGS="$ARGS --max-pages ${{ github.event.inputs.max_pages }}"; fi
+          echo "Ejecutando: python -m scraper.main $ARGS"
+          python -m scraper.main $ARGS

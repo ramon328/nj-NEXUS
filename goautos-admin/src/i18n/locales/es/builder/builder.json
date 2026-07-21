@@ -1,0 +1,66 @@
+{
+  "topbar": {
+    "title": "Website Builder",
+    "save": "Guardar",
+    "saving": "Guardando...",
+    "actions": "Acciones"
+  },
+  "devices": {
+    "desktop": "Escritorio",
+    "tablet": "Tablet",
+    "mobile": "Móvil"
+  },
+  "messages": {
+    "saveSuccess": "¡Estado del constructor guardado exitosamente!",
+    "loadSuccess": "¡Estado del constructor cargado exitosamente!",
+    "resetSuccess": "¡Builder reiniciado con valores personalizados!",
+    "websiteEnabled": "¡Sitio web activado exitosamente!",
+    "websiteDisabled": "¡Sitio web desactivado exitosamente!",
+    "colorSchemeChanged": "Tema de la barra de navegación cambiado exitosamente!",
+    "noClient": "Error: No hay cliente seleccionado",
+    "noStateSaved": "No se encontró un estado guardado",
+    "copiedToClipboard": "¡Estado copiado al portapapeles!",
+    "linkCopied": "Link copiado"
+  },
+  "popover": {
+    "pageStatus": {
+      "title": "Estado de la página",
+      "active": "Activa",
+      "inactive": "Inactiva"
+    },
+    "pageTheme": {
+      "title": "Tema de la página",
+      "light": "Claro",
+      "dark": "Oscuro"
+    },
+    "copyLink": {
+      "title": "Copiar link",
+      "button": "Copiar link de la página"
+    },
+    "actions": {
+      "resetFromScratch": "Partir de 0",
+      "discardChanges": "Descartar cambios"
+    }
+  },
+  "dialogs": {
+    "reset": {
+      "title": "Partir de 0",
+      "description": "¿Estás seguro de que deseas reiniciar el builder con los componentes por defecto? Esta acción eliminará todos los cambios actuales.",
+      "cancel": "Cancelar",
+      "confirm": "Reiniciar"
+    },
+    "discard": {
+      "title": "Descartar Cambios",
+      "description": "¿Estás seguro de que deseas descartar todos los cambios actuales y volver al último estado guardado?",
+      "cancel": "Cancelar",
+      "confirm": "Descartar Cambios"
+    },
+    "load": {
+      "title": "Cargar Estado Guardado",
+      "description": "Pega aquí el estado comprimido que fue exportado previamente",
+      "placeholder": "Pega el estado guardado aquí...",
+      "cancel": "Cancelar",
+      "confirm": "Cargar"
+    }
+  }
+}

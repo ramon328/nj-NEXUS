@@ -1,0 +1,28 @@
+{
+  "welcome": {
+    "title": "Customer Management",
+    "description": "This is where you manage your customer database. You can create, edit, search, and export customer information."
+  },
+  "header": {
+    "title": "Customer Actions",
+    "description": "From here you can:\n\nCreate individual customers\nBulk import customers from Excel\n\nAdministrators have access to all options."
+  },
+  "search": {
+    "title": "Quick Search",
+    "description": "Search customers by name, email, or tax ID.\n\nResults filter in real-time as you type."
+  },
+  "table": {
+    "title": "Customers Table",
+    "description": "Complete list of your customers with name, contact info, tax ID, address, and registration date.\n\nClick the edit button to update a customer's information."
+  },
+  "finish": {
+    "title": "All Set!",
+    "description": "You now know the customer management tools. Keeping your database up to date will help you better manage your sales and leads."
+  },
+  "buttons": {
+    "next": "Next",
+    "previous": "Previous",
+    "done": "Finish",
+    "skip": "Skip"
+  }
+}

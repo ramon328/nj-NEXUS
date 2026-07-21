@@ -1,0 +1,33 @@
+BIBLIOTECA DE STICKERS (public/stickers)
+
+Aquí van los stickers que la IA puede superponer sobre los videos editados.
+Formato aceptado: .png CON TRANSPARENCIA (fondo transparente; ideal 512x512).
+La IA elige cada sticker SOLO por el nombre del archivo, así que usa nombres
+descriptivos en español: ej. "trofeo.png" o "manos-arriba.png", nunca "img_512.png".
+Para agregar más, simplemente suelta el .png en esta carpeta: se detecta solo.
+
+Los 134 stickers incluidos se dividen en tres categorías:
+
+1) EMOJIS (40) — sin sufijo de color. Emojis renderizados a PNG, libres para
+   uso comercial. Ej.: fuego.png, corazon.png, risa.png, fiesta.png, cohete.png,
+   dinero.png, corona.png, confeti.png.
+
+2) ÍCONOS (70) — íconos profesionales de Bootstrap Icons (licencia MIT), en dos
+   variantes de color con sufijo -blanco o -amarillo.
+   Patrón de nombre: nombre-color.png.
+   Ej.: flecha-derecha-amarillo.png, megafono-blanco.png, whatsapp-blanco.png,
+   instagram-amarillo.png, verificado-blanco.png, descuento-amarillo.png,
+   play-blanco.png, check-amarillo.png, carrito-blanco.png, campana-amarillo.png.
+   Nota: los íconos que comparten nombre con un emoji llevan el sufijo "-icono"
+   para distinguirse (ej. fuego-icono-blanco.png vs. el emoji fuego.png).
+
+3) FORMAS (24) — formas planas pensadas como fondo de textos o acentos visuales,
+   en cuatro colores con sufijo -rosa, -celeste, -amarillo o -blanco.
+   Formas disponibles: circulo, cuadrado, triangulo, hexagono, globo-dialogo y
+   cinta-marcador. Ej.: circulo-rosa.png, cuadrado-celeste.png,
+   triangulo-blanco.png, hexagono-amarillo.png, globo-dialogo-celeste.png,
+   cinta-marcador-amarillo.png.
+
+TIP CANVA: para elementos 100% estilo Canva, exporta desde Canva tus propios
+elementos como PNG con fondo transparente y suéltalos en esta carpeta (solo los
+que tu licencia de Canva te permita usar de esa forma).

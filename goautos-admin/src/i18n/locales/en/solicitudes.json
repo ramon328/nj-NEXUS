@@ -1,0 +1,91 @@
+{
+  "page": {
+    "title": "Vehicle Requests",
+    "subtitle": "Manage customer requests for specific vehicles"
+  },
+  "columns": {
+    "open": "Open",
+    "in_progress": "In Progress",
+    "fulfilled": "Fulfilled",
+    "cancelled": "Cancelled"
+  },
+  "status": {
+    "open": "Open",
+    "in_progress": "In Progress",
+    "fulfilled": "Fulfilled",
+    "expired": "Expired",
+    "cancelled": "Cancelled"
+  },
+  "card": {
+    "vehicleNotSpecified": "Vehicle not specified",
+    "noRequests": "No requests"
+  },
+  "time": {
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "daysAgo": "{{count}}d ago"
+  },
+  "budget": {
+    "from": "From {{amount}}",
+    "upTo": "Up to {{amount}}"
+  },
+  "detail": {
+    "title": "Request detail",
+    "customer": "Customer",
+    "vehicleWanted": "Vehicle wanted",
+    "year": "Year: {{range}}",
+    "notes": "Notes",
+    "dates": "Dates",
+    "created": "Created: {{date}}",
+    "expires": "Expires: {{date}}",
+    "takeRequest": "Take request",
+    "markFulfilled": "Mark as fulfilled",
+    "cancelRequest": "Cancel request",
+    "assignedTo": "Assigned to"
+  },
+  "create": {
+    "title": "New vehicle request",
+    "customerData": "Customer info",
+    "customerName": "Customer name *",
+    "customerNamePlaceholder": "Full name",
+    "phone": "Phone",
+    "phonePlaceholder": "+1 234 567 8900",
+    "email": "Email",
+    "emailPlaceholder": "email@example.com",
+    "vehicleWanted": "Vehicle wanted",
+    "brand": "Brand",
+    "brandPlaceholder": "E.g.: Toyota",
+    "model": "Model",
+    "modelPlaceholder": "E.g.: Corolla",
+    "yearFrom": "Year from",
+    "yearTo": "Year to",
+    "budgetMin": "Min. budget",
+    "budgetMax": "Max. budget",
+    "notes": "Additional notes",
+    "notesPlaceholder": "E.g.: Customer looking for red SUV, max 50,000 miles...",
+    "cancel": "Cancel",
+    "submit": "Create request",
+    "submitting": "Creating...",
+    "success": "Request created",
+    "successDescription": "Sellers have been notified",
+    "errorRequired": "Customer name is required"
+  },
+  "buttons": {
+    "newRequest": "New request",
+    "new": "New"
+  },
+  "statusChange": {
+    "title": "Change status",
+    "description": "Confirm the status change for this request",
+    "noteLabel": "Process note (optional)",
+    "notePlaceholder": "E.g.: Contacted customer, interested in seeing options...",
+    "cancelWarning": "This action will cancel the request. It cannot be easily reversed.",
+    "cancel": "Cancel",
+    "confirm": "Confirm"
+  },
+  "history": {
+    "title": "Change history",
+    "entry": "{{from}} → {{to}}",
+    "noNote": "No note"
+  }
+}

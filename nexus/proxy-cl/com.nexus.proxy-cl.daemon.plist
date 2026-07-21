@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.nexus.proxy-cl</string>
+    <key>UserName</key><string>AIagenteia</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/usr/local/bin/node</string>
+        <string>/Users/AIagenteia/nexus/proxy-cl/proxy.mjs</string>
+    </array>
+    <key>WorkingDirectory</key><string>/Users/AIagenteia/nexus/proxy-cl</string>
+    <key>EnvironmentVariables</key>
+    <dict>
+        <key>PATH</key><string>/usr/local/bin:/usr/bin:/bin</string>
+        <key>HOME</key><string>/Users/AIagenteia</string>
+    </dict>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><true/>
+    <key>StandardOutPath</key><string>/tmp/nexus-proxy-cl.log</string>
+    <key>StandardErrorPath</key><string>/tmp/nexus-proxy-cl.log</string>
+</dict>
+</plist>

@@ -1,0 +1,45 @@
+{
+  "_ayuda": "Edita este archivo para agregar/quitar enlaces del Hub. Cambios se ven al recargar el Hub (no requiere reiniciar). Cada enlace: { nombre, url, nota? }. Pon 'pendiente': true para mostrarlo en gris hasta que tengas la URL.",
+  "grupos": [
+    {
+      "id": "sii",
+      "titulo": "🧾 SII — Servicio de Impuestos Internos",
+      "enlaces": [
+        { "nombre": "Mi SII", "url": "https://misiir.sii.cl/cgi_misii/siihome.cgi", "nota": "Portal personal / empresa" },
+        { "nombre": "Inicio SII", "url": "https://www.sii.cl" },
+        { "nombre": "Login clave tributaria", "url": "https://zeusr.sii.cl/AUT2000/InicioAutenticacion/IngresoRutClave.html" },
+        { "nombre": "Factura electrónica (RCV)", "url": "https://www4.sii.cl/consdcvinternetui/", "nota": "Registro de Compras y Ventas" },
+        { "nombre": "Emisión DTE (MIPYME)", "url": "https://www4.sii.cl/dtepymeui/" },
+        { "nombre": "F29 — IVA mensual", "url": "https://www4.sii.cl/propuestaf29ui/" },
+        { "nombre": "F22 — Renta anual", "url": "https://www4.sii.cl/declaracionesrentaui/" },
+        { "nombre": "Boleta de honorarios", "url": "https://www.sii.cl/servicios_online/1040-.html" },
+        { "nombre": "Boleta de ventas/servicios", "url": "https://www.sii.cl/servicios_online/1039-.html" },
+        { "nombre": "Situación tributaria de terceros", "url": "https://zeus.sii.cl/cvc_cgi/stc/getstc" },
+        { "nombre": "Verificar DTE recibido", "url": "https://www4.sii.cl/consultadterecibidosui/" }
+      ]
+    },
+    {
+      "id": "internos",
+      "titulo": "🏢 Servicios internos (IMPOMIN · HN)",
+      "enlaces": [
+        { "nombre": "Aliace — Admin", "url": "https://admin.aliace.cl/login", "nota": "Login con ramon@dropout.cl · credenciales en ~/nexus/.env (ALIACE_*)" },
+        { "nombre": "App Comisiones", "url": "http://127.0.0.1:3001" },
+        { "nombre": "Conector SII", "url": "http://127.0.0.1:8080" },
+        { "nombre": "Banco / portal pagos (ejemplo)", "url": "https://", "pendiente": true, "nota": "Reemplaza con tu URL real" },
+        { "nombre": "Portal proveedores (ejemplo)", "url": "https://", "pendiente": true, "nota": "Reemplaza con tu URL real" },
+        { "nombre": "Sistema interno IMPOMIN (ejemplo)", "url": "https://", "pendiente": true },
+        { "nombre": "Sistema interno HN (ejemplo)", "url": "https://", "pendiente": true }
+      ]
+    },
+    {
+      "id": "conocimiento",
+      "titulo": "🧠 Conocimiento empresarial (Segundo Cerebro)",
+      "enlaces": [
+        { "nombre": "Abrir bóveda en Obsidian", "url": "obsidian://open?vault=cerebro", "nota": "Requiere haber abierto ~/nexus/cerebro como bóveda llamada 'cerebro'" },
+        { "nombre": "Índice SII (nota)", "url": "obsidian://open?vault=cerebro&file=20-SII%2FSII%20%E2%80%94%20%C3%8Dndice" },
+        { "nombre": "Ficha IMPOMIN", "url": "obsidian://open?vault=cerebro&file=10-Empresas%2FIMPOMIN%2FIMPOMIN%20%E2%80%94%20Ficha" },
+        { "nombre": "Ficha HN", "url": "obsidian://open?vault=cerebro&file=10-Empresas%2FHN%2FHN%20%E2%80%94%20Ficha" }
+      ]
+    }
+  ]
+}

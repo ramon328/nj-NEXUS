@@ -1,0 +1,19 @@
+requests>=2.31
+# urllib3<2 evita el warning de LibreSSL en el Python del sistema macOS.
+urllib3<2
+python-dotenv>=1.0
+# Generación de PDF (planillas, carpeta, ficha, libros, etc.)
+reportlab>=4.0
+# Navegador headless para la carpeta oficial / F29 / F22 (OAuth + cola del SII).
+# Tras instalar: playwright install chromium
+playwright>=1.40
+# Supabase (empresas en Postgres cuando SUPABASE_URL está configurado)
+supabase>=2.4
+# Cifrado de la clave tributaria guardada (Fernet/AES) — ENCRYPTION_KEY
+cryptography>=42.0
+# Base de zonas horarias (zoneinfo) — el contenedor slim no la trae; se usa para
+# convertir la expiración de sesión (hora de Chile) correctamente en UTC.
+tzdata>=2024.1
+# API web (front local)
+fastapi>=0.110
+uvicorn[standard]>=0.29

@@ -1,0 +1,72 @@
+{
+  "title": "Movimientos",
+  "filters": {
+    "label": "Filtrar por:",
+    "all": "Todos",
+    "income": "Ingresos",
+    "expenses": "Gastos"
+  },
+  "mobileDetails": {
+    "ariaClose": "Cerrar detalles",
+    "title": "Detalles movimiento",
+    "labels": {
+      "name": "Nombre",
+      "description": "Descripción",
+      "number": "Movimiento Nº",
+      "type": "Tipo",
+      "date": "Fecha",
+      "time": "Hora",
+      "document": "Documento",
+      "amount": "Monto"
+    },
+    "document": {
+      "viewTitle": "Ver documento",
+      "viewLink": "Ver documento",
+      "none": "Sin documento"
+    },
+    "types": {
+      "income": "Ingreso",
+      "sale": "Ingreso",
+      "expense": "Gasto",
+      "acquisition": "Adquisición",
+      "document": "Documento"
+    }
+  },
+  "sheet": {
+    "title": {
+      "editIncome": "Editar Ingreso",
+      "editExpense": "Editar Gasto",
+      "edit": "Editar Movimiento",
+      "add": "Añadir Movimiento"
+    },
+    "buttons": {
+      "cancel": "Cancelar",
+      "update": "Actualizar",
+      "save": "Guardar"
+    }
+  },
+  "confirmDelete": {
+    "title": "¿Eliminar evento?",
+    "message": "¿Estás seguro que deseas eliminar este evento? Esta acción no se puede deshacer.",
+    "cancel": "Cancelar",
+    "delete": "Eliminar"
+  },
+  "toasts": {
+    "deleted": "Evento eliminado correctamente",
+    "updated": "Evento actualizado correctamente",
+    "updateError": "Error al actualizar el evento"
+  },
+  "summary": {
+    "totalProfit": "Utilidad Total",
+    "expenses": "Gastos",
+    "income": "Ingresos"
+  },
+  "empty": "No hay movimientos registrados",
+  "event": {
+    "viewDetails": "Ver detalles",
+    "editEvent": "Editar evento",
+    "deleteEvent": "Eliminar evento",
+    "statusChange": "Cambio de Estado",
+    "document": "Documento"
+  }
+}

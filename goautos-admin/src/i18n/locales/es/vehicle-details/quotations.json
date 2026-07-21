@@ -1,0 +1,35 @@
+{
+  "form": {
+    "generateButton": "Generar Cotización",
+    "generating": "Generando...",
+    "validation": {
+      "priceRequired": "El precio es requerido",
+      "validityRequired": "La validez es requerida"
+    }
+  },
+  "customerSelection": {
+    "title": "Cliente",
+    "placeholder": "Selecciona un cliente",
+    "loading": "Cargando clientes...",
+    "empty": "No hay clientes disponibles",
+    "newCustomer": "Nuevo Cliente",
+    "dialogTitle": "Crear Nuevo Cliente"
+  },
+  "priceValidity": {
+    "estimatedPriceLabel": "Precio Cotizado",
+    "estimatedPricePlaceholder": "Ej: 15000000",
+    "validityLabel": "Validez (días)",
+    "validityPlaceholder": "Ej: 30"
+  },
+  "notes": {
+    "label": "Notas Adicionales",
+    "placeholder": "Ingresa notas adicionales sobre la cotización"
+  },
+  "toasts": {
+    "successTitle": "Cotización generada",
+    "successDescription": "La cotización se ha creado exitosamente",
+    "errorTitle": "Error",
+    "errorDescription": "No se pudo generar la cotización. Inténtalo de nuevo."
+  }
+}
+

@@ -1,0 +1,45 @@
+name: CI
+
+# Guardas para que no se vuelvan a colar errores (sobre todo de contabilidad):
+#  - build: el bundle de producción tiene que compilar.
+#  - test:margin: el invariante del margen (Σ por-auto == total dashboard) debe
+#    cumplirse — evita que un cambio futuro vuelva a desincronizar los números.
+#  - typecheck: NO bloquea por los errores preexistentes (baseline), pero SÍ
+#    bloquea si aparece uno NUEVO (ej. un import faltante / columna mal tipada).
+on:
+  pull_request:
+    branches: [main, production]
+  push:
+    branches: [main, production]
+
+jobs:
+  build-and-check:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install deps
+        run: npm ci
+
+      - name: Build (producción debe compilar)
+        run: npm run build
+
+      - name: Invariante de contabilidad (Σ por-auto == total)
+        run: npm run test:margin
+
+      - name: Typecheck — sin errores NUEVOS más allá del baseline
+        run: |
+          BASELINE=158
+          COUNT=$(npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep -cE "error TS" || true)
+          echo "Errores de tipo: $COUNT (baseline permitido: $BASELINE)"
+          if [ "$COUNT" -gt "$BASELINE" ]; then
+            echo "::error::Hay $COUNT errores de tipo (>$BASELINE baseline). Apareció al menos uno NUEVO — revisalo antes de mergear."
+            npx tsc --noEmit -p tsconfig.app.json 2>&1 | grep -E "error TS" | tail -50
+            exit 1
+          fi
+          echo "OK: sin errores de tipo nuevos."

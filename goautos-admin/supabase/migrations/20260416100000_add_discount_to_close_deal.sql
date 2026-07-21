@@ -1,0 +1,2 @@
+ALTER TABLE vehicles_close_deal
+  ADD COLUMN IF NOT EXISTS discount INTEGER NOT NULL DEFAULT 0;

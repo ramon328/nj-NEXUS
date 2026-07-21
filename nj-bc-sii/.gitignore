@@ -1,0 +1,23 @@
+# ⚠️ NUNCA subir credenciales ni datos descargados
+.env
+*.pfx
+*.p12
+
+# Datos extraídos del SII
+data/
+*.csv
+*.xml
+*.pdf
+*.json
+!supabase_schema.json
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+.cache/
+sii_session.json
+
+# Base de datos local de la app web (empresas + claves)
+app.db

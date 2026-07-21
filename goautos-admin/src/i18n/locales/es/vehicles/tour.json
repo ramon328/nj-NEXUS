@@ -1,0 +1,44 @@
+{
+  "welcome": {
+    "title": "Gestion de Vehiculos",
+    "description": "Aqui administras todo tu inventario. Veamos las herramientas disponibles para que le saques el maximo provecho."
+  },
+  "statusCards": {
+    "title": "Tarjetas de Estado",
+    "description": "Vista rapida de cuantos vehiculos tienes en cada estado (disponible, en preparacion, reservado, etc.).\n\nHaz clic en cualquier tarjeta para filtrar la lista y ver solo los vehiculos en ese estado."
+  },
+  "addVehicle": {
+    "title": "Agregar Vehiculo",
+    "description": "Agrega un nuevo vehiculo a tu inventario. El formulario te guiara paso a paso para ingresar todos los datos, fotos y documentos."
+  },
+  "viewToggle": {
+    "title": "Vista Tabla / Tablero",
+    "description": "Cambia entre dos formas de ver tu inventario:\n\nTabla: Lista detallada con columnas personalizables, ideal para buscar y comparar\n\nTablero Kanban: Arrastra vehiculos entre estados, ideal para gestionar flujos de trabajo"
+  },
+  "exportExcel": {
+    "title": "Exportar a Excel",
+    "description": "Descarga tu inventario completo en formato Excel (.xlsx). Incluye todas las columnas que tengas activas en la tabla."
+  },
+  "columnSelector": {
+    "title": "Selector de Columnas",
+    "description": "Elige que columnas mostrar en la tabla. Puedes activar o desactivar campos como precio, kilometraje, vendedor, etc.\n\nTus preferencias se guardan automaticamente."
+  },
+  "filters": {
+    "title": "Filtros de Busqueda",
+    "description": "Encuentra vehiculos rapidamente:\n\nBusca por marca, modelo, patente o VIN\nFiltra por estado, vendedor asignado, o tipo (propio/consignado)\n\nLos filtros se combinan para busquedas mas precisas."
+  },
+  "tableView": {
+    "title": "Tu Inventario",
+    "description": "Aqui se muestran todos tus vehiculos. Haz clic en cualquiera para ver su detalle completo.\n\nDesde la tabla puedes ordenar por columna y navegar entre paginas."
+  },
+  "finish": {
+    "title": "Listo!",
+    "description": "Ya conoces las herramientas de gestion de vehiculos. Prueba cambiar entre vista de tabla y tablero para encontrar la que mas te acomode."
+  },
+  "buttons": {
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "done": "Finalizar",
+    "skip": "Saltar"
+  }
+}

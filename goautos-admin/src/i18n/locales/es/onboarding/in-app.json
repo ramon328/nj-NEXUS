@@ -1,0 +1,42 @@
+{
+  "welcome": {
+    "title": "¡Bienvenido a GoAutos!",
+    "subtitle": "Comencemos configurando tu automotora paso a paso"
+  },
+  "addVehicle": {
+    "title": "Agrega tu primer vehículo",
+    "subtitle": "Paso 1 de 2",
+    "description": "Comienza tu inventario agregando tu primer vehículo. Esto te ayudará a familiarizarte con la plataforma y podrás empezar a gestionar tu stock inmediatamente.",
+    "motivation": "💡 Consejo: No te preocupes si no tienes todos los datos ahora, podrás editarlo después.",
+    "button": "Agregar Primer Vehículo",
+    "skip": "Omitir por ahora"
+  },
+  "createWebsite": {
+    "title": "¡Excelente! Vehículo agregado",
+    "subtitle": "Paso 2 de 2",
+    "description": "Diseña tu sitio web personalizado para mostrar tus vehículos a tus clientes. El builder es muy fácil de usar y podrás personalizarlo con los colores de tu marca.",
+    "motivation": "🎨 Ya tienes los valores de tu marca configurados, el sitio se creará con tus colores.",
+    "button": "Crear Mi Sitio Web",
+    "skip": "Configurar más tarde"
+  },
+  "complete": {
+    "title": "¡Todo listo! 🎉",
+    "subtitle": "Has completado la configuración inicial",
+    "description": "Ya puedes comenzar a gestionar tu automotora con GoAutos. Tienes acceso a todas las funcionalidades de la plataforma.",
+    "checklist": {
+      "vehicle": "Vehículo agregado",
+      "website": "Sitio web configurado",
+      "ready": "Listo para usar"
+    },
+    "button": "Ir al Dashboard"
+  },
+  "progress": {
+    "step": "Paso {{current}} de {{total}}",
+    "almostThere": "¡Casi terminas!",
+    "loading": "Cargando..."
+  },
+  "errors": {
+    "loadingStatus": "Error al cargar el estado del onboarding",
+    "updatingStatus": "Error al actualizar el progreso"
+  }
+}

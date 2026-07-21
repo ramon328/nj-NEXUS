@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!-- Daemon OPCIONAL para que el terminal web de Claude Code sobreviva reinicios.
+     Instálalo TÚ (decisión consciente — expone un terminal con acceso total al Mac,
+     solo en tu tailnet + PIN):
+       cp ~/nexus/claude-web/com.nexus.claude-web.plist ~/Library/LaunchAgents/
+       launchctl bootstrap gui/$(id -u) ~/Library/LaunchAgents/com.nexus.claude-web.plist
+     Para quitarlo:
+       launchctl bootout gui/$(id -u)/com.nexus.claude-web
+       rm ~/Library/LaunchAgents/com.nexus.claude-web.plist -->
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+    <key>Label</key><string>com.nexus.claude-web</string>
+    <key>ProgramArguments</key>
+    <array>
+        <string>/bin/bash</string>
+        <string>/Users/AIagenteia/nexus/claude-web/start.sh</string>
+    </array>
+    <key>WorkingDirectory</key><string>/Users/AIagenteia/nexus/claude-web</string>
+    <key>EnvironmentVariables</key><dict>
+        <key>PATH</key><string>/usr/local/bin:/usr/bin:/bin:/Users/AIagenteia/.local/bin</string>
+        <key>HOME</key><string>/Users/AIagenteia</string>
+    </dict>
+    <key>RunAtLoad</key><true/>
+    <key>KeepAlive</key><true/>
+    <key>StandardOutPath</key><string>/tmp/claude-web.log</string>
+    <key>StandardErrorPath</key><string>/tmp/claude-web.log</string>
+</dict>
+</plist>

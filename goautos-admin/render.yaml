@@ -1,0 +1,28 @@
+# Render Blueprint para el GAIA server (backend Hono + Anthropic).
+# El servicio vive en el subdirectorio server/ de este repo.
+# Render lee este archivo cuando creás un "Blueprint". Los valores secretos
+# (sync: false) se cargan a mano en el dashboard de Render.
+services:
+  - type: web
+    name: gaia-server
+    runtime: node
+    rootDir: server
+    plan: free # cambiá a "starter" si no querés que se duerma por inactividad
+    branch: production # rama de producción (Vercel/Render deployan desde acá)
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    healthCheckPath: /health
+    envVars:
+      - key: ANTHROPIC_API_KEY
+        sync: false
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        sync: false
+      - key: SUPABASE_JWT_SECRET
+        sync: false
+      # Incluí el dominio del admin en producción, ej:
+      # https://www.portal.goauto.cl,http://localhost:8080
+      - key: ALLOWED_ORIGINS
+        sync: false
+    # PORT lo inyecta Render automáticamente; el server ya lo lee de process.env.PORT.

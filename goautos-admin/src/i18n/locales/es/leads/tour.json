@@ -1,0 +1,32 @@
+{
+  "welcome": {
+    "title": "Gestion de Leads",
+    "description": "Aqui administras todos los clientes potenciales que llegan a tu automotora, ya sea por la web, redes sociales o presencialmente.\n\nVeamos como funciona."
+  },
+  "statusCards": {
+    "title": "Estado de los Leads",
+    "description": "Vista rapida de cuantos leads tienes en cada estado: pendientes, contactados, en seguimiento, etc.\n\nHaz clic en una tarjeta para filtrar y ver solo los leads en ese estado."
+  },
+  "tabs": {
+    "title": "Leads de Compra / Venta",
+    "description": "Organiza tus leads en dos categorias:\n\nCompra: Clientes que quieren vender o consignar su vehiculo contigo\nVenta: Clientes interesados en comprar un vehiculo\n\nTambien puedes crear un nuevo lead manualmente y cambiar entre vista de tabla y kanban."
+  },
+  "filters": {
+    "title": "Filtros y Busqueda",
+    "description": "Encuentra leads rapidamente:\n\nBusca por nombre o email del cliente\nFiltra por tipo de lead o estado\n\nUsa el boton 'Limpiar' para resetear todos los filtros."
+  },
+  "content": {
+    "title": "Listado de Leads",
+    "description": "Aqui ves todos tus leads con su informacion de contacto, tipo, vehiculo asociado y estado.\n\nHaz clic en cualquier lead para ver su detalle completo y gestionarlo. Puedes cambiar el estado directamente desde la tabla."
+  },
+  "finish": {
+    "title": "Listo!",
+    "description": "Ya conoces las herramientas para gestionar tus leads. Responder rapido a los leads pendientes es clave para cerrar mas ventas."
+  },
+  "buttons": {
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "done": "Finalizar",
+    "skip": "Omitir"
+  }
+}

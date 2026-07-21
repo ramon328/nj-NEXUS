@@ -1,0 +1,547 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* Builder: placeholder tenue en campos de texto inline vacíos (EditableText).
+   Solo aparece en el editor; en el sitio público el elemento vacío se oculta. */
+.et-empty:empty::before {
+  content: attr(data-et-placeholder);
+  opacity: 0.3;
+  font-weight: inherit;
+  pointer-events: none;
+}
+
+@layer base {
+  /* Inter font optimizations */
+  body {
+    font-feature-settings: 'cv02', 'cv03', 'cv04', 'cv11';
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+
+  :root {
+    --background: 220 20% 98%;
+    --foreground: 222.2 84% 4.9%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 222.2 84% 4.9%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 222.2 84% 4.9%;
+
+    --primary: 222.2 47.4% 11.2%;
+    --primary-foreground: 210 40% 98%;
+
+    --secondary: 210 40% 96.1%;
+    --secondary-foreground: 222.2 47.4% 11.2%;
+
+    --muted: 210 40% 96.1%;
+    --muted-foreground: 215.4 16.3% 46.9%;
+
+    --accent: 210 40% 96.1%;
+    --accent-foreground: 222.2 47.4% 11.2%;
+
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
+
+    --radius: 0.5rem;
+  }
+
+  .dark {
+    --background: 222.2 84% 4.9%;
+    --foreground: 210 40% 98%;
+
+    --card: 222.2 84% 4.9%;
+    --card-foreground: 210 40% 98%;
+
+    --popover: 222.2 84% 4.9%;
+    --popover-foreground: 210 40% 98%;
+
+    --primary: 210 40% 98%;
+    --primary-foreground: 222.2 47.4% 11.2%;
+
+    --secondary: 217.2 32.6% 17.5%;
+    --secondary-foreground: 210 40% 98%;
+
+    --muted: 217.2 32.6% 17.5%;
+    --muted-foreground: 215 20.2% 65.1%;
+
+    --accent: 217.2 32.6% 17.5%;
+    --accent-foreground: 210 40% 98%;
+
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
+
+    --border: 217.2 32.6% 17.5%;
+    --input: 217.2 32.6% 17.5%;
+    --ring: 212.7 26.8% 83.9%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+/* ===== App-shell: lock viewport to prevent double-scroll in PWA ===== */
+html.app-shell,
+html.app-shell body,
+html.app-shell #root {
+  height: 100%;
+  overflow: hidden;
+}
+
+/* ===== Estilos para los documentos ===== */
+/* Estilos compartidos para documentos */
+.sale-note-document,
+.consignment-note-document {
+  font-family: Arial, sans-serif;
+  position: relative;
+  background-color: white;
+  color: black;
+  page-break-inside: auto;
+}
+
+/* Estilos específicos para cada sección dentro de los documentos */
+.document-header {
+  position: relative;
+  margin-bottom: 1.5rem;
+}
+
+.customer-details,
+.vehicle-details {
+  margin-bottom: 1.5rem;
+  page-break-inside: avoid;
+}
+
+.terms-container {
+  margin-top: 1.5rem;
+}
+
+.document-signatures {
+  margin-top: 2rem;
+  page-break-inside: avoid;
+}
+
+/* ===== Estilos para la impresión ===== */
+@media print {
+  /* Reset para toda la página */
+  html,
+  body {
+    width: 210mm !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    background-color: white !important;
+    font-size: 11pt !important;
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+
+  /* Ocultar elementos que no deben imprimirse */
+  .print-hidden,
+  .no-print,
+  button,
+  nav,
+  .navigation,
+  .print\\:hidden {
+    display: none !important;
+  }
+
+  /* Elementos que solo se muestran al imprimir */
+  .print-only {
+    display: block !important;
+  }
+
+  /* Configuración para el contenedor de diálogo */
+  .DialogContent,
+  [role='dialog'] {
+    position: relative !important;
+    max-height: none !important;
+    max-width: 100% !important;
+    width: 100% !important;
+    height: auto !important;
+    overflow: visible !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: none !important;
+    box-shadow: none !important;
+    border-radius: 0 !important;
+    background-color: white !important;
+  }
+
+  /* Contenedor del documento para impresión */
+  .print-container {
+    width: 100% !important;
+    height: auto !important;
+    max-height: none !important;
+    overflow: visible !important;
+    position: relative !important;
+    display: block !important;
+    background-color: white !important;
+  }
+
+  /* Estilos específicos para los documentos en impresión */
+  .sale-note-document,
+  .consignment-note-document,
+  .purchase-note-document,
+  .reservation-note-document,
+  .quotation-document,
+  .close-deal-document {
+    width: 100% !important;
+    height: auto !important;
+    min-height: 0 !important;
+    position: relative !important;
+    display: block !important;
+    padding: 12mm !important;
+    margin: 0 !important;
+    background-color: white !important;
+    overflow: visible !important;
+    font-size: 11pt !important;
+    line-height: 1.4 !important;
+    transform: none !important; /* Eliminar cualquier scaling */
+    scale: 1 !important; /* Sin escala */
+  }
+
+  /* SECCIONES PRINCIPALES - Evitar que se corten entre páginas */
+  .document-section,
+  .document-header,
+  .customer-details,
+  .vehicle-details,
+  .trade-in-section,
+  .financial-section,
+  .signatures-section,
+  .payment-section,
+  .reservation-section {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    display: block !important;
+    margin-bottom: 16pt !important;
+    padding-bottom: 12pt !important;
+    border-bottom: 1pt solid #e5e7eb !important; /* Gray-200 */
+    background: white !important;
+  }
+
+  /* Secciones con texto largo - permitir que fluyan entre páginas */
+  .notes-section,
+  .terms-section {
+    page-break-inside: auto !important;
+    break-inside: auto !important;
+    display: block !important;
+    margin-bottom: 16pt !important;
+    padding-bottom: 12pt !important;
+    border-bottom: 1pt solid #e5e7eb !important;
+    background: white !important;
+  }
+
+  /* Los títulos de notas/términos no deben separarse del contenido */
+  .notes-section h2,
+  .terms-section h2 {
+    page-break-after: avoid !important;
+    break-after: avoid !important;
+  }
+
+  /* No border en la última sección */
+  .document-section:last-child,
+  .signatures-section {
+    border-bottom: none !important;
+  }
+
+  /* Override ALL Tailwind utilities inside sections */
+  .document-section *,
+  .document-header *,
+  .customer-details *,
+  .vehicle-details *,
+  .trade-in-section *,
+  .financial-section *,
+  .notes-section *,
+  .terms-section * {
+    font-size: 10pt !important;
+    line-height: 1.4 !important;
+  }
+
+  /* Headers dentro de secciones */
+  .document-section h2,
+  .document-header h2,
+  .customer-details h2,
+  .vehicle-details h2,
+  .trade-in-section h2,
+  .financial-section h2,
+  .notes-section h2,
+  .terms-section h2 {
+    font-size: 11pt !important;
+    font-weight: 600 !important;
+    margin-bottom: 8pt !important;
+    margin-top: 0 !important;
+    color: #000 !important;
+  }
+
+  /* Asegurar que los bloques de texto tengan el formato correcto */
+  p {
+    margin: 3pt 0 !important;
+    font-size: 10pt !important;
+    color: #000 !important;
+    line-height: 1.4 !important;
+  }
+
+  div, span {
+    color: #000 !important;
+  }
+
+  /* Asegurar que los spans no pierdan espacios */
+  span {
+    display: inline !important;
+    white-space: pre-wrap !important;
+  }
+
+  /* Strong/bold text */
+  strong, b {
+    font-weight: 600 !important;
+    font-size: 10pt !important;
+  }
+
+  /* Fix border-top elements that might overlap text */
+  .border-t {
+    padding-top: 8pt !important;
+    margin-top: 8pt !important; /* Aumentado de 4pt a 8pt */
+  }
+
+  /* Flex containers - mantener en línea */
+  .flex {
+    display: flex !important;
+    align-items: baseline !important; /* Cambiar a baseline para alinear texto */
+    gap: 4pt !important;
+  }
+
+  .justify-between {
+    justify-content: space-between !important;
+  }
+
+  /* Asegurar que todos los elementos flex tengan la misma line-height */
+  .flex > * {
+    line-height: 1.4 !important;
+  }
+
+  /* Tablas y filas */
+  table {
+    page-break-inside: avoid !important;
+    border-collapse: collapse !important;
+    width: 100% !important;
+  }
+
+  tr, td, th {
+    page-break-inside: avoid !important;
+    orphans: 3 !important;
+    widows: 3 !important;
+    font-size: 10pt !important;
+    color: #000 !important;
+    padding: 4pt !important;
+  }
+
+  /* Forzar saltos de página adecuados */
+  .page-break-after {
+    page-break-after: always !important;
+    break-after: page !important;
+  }
+
+  .page-break-before {
+    page-break-before: always !important;
+    break-before: page !important;
+  }
+
+  .page-break-avoid {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+  }
+
+  /* Formatos de texto para impresión */
+  h1, h2, h3, h4, h5, h6 {
+    page-break-after: avoid !important;
+    page-break-inside: avoid !important;
+    break-after: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 0 !important;
+  }
+
+  /* Headers principales */
+  h1 {
+    font-size: 14pt !important;
+    margin-bottom: 8pt !important;
+  }
+
+  h2 {
+    font-size: 12pt !important;
+    margin-bottom: 6pt !important;
+  }
+
+  /* Imágenes y figuras */
+  img, figure {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    max-width: 100% !important;
+  }
+
+  /* Grid layouts en print */
+  .grid {
+    display: block !important;
+  }
+
+  .grid > div {
+    margin-bottom: 4pt !important;
+  }
+
+  /* Firmas al final */
+  .document-signatures {
+    page-break-inside: avoid !important;
+    break-inside: avoid !important;
+    margin-top: 20pt !important;
+  }
+
+  /* Configuraciones de página */
+  @page {
+    size: A4 portrait;
+    margin: 15mm;
+  }
+
+  /* Primera página */
+  @page :first {
+    margin-top: 12mm;
+  }
+
+  /* Evitar huérfanas y viudas globalmente */
+  * {
+    orphans: 3 !important;
+    widows: 3 !important;
+  }
+}
+
+/* ===== Estilos para scrollbar de columnas (estilo Trello) ===== */
+.scrollbar-thin::-webkit-scrollbar {
+  width: 8px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb {
+  background-color: #d1d5db;
+  border-radius: 4px;
+}
+
+.scrollbar-thin::-webkit-scrollbar-thumb:hover {
+  background-color: #9ca3af;
+}
+
+/* ===== Page enter animation (top to bottom) ===== */
+@keyframes page-enter {
+  from {
+    opacity: 0;
+    transform: translateY(-8px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+.animate-page-enter {
+  animation: page-enter 0.3s ease-out;
+}
+
+/* ===== Prevent iOS auto-zoom on input focus (requires >= 16px) ===== */
+@media screen and (max-width: 767px) {
+  input,
+  input[type="text"],
+  input[type="number"],
+  input[type="email"],
+  input[type="tel"],
+  input[type="url"],
+  input[type="search"],
+  input[type="password"],
+  input[type="date"],
+  textarea,
+  select {
+    font-size: 16px !important;
+  }
+}
+
+/* ===== Date inputs: prevent overflow on small screens ===== */
+input[type="date"] {
+  min-width: 0;
+  max-width: 100%;
+}
+
+@media screen and (max-width: 767px) {
+  input[type="date"] {
+    width: 100% !important;
+    box-sizing: border-box !important;
+    overflow: hidden !important;
+  }
+}
+
+/* ===== Hide scrollbar but keep scroll ===== */
+.scrollbar-none,
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+.scrollbar-none::-webkit-scrollbar,
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* ===== Estilos para documentos en PANTALLA (no solo print) ===== */
+/* Bordes sutiles para separar secciones visualmente */
+.document-section,
+.customer-details,
+.vehicle-details,
+.trade-in-section,
+.financial-section,
+.notes-section,
+.terms-section,
+.payment-section,
+.reservation-section {
+  padding-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  border-bottom: 1px solid rgb(229, 231, 235); /* border-gray-200 */
+}
+
+.document-section:last-of-type,
+.signatures-section {
+  border-bottom: none;
+}
+
+/* Header siempre tiene borde inferior */
+.document-header {
+  padding-bottom: 0.75rem;
+  margin-bottom: 1rem;
+  border-bottom: 1px solid rgb(229, 231, 235);
+}
+
+/* Custom scrollbar styles for changelog */
+.custom-scrollbar::-webkit-scrollbar {
+  width: 6px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-track {
+  background: rgb(248, 250, 252);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb {
+  background: rgb(203, 213, 225);
+  border-radius: 3px;
+}
+
+.custom-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgb(148, 163, 184);
+}

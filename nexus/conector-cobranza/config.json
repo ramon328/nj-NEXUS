@@ -1,0 +1,18 @@
+{
+  "enviar_real": false,
+  "tope_diario": 15,
+  "max_por_hora": 6,
+  "delay_min_seg": 90,
+  "delay_max_seg": 240,
+  "hora_inicio": 10,
+  "hora_fin": 19,
+  "dias_habiles": [
+    1,
+    2,
+    3,
+    4,
+    5
+  ],
+  "cooldown_dias": 30,
+  "remitente_firma": "Aliace / MallorcAutos"
+}

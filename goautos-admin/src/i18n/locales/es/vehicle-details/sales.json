@@ -1,0 +1,217 @@
+{
+  "header": {
+    "titleCreate": "Registrar Venta de Vehículo",
+    "titleEdit": "Editar Venta de Vehículo"
+  },
+  "nav": {
+    "prev": "Anterior",
+    "next": "Siguiente",
+    "saveChanges": "Guardar Cambios",
+    "registerSale": "Registrar Venta",
+    "goToStep": "Click para ir a este paso"
+  },
+  "toasts": {
+    "loadSaleError": {
+      "title": "Error",
+      "description": "Error al cargar los datos de la venta"
+    },
+    "reservationPrefill": {
+      "title": "Datos de reserva cargados",
+      "description": "Se han prellenado los datos del cliente y precio acordado de la reserva activa"
+    },
+    "submit": {
+      "success": {
+        "create": "Venta registrada correctamente",
+        "edit": "Venta actualizada correctamente"
+      },
+      "error": {
+        "create": "Error al registrar la venta",
+        "edit": "Error al actualizar la venta"
+      }
+    }
+  },
+  "steps": {
+    "customer": {
+      "title": "Cliente",
+      "description": "Seleccionar cliente comprador"
+    },
+    "saleInfo": {
+      "title": "Información de Venta",
+      "description": "Precio, método de pago y adicionales",
+      "errors": {
+        "additionalTitleRequired": "Debe ingresar un título para el adicional",
+        "additionalPriceInvalid": "Debe ingresar un precio válido"
+      },
+      "toasts": {
+        "additionalAdded": "Adicional agregado correctamente",
+        "additionalUpdated": "Adicional actualizado correctamente",
+        "additionalDeleted": "Adicional eliminado correctamente"
+      },
+      "vehicleInfo": {
+        "title": "Información del Vehículo",
+        "brandModel": "Marca/Modelo",
+        "year": "Año",
+        "licensePlate": "Patente",
+        "basePrice": "Precio Base"
+      },
+      "saleDetails": {
+        "title": "Detalles de Venta",
+        "finalPrice": "Precio de Venta Final (sin adicionales)",
+        "finalPricePlaceholder": "Ingrese el precio de venta",
+        "paymentMethod": "Método de Pago",
+        "paymentMethodPlaceholder": "Seleccione método de pago",
+        "methods": {
+          "cash": "Efectivo",
+          "transfer": "Transferencia",
+          "check": "Cheque",
+          "vale_vista": "Vale Vista",
+          "credit": "Crédito",
+          "mixed": "Mixto",
+          "trade-in": "Parte de Pago"
+        },
+        "notes": "Observaciones (Opcional)",
+        "notesPlaceholder": "Observaciones adicionales..."
+      },
+      "additionals": {
+        "title": "Adicionales",
+        "transferValue": {
+          "label": "Valor de Transferencia",
+          "hint": "Costo por cambio de propietario",
+          "placeholder": "Valor de transferencia"
+        },
+        "addNew": {
+          "title": "Agregar Adicional",
+          "titlePlaceholder": "Título del adicional",
+          "pricePlaceholder": "Precio",
+          "addButton": "Agregar"
+        },
+        "list": {
+          "saleAdditionals": "Adicionales de Venta:"
+        }
+      },
+      "priceSummary": {
+        "title": "Resumen de Precios",
+        "baseVehiclePrice": "Precio Base del Vehículo:",
+        "transferValue": "Valor de Transferencia:",
+        "reservationAdditionals": "Adicionales de Reserva",
+        "saleAdditionals": "Adicionales de Venta ({{count}}):",
+        "totalSalePrice": "Precio Total de Venta:"
+      }
+    },
+    "tradeIn": {
+      "title": "Parte de Pago",
+      "description": "Vehículo en parte de pago (opcional)",
+      "question": "¿Hay vehículo en parte de pago?",
+      "answers": {
+        "yes": "Sí, hay vehículo en parte de pago",
+        "no": "No, es venta directa"
+      },
+      "details": {
+        "title": "Información del Vehículo en Parte de Pago",
+        "licensePlate": "Patente",
+        "licensePlaceholder": "ej: AB1234",
+        "year": "Año",
+        "selectYear": "Seleccione año",
+        "brand": "Marca",
+        "selectBrand": "Seleccione marca",
+        "searchBrand": "Buscar marca...",
+        "loadingBrands": "Cargando marcas...",
+        "noBrands": "No se encontraron marcas",
+        "model": "Modelo",
+        "selectBrandFirst": "Seleccione una marca primero",
+        "selectModel": "Seleccione modelo",
+        "searchModel": "Buscar modelo...",
+        "loadingModels": "Cargando modelos...",
+        "noModels": "No se encontraron modelos",
+        "tradeInValue": "Valor en Parte de Pago",
+        "tradeInValuePlaceholder": "Ingrese el valor del vehículo"
+      },
+      "summary": {
+        "title": "Resumen de Pago",
+        "salePrice": "Precio de Venta:",
+        "transferValue": "Valor de Transferencia:",
+        "saleAdditionals": "Adicionales de Venta:",
+        "reservationAdditionals": "Adicionales de Reserva:",
+        "tradeInValue": "Valor Parte de Pago:",
+        "totalToPay": "Total a Pagar:",
+        "note": "Nota",
+        "notePrefix": "El cliente entregará el vehículo",
+        "licensePlate": "patente",
+        "valuedAt": "valorizado en",
+        "asTradeIn": "como parte de pago"
+      }
+    },
+    "summary": {
+      "title": "Resumen",
+      "description": "Revisar y confirmar la venta",
+      "sections": {
+        "customer": {
+          "title": "Información del Cliente",
+          "name": "Nombre",
+          "rut": "RUT",
+          "email": "Email",
+          "phone": "Teléfono",
+          "empty": "No se ha seleccionado cliente"
+        },
+        "vehicle": {
+          "title": "Vehículo a Vender",
+          "mileage": "Kilometraje"
+        },
+        "tradeIn": {
+          "title": "Vehículo en Parte de Pago"
+        },
+        "payment": {
+          "title": "Información de Pago",
+          "reservationPayments": "Pagos de Reserva",
+          "salePayments": "Pagos de Venta"
+        }
+      },
+      "price": {
+        "pendingBalance": "Saldo Pendiente"
+      },
+      "confirmation": {
+        "title": "Listo para Confirmar Venta",
+        "description": "Al confirmar se crearán automáticamente:",
+        "items": {
+          "saleRecord": "Registro de venta en el sistema",
+          "saleDocument": "Documento de venta PDF",
+          "tradeInRecord": "Registro del vehículo recibido en parte de pago",
+          "additionalsRecord": "Registro de productos/servicios adicionales"
+        }
+      }
+    },
+    "payments": {
+      "title": "Abonos",
+      "description": "Configurar pagos y abonos",
+      "errors": {
+        "titleAmountRequired": "Debe ingresar un título y monto válidos",
+        "amountExceeds": "El monto excede el saldo pendiente"
+      },
+      "toasts": {
+        "paymentAdded": "Pago agregado correctamente"
+      },
+      "fillRemaining": "Saldo restante",
+      "summary": {
+        "title": "Resumen de Venta",
+        "totalSalePrice": "Precio Total de Venta:",
+        "cashTransferPayments": "Pagos en Efectivo/Transferencia:",
+        "tradeIn": "Vehículo en Parte de Pago:",
+        "totalPaymentsRegistered": "Total Pagos Registrados:"
+      },
+      "addPayment": {
+        "title": "Agregar Nuevo Pago / Abono",
+        "titleLabel": "Concepto",
+        "titlePlaceholder": "ej: Pie, Cuota 1, Pago total, etc.",
+        "amountLabel": "Monto",
+        "amountPlaceholder": "Monto del pago",
+        "fillRemaining": "Completar lo faltante",
+        "addButton": "Agregar Pago"
+      },
+      "existing": {
+        "title": "Pagos Registrados",
+        "tradeIn": "Vehículo en Parte de Pago:",
+        "reservation": "Reserva"
+      }
+    }
+  }
+}

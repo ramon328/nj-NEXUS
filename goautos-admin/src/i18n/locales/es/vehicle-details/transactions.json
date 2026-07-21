@@ -1,0 +1,50 @@
+{
+  "form": {
+    "titleEdit": "Editar movimiento",
+    "titleAdd": "Añadir movimiento",
+    "fields": {
+      "title": {
+        "label": "Título",
+        "placeholder": "Ej: Reparación de motor"
+      },
+      "type": {
+        "label": "Tipo",
+        "placeholder": "Seleccione un tipo",
+        "options": {
+          "expense": "Gasto",
+          "income": "Ingreso"
+        }
+      },
+      "category": {
+        "label": "Categoria",
+        "placeholder": "Seleccione una categoria",
+        "search": "Buscar categoria...",
+        "noResults": "No se encontraron resultados."
+      },
+      "amount": {
+        "label": "Monto",
+        "placeholder": "0"
+      },
+      "description": {
+        "label": "Descripción",
+        "placeholder": "Detalles sobre esta transacción"
+      },
+      "documents": {
+        "label": "Documentos",
+        "attach": "Adjuntar documentos",
+        "hint": "Puedes adjuntar facturas, comprobantes u otros documentos relacionados.",
+        "editingNotAvailable": "La edición de documentos no está disponible."
+      },
+      "assumedBy": {
+        "label": "Asumido por",
+        "placeholder": "Seleccione quién asume el gasto",
+        "options": {
+          "dealership": "Automotora",
+          "customer": "Cliente",
+          "consignor": "Consignador"
+        },
+        "hint": "Indica si este gasto lo asume la automotora o el cliente."
+      }
+    }
+  }
+}

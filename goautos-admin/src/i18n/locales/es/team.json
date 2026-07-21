@@ -1,0 +1,113 @@
+{
+  "title": "Equipo",
+  "subtitle": "Gestiona los permisos y accesos de los usuarios",
+  "tabs": {
+    "admins": "Administradores",
+    "sellers": "Vendedores"
+  },
+  "actions": {
+    "addUser": "Añadir Usuario"
+  },
+  "sellers": {
+    "header": {
+      "title": "Vendedores",
+      "subtitle": "Selecciona un vendedor para gestionar sus comisiones y ventas",
+      "add": "Agregar Vendedor"
+    },
+    "empty": "No hay vendedores registrados",
+    "table": {
+      "name": "Nombre",
+      "email": "Email",
+      "phone": "Teléfono",
+      "assignedCommissions": "Comisiones Asignadas",
+      "actions": "Acciones",
+      "assigned": "Asignada",
+      "pending": "Pendiente",
+      "sellerFallback": "Vendedor",
+      "configureCommissions": "Configurar comisiones",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "confirmDelete": {
+      "title": "¿Estás seguro?",
+      "description": "Esta acción eliminará al vendedor {{seller}} y no se puede deshacer.",
+      "confirm": "Eliminar"
+    }
+  },
+  "userTable": {
+    "headers": {
+      "name": "Nombre",
+      "email": "Email",
+      "role": "Rol",
+      "client": "Cliente",
+      "actions": "Acciones"
+    },
+    "tooltips": {
+      "changePassword": "Cambiar contraseña",
+      "edit": "Editar",
+      "delete": "Eliminar"
+    },
+    "empty": "No se encontraron usuarios.",
+    "pagination": {
+      "prev": "Anterior",
+      "next": "Siguiente",
+      "pageOf": "Página {{current}} de {{total}}"
+    },
+    "noClient": "Sin cliente"
+  },
+  "empty": {
+    "title": "No hay {{type}} registrados",
+    "subtitle": "Haz clic en \"{{addLabel}}\" para agregar un usuario."
+  },
+  "accessDenied": "Área de administración de personas exclusiva para superadmins.",
+  "dialog": {
+    "title": {
+      "new": "Añadir Usuario",
+      "edit": "Editar Usuario"
+    },
+    "loadClientsError": "No se pudieron cargar los clientes",
+    "created": "El usuario ha sido creado exitosamente",
+    "updated": "El usuario ha sido actualizado exitosamente",
+    "processError": "Ocurrió un error al procesar la solicitud"
+  },
+  "form": {
+    "labels": {
+      "email": "Email",
+      "password": "Contraseña",
+      "firstName": "Nombre",
+      "lastName": "Apellido",
+      "role": "Rol",
+      "client": "Cliente",
+      "phone": "Teléfono"
+    },
+    "placeholders": {
+      "email": "ejemplo@correo.com",
+      "password": "••••••••",
+      "firstName": "Ingresa el nombre",
+      "lastName": "Ingresa el apellido",
+      "role": "Selecciona el rol",
+      "client": "Selecciona el cliente",
+      "phone": "Ingresa el teléfono"
+    },
+    "roles": {
+      "superadmin": "Superadmin",
+      "admin": "Admin",
+      "seller": "Vendedor"
+    },
+    "client": {
+      "none": "Sin cliente"
+    },
+    "validation": {
+      "emailInvalid": "Email inválido",
+      "passwordMin": "La contraseña debe tener al menos 6 caracteres",
+      "firstNameRequired": "El nombre es requerido",
+      "lastNameRequired": "El apellido es requerido",
+      "roleRequired": "El rol es requerido"
+    },
+    "buttons": {
+      "processing": "Procesando...",
+      "save": "Guardar",
+      "create": "Crear"
+    }
+  }
+}

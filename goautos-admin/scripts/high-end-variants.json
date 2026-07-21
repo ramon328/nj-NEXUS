@@ -1,0 +1,223 @@
+{
+  "_description": "Internet-researched model variants for high-end brands (2010-2025). Keys = brand name (must match chileautos-classified.json), values = { modelName: [variant1, variant2, ...] }",
+  "_sources": "Wikipedia, manufacturer websites, Edmunds, Autoevolution, CarBuzz",
+  "_generatedAt": "2026-04-04",
+
+  "BMW": {
+    "Serie 1": ["114i", "116i", "118i", "120i", "125i", "128ti", "M135i", "M140i", "114d", "116d", "118d", "120d", "125d"],
+    "Serie 2": ["218i", "220i", "225i", "228i", "230i", "M235i", "M240i", "218d", "220d", "225d", "225xe", "Active Tourer", "Gran Tourer", "Gran Coupe"],
+    "Serie 3": ["316i", "318i", "320i", "325i", "328i", "330i", "335i", "340i", "M340i", "316d", "318d", "320d", "325d", "328d", "330d", "335d", "330e", "Touring"],
+    "Serie 4": ["418i", "420i", "428i", "430i", "435i", "440i", "M440i", "418d", "420d", "425d", "430d", "435d", "M440d", "Gran Coupe", "Cabrio"],
+    "Serie 5": ["520i", "523i", "525i", "528i", "530i", "535i", "540i", "545i", "550i", "M550i", "518d", "520d", "525d", "530d", "535d", "540d", "M550d", "530e", "550e", "Touring"],
+    "Serie 6": ["630i", "640i", "650i", "620d", "630d", "640d", "Gran Turismo", "Gran Coupe"],
+    "Serie 7": ["730i", "735i", "740i", "745i", "750i", "760i", "M760i", "725d", "730d", "740d", "750d", "740e", "745e", "750e"],
+    "Serie 8": ["840i", "M850i", "840d", "Gran Coupe", "Cabrio"],
+    "M2": ["M2", "M2 Competition", "M2 CS"],
+    "M3": ["M3", "M3 Competition", "M3 CS", "M3 Touring"],
+    "M4": ["M4", "M4 Competition", "M4 CS", "M4 GTS", "M4 CSL"],
+    "M5": ["M5", "M5 Competition", "M5 CS"],
+    "M6": ["M6", "M6 Competition", "M6 Gran Coupe"],
+    "M8 Competition": ["M8", "M8 Competition", "M8 Gran Coupe"],
+    "X1": ["sDrive16i", "sDrive18i", "sDrive20i", "xDrive20i", "xDrive25i", "xDrive28i", "M35i", "sDrive16d", "sDrive18d", "sDrive20d", "xDrive18d", "xDrive20d", "xDrive23d", "xDrive25d", "xDrive25e"],
+    "X2": ["sDrive18i", "sDrive20i", "xDrive20i", "M35i", "sDrive16d", "sDrive18d", "sDrive20d", "xDrive18d", "xDrive20d", "xDrive25d", "xDrive25e"],
+    "X3": ["sDrive20i", "xDrive20i", "xDrive28i", "xDrive30i", "M40i", "sDrive18d", "xDrive20d", "xDrive25d", "xDrive30d", "xDrive35d", "xDrive30e", "X3 M", "X3 M Competition"],
+    "X4": ["xDrive20i", "xDrive28i", "xDrive30i", "xDrive35i", "M40i", "xDrive20d", "xDrive25d", "xDrive30d", "xDrive35d", "M40d", "X4 M", "X4 M Competition"],
+    "X5": ["sDrive35i", "xDrive35i", "xDrive40i", "xDrive48i", "xDrive50i", "M50i", "M60i", "sDrive25d", "xDrive25d", "xDrive30d", "xDrive35d", "xDrive40d", "M50d", "xDrive40e", "xDrive45e", "xDrive50e", "X5 M", "X5 M Competition"],
+    "X6": ["xDrive35i", "xDrive40i", "xDrive50i", "M50i", "M60i", "xDrive30d", "xDrive35d", "xDrive40d", "M50d", "X6 M", "X6 M Competition"],
+    "X7": ["xDrive40i", "xDrive50i", "M50i", "M60i", "xDrive30d", "xDrive40d"],
+    "Z4": ["sDrive18i", "sDrive20i", "sDrive23i", "sDrive28i", "sDrive30i", "sDrive35i", "sDrive35is", "M40i"],
+    "I3": ["i3", "i3s", "i3 120 Ah", "i3s 120 Ah"],
+    "I4": ["eDrive35", "eDrive40", "xDrive40", "M50"],
+    "I5": ["eDrive40", "xDrive40", "M60 xDrive"],
+    "I7": ["eDrive50", "xDrive60", "M70 xDrive"],
+    "I8": ["Coupe", "Roadster"],
+    "Ix": ["xDrive40", "xDrive45", "xDrive50", "xDrive60", "M70"],
+    "Ix1": ["eDrive20", "xDrive30"],
+    "Ix2": ["eDrive20", "xDrive30"],
+    "Ix3": ["iX3", "iX3 50 xDrive"],
+    "Xm": ["XM", "XM 50e", "XM Label Red"]
+  },
+
+  "Mercedes-Benz": {
+    "A": ["A 160", "A 170", "A 180", "A 200", "A 250", "A 35 AMG", "A 45 AMG", "A 45 S AMG", "Sedan", "Hatchback"],
+    "B": ["B 170", "B 180", "B 200", "B 220", "B 250"],
+    "C": ["C 180", "C 200", "C 220", "C 230", "C 240", "C 250", "C 280", "C 300", "C 320", "C 350", "C 400", "C 450", "C 43 AMG", "C 55 AMG", "C 63 AMG", "C 63 S AMG", "Coupe", "Cabrio", "Estate"],
+    "Cla": ["CLA 180", "CLA 200", "CLA 220", "CLA 250", "CLA 35 AMG", "CLA 45 AMG", "CLA 45 S AMG", "Shooting Brake"],
+    "Clase E": ["E 200", "E 220d", "E 250", "E 300", "E 350", "E 400", "E 450", "E 53 AMG", "E 63 AMG", "E 63 S AMG", "Coupe", "Cabrio", "All-Terrain"],
+    "Clase S": ["S 350d", "S 400", "S 450", "S 500", "S 560", "S 580", "S 63 AMG", "S 65 AMG", "Maybach S 560", "Maybach S 580", "Maybach S 680"],
+    "Clase G": ["G 350d", "G 400d", "G 500", "G 63 AMG", "G 65 AMG"],
+    "Gla": ["GLA 180", "GLA 200", "GLA 220", "GLA 250", "GLA 35 AMG", "GLA 45 AMG", "GLA 45 S AMG"],
+    "Glb": ["GLB 180", "GLB 200", "GLB 250", "GLB 200d", "GLB 220d", "GLB 35 AMG"],
+    "Glc": ["GLC 200", "GLC 220d", "GLC 250", "GLC 300", "GLC 350e", "GLC 43 AMG", "GLC 63 AMG", "GLC 63 S AMG", "Coupe"],
+    "Gle": ["GLE 250d", "GLE 300d", "GLE 350", "GLE 350d", "GLE 400d", "GLE 450", "GLE 500e", "GLE 53 AMG", "GLE 63 AMG", "GLE 63 S AMG", "Coupe"],
+    "Gls": ["GLS 350d", "GLS 400d", "GLS 450", "GLS 500", "GLS 580", "GLS 600 Maybach", "GLS 63 AMG"],
+    "Sl": ["SL 43", "SL 55 AMG", "SL 63 AMG", "SL 65 AMG", "SL 400", "SL 500"],
+    "Amg Gt": ["GT", "GT S", "GT C", "GT R", "GT R Pro", "GT 43", "GT 53", "GT 63", "GT 63 S"],
+    "Eqa": ["EQA 250", "EQA 300", "EQA 350"],
+    "Eqe": ["EQE 300", "EQE 350", "EQE 500", "EQE 43 AMG", "EQE 53 AMG", "SUV"],
+    "Eqs": ["EQS 450", "EQS 500", "EQS 580", "EQS 53 AMG", "EQS SUV 450", "EQS SUV 580", "Maybach EQS 680"],
+    "Sprinter": ["Sprinter 213", "Sprinter 308", "Sprinter 312", "Sprinter 313", "Sprinter 314", "Sprinter 315", "Sprinter 316", "Sprinter 413", "Sprinter 415", "Sprinter 515", "Sprinter 516"],
+    "Vito": ["Vito 109", "Vito 110", "Vito 111", "Vito 113", "Vito 114", "Vito 116", "Tourer"]
+  },
+
+  "Porsche": {
+    "911": ["Carrera", "Carrera S", "Carrera T", "Carrera GTS", "Carrera 4", "Carrera 4S", "Carrera 4 GTS", "Targa 4", "Targa 4S", "Targa 4 GTS", "Turbo", "Turbo S", "Turbo Cabrio", "Dakar", "S/T", "Sport Classic"],
+    "Gt3": ["GT3", "GT3 RS", "GT3 Touring"],
+    "Gt2 Rs": ["GT2 RS", "GT2 RS Weissach"],
+    "718": ["Cayman", "Cayman S", "Cayman T", "Cayman GTS 4.0", "Boxster", "Boxster S", "Boxster T", "Boxster GTS 4.0", "Spyder", "Spyder RS"],
+    "Cayman": ["Cayman", "Cayman S", "Cayman GTS", "Cayman GT4", "Cayman GT4 RS"],
+    "Boxster": ["Boxster", "Boxster S", "Boxster GTS", "Boxster Spyder"],
+    "Cayenne": ["Cayenne", "Cayenne S", "Cayenne GTS", "Cayenne Turbo", "Cayenne Turbo GT", "Cayenne E-Hybrid", "Cayenne S E-Hybrid", "Cayenne Turbo S E-Hybrid", "Coupe", "Coupe S", "Coupe GTS", "Coupe Turbo", "Coupe Turbo GT"],
+    "Macan": ["Macan", "Macan S", "Macan GTS", "Macan Turbo", "Macan T", "Macan 4", "Macan 4S", "Macan Turbo Electric"],
+    "Panamera": ["Panamera", "Panamera 4", "Panamera S", "Panamera GTS", "Panamera Turbo", "Panamera Turbo S", "Panamera 4 E-Hybrid", "Panamera 4S E-Hybrid", "Panamera Turbo S E-Hybrid", "Sport Turismo", "Executive"],
+    "Taycan": ["Taycan", "Taycan 4S", "Taycan GTS", "Taycan Turbo", "Taycan Turbo S", "Taycan Cross Turismo", "Taycan 4S Cross Turismo", "Taycan GTS Cross Turismo", "Taycan Turbo Cross Turismo", "Taycan Turbo S Cross Turismo", "Taycan Sport Turismo"]
+  },
+
+  "Ferrari": {
+    "458": ["Italia", "Spider", "Speciale", "Speciale A"],
+    "488": ["GTB", "Spider", "Pista", "Pista Spider"],
+    "F8": ["Tributo", "Spider"],
+    "Roma": ["Roma", "Roma Spider"],
+    "Sf90": ["Stradale", "Spider", "XX Stradale", "XX Spider"],
+    "296": ["GTB", "GTS"],
+    "Portofino": ["Portofino", "Portofino M"],
+    "812": ["Superfast", "GTS", "Competizione", "Competizione A"],
+    "F12": ["Berlinetta", "TdF"],
+    "California": ["California", "California T"],
+    "Gtc 4": ["Lusso", "Lusso T"],
+    "Ff": ["FF"],
+    "Purosangue": ["Purosangue"],
+    "12Cilindri": ["12Cilindri", "12Cilindri Spider"]
+  },
+
+  "Audi": {
+    "A1": ["A1", "A1 Sportback", "30 TFSI", "35 TFSI"],
+    "A3": ["30 TFSI", "35 TFSI", "40 TFSI", "Sportback", "Sedan", "Cabrio"],
+    "A4": ["35 TFSI", "40 TFSI", "45 TFSI", "Avant", "Allroad"],
+    "A5": ["35 TFSI", "40 TFSI", "45 TFSI", "Sportback", "Coupe", "Cabrio"],
+    "A6": ["40 TFSI", "45 TFSI", "50 TFSI", "55 TFSI", "Avant", "Allroad"],
+    "A7": ["45 TFSI", "50 TFSI", "55 TFSI", "Sportback"],
+    "A8": ["50 TFSI", "55 TFSI", "60 TFSI", "L"],
+    "Q2": ["30 TFSI", "35 TFSI", "40 TFSI"],
+    "Q3": ["35 TFSI", "40 TFSI", "45 TFSI", "Sportback"],
+    "Q5": ["40 TFSI", "45 TFSI", "55 TFSI e", "Sportback"],
+    "Q7": ["45 TFSI", "50 TFSI", "55 TFSI", "60 TFSI e"],
+    "Q8": ["50 TFSI", "55 TFSI", "e-tron"],
+    "S3": ["S3", "S3 Sportback", "S3 Sedan"],
+    "S4": ["S4", "S4 Avant"],
+    "S5": ["S5", "S5 Sportback", "S5 Coupe", "S5 Cabrio"],
+    "S6": ["S6", "S6 Avant"],
+    "S7": ["S7", "S7 Sportback"],
+    "S8": ["S8", "S8 L"],
+    "Rs3": ["RS3", "RS3 Sportback", "RS3 Sedan"],
+    "Rs4": ["RS4", "RS4 Avant"],
+    "Rs5": ["RS5", "RS5 Sportback", "RS5 Coupe"],
+    "Rs6": ["RS6", "RS6 Avant"],
+    "Rs7": ["RS7", "RS7 Sportback"],
+    "RSQ8": ["RSQ8"],
+    "Rs Q3": ["RSQ3", "RSQ3 Sportback"],
+    "Sq5": ["SQ5", "SQ5 Sportback"],
+    "Tt": ["TT Coupe", "TT Roadster", "TTS", "TT RS"],
+    "R8": ["V10", "V10 Plus", "V10 Performance", "V10 Decennium", "V10 GT", "Spyder"],
+    "E-Tron Gt": ["e-tron GT", "RS e-tron GT", "RS e-tron GT Performance"],
+    "E-Tron Sportback": ["e-tron 50", "e-tron 55", "e-tron S", "Sportback 50", "Sportback 55", "Sportback S"],
+    "Q4 Sportback E-Tron": ["Q4 35 e-tron", "Q4 40 e-tron", "Q4 45 e-tron", "Q4 50 e-tron", "Sportback"],
+    "Q6 E-Tron": ["Q6 e-tron", "Q6 e-tron Performance", "SQ6 e-tron"],
+    "Q8": ["55 TFSI", "SQ8", "RSQ8", "e-tron"]
+  },
+
+  "Lamborghini": {
+    "Gallardo": ["LP 550-2", "LP 550-2 Spyder", "LP 560-4", "LP 560-4 Spyder", "LP 570-4 Superleggera", "LP 570-4 Spyder Performante", "LP 570-4 Squadra Corse", "LP 570-4 Edizione Tecnica"],
+    "Aventador": ["LP 700-4", "LP 700-4 Roadster", "LP 720-4 50 Anniversario", "LP 750-4 SV", "LP 750-4 SV Roadster", "S", "S Roadster", "SVJ", "SVJ Roadster", "Ultimae", "Ultimae Roadster"],
+    "Huracan": ["LP 610-4", "LP 610-4 Spyder", "LP 580-2", "LP 580-2 Spyder", "Performante", "Performante Spyder", "EVO", "EVO Spyder", "EVO RWD", "EVO RWD Spyder", "STO", "Tecnica", "Sterrato"],
+    "Urus": ["Urus", "Urus S", "Urus Performante", "Urus SE"]
+  },
+
+  "Bentley": {
+    "Continental": ["GT", "GT V8", "GT V8 S", "GT Speed", "GT Supersports", "GT S", "GT Azure", "GT Mulliner", "GTC", "GTC V8", "GTC V8 S", "GTC Speed", "GTC S", "GTC Azure", "GTC Mulliner"],
+    "Flying Spur": ["Flying Spur", "V8", "W12", "Speed", "Hybrid", "S", "Azure", "Mulliner"],
+    "Bentayga": ["Bentayga", "V8", "W12", "Speed", "Hybrid", "S", "Azure", "Mulliner", "EWB"],
+    "Mulsanne": ["Mulsanne", "Speed", "Extended Wheelbase"]
+  },
+
+  "Rolls-Royce": {
+    "Ghost": ["Ghost", "Extended", "Series II", "Black Badge"],
+    "Wraith": ["Wraith", "Black Badge"],
+    "Phantom": ["Phantom", "Extended Wheelbase", "Series II", "Drophead Coupe", "Coupe"],
+    "Cullinan 4x4": ["Cullinan", "Black Badge"]
+  },
+
+  "Maserati": {
+    "Granturismo": ["GranTurismo", "Sport", "MC", "MC Stradale", "Modena", "Trofeo", "Folgore"],
+    "Grancabrio": ["GranCabrio", "Sport", "MC", "Folgore"],
+    "Quattroporte": ["Quattroporte", "S", "S Q4", "GTS", "Diesel", "Modena", "Trofeo"],
+    "Ghibli": ["Ghibli", "S", "S Q4", "Diesel", "Modena", "Trofeo", "Hybrid"],
+    "Levante": ["Levante", "S", "GTS", "Diesel", "Modena", "Trofeo"],
+    "MC20": ["MC20", "Cielo"],
+    "Grecale": ["GT", "Modena", "Trofeo", "Folgore"]
+  },
+
+  "Jaguar": {
+    "Xe": ["XE", "S", "SE", "R-Sport", "R-Dynamic", "R-Dynamic S", "R-Dynamic SE", "R-Dynamic HSE", "SV Project 8"],
+    "Xf": ["XF", "Luxury", "Premium Luxury", "Portfolio", "S", "R-Sport", "R-Dynamic SE", "R-Dynamic HSE", "XFR", "XFR-S", "Sportbrake"],
+    "Xj": ["XJ", "L", "Luxury", "Premium Luxury", "Portfolio", "Supercharged", "R-Sport", "XJR", "XJR575"],
+    "F-Type": ["F-Type", "S", "R", "SVR", "R-Dynamic", "P300", "P380", "P450", "P575", "Convertible"],
+    "F-Pace": ["F-Pace", "S", "SE", "HSE", "R-Sport", "R-Dynamic S", "R-Dynamic SE", "R-Dynamic HSE", "SVR", "P250", "P400"],
+    "E-Pace": ["E-Pace", "S", "SE", "HSE", "R-Dynamic S", "R-Dynamic SE", "R-Dynamic HSE"],
+    "I-Pace": ["I-Pace", "S", "SE", "HSE", "R-Dynamic HSE", "EV400"]
+  },
+
+  "Land Rover": {
+    "Range Rover": ["Range Rover", "SE", "HSE", "Autobiography", "SVAutobiography", "SVAutobiography Dynamic", "SV", "Westminster", "Vogue", "P400e", "P530", "P460e", "P550e", "Long Wheelbase"],
+    "Discovery": ["Discovery", "S", "SE", "HSE", "HSE Luxury", "Metropolitan Edition", "R-Dynamic S", "R-Dynamic SE", "R-Dynamic HSE"],
+    "Discovery Sport": ["Discovery Sport", "S", "SE", "HSE", "HSE Luxury", "R-Dynamic S", "R-Dynamic SE", "R-Dynamic HSE", "Dynamic SE"],
+    "Defender": ["Defender 90", "Defender 110", "Defender 130", "S", "SE", "X-Dynamic S", "X-Dynamic SE", "X-Dynamic HSE", "X", "V8", "Outbound", "Octa"],
+    "Evoque": ["Evoque", "Pure", "Prestige", "Dynamic", "Autobiography", "S", "SE", "HSE", "R-Dynamic S", "R-Dynamic SE", "R-Dynamic HSE"]
+  },
+
+  "Lexus": {
+    "Is": ["IS 200t", "IS 250", "IS 300", "IS 300h", "IS 350", "IS 350 F Sport", "IS 500 F Sport Performance"],
+    "Es": ["ES 250", "ES 300h", "ES 350", "ES 350 F Sport"],
+    "Gs": ["GS 200t", "GS 250", "GS 300", "GS 350", "GS 350 F Sport", "GS 450h", "GS F"],
+    "Ls": ["LS 460", "LS 460 L", "LS 500", "LS 500h", "LS 500 F Sport", "LS 600h", "LS 600h L"],
+    "Rc": ["RC 200t", "RC 300", "RC 350", "RC 350 F Sport", "RC F"],
+    "Nx": ["NX 200t", "NX 250", "NX 300", "NX 300h", "NX 350", "NX 350h", "NX 450h+"],
+    "Rx": ["RX 200t", "RX 300", "RX 350", "RX 350h", "RX 350L", "RX 350 F Sport", "RX 450h", "RX 450h+", "RX 500h"],
+    "Ux": ["UX 200", "UX 250h", "UX 300e"],
+    "Lx": ["LX 450d", "LX 570", "LX 600", "LX 600 F Sport"],
+    "Gx 460": ["GX 460", "GX 460 Premium", "GX 460 Luxury", "GX 550"],
+    "Rz": ["RZ 300e", "RZ 450e"],
+    "Lbx": ["LBX", "Cool", "Relax", "Bespoke Build", "Morizo RR"]
+  },
+
+  "Tesla": {
+    "Model 3": ["Standard Range", "Standard Range Plus", "Long Range", "Long Range AWD", "Performance", "Highland RWD", "Highland Long Range", "Highland Performance"],
+    "Model Y": ["Standard Range", "Long Range", "Long Range RWD", "Long Range AWD", "Performance", "Juniper RWD", "Juniper Long Range", "Juniper Performance"],
+    "S": ["60", "70", "70D", "75", "75D", "85", "85D", "P85", "P85D", "90D", "P90D", "100D", "P100D", "Long Range", "Plaid"],
+    "X": ["60D", "75D", "90D", "P90D", "100D", "P100D", "Long Range", "Plaid"],
+    "Cybertruck": ["Long Range RWD", "All-Wheel Drive", "Cyberbeast", "Foundation Series"],
+    "3": ["Standard Range", "Long Range", "Performance"],
+    "Y": ["Long Range", "Performance"]
+  },
+
+  "McLaren": {
+    "_note": "McLaren not in ChileAutos catalog - these would be new brand + models + versions",
+    "12C": ["12C", "12C Spider"],
+    "540C": ["540C"],
+    "570S": ["570S", "570S Spider"],
+    "570GT": ["570GT"],
+    "600LT": ["600LT", "600LT Spider"],
+    "620R": ["620R"],
+    "650S": ["650S", "650S Spider"],
+    "675LT": ["675LT", "675LT Spider"],
+    "720S": ["720S", "720S Spider"],
+    "765LT": ["765LT", "765LT Spider"],
+    "750S": ["750S", "750S Spider"],
+    "GT": ["GT"],
+    "Artura": ["Artura"],
+    "P1": ["P1"],
+    "Senna": ["Senna", "Senna GTR"],
+    "Speedtail": ["Speedtail"],
+    "Elva": ["Elva"]
+  }
+}

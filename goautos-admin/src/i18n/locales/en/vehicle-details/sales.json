@@ -1,0 +1,217 @@
+{
+  "header": {
+    "titleCreate": "Register Vehicle Sale",
+    "titleEdit": "Edit Vehicle Sale"
+  },
+  "nav": {
+    "prev": "Previous",
+    "next": "Next",
+    "saveChanges": "Save Changes",
+    "registerSale": "Register Sale",
+    "goToStep": "Click to go to this step"
+  },
+  "toasts": {
+    "loadSaleError": {
+      "title": "Error",
+      "description": "Error loading sale data"
+    },
+    "reservationPrefill": {
+      "title": "Reservation data loaded",
+      "description": "Customer and agreed price from active reservation were prefilled"
+    },
+    "submit": {
+      "success": {
+        "create": "Sale registered successfully",
+        "edit": "Sale updated successfully"
+      },
+      "error": {
+        "create": "Error registering the sale",
+        "edit": "Error updating the sale"
+      }
+    }
+  },
+  "steps": {
+    "customer": {
+      "title": "Customer",
+      "description": "Select purchasing customer"
+    },
+    "saleInfo": {
+      "title": "Sale Information",
+      "description": "Price, payment method and additionals",
+      "errors": {
+        "additionalTitleRequired": "You must enter a title for the additional",
+        "additionalPriceInvalid": "You must enter a valid price"
+      },
+      "toasts": {
+        "additionalAdded": "Additional added successfully",
+        "additionalUpdated": "Additional updated successfully",
+        "additionalDeleted": "Additional removed successfully"
+      },
+      "vehicleInfo": {
+        "title": "Vehicle Information",
+        "brandModel": "Brand/Model",
+        "year": "Year",
+        "licensePlate": "License Plate",
+        "basePrice": "Base Price"
+      },
+      "saleDetails": {
+        "title": "Sale Details",
+        "finalPrice": "Final Sale Price (without additionals)",
+        "finalPricePlaceholder": "Enter sale price",
+        "paymentMethod": "Payment Method",
+        "paymentMethodPlaceholder": "Select payment method",
+        "methods": {
+          "cash": "Cash",
+          "transfer": "Transfer",
+          "check": "Check",
+          "vale_vista": "Bank Draft",
+          "credit": "Credit",
+          "mixed": "Mixed",
+          "trade-in": "Trade-In"
+        },
+        "notes": "Notes (Optional)",
+        "notesPlaceholder": "Additional notes..."
+      },
+      "additionals": {
+        "title": "Additionals",
+        "transferValue": {
+          "label": "Transfer Value",
+          "hint": "Cost for change of ownership",
+          "placeholder": "Transfer value"
+        },
+        "addNew": {
+          "title": "Add Additional",
+          "titlePlaceholder": "Additional title",
+          "pricePlaceholder": "Price",
+          "addButton": "Add"
+        },
+        "list": {
+          "saleAdditionals": "Sale Additionals:"
+        }
+      },
+      "priceSummary": {
+        "title": "Price Summary",
+        "baseVehiclePrice": "Vehicle Base Price:",
+        "transferValue": "Transfer Value:",
+        "reservationAdditionals": "Reservation Additionals",
+        "saleAdditionals": "Sale Additionals ({{count}}):",
+        "totalSalePrice": "Total Sale Price:"
+      }
+    },
+    "tradeIn": {
+      "title": "Trade-in",
+      "description": "Vehicle as trade-in (optional)",
+      "question": "Is there a vehicle as trade-in?",
+      "answers": {
+        "yes": "Yes, there is a vehicle as trade-in",
+        "no": "No, it is a direct sale"
+      },
+      "details": {
+        "title": "Trade-in Vehicle Information",
+        "licensePlate": "License Plate",
+        "licensePlaceholder": "e.g., AB1234",
+        "year": "Year",
+        "selectYear": "Select year",
+        "brand": "Brand",
+        "selectBrand": "Select brand",
+        "searchBrand": "Search brand...",
+        "loadingBrands": "Loading brands...",
+        "noBrands": "No brands found",
+        "model": "Model",
+        "selectBrandFirst": "Select a brand first",
+        "selectModel": "Select model",
+        "searchModel": "Search model...",
+        "loadingModels": "Loading models...",
+        "noModels": "No models found",
+        "tradeInValue": "Trade-in Value",
+        "tradeInValuePlaceholder": "Enter vehicle value"
+      },
+      "summary": {
+        "title": "Payment Summary",
+        "salePrice": "Sale Price:",
+        "transferValue": "Transfer Value:",
+        "saleAdditionals": "Sale Additionals:",
+        "reservationAdditionals": "Reservation Additionals:",
+        "tradeInValue": "Trade-in Value:",
+        "totalToPay": "Total to Pay:",
+        "note": "Note",
+        "notePrefix": "The customer will deliver the vehicle",
+        "licensePlate": "license plate",
+        "valuedAt": "valued at",
+        "asTradeIn": "as trade-in"
+      }
+    },
+    "summary": {
+      "title": "Summary",
+      "description": "Review and confirm the sale",
+      "sections": {
+        "customer": {
+          "title": "Customer Information",
+          "name": "Name",
+          "rut": "RUT",
+          "email": "Email",
+          "phone": "Phone",
+          "empty": "No customer selected"
+        },
+        "vehicle": {
+          "title": "Vehicle to Sell",
+          "mileage": "Mileage"
+        },
+        "tradeIn": {
+          "title": "Trade-in Vehicle"
+        },
+        "payment": {
+          "title": "Payment Information",
+          "reservationPayments": "Reservation Payments",
+          "salePayments": "Sale Payments"
+        }
+      },
+      "price": {
+        "pendingBalance": "Pending Balance"
+      },
+      "confirmation": {
+        "title": "Ready to Confirm Sale",
+        "description": "Upon confirmation, the following will be created automatically:",
+        "items": {
+          "saleRecord": "Sale record in the system",
+          "saleDocument": "Sale document PDF",
+          "tradeInRecord": "Record of the vehicle received as trade-in",
+          "additionalsRecord": "Record of additional products/services"
+        }
+      }
+    },
+    "payments": {
+      "title": "Payments",
+      "description": "Configure payments and installments",
+      "errors": {
+        "titleAmountRequired": "You must enter a valid title and amount",
+        "amountExceeds": "The amount exceeds the remaining balance"
+      },
+      "toasts": {
+        "paymentAdded": "Payment added successfully"
+      },
+      "fillRemaining": "Remaining balance",
+      "summary": {
+        "title": "Sale Summary",
+        "totalSalePrice": "Total Sale Price:",
+        "cashTransferPayments": "Cash/Transfer Payments:",
+        "tradeIn": "Trade-in Vehicle:",
+        "totalPaymentsRegistered": "Total Payments Registered:"
+      },
+      "addPayment": {
+        "title": "Add New Payment / Installment",
+        "titleLabel": "Concept",
+        "titlePlaceholder": "e.g., Down payment, Installment 1, Full payment, etc.",
+        "amountLabel": "Amount",
+        "amountPlaceholder": "Payment amount",
+        "fillRemaining": "Fill remaining",
+        "addButton": "Add Payment"
+      },
+      "existing": {
+        "title": "Registered Payments",
+        "tradeIn": "Trade-in Vehicle:",
+        "reservation": "Reservation"
+      }
+    }
+  }
+}

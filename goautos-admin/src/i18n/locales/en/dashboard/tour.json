@@ -1,0 +1,40 @@
+{
+  "welcome": {
+    "title": "Control Panel",
+    "description": "This is your command center. Monitor sales, inventory, web performance, and team stats all in one place.\n\nLet's walk you through each section."
+  },
+  "pills": {
+    "title": "Dashboard Sections",
+    "description": "Navigate between different areas of your business:\n\nCommercial: Sales, costs, and overall performance\nInventory: Stock status, brand analysis\nWeb: Visits, leads, and most viewed vehicles\nSellers: Team ranking and commissions"
+  },
+  "timeFilter": {
+    "title": "Time & Stock Filters",
+    "description": "Adjust the data period:\n\nAll time, this year, this month, last 7 days, or a custom date range.\n\nYou can also filter between own and consigned vehicles."
+  },
+  "stats": {
+    "title": "Key Performance Indicators",
+    "description": "Quick summary of what matters most: revenue, expenses, net profit, and vehicles sold.\n\nThese numbers update based on the time filter you select."
+  },
+  "performanceChart": {
+    "title": "Business Performance",
+    "description": "Combined chart showing monthly evolution of sales, costs, web visits, and inventory value.\n\nHover over data points to see detailed breakdowns for each month."
+  },
+  "smartAlerts": {
+    "title": "Alerts",
+    "description": "The system analyzes your data and generates automatic alerts:\n\nPending sales awaiting approval\nVehicles with too many days in stock\nUnattended leads\nBrand stocking recommendations\n\nClick any alert to go directly to the action needed."
+  },
+  "salesSummary": {
+    "title": "Sales & Costs Summary",
+    "description": "Detailed table of each sale with pricing, costs, and profit. Toggle between card and table views.\n\nSwitch to the 'Costs Summary' tab to see expense breakdowns per vehicle.\n\nYou can also export everything to Excel."
+  },
+  "finish": {
+    "title": "All Set!",
+    "description": "You now know your Control Panel. Remember you can switch between Commercial, Inventory, Web, and Sellers sections to explore each area.\n\nClick the lightbulb anytime to revisit this tour."
+  },
+  "buttons": {
+    "next": "Next",
+    "previous": "Previous",
+    "done": "Finish",
+    "skip": "Skip"
+  }
+}

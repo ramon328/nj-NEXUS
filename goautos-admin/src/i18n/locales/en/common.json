@@ -1,0 +1,1766 @@
+{
+  "buttons": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "delete": "Delete",
+    "edit": "Edit",
+    "add": "Add",
+    "create": "Create",
+    "update": "Update",
+    "view": "View",
+    "close": "Close",
+    "back": "Back",
+    "next": "Next",
+    "previous": "Previous",
+    "search": "Search",
+    "filter": "Filter",
+    "export": "Export",
+    "import": "Import",
+    "download": "Download",
+    "upload": "Upload",
+    "confirm": "Confirm",
+    "submit": "Submit",
+    "reset": "Reset",
+    "clear": "Clear",
+    "refresh": "Refresh",
+    "copy": "Copy",
+    "duplicate": "Duplicate"
+  },
+  "actions": {
+    "loading": "Loading...",
+    "saving": "Saving...",
+    "processing": "Processing...",
+    "deleting": "Deleting...",
+    "uploading": "Uploading...",
+    "downloading": "Downloading...",
+    "searching": "Searching...",
+    "filtering": "Filtering...",
+    "calculating": "Calculating...",
+    "success": "Success",
+    "error": "Error",
+    "warning": "Warning",
+    "info": "Information"
+  },
+  "status": {
+    "active": "Active",
+    "inactive": "Inactive",
+    "pending": "Pending",
+    "completed": "Completed",
+    "cancelled": "Cancelled",
+    "draft": "Draft",
+    "published": "Published",
+    "archived": "Archived"
+  },
+  "general": {
+    "yes": "Yes",
+    "no": "No",
+    "ok": "OK",
+    "all": "All",
+    "none": "None",
+    "other": "Other",
+    "optional": "Optional",
+    "required": "Required",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "quantity": "Quantity",
+    "price": "Price",
+    "amount": "Amount",
+    "date": "Date",
+    "time": "Time",
+    "name": "Name",
+    "description": "Description",
+    "details": "Details",
+    "type": "Type",
+    "category": "Category",
+    "status": "Status",
+    "actions": "Actions"
+  },
+  "aiAssistant": {
+    "buttonLabel": "GAIA",
+    "buttonTitle": "Open GAIA",
+    "drawer": {
+      "title": "GAIA",
+      "subtitle": "GoAuto Intelligent Assistant",
+      "beta": "Beta",
+      "placeholder": "Type your question here...",
+      "helper": "Enter to send, Shift+Enter for new line",
+      "clear": "Clear chat",
+      "thinking": "Analyzing data...",
+      "assistantLabel": "GAIA"
+    },
+    "messages": {
+      "welcome": "Hi! I’m GAIA, your GoAuto AI Assistant. I can help with:\n\n• Reviewing sales, inventory, and finance stats\n• Analyzing your dealership’s performance\n• Searching for specific vehicles, customers, and leads\n• Offering recommendations based on your data\n\nHow can I help you today?",
+      "restart": "Chat reset. How can I help?",
+      "error": "Sorry, something went wrong: {{message}}. Please try again.",
+      "defaultError": "There was an error processing your message",
+      "fallback": "Sorry, I couldn’t process your request."
+    },
+    "sidebar": {
+      "newConversation": "New conversation",
+      "today": "Today",
+      "yesterday": "Yesterday",
+      "last7Days": "Last 7 days",
+      "older": "Older",
+      "noConversations": "No conversations yet",
+      "deleteTitle": "Delete conversation",
+      "deleteDescription": "Are you sure you want to delete this conversation? This action cannot be undone.",
+      "renameTitle": "Rename",
+      "conversations": "Conversations"
+    },
+    "emptyState": {
+      "title": "How can I help you?",
+      "subtitle": "Ask me about your inventory, sales, leads, or any dealership data.",
+      "stockSummary": "Stock summary",
+      "stockSummaryDesc": "How many vehicles do I have available?",
+      "monthlySales": "Monthly sales",
+      "monthlySalesDesc": "What were this month’s sales?",
+      "latestLeads": "Latest leads",
+      "latestLeadsDesc": "Which lead came in last?",
+      "vehicleLookup": "Vehicle lookup",
+      "vehicleLookupDesc": "Info on the vehicle with plate..."
+    },
+    "actions": {
+      "copy": "Copy",
+      "copied": "Copied"
+    },
+    "suggestions": {
+      "showMore": "Show me more details",
+      "compareSales": "Compare with last month",
+      "topVehicles": "Which are the most visited?",
+      "leadDetails": "Give me more info on leads",
+      "stockByBrand": "Stock by brand",
+      "recentActivity": "Recent activity"
+    }
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "subtitle": "Business performance overview",
+    "pendingSalesAlert": "pending sale for approval",
+    "pendingSalesAlertPlural": "pending sales for approval",
+    "noVehiclesAlert": "No vehicles registered. Add vehicles to see statistics.",
+    "topVisitedVehicles": {
+      "title": "Top 3 Most Visited Vehicles"
+    },
+    "timeFilters": {
+      "all": "All Time",
+      "year": "This Year",
+      "month": "This Month",
+      "last7": "Last 7 Days",
+      "selectPeriod": "Select Period"
+    },
+    "charts": {
+      "visits": "Visits",
+      "sales": "Sales",
+      "expenses": "Expenses",
+      "vehiclesSoldBySeller": "Vehicles Sold by Seller",
+      "commissionsBySeller": "Commissions by Seller",
+      "brandDistribution": "Brand Distribution"
+    },
+    "labels": {
+      "vehicles": "vehicles",
+      "quantity": "Quantity",
+      "percentage": "Percentage"
+    },
+    "messages": {
+      "noData": "No data available"
+    },
+    "alerts": {
+      "thereAre": "There are"
+    },
+    "stats": {
+      "totalSales": "Total Sales",
+      "totalExpenses": "Total Expenses",
+      "grossMargin": "Gross Margin",
+      "totalVisits": "Total Visits",
+      "totalVehicles": "Total Vehicles",
+      "publishedVehicles": "Published Vehicles",
+      "consignedVehicles": "Consigned Vehicles",
+      "commissions": "Commissions",
+      "totalNetProfit": "Total Net Profit"
+    },
+    "fixedExpenses": {
+      "title": "Fixed Monthly Expenses",
+      "monthlyTotal": "Monthly total",
+      "empty": "No fixed monthly expenses recorded.",
+      "hint": "Add expenses like rent, staff, etc."
+    }
+  }
+  ,
+  "marketing": {
+    "page": {
+      "title": "Smart Marketing",
+      "subtitle": "Find potential customers using AI"
+    },
+    "tabs": {
+      "campaign": "Campaign",
+      "history": "History"
+    },
+    "checkingCustomers": "Checking customer database...",
+    "dbRequired": {
+      "title": "Customer Database Required",
+      "description": "To use Smart Marketing, you need to first download the customer database from Autofact.",
+      "howItWorks": "How does it work?",
+      "points": {
+        "1": "AI needs data from your customers' previous transactions",
+        "2": "This data helps find customers with similar preferences",
+        "3": "The information is securely obtained from Autofact",
+        "4": "Once downloaded, you can use all the marketing features"
+      },
+      "contactSupport": "Contact GoAuto Support",
+      "needHelpTitle": "Need help?",
+      "needHelpText": "Contact GoAuto support to set up the data download from Autofact."
+    },
+    "ai": {
+      "howTitle": "How does the AI work?",
+      "howText": "The AI will look for customers who bought or sold vehicles of similar brands and models.",
+      "exampleLabel": "Example:",
+      "exampleText": "If you select a 'Toyota Corolla', it will find customers who bought/sold Toyota Corolla, Nissan Sentra, Honda Civic, etc."
+    },
+    "step1": {
+      "title": "Step 1: Smart Search Configuration",
+      "description": "Set parameters to find customers who bought or sold vehicles of similar brand and model using AI",
+      "targetAudience": "Target Customer Type",
+      "buyers": "Buyers (who bought similar vehicles)",
+      "sellers": "Sellers (who sold similar vehicles)",
+      "similarity": {
+        "whyTitle": "Why is this important?",
+        "whyText": "A high similarity level ensures you only contact customers with truly similar preferences, avoiding spam and improving conversion chances. Very low values can result in irrelevant emails.",
+        "levels": {
+          "gt80": "Very Similar (high precision)",
+          "between70_80": "Similar (good precision)",
+          "between60_70": "Moderately Similar",
+          "lt60": "Low Similarity (more results)"
+        }
+      }
+    },
+    "filters": {
+      "title": "Selection and Filters",
+      "prefilled": "Pre-configured filters based on {{vehicle}}",
+      "autoConfigOnSelect": "Filters will be configured automatically when selecting a vehicle",
+      "reset": "Reset",
+      "selectVehicleToSee": "Select a vehicle to view smart filters",
+      "selectedVehicle": "Selected Vehicle",
+      "noLimit": "No limit",
+      "price": {
+        "title": "Filter by Price Range",
+        "badge": "±30% of vehicle price",
+        "min": "Minimum Price",
+        "max": "Maximum Price"
+      },
+      "year": {
+        "title": "Filter by Vehicle Year",
+        "badge": "±3 years of vehicle",
+        "from": "Year From",
+        "to": "Year To"
+      },
+      "category": {
+        "title": "Filter by Category"
+      }
+    },
+    "step2": {
+      "title": "Step 2: Select Vehicle to Promote",
+      "description": "Choose the vehicle you want to promote to potential customers",
+      "loadingVehicles": "Loading vehicles...",
+      "searchPlaceholder": "Search vehicle..."
+    },
+    "step4": {
+      "title": "Step 4: Find Potential Customers",
+      "description": "Run smart search with the configured parameters",
+      "readyTitle": "Ready to find customers similar to:",
+      "similarity": "Similarity:",
+      "audience": "Audience:",
+      "buyersAndSellers": "Buyers and Sellers",
+      "buyers": "Buyers",
+      "sellers": "Sellers",
+      "withFilters": "With filters applied",
+      "searching": "Searching with AI...",
+      "searchButton": "Find Potential Customers"
+    },
+    "results": {
+      "title": "Potential Customers Found",
+      "foundSuffix": "found",
+      "composeEmail": "Compose Email",
+      "selectVehiclePrompt": "Select a vehicle to find potential customers",
+      "clickSearchPrompt": "Click \"Find Potential Customers\" to start AI search",
+      "nameUnavailable": "Name unavailable",
+      "similar": "similar",
+      "boughtSimilar": "Bought a similar vehicle:",
+      "soldSimilar": "Sold a similar vehicle:"
+    },
+    "history": {
+      "loadError": "Error loading history",
+      "loading": "Loading history...",
+      "emptyTitle": "No campaigns sent",
+      "emptySubtitle": "When you send your first marketing campaign, it will appear here.",
+      "totalCampaigns": "Total Campaigns",
+      "totalRecipients": "Total Recipients",
+      "promotedVehicles": "Promoted Vehicles",
+      "title": "Campaign History",
+      "headers": {
+        "date": "Date",
+        "vehicle": "Vehicle",
+        "subject": "Subject",
+        "recipients": "Recipients",
+        "filters": "Filters",
+        "sender": "Sender"
+      },
+      "labels": {
+        "similarity": "Similarity:",
+        "buyers": "Buyers",
+        "sellers": "Sellers"
+      }
+    },
+    "email": {
+      "historySaveError": "Error saving email history",
+      "historySaved": "Email history saved successfully",
+      "missingVehicleOrCustomers": "No vehicle or customers selected."
+    }
+  }
+  ,
+  "clients": {
+    "page": {
+      "superadminTitle": "Client Management",
+      "superadminSubtitle": "Manage platform clients.",
+      "title": "Customers",
+      "subtitle": "Customer management."
+    },
+    "buttons": {
+      "newClient": "New Client",
+      "createCustomer": "Create Customer",
+      "bulkUpload": "Bulk Upload"
+    },
+    "search": {
+      "placeholder": "Search customer by name, email, or ID"
+    },
+    "empty": {
+      "title": "No customers registered",
+      "superadminDescription": "Click 'New Client' to add a client.",
+      "description": "No customers registered."
+    },
+    "dialog": {
+      "newCustomerTitle": "New Customer"
+    },
+    "superadminTable": {
+      "caption": "List of clients registered on the platform",
+      "headers": {
+        "company": "Company",
+        "name": "Name",
+        "contact": "Contact",
+        "domain": "Domain",
+        "status": "Status",
+        "registered": "Registered"
+      },
+      "labels": {
+        "id": "ID"
+      }
+    },
+    "badges": {
+      "demoActive": "Active Demo",
+      "production": "Production"
+    },
+    "bulk": {
+      "title": "Bulk Customer Upload",
+      "embeddingsNote": "This process can take several minutes. Please do not close this window.",
+      "processing": "Processing import data...",
+      "confirm": "Confirm Import"
+    }
+  }
+  ,
+  "customers": {
+    "table": {
+      "caption": "Customer list",
+      "headers": {
+        "name": "Name",
+        "email": "Email",
+        "phone": "Phone",
+        "rut": "ID",
+        "address": "Address",
+        "birthday": "Birthday",
+        "registeredAt": "Registered"
+      }
+    },
+    "dialog": {
+      "editTitle": "Edit Customer"
+    },
+    "detail": {
+      "contact": "Contact",
+      "bankingInfo": "Banking Information",
+      "vehicleHistory": "Vehicle History",
+      "noVehicles": "No vehicle history",
+      "editCustomer": "Edit Customer",
+      "deleteCustomer": "Delete Customer",
+      "registeredOn": "Registered on"
+    },
+    "vehicleHistory": {
+      "title": "Vehicle History",
+      "vehicles": "Vehicles",
+      "noHistory": "No vehicle history",
+      "sale": "Sale",
+      "purchase": "Purchase",
+      "consignment": "Consignment"
+    }
+  }
+  ,
+  "pagination": {
+    "previous": "Previous page",
+    "next": "Next page"
+  }
+  ,
+  "financing": {
+    "page": {
+      "title": "Direct Credit",
+      "newFinancing": "New Financing"
+    },
+    "toasts": {
+      "loadVehiclesError": "Could not load vehicle list",
+      "loadFinancingError": "Could not load financing list",
+      "added": "Financing added successfully"
+    },
+    "list": {
+      "empty": "No financing records.",
+      "headers": {
+        "customer": "Customer",
+        "vehicle": "Vehicle",
+        "downPayment": "Down Payment",
+        "installment": "Installment",
+        "status": "Status",
+        "nextPayment": "Next Payment",
+        "progress": "Progress"
+      },
+      "labels": {
+        "customerUnavailable": "Customer unavailable",
+        "vehicleUnavailable": "Vehicle unavailable"
+      },
+      "buttons": {
+        "viewDetail": "View Detail"
+      }
+    },
+    "status": {
+      "completed": "Completed",
+      "late": "Late",
+      "inProgress": "In progress",
+      "pending": "Pending"
+    },
+    "nextPayment": {
+      "none": "No scheduled payments",
+      "completed": "All payments completed"
+    },
+    "form": {
+      "titleNew": "New Financing",
+      "titleEdit": "Edit Financing",
+      "descNew": "Complete the information to register a new direct financing",
+      "descEdit": "Complete the information to update the direct financing",
+      "save": "Save Financing",
+      "noPlate": "No plate",
+      "noRut": "No RUT",
+      "labels": {
+        "vehicle": "Vehicle",
+        "customer": "Customer",
+        "downPayment": "Down Payment (CLP)",
+        "monthlyInstallment": "Monthly Installment (CLP)",
+        "paymentDay": "Payment Day",
+        "totalInstallments": "Total Installments",
+        "startDate": "Start Date",
+        "notes": "Notes"
+      },
+      "placeholders": {
+        "selectVehicle": "Select a vehicle",
+        "selectCustomer": "Select a customer",
+        "downPayment": "Eg: 1000000",
+        "monthlyInstallment": "Eg: 150000",
+        "paymentDay": "Select the payment day",
+        "totalInstallments": "Eg: 36",
+        "selectDate": "Select a date",
+        "notes": "Additional information about this financing"
+      },
+      "descriptions": {
+        "paymentDay": "Day of the month when installments are due",
+        "totalInstallments": "Total number of monthly payments",
+        "startDate": "Date from which financing begins"
+      }
+    },
+    "detail": {
+      "title": "Customer and Vehicle Information",
+      "financingDetailsTitle": "Financing Details",
+      "labels": {
+        "customer": "Customer",
+        "rut": "RUT",
+        "vehicle": "Vehicle",
+        "licensePlate": "License Plate"
+      },
+      "paymentForm": {
+        "labels": {
+          "installmentNumber": "Installment Number",
+          "amount": "Amount",
+          "interest": "Late Interest (if applicable)",
+          "paymentDate": "Payment Date",
+          "notes": "Notes (Optional)"
+        },
+        "placeholders": {
+          "installmentNumber": "Eg: 1",
+          "amount": "Eg: 150000",
+          "interest": "Eg: 5000",
+          "notes": "Additional observations"
+        },
+        "toasts": {
+          "noPaymentSelected": "No payment selected to update",
+          "saved": "The payment has been recorded successfully",
+          "saveError": "Could not record the payment"
+        }
+      },
+      "paymentSchedule": {
+        "title": "Payment Schedule",
+        "headers": {
+          "installment": "Installment #",
+          "dueDate": "Due Date",
+          "amount": "Amount",
+          "status": "Status",
+          "paymentDate": "Payment Date",
+          "interest": "Interest",
+          "notes": "Notes",
+          "actions": "Actions"
+        },
+        "buttons": {
+          "markPaid": "Mark as Paid"
+        },
+        "status": {
+          "paid": "Paid",
+          "late": "Late",
+          "pending": "Pending"
+        },
+        "empty": "No payments registered",
+        "totalAmount": "Total Amount",
+        "remainingBalance": "Remaining Balance"
+      }
+    }
+  }
+  ,
+  "leads": {
+    "page": {
+      "title": "Leads",
+      "subtitle": "Manage buy and sell leads for vehicles"
+    },
+    "tabs": {
+      "buy": "Buy Leads",
+      "buyTooltip": "People who want to sell their vehicle to your dealership (direct purchase, consignment)",
+      "sell": "Sell Leads",
+      "sellTooltip": "People interested in buying a vehicle from your inventory (sale, financing)"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by name or email",
+      "typeAll": "Type: All",
+      "statusAll": "Status: All",
+      "clear": "Clear filters"
+    },
+    "types": {
+      "buyDirect": "Direct Purchase",
+      "buyConsignment": "Consignment",
+      "searchRequest": "Find Your Car",
+      "sellVehicle": "Vehicle Sale",
+      "sellFinancing": "Financing",
+      "sellTransfer": "Transfer",
+      "contactGeneral": "General Contact"
+    },
+    "status": {
+      "pending": "Pending",
+      "assigned": "Assigned",
+      "completed": "Completed",
+      "cancelled": "Cancelled"
+    },
+    "statusDescriptions": {
+      "pending": "The lead is pending processing.",
+      "assigned": "The lead has been assigned to a seller.",
+      "completed": "The lead process has been successfully completed.",
+      "cancelled": "The lead has been cancelled or rejected."
+    },
+    "labels": {
+      "type": "Type",
+      "date": "Date",
+      "vehicle": "Vehicle",
+      "price": "Price",
+      "contact": "Contact",
+      "customer": "Customer",
+      "status": "Status",
+      "name": "Name",
+      "rut": "RUT",
+      "phone": "Phone",
+      "birthDate": "Birth Date",
+      "noCustomerInfo": "No customer information available",
+      "brand": "Brand",
+      "model": "Model",
+      "year": "Year",
+      "mileage": "Mileage",
+      "searchCriteria": "Search criteria",
+      "noLimit": "No limit",
+      "maxOwners": "Max. owners",
+      "searchedVehicle": "Searched vehicle",
+      "clientSearchesVehicle": "Client searches for this type of vehicle",
+      "consigned": "Consigned",
+      "owned": "Owned",
+      "priceNotAvailable": "Price not available",
+      "notes": "Notes"
+    },
+    "buttons": {
+      "viewDetails": "View details",
+      "viewVehicle": "View vehicle"
+    },
+    "table": {
+      "emptyFilters": "No leads available with current filters"
+    },
+    "errors": {
+      "load": "Error loading leads"
+    },
+    "statusModal": {
+      "title": "Change lead status",
+      "description": "Select the new status for the lead."
+    }
+  }
+  ,
+  "sales": {
+    "status": {
+      "pending": "Pending",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "table": {
+      "emptyPrefix": "No sales",
+      "emptySuffix": "to display",
+      "pendingLower": "pending",
+      "approvedLower": "approved",
+      "rejectedLower": "rejected",
+      "headers": {
+        "date": "Date",
+        "vehicle": "Vehicle",
+        "customer": "Customer",
+        "price": "Price",
+        "seller": "Seller",
+        "commission": "Commission",
+        "status": "Status",
+        "actions": "Actions"
+      },
+      "labels": {
+        "customer": "Customer",
+        "seller": "Seller",
+        "price": "Price",
+        "date": "Date",
+        "notAssigned": "Unassigned"
+      },
+      "buttons": {
+        "review": "Review",
+        "details": "Details"
+      }
+    },
+    "dialog": {
+      "titleApprove": "Approve Sale",
+      "titleDetails": "Sale Details",
+      "descApprove": "Review details and approve or reject this sale",
+      "descDetails": "Sale information and status",
+      "notesLabel": "Notes",
+      "notesPlaceholder": "Notes for the seller (optional)",
+      "actions": {
+        "reject": "Reject",
+        "approve": "Approve",
+        "cancel": "Cancel",
+        "save": "Save Changes"
+      }
+    },
+    "saleInfo": {
+      "vehicle": "Vehicle",
+      "customer": "Customer",
+      "salePrice": "Sale Price",
+      "seller": "Seller",
+      "selectSeller": "Select seller",
+      "noSeller": "No seller assigned"
+    },
+    "saleStatus": {
+      "status": "Status",
+      "approvedOn": "Approved on {{date}}",
+      "rejectedOn": "Rejected on {{date}}",
+      "approved": "Approved",
+      "rejected": "Rejected"
+    },
+    "commission": {
+      "title": "Seller Commission",
+      "percentageLabel": "Commission Percentage",
+      "calculatedAmount": "Calculated Amount",
+      "amountLabel": "Commission Amount",
+      "calculatedPercentage": "Calculated Percentage"
+    }
+  }
+  ,
+  "salesPage": {
+    "title": "Sales Management",
+    "accessDeniedTitle": "Access Denied",
+    "accessDeniedDesc": "You do not have permission to access this page.",
+    "tabs": {
+      "pending": "Pending Approval",
+      "approved": "Approved",
+      "rejected": "Rejected",
+      "all": "All"
+    },
+    "descriptions": {
+      "pending": "Review and approve sales from your sellers",
+      "approved": "History of sales approved by the administrator",
+      "rejected": "Sales that have been rejected by the administrator",
+      "all": "Complete list of all registered sales"
+    }
+  }
+  ,
+  "vehiclesPage": {
+    "title": "Vehicles",
+    "subtitle": "Vehicle inventory management.",
+    "addVehicleButton": "Add Vehicle",
+    "loadingClient": "Loading client information..."
+  }
+  ,
+  "vehicles": {
+    "viewToggle": {
+      "table": "Vehicle list",
+      "board": "Workflow",
+      "cards": "Cards"
+    },
+    "table": {
+      "loading": "Loading vehicles...",
+      "empty": "No vehicles to display.",
+      "noSeller": "Unassigned",
+      "changeSeller": "Change seller"
+    },
+    "filters": {
+      "searchPlaceholder": "Search by plate, brand, year, color, status, price, days in stock...",
+      "sellerAll": "Seller: All",
+      "statuses": "Statuses",
+      "consignmentAll": "Stock: All",
+      "consignedOnly": "Consigned only",
+      "ownedOnly": "Owned only"
+    },
+    "pagination": {
+      "showing": "Showing {{start}} - {{end}} of {{total}} vehicles"
+    },
+    "actions": {
+      "deleteConfirmTitle": "Are you sure?",
+      "deleteConfirmDescription": "This action cannot be undone. Vehicle {{vehicle}} will be permanently deleted from the database.",
+      "deleteMarketplaceWarning": "If the vehicle is published, it will also be removed from ChileAutos and MercadoLibre."
+    },
+    "board": {
+      "dragHint": "Drag the vehicle to another column to change its status",
+      "noStatuses": "No statuses defined to display.",
+      "noVehicles": "No vehicles",
+      "days": "days"
+    },
+    "labels": {
+      "unknown": "Unknown",
+      "noBrand": "No brand",
+      "noModel": "No model",
+      "visitsLower": "visits"
+    },
+    "messages": {
+      "notFound": "Vehicle not found ID: {{id}}"
+    },
+    "detail": {
+      "notFoundTitle": "Vehicle not found",
+      "notFoundDescription": "The requested vehicle does not exist or you don't have permission to view it.",
+      "publishInstagram": "Publish on Instagram",
+      "actionsButton": "Actions",
+      "actionsTitle": "Vehicle actions",
+      "viewReservation": "View reservation",
+      "generateReservation": "Create reservation",
+      "generateQuotation": "Generate quotation",
+      "addExpense": "Add Expense",
+      "addIncome": "Add Income",
+      "editSale": "Edit sale",
+      "sellVehicle": "Sell vehicle",
+      "editCloseDeal": "Edit close deal",
+      "closeDeal": "Close deal",
+      "editVehicle": "Edit vehicle",
+      "titles": {
+        "generalInfo": "General information",
+        "details": "Vehicle details",
+        "legalFinancial": "Legal and Financial Information",
+        "expiryDates": "Expiry Dates",
+        "extras": "Extras (Internal Use)",
+        "description": "Description"
+      },
+      "labels": {
+        "brand": "Brand",
+        "model": "Model",
+        "year": "Year",
+        "color": "Color",
+        "mileage": "Mileage",
+        "licensePlate": "License Plate",
+        "keys": "Number of Keys",
+        "engineNumber": "Engine Number",
+        "chassisNumber": "Chassis Number",
+        "condition": "Condition",
+        "fuelType": "Fuel Type",
+        "transmission": "Transmission",
+        "category": "Category",
+        "owners": "Number of Owners",
+        "hasLien": "Has Lien",
+        "isBillable": "Billable",
+        "techInspection": "Technical Inspection",
+        "emissions": "SOAP",
+        "circulationPermit": "Circulation Permit Expiry",
+        "municipalityPermit": "Municipality",
+        "daysInStock": "Days in stock",
+        "status": "Status",
+        "review": "Review",
+        "mechanicalReview": "Mechanical Review"
+      },
+      "kmSuffix": "km",
+      "unspecified": "Not specified",
+      "tabs": {
+        "resume": "Summary",
+        "timeline": "Timeline",
+        "details": "Details",
+        "documents": "Documents",
+        "instagram": "Instagram"
+      },
+      "documents": {
+        "title": "Vehicle Documents",
+        "missingLegalInfo": "Legal information is missing from your profile. Document generation will not be complete without this information.",
+        "additional": "Additional Documents",
+        "addDocuments": "Add Documents"
+      },
+      "reservations": {
+        "dialog": {
+          "titles": {
+            "customer": "Select Customer",
+            "details": "Reservation Details",
+            "paymentsFor": "Reservation for {{brand}} {{model}}"
+          }
+        },
+        "form": {
+          "validityTitle": "Reservation Validity",
+          "selectedCustomerLabel": "Selected customer",
+          "noCustomerSelected": "No customer selected",
+          "vehicleLabel": "Vehicle",
+          "agreedPriceLabel": "Reservation agreed price",
+          "validityDaysLabel": "Validity days",
+          "validityDaysPlaceholder": "Eg: 3",
+          "expirationDateLabel": "Expiration date",
+          "notesLabel": "Notes",
+          "notesPlaceholder": "Add notes or special conditions...",
+          "createButton": "Create Reservation",
+          "validation": {
+            "validityDaysMin": "Validity must be at least 1 day",
+            "agreedPriceMin": "Agreed price must be greater than or equal to 0"
+          }
+        },
+        "customerSelection": {
+          "title": "Customer",
+          "searchPlaceholder": "Search customer by name or email",
+          "newCustomer": "New customer",
+          "loading": "Loading customers...",
+          "empty": "No customers found with that criteria",
+          "noEmail": "No email",
+          "noPhone": "No phone",
+          "rut": "Tax ID"
+        }
+      },
+      "timeline": {
+        "summary": {
+          "totalProfit": "Total profit",
+          "expenses": "Expenses",
+          "income": "Income"
+        },
+        "empty": "No events recorded for this vehicle.",
+        "event": {
+          "viewDetails": "View details",
+          "editEvent": "Edit event",
+          "deleteEvent": "Delete event",
+          "statusChange": "Status change",
+      "document": "Document"
+    }
+  },
+      "financial": {
+        "title": "Financial Summary",
+        "detailOf": "Detail of {{label}}",
+        "untitled": "Untitled",
+        "noDetails": "No details available.",
+        "expenses": {
+          "title": "Expenses",
+          "purchasePrice": "Purchase price",
+          "agreedPriceConsignment": "Agreed price (consignment)",
+          "otherExpenses": "Other expenses",
+          "total": "Total expenses"
+        },
+        "income": {
+          "title": "Income",
+          "salePrice": "Sale price",
+          "customerPayment": "Customer payment",
+          "otherIncome": "Other income",
+          "tradeInVehicle": "Trade-in vehicle",
+          "total": "Total income"
+        },
+        "transferValue": "Transfer value",
+        "netResult": "Net result"
+      }
+    },
+    "columns": {
+      "configureButton": "Configure Columns",
+      "dialogTitle": "Configure Table Columns",
+      "dialogDescription": "Select the columns you want to see in the vehicles table.",
+      "restoreDefault": "Restore Default",
+      "selectedCount": "{{selected}} of {{total}} columns selected",
+      "required": "Required",
+      "default": "Default",
+      "apply": "Apply Changes",
+      "vehicle": {
+        "label": "Vehicle",
+        "description": "Image, brand, model and year"
+      },
+      "license_plate": {
+        "label": "License Plate",
+        "description": "Vehicle license plate"
+      },
+      "price": {
+        "label": "Price",
+        "description": "Vehicle sale price (shows discount if applicable)"
+      },
+      "status": {
+        "label": "Status",
+        "description": "Current status of the vehicle"
+      },
+      "seller": {
+        "label": "Seller",
+        "description": "Seller assigned to the vehicle"
+      },
+      "is_consigned": {
+        "label": "Consigned",
+        "description": "Whether the vehicle is consigned"
+      },
+      "created_at": {
+        "label": "Days in Stock",
+        "description": "Days since the vehicle was added"
+      },
+      "mileage": {
+        "label": "Mileage",
+        "description": "Vehicle mileage"
+      },
+      "year": {
+        "label": "Year",
+        "description": "Vehicle year"
+      },
+      "category": {
+        "label": "Category",
+        "description": "Vehicle category (sedan, SUV, etc.)"
+      },
+      "color": {
+        "label": "Color",
+        "description": "Vehicle color"
+      },
+      "condition": {
+        "label": "Condition",
+        "description": "Vehicle condition (new, used, etc.)"
+      },
+      "fuel_type": {
+        "label": "Fuel Type",
+        "description": "Type of fuel"
+      },
+      "transmission": {
+        "label": "Transmission",
+        "description": "Type of transmission"
+      },
+      "views": {
+        "label": "Views",
+        "description": "Number of views"
+      },
+      "min_price": {
+        "label": "Min Price",
+        "description": "Minimum sale price"
+      },
+      "purchase_price": {
+        "label": "Purchase Price",
+        "description": "Vehicle purchase price"
+      },
+      "owners": {
+        "label": "Owners",
+        "description": "Number of previous owners"
+      },
+      "keys": {
+        "label": "Keys",
+        "description": "Number of keys"
+      },
+      "engine_number": {
+        "label": "Engine #",
+        "description": "Engine number"
+      },
+      "chassis_number": {
+        "label": "Chassis #",
+        "description": "Chassis number"
+      },
+      "transfer_value": {
+        "label": "Transfer Value",
+        "description": "Transfer value recorded in the sale"
+      },
+      "net_profit": {
+        "label": "Net Profit",
+        "description": "Real profit only for sold vehicles: Owned (Sale - Purchase - Expenses) | Consigned (Sale - Expenses)"
+      },
+      "consigned": {
+        "label": "Consigned",
+        "description": "Whether the vehicle is consigned"
+      },
+      "days_in_stock": {
+        "label": "Days in Stock",
+        "description": "Days since the vehicle was added to inventory"
+      },
+      "municipality_permit_expiry": {
+        "label": "Municipality Permit Expiry",
+        "description": "Municipality permit expiry date"
+      },
+      "checklist_status": {
+        "label": "Checklist",
+        "description": "Vehicle preparation checklist status"
+      },
+      "net_profit_after_commission": {
+        "label": "Net Profit w/ Commission",
+        "description": "Net profit after deducting the seller commission (sold vehicles only)"
+      },
+      "acquired_from": {
+        "label": "Purchased / Consigned By",
+        "description": "Person who sold or consigned the vehicle to the dealership"
+      },
+      "total_expenses": {
+        "label": "Total Expenses",
+        "description": "Sum of purchase/consignment price, registered additional expenses and transfer value"
+      },
+      "stock_location": {
+        "label": "Location",
+        "description": "Online or at branch"
+      },
+      "consignment_seller": {
+        "label": "Brought By",
+        "description": "Salesperson who brought the consignment"
+      }
+    }
+  },
+  "addVehicle": {
+    "title": "Add Vehicle",
+    "subtitle": "Fill in the details to add a new vehicle to the inventory.",
+    "tabs": {
+      "basic": "Basic Information",
+      "media": "Media",
+      "acquisition": "Acquisition",
+      "sales": "Sale",
+      "summary": "Summary"
+    },
+    "common": {
+      "notDefined": "Not defined",
+      "notSelected": "Not selected",
+      "customerNotFound": "Customer not found"
+    },
+    "basic": {
+      "title": "Basic Information",
+      "placeholders": {
+        "selectTransmission": "Select transmission",
+        "selectBrand": "Select brand",
+        "selectModel": "Select model"
+      },
+      "transmissionOptions": {
+        "manual": "Manual",
+        "automatic": "Automatic"
+      },
+      "examples": {
+        "mileage": "Example: 10,000 km"
+      },
+      "prefilled": {
+        "title": "Information prefilled",
+        "description": "Some fields were automatically prefilled using license plate info. You can edit them if needed."
+      },
+      "toasts": {
+        "missingFieldsTitle": "Missing required fields",
+        "missingFieldsDescription": "Please complete the following fields: {{fields}}",
+        "saveError": "The form data could not be processed.",
+        "updatedTitle": "Information updated",
+        "updatedDescription": "The vehicle's basic data has been updated."
+      }
+    },
+    "price": {
+      "displayPriceLabel": "Price shown on website *",
+      "discountLabel": "Discount shown on website",
+      "finalDisplayPrice": "Final price shown on website:"
+    },
+    "details": {
+      "title": "Vehicle Details",
+      "labels": {
+        "dealership": "Location",
+        "webLabel": "Visible label on website"
+      },
+      "placeholders": {
+        "selectCategory": "Select category",
+        "selectStatus": "Select status",
+        "selectFuel": "Select type",
+        "selectColor": "Select color",
+        "selectCondition": "Select condition",
+        "selectDealership": "Select location",
+        "description": "Enter a detailed description of the vehicle",
+        "webLabel": "Eg: 'Just listed', 'All Motor', 'Opportunity'",
+        "extras": "Internal notes, e.g.: Last maintenance at 80k km, all at dealership. 60k km transmission maintenance.",
+        "selectDate": "Select date"
+      },
+      "hints": {
+        "webLabel": "This label will appear as a visible tag next to the price on the website",
+        "hasLien": "Mark if the vehicle currently has a lien",
+        "isBillable": "Mark if the vehicle is billable"
+      }
+    },
+    "media": {
+      "title": "Media",
+      "mainImage": "Main Image",
+      "uploadMainImage": "Upload main image",
+      "cropHint": "All images are cropped to a consistent 4:3 format.",
+      "documentsTitle": "Vehicle Documents",
+      "documentsSubtitle": "Add vehicle documents to keep them recorded",
+      "addDocuments": "Add Documents",
+      "selectedDocuments": "Selected documents:",
+      "galleryTitle": "Image Gallery",
+      "galleryLimit": "Add up to {{max}} additional images of the vehicle ({{count}}/{{max}})",
+      "dragHint": "Drag images to change their order",
+      "galleryCount": "Gallery ({{count}} images):",
+      "imageAlt": "Image {{index}}",
+      "noImages": "No additional images",
+      "toasts": {
+        "limitReached": {
+          "title": "Limit reached",
+          "description": "You cannot add more than {{max}} images to the gallery."
+        },
+        "limitReachedMax": "You have reached the limit of {{max}} images.",
+        "limitExceeded": {
+          "title": "Limit exceeded",
+          "description": "Only {{remaining}} of the {{selected}} selected images will be added due to the limit."
+        },
+        "mainImageRequired": {
+          "title": "Main image required",
+          "description": "You must upload a main image to continue."
+        },
+        "saveError": "Could not save media changes.",
+        "unexpectedError": "An error occurred while processing media."
+      }
+    },
+    "sales": {
+      "title": "Sales Information",
+      "assignedSeller": "Assigned Seller (Optional)",
+      "assignedSellerShort": "Assigned Seller",
+      "selectSeller": "Select seller",
+      "noSeller": "No seller assigned",
+      "notAssigned": "Not assigned",
+      "minPrice": "Minimum Sale Price",
+      "minPricePlaceholder": "Enter minimum price"
+    },
+    "summary": {
+      "title": "Vehicle Summary",
+      "subtitle": "Review vehicle details before saving.",
+      "clientId": "Client ID for verification: {{clientId}}",
+      "saveVehicle": "Save Vehicle"
+    },
+    "acquisition": {
+      "title": "Acquisition Information",
+      "type": "Acquisition Type",
+      "purchase": "Purchase",
+      "consignment": "Consignment",
+      "consignmentCustomer": "Consigning Customer",
+      "sellerCustomer": "Selling Customer",
+      "agreedPrice": "Agreed Price",
+      "purchasePrice": "Purchase Price",
+      "documentNotes": "Document Notes",
+      "form": {
+        "typeLabel": "Acquisition Type",
+        "options": {
+          "purchase": "Purchase",
+          "consignment": "Consignment"
+        },
+        "purchase": {
+          "customerLabel": "Selling Customer",
+          "customerDescription": "Customer selling the vehicle",
+          "priceLabel": "Purchase Price"
+        },
+        "consignment": {
+          "customerLabel": "Consigning Customer",
+          "customerDescription": "Customer consigning the vehicle",
+          "suggestedPriceLabel": "Consignor's Suggested Price",
+          "agreedPriceLabel": "Guaranteed consignment price"
+        },
+        "notesLabel": "Document Notes",
+        "customerSelect": {
+          "selectCustomer": "Select a customer",
+          "searchPlaceholder": "Search customer...",
+          "noResults": "No customers found"
+        }
+      }
+    },
+    "autocomplete": {
+      "title": "AI AUTOCOMPLETE",
+      "subtitle": "Enter the license plate and we'll automatically complete the vehicle information",
+      "inputPlaceholder": "License plate (e.g., ABC123)",
+      "search": "Search",
+      "loading": {
+        "title": "Analyzing information...",
+        "subtitle": "Fetching vehicle data in real time"
+      },
+      "toasts": {
+        "required": {
+          "title": "License plate required",
+          "description": "Please enter a valid license plate"
+        }
+      },
+      "results": {
+        "success": "Information found successfully!",
+        "notFound": "No information found for this license plate",
+        "error": "Error searching vehicle information"
+      },
+      "infoFound": "Information found:",
+      "prices": {
+        "title": "Automatic Valuation",
+        "estimated": "Estimated Price",
+        "marketRange": "Market Range",
+        "tradeIn": "Trade-in Price",
+        "hint": "Automatic valuation based on market data"
+      },
+      "actions": {
+        "useDataFull": "Use This Information",
+        "useDataShort": "Use Information",
+        "fillManuallyFull": "Fill Manually",
+        "fillManuallyShort": "Manual",
+        "continueWithoutFull": "Continue Without Autocomplete",
+        "continueShort": "Continue"
+      },
+      "footer": {
+        "editable": "Editable:",
+        "editableText": "All found data can be modified later in the basic information form."
+      }
+    },
+    "toasts": {
+      "savedTitle": "Vehicle saved",
+      "savedDescription": "The vehicle has been added successfully.",
+      "incompleteTitle": "Incomplete information",
+      "incompleteDescription": "Please complete the current step before continuing."
+    },
+    "errors": {
+      "saveFailed": "Could not save the vehicle. Please try again.",
+      "generic": "An error occurred while saving the vehicle. Please try again."
+    }
+  },
+  "admin": {
+    "fixedExpenses": {
+      "addButton": "Add Fixed Expense",
+      "dialog": {
+        "createTitle": "Add Fixed Monthly Expense",
+        "editTitle": "Edit Fixed Monthly Expense"
+      },
+      "fields": {
+        "title": "Title",
+        "titlePlaceholder": "e.g., Rent, Payroll, etc.",
+        "amount": "Amount ($)",
+        "amountPlaceholder": "100,000",
+        "description": "Description",
+        "descriptionPlaceholder": "Additional description of the expense...",
+        "active": "Active",
+        "activeHint": "Is this expense active and should be included in calculations?"
+      },
+      "validation": {
+        "titleRequired": "Title is required",
+        "amountRequired": "Amount is required"
+      }
+    }
+  },
+  "configuration": {
+    "title": "Go Auto Settings",
+    "subtitle": "Manage your dealership settings",
+    "company": {
+      "title": "Company settings",
+      "general": {
+        "title": "General settings",
+        "description": "Configure your dealership's general information"
+      },
+      "dealerships": {
+        "title": "Locations",
+        "description": "Manage locations"
+      },
+      "legal": {
+        "title": "Legal information",
+        "description": "Manage the company's legal data"
+      }
+    },
+    "operation": {
+      "title": "Platform operation",
+      "vehicleStates": {
+        "title": "Vehicles",
+        "description": "Configure vehicles and states"
+      },
+      "documentTemplates": {
+        "title": "Document templates",
+        "description": "Configure templates for purchase, sale and more"
+      },
+      "sellerPermissions": {
+        "title": "Seller permissions",
+        "description": "Configure seller permissions"
+      }
+    },
+    "integrations": {
+      "title": "Integrations",
+      "social": {
+        "title": "Social networks",
+        "description": "Connect social networks",
+        "connectInstagram": "Connect Instagram"
+      },
+      "webBuilder": {
+        "title": "Web builder",
+        "description": "Configure templates for purchase, sale and more"
+      }
+    },
+    "states": {
+      "title": "Vehicle States",
+      "subtitle": "Manage the states vehicles go through in your dealership",
+      "addButton": "Add State",
+      "searchPlaceholder": "Search states...",
+      "table": {
+        "order": "ORDER",
+        "name": "NAME",
+        "description": "DESCRIPTION",
+        "color": "COLOR",
+        "actions": "ACTIONS"
+      },
+      "toasts": {
+        "nonEditable": {
+          "title": "State not editable",
+          "editDescription": "This state is common to all dealerships and cannot be modified.",
+          "deleteDescription": "This state is common to all dealerships and cannot be deleted."
+        },
+        "deleted": {
+          "title": "State deleted",
+          "description": "The state has been successfully deleted."
+        },
+        "deleteErrorDescription": "The state could not be deleted."
+      },
+      "confirmDelete": "Are you sure you want to delete this state?"
+    },
+    "vehicles": {
+      "tabs": {
+        "states": "States",
+        "page": "Page"
+      }
+    },
+    "vehiclesPage": {
+      "title": "Page Configuration",
+      "subtitle": "Customize how the vehicles page is displayed",
+      "defaultView": {
+        "label": "Default view",
+        "description": "Select which view will be shown when opening the vehicles page",
+        "options": {
+          "table": "Vehicle list",
+          "tableDescription": "Shows vehicles in a table format with customizable columns",
+          "board": "Workflow",
+          "boardDescription": "Shows vehicles organized by status in a Kanban-style board"
+        }
+      },
+      "toasts": {
+        "saved": {
+          "title": "Configuration saved",
+          "description": "The default view has been updated"
+        }
+      }
+    },
+    "dealerships": {
+      "newButton": "New Location",
+      "table": {
+        "address": "Address",
+        "phone": "Phone",
+        "email": "Email",
+        "location": "Location",
+        "actions": "Actions"
+      },
+      "viewOnMaps": "View on Google Maps",
+      "notDefined": "Not defined",
+      "toasts": {
+        "deleted": "Location deleted successfully",
+        "deleteError": "Could not delete the location"
+      },
+      "noCoordinates": "No coordinates available for this location",
+      "deleteDialog": {
+        "title": "Are you sure?",
+        "description": "This action cannot be undone. The location will be permanently deleted."
+      }
+    },
+    "sellerPermissions": {
+      "updated": "Settings updated successfully",
+      "updateError": "Error updating settings",
+      "viewTitle": "Vehicles visibility",
+      "viewDescription": "Allow sellers to see all vehicles"
+    },
+    "documents": {
+      "title": "Document Templates",
+      "saveButton": "Save changes",
+      "previewWithBranch": "Preview with Branch:",
+      "selectBranch": "Select branch",
+      "dealershipPreview": "Legal information",
+      "generalLegalInfo": "General Legal Information",
+      "branch": "Branch",
+      "documentContent": "Document Content",
+      "customizeTerms": "Customize the terms and conditions",
+      "observations": "Observations",
+      "observationsPlaceholder": "Add additional observations for the document...",
+      "termsAndConditions": "Terms and Conditions",
+      "termsPlaceholder": "Write the terms and conditions that will appear in the document...",
+      "documentPreview": "Document Preview",
+      "tabs": {
+        "sale": "Sale Note",
+        "purchase": "Purchase Note",
+        "consignment": "Consignment",
+        "reservation": "Reservation",
+        "quotation": "Quotation",
+        "closeDeal": "Close Deal"
+      },
+      "extraPages": {
+        "title": "Extra Pages (PDF/Word)",
+        "description": "Upload PDF or Word documents that will be added as extra pages at the end of the sales note",
+        "files": "Files",
+        "uploading": "Uploading...",
+        "uploadFiles": "Upload Files",
+        "noFiles": "No files uploaded",
+        "filesWillAppear": "Files will appear as extra pages in the sales note",
+        "tip": "PDF/Word files will be shown as additional pages at the end of each sales note. PDFs will be displayed embedded and Word documents can be downloaded."
+      },
+      "editor": {
+        "line": "line",
+        "lines": "lines",
+        "characters": "characters",
+        "collapse": "Collapse",
+        "expand": "Expand",
+        "placeholder": "Write here...",
+        "clickToWrite": "Click to write",
+        "tip": "Use line breaks to organize content better"
+      },
+      "toasts": {
+        "successTitle": "Success",
+        "successDescription": "Template saved successfully",
+        "errorDescription": "Could not save the template",
+        "emptyTermsDescription": "Terms and conditions cannot be empty",
+        "invalidFileType": "Invalid file type",
+        "invalidFileTypeDescription": "The file \"{{name}}\" is not a PDF or Word document",
+        "uploadError": "File upload error",
+        "uploadErrorDescription": "Could not upload \"{{name}}\"",
+        "filesUploaded": "Files uploaded",
+        "filesUploadedDescription": "Successfully uploaded {{count}} file(s). Don't forget to click \"Save changes\"",
+        "error": "Error",
+        "uploadGeneralError": "An error occurred while uploading files",
+        "fileDeleted": "File deleted",
+        "fileDeletedDescription": "The file was deleted. Don't forget to click \"Save changes\"",
+        "deleteError": "Could not delete the file"
+      }
+    },
+    "legal": {
+      "title": "Legal Information",
+      "subtitle": "Configure your company's legal data that will appear on documents",
+      "cardTitle": "Legal Data",
+      "labels": {
+        "companyName": "Company Name",
+        "rut": "Tax ID",
+        "legalRepresentative": "Legal Representative",
+        "legalAddress": "Legal Address"
+      },
+      "placeholders": {
+        "companyName": "Company name",
+        "rut": "Format: 12345678-9",
+        "legalRepresentative": "Representative's full name",
+        "legalAddress": "Full business address"
+      },
+      "saveButton": "Save Changes",
+      "loadError": "Could not load legal information",
+      "toasts": {
+        "successTitle": "Success",
+        "successDescription": "Legal information saved successfully",
+        "saveErrorDescription": "Could not save legal information"
+      }
+    },
+    "general": {
+      "tabs": {
+        "basic": "Basic Information",
+        "theme": "Theme",
+        "seo": "SEO",
+        "contact": "Contact",
+        "permissions": "Permissions",
+        "language": "Language",
+        "subscription": "Subscription"
+      },
+      "titles": {
+        "basic": "Basic Information",
+        "theme": "Theme Settings"
+      },
+      "labels": {
+        "dealershipName": "Dealership Name"
+      },
+      "placeholders": {
+        "dealershipName": "Enter the dealership name"
+      },
+      "favicon": {
+        "title": "Favicon",
+        "description": "Upload your website's favicon (.ico, .png, .svg) or enter a URL.",
+        "urlTab": "URL",
+        "uploadTab": "Upload File",
+        "urlPlaceholder": "Enter the favicon URL",
+        "current": "Current Favicon:"
+      },
+      "theme": {
+        "enableDarkMode": "Enable Dark Mode",
+        "enableDarkModeDescription": "Allow users to switch to a dark theme.",
+        "primaryColorLight": "Primary Color (Light)",
+        "secondaryColorLight": "Secondary Color (Light)",
+        "primaryColorDark": "Primary Color (Dark)",
+        "secondaryColorDark": "Secondary Color (Dark)"
+      },
+      "uploadingFile": "Uploading file...",
+      "saveButton": "Save Changes"
+    }
+  },
+  "instagram": {
+    "loading": "Loading...",
+    "header": {
+      "title": "Instagram Integration",
+      "description": "Connect and manage Instagram Business accounts to publish content",
+      "connectButton": "Connect account"
+    },
+    "card": {
+      "followersSuffix": "followers",
+      "business": "Business",
+      "creator": "Creator"
+    },
+    "posts": {
+      "title": "Posts by @{{username}}",
+      "loadingPosts": "Loading posts...",
+      "errorLoading": "Error loading Instagram posts",
+      "noPosts": "No posts to show",
+      "viewOnInstagram": "View on Instagram",
+      "likes": "likes",
+      "comments": "comments"
+    },
+    "empty": {
+      "title": "No Instagram accounts connected",
+      "description": "Connect your Instagram Business account to publish content automatically",
+      "button": "Connect Instagram account"
+    },
+    "toasts": {
+      "connectSuccess": {
+        "title": "Account connected",
+        "description": "Your Instagram account has been successfully connected."
+      },
+      "connectError": {
+        "title": "Error",
+        "description": "Could not connect the Instagram account. Please try again."
+      },
+      "connectNeedsHelp": {
+        "title": "We'll help you connect your account"
+      },
+      "disconnectSuccess": {
+        "title": "Account disconnected",
+        "description": "The Instagram account has been successfully disconnected."
+      },
+      "disconnectError": {
+        "title": "Error",
+        "description": "Could not disconnect the Instagram account. Please try again."
+      }
+    },
+    "errors": {
+      "connectFailed": "Could not connect the Instagram account. Please try again."
+    },
+    "page": {
+      "disconnect": "Disconnect",
+      "followers": "followers",
+      "tabPublish": "Publish",
+      "tabPosts": "Posts",
+      "selectVehicleTitle": "Select a vehicle to publish",
+      "selectVehicleDesc": "Choose a vehicle from your inventory to create an Instagram post",
+      "officialIntegration": "Official Instagram integration",
+      "heroTitle": "Publish your vehicles directly on Instagram",
+      "heroDesc": "Connect your professional Instagram account and publish vehicles from your inventory with a single click. Create attractive posts without leaving GoAutos.",
+      "connecting": "Connecting...",
+      "connectInstagram": "Connect Instagram",
+      "secureConnection": "Secure connection via OAuth",
+      "featurePublishTitle": "Publish from your inventory",
+      "featurePublishDesc": "Select vehicles and publish them on Instagram with automatically generated photos and descriptions.",
+      "featureManageTitle": "Manage posts",
+      "featureManageDesc": "View all your Instagram posts in one place with engagement metrics.",
+      "featureProfileTitle": "Connected profile",
+      "featureProfileDesc": "Check your profile, followers, and account type directly from the dashboard.",
+      "howItWorks": "How it works",
+      "step1": "Click \"Connect Instagram\" and log in with your professional account.",
+      "step2": "Authorize the permissions to publish content from GoAutos.",
+      "step3": "Select a vehicle from your inventory and publish it with one click.",
+      "requirements": "Requirements",
+      "req1": "Professional Instagram account (Business or Creator)",
+      "req2": "At least one profile picture on your account",
+      "req3": "Vehicles with uploaded photos in your inventory",
+      "privacyNote": "By connecting you accept our",
+      "privacyPolicy": "Privacy Policy"
+    },
+    "createPost": {
+      "title": "Create Instagram post",
+      "description": "Preview and edit your post before sharing",
+      "noImagesAlert": "This vehicle has no images. Add at least one image before posting on Instagram.",
+      "noImagesError": "This vehicle has no images to post on Instagram",
+      "photosLabel": "Photos to publish",
+      "descriptionLabel": "Description",
+      "descriptionPlaceholder": "Write your post description...",
+      "publishButton": "Publish on Instagram",
+      "publishing": "Publishing...",
+      "successTitle": "Success!",
+      "successDesc": "Post created successfully on Instagram",
+      "errorGeneric": "Error posting on Instagram",
+      "errorPublish": "Could not create the post on Instagram",
+      "errorPublishShort": "Could not publish on Instagram. Check the detail in the panel.",
+      "errorNoClient": "Could not identify the client"
+    },
+    "vehicleGrid": {
+      "searchPlaceholder": "Search vehicle...",
+      "filterByStatus": "Filter by status",
+      "allStatuses": "All statuses",
+      "noVehicles": "No vehicles",
+      "noVehiclesDesc": "There are no vehicles available to publish.",
+      "noFilterResults": "No vehicles found with the applied filters"
+    },
+    "emptyState": {
+      "noAccounts": "No Instagram accounts connected",
+      "processing": "Processing...",
+      "connectAccount": "Connect Instagram account"
+    },
+    "pageHeader": {
+      "processing": "Processing...",
+      "connectNew": "Connect new account"
+    },
+    "stats": {
+      "title": "Instagram",
+      "subtitle": "Integration and posts",
+      "linked": "Linked",
+      "linkPercentage": "% Linked",
+      "active30d": "Active (30d)",
+      "activePercentage": "% Active",
+      "note": "The count corresponds to photos uploaded from the website that are also published on Instagram.",
+      "chartTitle": "Posts by dealership",
+      "noData": "No dealerships with Instagram integrated.",
+      "publication": "publication",
+      "publications": "publications",
+      "avgBetweenPosts": "Average between posts:",
+      "days": "days"
+    },
+    "termsDialog": {
+      "title": "Terms & Conditions",
+      "subtitle": "Instagram Integration",
+      "permissionsTitle": "Requested permissions",
+      "permBasicTitle": "instagram_business_basic",
+      "permBasicDesc": "Allows reading your Instagram professional profile information, including username, profile picture, and follower count.",
+      "permPublishTitle": "instagram_business_content_publish",
+      "permPublishDesc": "Allows publishing photos and carousels to your Instagram professional account on your behalf.",
+      "dataUsageTitle": "How we use your data",
+      "dataUsage1": "Display your Instagram profile information within GoAutos",
+      "dataUsage2": "Publish vehicle content that you explicitly approve",
+      "dataUsage3": "Show engagement metrics (likes, comments) of your posts",
+      "dataNotTitle": "What we do NOT do",
+      "dataNot1": "We do not sell or share your data with third parties",
+      "dataNot2": "We do not store your Instagram password",
+      "dataNot3": "You can disconnect your account at any time",
+      "checkboxLabel": "I have read and accept the",
+      "privacyPolicy": "Privacy Policy",
+      "and": "and",
+      "termsOfUse": "Terms of Use",
+      "cancelButton": "Cancel",
+      "acceptButton": "Accept and Connect"
+    },
+    "vehicleTab": {
+      "noPost": "No Instagram post linked to this vehicle.",
+      "errorLoading": "Error loading Instagram post",
+      "viewOnInstagram": "View on Instagram",
+      "likes": "likes",
+      "comments": "comments"
+    }
+  },
+  "documents": {
+    "title": "Documents",
+    "subtitle": "Manage all your documents in one place",
+    "tabs": {
+      "templates": "Document Templates",
+      "templatesShort": "Templates",
+      "templatesDescription": "Configure document templates for sales, purchases, and more",
+      "vehicleDocs": "Vehicle Documents",
+      "vehicleDocsShort": "Documents",
+      "vehicleDocsDescription": "All documents generated for vehicles",
+      "additionalDocs": "Additional Documents",
+      "additionalDocsShort": "Additional",
+      "additionalDocsDescription": "Extra files and documents uploaded manually"
+    },
+    "table": {
+      "type": "Type",
+      "vehicle": "Vehicle",
+      "date": "Date",
+      "actions": "Actions"
+    },
+    "templates": {
+      "infoTitle": "Document Templates",
+      "infoDescription": "Document templates allow you to customize the terms and conditions for each document type. Click 'Go to Configuration' to edit them.",
+      "goToConfiguration": "Go to Configuration",
+      "sale": "Sale Note",
+      "saleDescription": "Template for vehicle sale documents",
+      "purchase": "Purchase Note",
+      "purchaseDescription": "Template for vehicle purchase documents",
+      "consignment": "Consignment Agreement",
+      "consignmentDescription": "Template for consignment contracts",
+      "reservation": "Reservation Agreement",
+      "reservationDescription": "Template for vehicle reservation documents",
+      "quotation": "Quotation",
+      "quotationDescription": "Template for vehicle quotations",
+      "closeDeal": "Deal Closing",
+      "closeDealDescription": "Template for deal closing documents"
+    },
+    "types": {
+      "sale": "Sale",
+      "purchase": "Purchase",
+      "consignment": "Consignment",
+      "reservation": "Reservation",
+      "quotation": "Quotation",
+      "closeDeal": "Deal Closing",
+      "other": "Other"
+    },
+    "status": {
+      "pending": "Pending",
+      "completed": "Completed"
+    },
+    "vehicleDocs": {
+      "searchPlaceholder": "Search by vehicle, plate or type...",
+      "filterByType": "Filter by type",
+      "filterByStatus": "Filter by status",
+      "allTypes": "All types",
+      "allStatus": "All statuses",
+      "totalDocuments": "Total Documents",
+      "noDocuments": "No documents",
+      "noDocumentsDescription": "No documents found with the applied filters",
+      "createNew": "Create New",
+      "selectVehicle": "Select Vehicle",
+      "selectVehicleDesc": "Select the vehicle for the document",
+      "searchVehicle": "Search by brand, model, plate...",
+      "noVehiclesFound": "No vehicles found",
+      "noConsignedVehicles": "No consigned vehicles available",
+      "showing": "Showing {{start}} - {{end}} of {{total}} documents"
+    },
+    "additionalDocs": {
+      "searchPlaceholder": "Search by vehicle, description or type...",
+      "filterByType": "Filter by type",
+      "allTypes": "All types",
+      "totalDocuments": "Additional Documents",
+      "totalFiles": "Total Files",
+      "file": "file",
+      "files": "files",
+      "untitled": "Untitled",
+      "noDocuments": "No additional documents",
+      "noDocumentsDescription": "No additional documents found with the applied filters",
+      "types": {
+        "document": "Document",
+        "expense": "Expense",
+        "income": "Income",
+        "contract": "Contract",
+        "invoice": "Invoice",
+        "receipt": "Receipt",
+        "certificate": "Certificate",
+        "other": "Other"
+      }
+    }
+  }
+}

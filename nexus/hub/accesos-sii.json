@@ -1,0 +1,9 @@
+{
+  "_ayuda": "Personas con acceso ACOTADO por WhatsApp: SOLO pueden descargar documentos del SII de las empresas listadas, nada más del negocio. Formato: número E.164 -> { nombre, empresas: [empresa_id...] }. Los empresa_id salen del backend SII (ANA CLARA SPA = 3). Tras editar, NO hace falta reiniciar el hub (se relee en cada mensaje). OJO: el número también debe estar en el allowlist de WhatsApp de OpenClaw para que sus mensajes lleguen.",
+  "empresas_ref": {
+    "3": "ANA CLARA SPA (Mallorca / MallorcAutos) — RUT 77271121-2"
+  },
+  "accesos": {
+    "+56900000000": { "nombre": "Joaquín", "empresas": [3], "_pendiente": "FALTA el número REAL de WhatsApp de Joaquín — reemplazar +56900000000 por su número y agregarlo al allowlist de OpenClaw para que sus mensajes lleguen." }
+  }
+}

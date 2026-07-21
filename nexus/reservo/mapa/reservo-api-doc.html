@@ -1,0 +1,403 @@
+<html><head><meta charset="utf-8"><style>
+body{font-family:-apple-system,Arial;margin:32px;color:#1a1a2e;font-size:12px}
+h1{color:#0b7285;border-bottom:3px solid #0b7285;padding-bottom:6px}
+h2{color:#0b7285;margin-top:22px;border-bottom:1px solid #ccc}
+.mod{margin-top:16px;page-break-inside:avoid}.mod h3{background:#e3fafc;padding:5px 8px;border-radius:5px;color:#0b7285;font-size:13px}
+code{background:#f1f3f5;padding:1px 5px;border-radius:3px;font-size:11px}
+table{border-collapse:collapse;width:100%;margin:4px 0}td{border-bottom:1px solid #eee;padding:2px 6px;font-size:11px}
+.tag{font-size:9px;padding:1px 5px;border-radius:8px;color:#fff}
+.warn{background:#fff3bf;border-left:4px solid #f59f00;padding:8px 12px;border-radius:4px}
+.box{background:#f8f9fa;border:1px solid #dee2e6;border-radius:6px;padding:10px;margin:8px 0}
+</style></head><body>
+<h1>Reservo — Documentación de API (Aconcagua)</h1>
+<p><b>Cuenta:</b> ramon.molina · <b>Generado:</b> 2026-07-19 · <b>Base:</b> https://reservo.cl</p>
+<div class="box"><h2>Autenticación / Token de acceso</h2>
+<p>Reservo (este plan) usa <b>autenticación por sesión</b> (Django), no API-key self-service. El "token" es la <b>cookie de sesión</b>:</p>
+<p><b>Token (sessionid):</b> <code>7ea50ieybn069534vd54zv77b3yz03yy</code><br><b>csrftoken:</b> <code>w7YCDUllbXiTeOeUFFzzzAggls3GmSnk0Nj3byezi9SEosQjEicV8KfHpc5uvoxZ</code></p>
+<div class="warn"><b>⚠️ Sensible:</b> este token da acceso a tu cuenta. No lo compartas. Caduca con el tiempo o al cerrar sesión; se renueva volviendo a loguear en <code>POST /accounts/login/</code> (username, password, csrfmiddlewaretoken).</div>
+<p><b>Uso:</b> mandá la cookie en cada request:<br><code>curl "https://reservo.cl/appointment/viewAppt/" -H "Cookie: sessionid=&lt;token&gt;; csrftoken=&lt;csrf&gt;"</code><br>Para POST agregá <code>-H "X-CSRFToken: &lt;csrf&gt;"</code> y <code>-H "X-Requested-With: XMLHttpRequest"</code>.</p></div>
+<h2>Operaciones clave</h2><table>
+<tr><td><b>Ver agenda del día</b></td><td><code>GET /appointment/viewAppt/</code></td><td>dashboard de la agenda</td></tr>
+<tr><td><b>Crear cita</b></td><td><code>POST /appointment/makeAppointment/</code></td><td>CREAR CITA (params del modal; probar controlado)</td></tr>
+<tr><td><b>Ver citas del día</b></td><td><code>POST /appointment/AppointmentDay/</code></td><td>citas por fecha/agenda</td></tr>
+<tr><td><b>Disponibilidad/ocupación</b></td><td><code>POST /disponibilidad/obtenerDisponibilidad/</code></td><td>horas libres/ocupadas</td></tr>
+<tr><td><b>Buscar paciente</b></td><td><code>POST /pacienteDentista/buscarPerson/</code></td><td>por nombre/rut</td></tr>
+<tr><td><b>Ficha paciente</b></td><td><code>POST /pacienteDentista/seePerson/</code></td><td>datos del paciente</td></tr>
+<tr><td><b>Finanzas</b></td><td><code>GET /caja/finanzasinicial/</code></td><td>caja/finanzas</td></tr>
+<tr><td><b>Crear/editar tratamiento</b></td><td><code>POST /tratamiento/crear_tratamiento/</code></td><td>—</td></tr>
+</table>
+<h2>API completa — 870 endpoints en 45 módulos</h2>
+<div class="mod"><h3>Examenes (7)</h3><table>
+<tr><td><code>/Examenes/VerListaSolicitudExamenesPredefinidas/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/Examenes/add_examedi/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/Examenes/deleteExamen/{id}/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/Examenes/filtroExamenes/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/Examenes/makeeditCategoriaExamenes/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/Examenes/makeeditExamenes/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/Examenes/makeeditInstrucciones/</code></td><td style="color:#868e96">POST·crear</td></tr>
+</table></div>
+<div class="mod"><h3>PagoOnline (2)</h3><table>
+<tr><td><code>/PagoOnline/RegistroPlataformaPago/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/PagoOnline/listar_ordenes_de_pago/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>appointment (15)</h3><table>
+<tr><td><code>/appointment/AppointmentDay/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/appointment/estadoAppt/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/appointment/get_url_videconferencia_cita/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/appointment/historyticket/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/appointment/listAppointmentDay/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/appointment/listAppointmentDay/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/appointment/makeAppointment/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/appointment/printlistaespacios/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/appointment/registroconfirmacioncancelaciononline/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/appointment/sala_de_espera/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/appointment/sala_de_espera/{id}/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/appointment/simboloappt/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/appointment/viewAllAppts/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/appointment/viewAllAppts2/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/appointment/viewTicket/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>atencion (5)</h3><table>
+<tr><td><code>/atencion/get_botones_personalizados_centro/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/atencion/historicoatencionPersona/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/atencion/historicoatencionPersonaatention/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/atencion/list_consentimiento/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/atencion/realizarAtencion/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>bloqueosHorario (4)</h3><table>
+<tr><td><code>/bloqueosHorario/crearBloqueoAgenda/{id}/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/bloqueosHorario/crearBloqueoProfesional/{id}/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/bloqueosHorario/obtenerBloqueoAgenda/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/bloqueosHorario/obtenerBloqueoProfesional/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>caja (8)</h3><table>
+<tr><td><code>/caja/abiertas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/caja/boletasRetenidas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/caja/cerradas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/caja/chequesall/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/caja/fastcaja/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/caja/finanzasinicial/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/caja/resumencaja/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/caja/viewtipopago/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>capacitaciones (1)</h3><table>
+<tr><td><code>/capacitaciones/agendar_primera_capacitacion/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>carro_compra (1)</h3><table>
+<tr><td><code>/carro_compra/configcarrocompra/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>cheques (1)</h3><table>
+<tr><td><code>/cheques/correosnotificacioncheque/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>cliente (21)</h3><table>
+<tr><td><code>/cliente/activepersonal/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/addpersonal/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/cliente/ajaxguardarmail/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/cliente/configurarmail/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/crear_profesional/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/cliente/deletepersonal/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/cliente/editempresa/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/cliente/hidepasosiniciales/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/imprimirboleta/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/link/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/link/{id}/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/list_profesional/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/cliente/listcategoriasagenda/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/cliente/pais_region/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/region_comuna/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/seepersonal/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/cliente/seepersonal/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/cliente/seepersonales/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/cliente/significadosimbolos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/cliente/update_profesionales/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/cliente/validarmail/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>clinicas (2)</h3><table>
+<tr><td><code>/clinicas/listaclinica/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/clinicas/makeclinica/</code></td><td style="color:#868e96">POST·crear</td></tr>
+</table></div>
+<div class="mod"><h3>comisiones (1)</h3><table>
+<tr><td><code>/comisiones/listarprofesionales/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>comunicacioninterna (4)</h3><table>
+<tr><td><code>/comunicacioninterna/conveniosreservo/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/comunicacioninterna/elegirpremio/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/comunicacioninterna/gettareasajax/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/comunicacioninterna/referidos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>configuracion (20)</h3><table>
+<tr><td><code>/configuracion/ChangeConfiguracionVenta/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/configuracion/EscogerCliente/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion/SaveAgendasSeleccionadas/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/configuracion/alturaslot/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion/buscar_configuracion/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/configuracion/conveniopaciente/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion/datosboletaelectronica/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/configuracion/deletebox/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/configuracion/editbox/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/configuracion/editpacientecategoria/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/configuracion/editpacientereferencia/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/configuracion/fichasprecargadas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion/lista_botones_personalizados/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/configuracion/listinstalaciones/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/configuracion/mailstockcritico/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion/makebox/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/configuracion/numeroagendasmultiples/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion/personalusuario/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion/tagsarchivos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion/tagsimagenes/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>configuracion_agenda (7)</h3><table>
+<tr><td><code>/configuracion_agenda/agendas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion_agenda/configurarListaNegra/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/configuracion_agenda/crear_configuracion/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/configuracion_agenda/crear_configuracion_reagendamiento/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/configuracion_agenda/eliminar_configuracion/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/configuracion_agenda/formulario_agenda/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/configuracion_agenda/link_agenda/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>configuracion_portal_agendamiento (1)</h3><table>
+<tr><td><code>/configuracion_portal_agendamiento/configurar_profesional/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>contactoform (13)</h3><table>
+<tr><td><code>/contactoform/configuracionesextra/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/contactoform/correosnotificacion/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/contactoform/crearfunnel/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/contactoform/createeditcampopersonalizado/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/contactoform/createeditestadocontactoweb/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/contactoform/definirtareapordefecto/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/contactoform/definirusuarioscontactadores/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/contactoform/deletefunnel/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/contactoform/editarfunnel/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/contactoform/etapasfunnel/{id}/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/contactoform/funnels/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/contactoform/listfunnels/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/contactoform/viewContactoWebNoLeidos/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>costos (4)</h3><table>
+<tr><td><code>/costos/listCategoriaCosto/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/costos/makeItems/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/costos/planillacostos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/costos/seecostos/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>dashboard (4)</h3><table>
+<tr><td><code>/dashboard/dashboard_personalizado/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/dashboard/delete_indicador_cliente/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/dashboard/indicadores_para_agregar/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/dashboard/list_indicadores_cliente/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>deuda (1)</h3><table>
+<tr><td><code>/deuda/deudores/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>disponibilidad (4)</h3><table>
+<tr><td><code>/disponibilidad/asignarcrearDisponibilidad/{id}/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/disponibilidad/obtenerColores/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/disponibilidad/obtenerDisponibilidad/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/disponibilidad/obtenerschedule/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>encuestaSatisfaccion (4)</h3><table>
+<tr><td><code>/encuestaSatisfaccion/BaseEncuesta/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/encuestaSatisfaccion/MakeEncuesta/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/encuestaSatisfaccion/config_encuesta/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/encuestaSatisfaccion/configuracion_encuesta/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>facebookapi (1)</h3><table>
+<tr><td><code>/facebookapi/pagesclientePotencial/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>fichas (13)</h3><table>
+<tr><td><code>/fichas/cargar_fichas_completar_paciente/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fichas/crearFichaD/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/fichas/crearFichaD/{id}/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/fichas/deletefichaD/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/fichas/duplicafichaD/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fichas/fichaPredefinida/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fichas/fichaSolicitud/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fichas/listadoFichaD/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/fichas/listadoFichasAntiguas/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/fichas/nombreFichaD/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fichas/ordenes_medicas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fichas/recetasPredefinidas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fichas/recetas_predefinidas_usuario/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>fidelizacion (20)</h3><table>
+<tr><td><code>/fidelizacion/allrealizadas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fidelizacion/bolsacorreos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fidelizacion/correosincorrectos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fidelizacion/crearcampaignDD/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/fidelizacion/deleteCampgneDD/{id}/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/fidelizacion/deletecampaign/{id}/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/fidelizacion/deletetareaprogramada/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/fidelizacion/desvinculados/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fidelizacion/editcampaign/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/fidelizacion/editcampaignDD/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/fidelizacion/editcampaignDD/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/fidelizacion/estadisticastareas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fidelizacion/historicocampaigns/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fidelizacion/listasmailing/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/fidelizacion/listcampaigns/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/fidelizacion/makecampaign/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/fidelizacion/puntosfidelizacion/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fidelizacion/selectlistcampaign/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/fidelizacion/tareasprogramadas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/fidelizacion/templates_tareas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>gastos (3)</h3><table>
+<tr><td><code>/gastos/listcategoriagasto/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/gastos/listformapagogasto/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/gastos/seegastomes/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>giftcard (5)</h3><table>
+<tr><td><code>/giftcard/editgiftcard/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/giftcard/giftcardsvendidas/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/giftcard/listgiftcards/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/giftcard/makegiftcard/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/giftcard/porcentajesaldogiftcard/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>instalaciones (2)</h3><table>
+<tr><td><code>/instalaciones/addmaquina/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/instalaciones/seemaquinas/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>insumos (7)</h3><table>
+<tr><td><code>/insumos/create_insumo/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/insumos/filtroinsumos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/insumos/listcategoriasinsumos/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/insumos/listgruposinsumos/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/insumos/listinsumos/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/insumos/makeinsumo/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/insumos/printInsumos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>mail (4)</h3><table>
+<tr><td><code>/mail/blacklist/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/mail/disenomailbienvenida/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/mail/disenomailbirthday/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/mail/disenomailcita/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>pacienteDentista (21)</h3><table>
+<tr><td><code>/pacienteDentista/basichistoryTicket/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/pacienteDentista/basicseePerson/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/pacienteDentista/birthdayPerson/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/pacienteDentista/buscarAjaxPerson/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/pacienteDentista/buscarPerson/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/pacienteDentista/cambiar_orientacion/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/pacienteDentista/createeditcampo/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/pacienteDentista/editPersonbyPaciente/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/pacienteDentista/eliminar_foto/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/pacienteDentista/getfiltrosavanzados/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/pacienteDentista/makePerson/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/pacienteDentista/maxficha/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/pacienteDentista/obtener_fotos_perfil/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/pacienteDentista/potencialpaciente/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/pacienteDentista/printpacientes/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/pacienteDentista/registerpotentialperson/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/pacienteDentista/registrarPotentialPersonbyPaciente/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/pacienteDentista/seePerson/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/pacienteDentista/seePerson/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/pacienteDentista/subir_foto/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/pacienteDentista/verDatoCampoPerfilExtendido/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>planes (7)</h3><table>
+<tr><td><code>/planes/ListaPlanes/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/planes/deleteplan/{id}/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/planes/editplan/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/planes/makeplan/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/planes/seecategorias/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/planes/seeplanes/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/planes/seeplanes/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>presupuestoreservo (3)</h3><table>
+<tr><td><code>/presupuestoreservo/ListaActividadesPresupuesto/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/presupuestoreservo/ListaPresupuesto/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/presupuestoreservo/listarPresupuestoLista/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>productos (7)</h3><table>
+<tr><td><code>/productos/addStockProducto/{id}/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/productos/deleteproducto/{id}/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/productos/editproducto/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/productos/listado/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/productos/makeproducto/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/productos/printproductos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/productos/subStockProducto/{id}/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>recursos (2)</h3><table>
+<tr><td><code>/recursos/listrecursos/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/recursos/makerecurso/</code></td><td style="color:#868e96">POST·crear</td></tr>
+</table></div>
+<div class="mod"><h3>repositorio (1)</h3><table>
+<tr><td><code>/repositorio/listarchivos/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>reservopago (5)</h3><table>
+<tr><td><code>/reservopago/GetUrlPago/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/reservopago/activarConfirmaciones/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/reservopago/addCreditoAgendo/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/reservopago/consultaCredito/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/reservopago/facturasycomprobantes/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>schedule (12)</h3><table>
+<tr><td><code>/schedule/changeschedulename/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/schedule/changeschedulename/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/schedule/crearDisponibilidadSchedule/{id}/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/schedule/crear_categoria/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/schedule/deleteSchedule/{id}/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/schedule/getFeriadosCliente/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/schedule/guardarCategorias/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/schedule/listSchedule/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/schedule/makeFeriadosCliente/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/schedule/makeSchedule/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/schedule/obtenerschedule/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/schedule/scheduleactive/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>sociedades (4)</h3><table>
+<tr><td><code>/sociedades/borrarsociedades/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/sociedades/listasociedades/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/sociedades/makesociedad/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/sociedades/makesociedad/{id}/</code></td><td style="color:#868e96">POST·crear</td></tr>
+</table></div>
+<div class="mod"><h3>tratamiento (11)</h3><table>
+<tr><td><code>/tratamiento/choosetratamiento/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/tratamiento/crear_tratamiento/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/tratamiento/deletetratamiento/{id}/</code></td><td style="color:#868e96">POST·borrar</td></tr>
+<tr><td><code>/tratamiento/edittrat/{id}/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/tratamiento/filtrotratamiento/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/tratamiento/gettratamientoajax/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/tratamiento/grupos_tratamientos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/tratamiento/listcategoria/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/tratamiento/makeedittratamientofast/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/tratamiento/maketratamiento/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/tratamiento/printtratamiento/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>tutoriales (3)</h3><table>
+<tr><td><code>/tutoriales/gettutoriales/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/tutoriales/listtutoriales/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/tutoriales/solicitartutorial/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>upload (3)</h3><table>
+<tr><td><code>/upload/getlogochico/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/upload/sign_s3_orden_medica/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/upload/subirlogochico/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>userAppt (14)</h3><table>
+<tr><td><code>/userAppt/changepass/</code></td><td style="color:#868e96">POST·editar</td></tr>
+<tr><td><code>/userAppt/createuser/</code></td><td style="color:#868e96">POST·crear</td></tr>
+<tr><td><code>/userAppt/datosexamenusuario/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/userAppt/datosproveedorreceta/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/userAppt/datosrecetausuario/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/userAppt/desactivarUsuario/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/userAppt/fichasPermisos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/userAppt/firmausuario/{id}/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/userAppt/if_mail_valida_mail/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/userAppt/logrosusuario/{id}/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/userAppt/seeuser/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/userAppt/seeuser2/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+<tr><td><code>/userAppt/solicitudes_permisos/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/userAppt/verusuario/{id}/</code></td><td style="color:#868e96">GET/POST·leer</td></tr>
+</table></div>
+<div class="mod"><h3>usuarios (2)</h3><table>
+<tr><td><code>/usuarios/logout/</code></td><td style="color:#868e96">GET/POST</td></tr>
+<tr><td><code>/usuarios/mensajesusuario/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<div class="mod"><h3>whatsapp (1)</h3><table>
+<tr><td><code>/whatsapp/login/</code></td><td style="color:#868e96">GET/POST</td></tr>
+</table></div>
+<h2>Nota sobre la prueba de escritura</h2>
+<div class="warn">Los endpoints de crear/editar/borrar están mapeados, pero <b>NO se ejecutó una prueba de escritura en producción</b> para no arriesgar datos reales de pacientes ni dejar rastro. La prueba de crear+borrar una cita se hace de forma controlada (hora de test designada) cuando se decida.</div>
+</body></html>

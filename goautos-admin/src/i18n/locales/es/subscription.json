@@ -1,0 +1,153 @@
+{
+  "title": "Activa tu suscripcion",
+  "subtitle": "Comienza con 7 dias gratis, cancela cuando quieras",
+  "plan": {
+    "title": "Plan Basico",
+    "description": "Todo lo que necesitas para comenzar",
+    "price": "$249.900",
+    "period": "/mes",
+    "features": {
+      "trial": {
+        "title": "7 dias gratis",
+        "description": "Prueba sin compromiso"
+      },
+      "website": {
+        "title": "Sitio web publicado",
+        "description": "Tu catalogo online personalizado"
+      },
+      "inventory": {
+        "title": "Gestion de inventario",
+        "description": "Ilimitado"
+      },
+      "leads": {
+        "title": "Leads y clientes",
+        "description": "Gestion completa"
+      },
+      "support": {
+        "title": "Soporte prioritario",
+        "description": "Atencion rapida"
+      }
+    },
+    "disclaimer": "Primer cargo el dia 8. Cancela cuando quieras sin penalizacion."
+  },
+  "form": {
+    "title": "Informacion de pago",
+    "description": "Ingresa los datos de tu tarjeta de credito o debito",
+    "cardNumber": "Numero de tarjeta",
+    "cardNumberPlaceholder": "1234 5678 9012 3456",
+    "cardholder": "Titular de la tarjeta",
+    "cardholderPlaceholder": "JUAN PEREZ",
+    "month": "Mes",
+    "monthPlaceholder": "MM",
+    "year": "Ano",
+    "yearPlaceholder": "AA",
+    "cvv": "CVV",
+    "cvvPlaceholder": "123",
+    "submit": "Activar suscripcion",
+    "processing": "Procesando...",
+    "secure": "Tus datos estan protegidos. Procesado por Mercado Pago."
+  },
+  "status": {
+    "title": "Tu suscripcion",
+    "noSubscription": "Sin suscripcion activa",
+    "needSubscription": "Necesitas una suscripcion para publicar tu sitio web",
+    "activate": "Activar suscripcion",
+    "trial": "Prueba gratis",
+    "trialing": "Prueba gratis",
+    "active": "Activa",
+    "pastDue": "Pago pendiente",
+    "cancelled": "Cancelada",
+    "inactive": "Inactiva",
+    "trialPeriod": "Periodo de prueba",
+    "daysRemaining": "dias restantes",
+    "lastDay": "Ultimo dia de prueba",
+    "nextPayment": "Proximo pago",
+    "paymentMethod": "Metodo de pago",
+    "monthlyAmount": "Monto mensual",
+    "annualAmount": "Monto anual",
+    "cardEndingIn": "Tarjeta terminada en",
+    "memberSince": "Miembro desde",
+    "currentPlan": "Plan actual",
+    "billingCycle": "Ciclo de facturacion",
+    "monthly": "Mensual",
+    "annual": "Anual",
+    "manage": "Gestionar suscripcion",
+    "updatePayment": "Actualizar metodo de pago",
+    "cancel": "Cancelar suscripcion",
+    "needHelp": "¿Necesitas hacer cambios?"
+  },
+  "settings": {
+    "title": "Suscripcion",
+    "description": "Gestiona tu suscripcion y metodo de pago",
+    "currentStatus": "Estado actual",
+    "planDetails": "Detalles del plan",
+    "paymentInfo": "Informacion de pago",
+    "noActiveSubscription": "No tienes una suscripcion activa",
+    "activateNow": "Activar ahora",
+    "activateDescription": "Activa tu suscripcion para publicar tu sitio web y acceder a todas las funcionalidades.",
+    "manageInMp": "Cambiar el metodo de pago en MercadoPago",
+    "manageInMpHint": "Tu suscripcion se cobra via MercadoPago: la tarjeta se actualiza iniciando sesion alla, en la seccion Suscripciones. Si pagaste sin cuenta de MercadoPago, escribenos y te ayudamos."
+  },
+  "cancel": {
+    "title": "Cancelar suscripcion",
+    "step1": {
+      "title": "Antes de irte...",
+      "description": "Lamentamos que quieras cancelar. Cuentanos por que para poder mejorar.",
+      "selectReason": "Selecciona un motivo",
+      "reasons": {
+        "tooExpensive": "Es muy caro para mi",
+        "notUsing": "No estoy usando el servicio",
+        "missingFeatures": "Faltan funcionalidades que necesito",
+        "technicalIssues": "Problemas tecnicos frecuentes",
+        "foundAlternative": "Encontre una mejor alternativa",
+        "closingBusiness": "Estoy cerrando el negocio",
+        "temporaryPause": "Solo necesito una pausa temporal",
+        "other": "Otro motivo"
+      },
+      "otherPlaceholder": "Cuentanos mas sobre tu motivo...",
+      "continue": "Continuar"
+    },
+    "step2": {
+      "title": "Habla con un ejecutivo",
+      "description": "Antes de cancelar, te recomendamos hablar con uno de nuestros ejecutivos. Podemos ofrecerte:",
+      "offers": {
+        "discount": "Descuentos especiales",
+        "pause": "Pausar tu suscripcion temporalmente",
+        "support": "Soporte personalizado para resolver tus problemas",
+        "features": "Acceso anticipado a nuevas funcionalidades"
+      },
+      "contactWhatsApp": "Contactar por WhatsApp",
+      "contactEmail": "Contactar por Email",
+      "skipAndContinue": "Omitir y continuar con la cancelacion"
+    },
+    "step3": {
+      "title": "Confirmar cancelacion",
+      "description": "Al cancelar tu suscripcion:",
+      "consequences": {
+        "website": "Tu sitio web dejara de estar publicado",
+        "features": "Perderas acceso a funcionalidades premium",
+        "data": "Tus datos se mantendran por 30 dias",
+        "reactivate": "Puedes reactivar en cualquier momento"
+      },
+      "confirmText": "Escribe CANCELAR para confirmar",
+      "confirmPlaceholder": "Escribe CANCELAR",
+      "cancelSubscription": "Cancelar suscripcion",
+      "goBack": "Volver atras",
+      "cancelling": "Cancelando..."
+    },
+    "success": {
+      "title": "Suscripcion cancelada",
+      "description": "Tu suscripcion ha sido cancelada. Tendras acceso hasta el final de tu periodo de facturacion actual.",
+      "close": "Cerrar"
+    }
+  },
+  "messages": {
+    "success": "Suscripcion activada",
+    "successDescription": "Disfruta de 7 dias gratis! Tu tarjeta sera cobrada despues del periodo de prueba.",
+    "error": "Error al crear suscripcion",
+    "cancelled": "Suscripcion cancelada",
+    "cancelledDescription": "Tu suscripcion ha sido cancelada exitosamente",
+    "updateSuccess": "Metodo de pago actualizado",
+    "updateError": "Error al actualizar metodo de pago"
+  }
+}

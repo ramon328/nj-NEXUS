@@ -1,0 +1,40 @@
+{
+  "welcome": {
+    "title": "Welcome to the Website Builder!",
+    "description": "We'll guide you through the main features of the website builder. Here you can design and customize your dealership's website easily and intuitively. Click 'Next' to begin!"
+  },
+  "topbar": {
+    "title": "Builder Top Bar",
+    "description": "From here you can:\n\n🏠 Project title: 'Website Builder'\n← Back button to return to the dashboard\n💾 'Save' button to store your changes\n⚙️ 'Actions' menu with advanced options\n\n💡 Tip: Save frequently to avoid losing your changes."
+  },
+  "deviceToggle": {
+    "title": "Responsive View",
+    "description": "Switch between different devices to see how your website will look:\n\n🖥️ Desktop - Desktop computer view\n📱 Tablet - Tablet view\n📱 Mobile - Smartphone view\n\n💡 Tip: Make sure your site looks good on all devices before publishing."
+  },
+  "canvas": {
+    "title": "Builder Canvas",
+    "description": "This is your main workspace:\n\n🎨 Here you'll see your website in real-time\n🔧 You can click on any component to edit it\n➕ Drag components from the sidebar to add them\n📦 Components are organized from top to bottom\n\n💡 Tip: Use responsive view to verify everything looks good on mobile."
+  },
+  "sidebar": {
+    "title": "Components Panel",
+    "description": "The sidebar contains all available components:\n\n🧩 Hero Section - Featured start section\n🚗 Vehicle Carousel - Vehicle carousel\n❓ FAQ - Frequently asked questions\n📍 Map - How to get to your location\n⭐ Testimonials - Customer reviews\n✨ And many more customizable components\n\n💡 Tip: Drag and drop components onto the canvas to add them to your page."
+  },
+  "saveButton": {
+    "title": "Save Changes",
+    "description": "Very important! This button saves all your changes:\n\n💾 Saves your complete website design\n☁️ Changes are stored in the database\n✅ You'll see a confirmation message when saved\n\n💡 Tip: Save before making important changes to have a restore point."
+  },
+  "actionsMenu": {
+    "title": "Actions Menu",
+    "description": "This menu contains important options:\n\n📊 Page Status:\n  • Active - Your website is publicly visible\n  • Inactive - Your website is hidden\n\n🎨 Page Theme:\n  • Light - Navigation bar with light background\n  • Dark - Navigation bar with dark background\n\n🔄 Start from Scratch - Reset builder with default template\n🗑️ Discard Changes - Return to last saved state\n\n💡 Tip: Activate your website when it's ready for your customers to see."
+  },
+  "finish": {
+    "title": "Ready to Create Your Website!",
+    "description": "You now know the main tools of the Website Builder:\n\n✅ How to navigate the canvas\n✅ How to switch between devices\n✅ How to save your changes\n✅ How to activate/deactivate your website\n\n🎨 Now you can start designing the perfect website for your dealership! Remember to save frequently and test on different devices.\n\n💡 You can view this tour again at any time by clicking the Tour button."
+  },
+  "buttons": {
+    "next": "Next",
+    "previous": "Previous",
+    "done": "Done",
+    "skip": "Skip"
+  }
+}

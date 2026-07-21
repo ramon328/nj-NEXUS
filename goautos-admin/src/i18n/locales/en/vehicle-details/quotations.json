@@ -1,0 +1,35 @@
+{
+  "form": {
+    "generateButton": "Generate Quotation",
+    "generating": "Generating...",
+    "validation": {
+      "priceRequired": "Price is required",
+      "validityRequired": "Validity is required"
+    }
+  },
+  "customerSelection": {
+    "title": "Customer",
+    "placeholder": "Select a customer",
+    "loading": "Loading customers...",
+    "empty": "No customers available",
+    "newCustomer": "New Customer",
+    "dialogTitle": "Create New Customer"
+  },
+  "priceValidity": {
+    "estimatedPriceLabel": "Quoted Price",
+    "estimatedPricePlaceholder": "e.g., 15000000",
+    "validityLabel": "Validity (days)",
+    "validityPlaceholder": "e.g., 30"
+  },
+  "notes": {
+    "label": "Additional Notes",
+    "placeholder": "Enter additional notes about the quotation"
+  },
+  "toasts": {
+    "successTitle": "Quotation generated",
+    "successDescription": "The quotation has been created successfully",
+    "errorTitle": "Error",
+    "errorDescription": "Could not generate the quotation. Please try again."
+  }
+}
+

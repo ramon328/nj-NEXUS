@@ -1,0 +1,42 @@
+{
+  "welcome": {
+    "title": "Welcome to GoAutos!",
+    "subtitle": "Let's set up your dealership step by step"
+  },
+  "addVehicle": {
+    "title": "Add your first vehicle",
+    "subtitle": "Step 1 of 2",
+    "description": "Start your inventory by adding your first vehicle. This will help you get familiar with the platform and you can start managing your stock immediately.",
+    "motivation": "💡 Tip: Don't worry if you don't have all the data now, you can edit it later.",
+    "button": "Add First Vehicle",
+    "skip": "Skip for now"
+  },
+  "createWebsite": {
+    "title": "Excellent! Vehicle added",
+    "subtitle": "Step 2 of 2",
+    "description": "Design your personalized website to showcase your vehicles to your customers. The builder is very easy to use and you can customize it with your brand colors.",
+    "motivation": "🎨 You already have your brand values configured, the site will be created with your colors.",
+    "button": "Create My Website",
+    "skip": "Configure later"
+  },
+  "complete": {
+    "title": "All set! 🎉",
+    "subtitle": "You've completed the initial setup",
+    "description": "You can now start managing your dealership with GoAutos. You have access to all platform features.",
+    "checklist": {
+      "vehicle": "Vehicle added",
+      "website": "Website configured",
+      "ready": "Ready to use"
+    },
+    "button": "Go to Dashboard"
+  },
+  "progress": {
+    "step": "Step {{current}} of {{total}}",
+    "almostThere": "Almost there!",
+    "loading": "Loading..."
+  },
+  "errors": {
+    "loadingStatus": "Error loading onboarding status",
+    "updatingStatus": "Error updating progress"
+  }
+}

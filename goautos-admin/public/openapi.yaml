@@ -1,0 +1,178 @@
+openapi: 3.0.3
+info:
+  title: GoAuto · API de Inventario
+  version: "1.0.0"
+  description: >
+    API REST para consultar el inventario de tu automotora en GoAuto.
+    Cada automotora autentica con su propia **API key** (la generas en
+    Configuración → Desarrolladores) enviándola en el header `x-api-key`.
+    La API key determina de qué automotora se devuelven los vehículos —
+    no se pasa ningún identificador de cliente.
+
+    Solo se exponen datos **comerciales** del vehículo (nada financiero:
+    ni precio de compra, ni márgenes, ni comisiones).
+servers:
+  - url: https://miuiujntdjrjhhcysiba.supabase.co/functions/v1/inventory-api
+    description: Producción
+security:
+  - apiKeyAuth: []
+tags:
+  - name: Vehículos
+    description: Inventario de la automotora
+paths:
+  /vehicles:
+    get:
+      tags: [Vehículos]
+      summary: Listar vehículos
+      description: Devuelve los vehículos de la automotora, paginados y filtrables.
+      parameters:
+        - { name: page, in: query, schema: { type: integer, default: 1, minimum: 1 }, description: Número de página. }
+        - { name: limit, in: query, schema: { type: string, default: "50" }, description: 'Cantidad por página (1–200) o "all" para todos.' }
+        - { name: available_only, in: query, schema: { type: boolean, default: true }, description: Solo vehículos publicados/disponibles. }
+        - { name: view, in: query, schema: { type: string, enum: [compact] }, description: '"compact": solo datos comerciales — sin galería, patente, video ni timestamps (~12% del tamaño). Pensada para agentes AI.' }
+        - { name: exclude, in: query, schema: { type: string, enum: [galeria] }, description: '"galeria": vista completa pero sin el array de fotos.' }
+        - { name: marca, in: query, schema: { type: string }, description: Filtrar por nombre de marca (parcial, case-insensitive). }
+        - { name: modelo, in: query, schema: { type: string }, description: Filtrar por nombre de modelo (parcial, case-insensitive). }
+        - { name: categoria, in: query, schema: { type: string }, description: Filtrar por categoría (parcial, case-insensitive), ej. SUV. }
+        - { name: combustible, in: query, schema: { type: string }, description: Filtrar por combustible (parcial, case-insensitive). }
+        - { name: brand_id, in: query, schema: { type: integer }, description: Filtrar por marca (id). }
+        - { name: model_id, in: query, schema: { type: integer }, description: Filtrar por modelo (id). }
+        - { name: year_min, in: query, schema: { type: integer }, description: Año mínimo (alias anio_min). }
+        - { name: year_max, in: query, schema: { type: integer }, description: Año máximo (alias anio_max). }
+        - { name: price_min, in: query, schema: { type: integer }, description: Precio mínimo (alias precio_min). }
+        - { name: price_max, in: query, schema: { type: integer }, description: Precio máximo (alias precio_max). }
+        - { name: search, in: query, schema: { type: string }, description: Busca en descripción / versión. }
+        - { name: sort, in: query, schema: { type: string, enum: [created_at, price, year], default: created_at }, description: Campo de orden. }
+        - { name: order, in: query, schema: { type: string, enum: [asc, desc], default: desc }, description: Dirección de orden. }
+      responses:
+        "200":
+          description: >
+            Lista de vehículos. Incluye header `ETag`: reenvíalo en
+            `If-None-Match` y, si el inventario no cambió, la API responde
+            `304 Not Modified` sin cuerpo (ahorra el 100% de la transferencia).
+            Con `view=compact` los items siguen el schema VehicleCompact
+            (sin galería, patente ni timestamps).
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  version: { type: string, example: "1" }
+                  data:
+                    type: array
+                    items: { $ref: "#/components/schemas/Vehicle" }
+                  pagination: { $ref: "#/components/schemas/Pagination" }
+        "401":
+          description: API key faltante, inválida o revocada.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+  /vehicles/{id}:
+    get:
+      tags: [Vehículos]
+      summary: Detalle de un vehículo
+      parameters:
+        - { name: id, in: path, required: true, schema: { type: integer }, description: ID del vehículo. }
+      responses:
+        "200":
+          description: Vehículo.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success: { type: boolean, example: true }
+                  version: { type: string, example: "1" }
+                  data: { $ref: "#/components/schemas/Vehicle" }
+        "404":
+          description: Vehículo no encontrado.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+        "401":
+          description: API key faltante, inválida o revocada.
+          content: { application/json: { schema: { $ref: "#/components/schemas/Error" } } }
+components:
+  securitySchemes:
+    apiKeyAuth:
+      type: apiKey
+      in: header
+      name: x-api-key
+      description: API key de la automotora (Configuración → Desarrolladores).
+  schemas:
+    Vehicle:
+      type: object
+      properties:
+        id: { type: integer, example: 1234 }
+        marca: { type: string, example: "Toyota" }
+        modelo: { type: string, example: "Corolla" }
+        version: { type: string, nullable: true, example: "XEI 1.8" }
+        anio: { type: integer, nullable: true, example: 2023 }
+        precio: { type: integer, example: 18000000 }
+        kms: { type: integer, example: 42627 }
+        transmision: { type: string, nullable: true, example: "Automática" }
+        traccion: { type: string, nullable: true, example: "4x2" }
+        combustible: { type: string, nullable: true, example: "Bencina" }
+        color: { type: string, nullable: true, example: "Blanco" }
+        categoria: { type: string, nullable: true, example: "Sedán" }
+        duenos: { type: integer, nullable: true, example: 1 }
+        llaves: { type: integer, nullable: true, example: 2 }
+        sucursal: { type: string, nullable: true, example: "Riesco Motors Patronato", description: "Sucursal donde está el vehículo (null si no tiene asignada)." }
+        patente: { type: string, nullable: true, example: "ABCD12" }
+        descripcion: { type: string, nullable: true }
+        video_url: { type: string, nullable: true }
+        main_image_url: { type: string, nullable: true }
+        galeria:
+          type: array
+          items: { type: string }
+        estado: { type: string, nullable: true, example: "Publicado" }
+        disponible: { type: boolean, example: true }
+        created_at: { type: string, format: date-time }
+        updated_at: { type: string, format: date-time, description: "Última actualización (last updated)." }
+        links:
+          type: object
+          description: "Links de publicación del vehículo (null si no está publicado en ese canal)."
+          properties:
+            web: { type: string, nullable: true, description: "Ficha del auto en la web del tenant." }
+            chileautos: { type: string, nullable: true, description: "Aviso en ChileAutos." }
+            mercadolibre: { type: string, nullable: true, description: "Aviso en MercadoLibre." }
+    VehicleCompact:
+      type: object
+      description: >
+        Item devuelto con `view=compact`: solo los campos comerciales de
+        Vehicle — sin `patente`, `video_url`, `main_image_url`, `galeria`,
+        `created_at` ni `updated_at`. Conserva `links` (incluye la ficha web).
+      properties:
+        id: { type: integer, example: 1234 }
+        marca: { type: string, example: "Toyota" }
+        modelo: { type: string, example: "Corolla" }
+        version: { type: string, nullable: true, example: "XEI 1.8" }
+        anio: { type: integer, nullable: true, example: 2023 }
+        precio: { type: integer, example: 18000000 }
+        kms: { type: integer, example: 42627 }
+        transmision: { type: string, nullable: true, example: "Automática" }
+        traccion: { type: string, nullable: true, example: "4x2" }
+        combustible: { type: string, nullable: true, example: "Bencina" }
+        color: { type: string, nullable: true, example: "Blanco" }
+        categoria: { type: string, nullable: true, example: "Sedán" }
+        duenos: { type: integer, nullable: true, example: 1 }
+        llaves: { type: integer, nullable: true, example: 2 }
+        sucursal: { type: string, nullable: true, example: "Riesco Motors Patronato" }
+        descripcion: { type: string, nullable: true }
+        estado: { type: string, nullable: true, example: "Publicado" }
+        disponible: { type: boolean, example: true }
+        links:
+          type: object
+          properties:
+            web: { type: string, nullable: true }
+            chileautos: { type: string, nullable: true }
+            mercadolibre: { type: string, nullable: true }
+    Pagination:
+      type: object
+      properties:
+        page: { type: integer, example: 1 }
+        limit: { type: integer, example: 50 }
+        total: { type: integer, example: 137 }
+        totalPages: { type: integer, example: 3 }
+    Error:
+      type: object
+      properties:
+        success: { type: boolean, example: false }
+        error: { type: string, example: "API key inválida o revocada." }

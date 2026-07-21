@@ -1,0 +1,92 @@
+{
+  "notFoundTitle": "Vehicle not found",
+  "notFoundDescription": "The requested vehicle does not exist or you don't have permissions to view it.",
+  "header": {
+    "publishInstagram": "Publish on Instagram",
+    "actionsButton": "ACTIONS",
+    "actionsTitle": "Vehicle actions",
+    "viewReservation": "View reservation",
+    "generateReservation": "Generate reservation",
+    "generateQuotation": "Generate quotation",
+    "addExpense": "Add Expense",
+    "addIncome": "Add Income",
+    "editSale": "Edit sale",
+    "sellVehicle": "Sell vehicle",
+    "editCloseDeal": "Edit deal closing",
+    "closeDeal": "Close deal"
+  },
+  "tabs": {
+    "resume": "Summary",
+    "timeline": "Timeline",
+    "details": "Details",
+    "documents": "Documents",
+    "instagram": "Instagram"
+  },
+  "resume": {
+    "titles": {
+      "generalInfo": "General information",
+      "details": "Vehicle details",
+      "legalFinancial": "Legal and Financial Information",
+      "expiryDates": "Expiry Dates",
+      "extras": "Extras (Internal Use)",
+      "description": "Description"
+    },
+    "labels": {
+      "brand": "Brand",
+      "model": "Model",
+      "year": "Year",
+      "color": "Color",
+      "mileage": "Mileage",
+      "licensePlate": "License Plate",
+      "keys": "Number of Keys",
+      "engineNumber": "Engine Number",
+      "chassisNumber": "Chassis Number",
+      "condition": "Condition",
+      "fuelType": "Fuel Type",
+      "transmission": "Transmission",
+      "category": "Category",
+      "owners": "Number of Owners",
+      "hasLien": "Has Lien",
+      "isBillable": "Is Billable",
+      "techInspection": "Technical Inspection",
+      "emissions": "SOAP",
+      "circulationPermit": "Circulation Permit Expiry",
+      "municipalityPermit": "Municipality",
+      "daysInStock": "Days in stock",
+      "status": "Status",
+      "review": "Review",
+      "mechanicalReview": "Mechanical Review"
+    },
+    "kmSuffix": "km",
+    "unspecified": "Not specified"
+  },
+  "documents": {
+    "title": "Vehicle Documents",
+    "missingLegalInfo": "Missing legal information in your profile. Document generation will not be complete without this information.",
+    "additional": "Additional Documents",
+    "addDocuments": "Add Documents"
+  },
+  "financial": {
+    "title": "Financial Summary",
+    "detailOf": "Detail of {{label}}",
+    "untitled": "Untitled",
+    "noDetails": "No details available.",
+    "expenses": {
+      "title": "Expenses",
+      "purchasePrice": "Purchase price",
+      "agreedPriceConsignment": "Agreed price (consignment)",
+      "otherExpenses": "Other expenses",
+      "total": "Total expenses"
+    },
+    "income": {
+      "title": "Income",
+      "salePrice": "Sale price",
+      "customerPayment": "Customer payment",
+      "otherIncome": "Other income",
+      "tradeInVehicle": "Trade-in vehicle",
+      "total": "Total income"
+    },
+    "transferValue": "Transfer value",
+    "netResult": "Net result"
+  }
+}

@@ -1,0 +1,39 @@
+{
+  "title": "Tu automotora va en un <strong>{{score}}%</strong>",
+  "header": "Configuración inicial",
+  "expand": "Ver todos los pasos",
+  "collapse": "Ocultar pasos",
+  "progress": "{{completed}} de {{total}} pasos completados",
+  "milestones": {
+    "dealershipData": {
+      "label": "Datos",
+      "nextStep": "Completa los datos de tu automotora",
+      "subtitle": "Nombre, logo y al menos una sucursal — tus clientes lo van a ver"
+    },
+    "firstVehicle": {
+      "label": "1er vehículo",
+      "nextStep": "Sube tu primer vehículo",
+      "subtitle": "Con el autocompletado por patente lo haces en 2 minutos"
+    },
+    "fiveVehicles": {
+      "label": "Inventario",
+      "nextStep": "Sigue subiendo tu inventario",
+      "subtitle": "Los clientes buscan variedad — 5 vehículos es un buen inicio"
+    },
+    "builder": {
+      "label": "Sitio web",
+      "nextStep": "Personaliza tu sitio web",
+      "subtitle": "Tu web es la vitrina de tu negocio — hazla tuya"
+    },
+    "leadManaged": {
+      "label": "Leads",
+      "nextStep": "Gestiona tu primer lead",
+      "subtitle": "Cuando lleguen consultas desde tu web, aparecerán aquí"
+    },
+    "documentGenerated": {
+      "label": "Documentos",
+      "nextStep": "Genera tu primera cotización o nota de venta",
+      "subtitle": "Desde la ficha del vehículo puedes generar documentos en un click"
+    }
+  }
+}

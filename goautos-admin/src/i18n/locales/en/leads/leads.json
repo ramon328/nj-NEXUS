@@ -1,0 +1,177 @@
+{
+  "page": {
+    "title": "Leads",
+    "subtitle": "Manage your dealership's buying and selling leads"
+  },
+  "tabs": {
+    "buy": "Buying Leads",
+    "sell": "Selling Leads"
+  },
+  "viewToggle": {
+    "kanban": "Kanban",
+    "table": "Table"
+  },
+  "filters": {
+    "searchPlaceholder": "Search by name or email",
+    "typeAll": "Type: All",
+    "statusAll": "Status: All",
+    "clear": "Clear filters"
+  },
+  "types": {
+    "buyDirect": "Direct Purchase",
+    "buyConsignment": "Consignment",
+    "searchRequest": "Find Your Car",
+    "sellVehicle": "Vehicle Sale",
+    "sellFinancing": "Financing",
+    "sellTransfer": "Transfer",
+    "contactGeneral": "General Contact"
+  },
+  "status": {
+    "pending": "Pending",
+    "assigned": "Assigned",
+    "completed": "Completed",
+    "cancelled": "Cancelled"
+  },
+  "statusDescriptions": {
+    "pending": "The lead is pending processing.",
+    "assigned": "The lead has been assigned to a seller.",
+    "completed": "The lead process has been successfully completed.",
+    "cancelled": "The lead has been cancelled or rejected."
+  },
+  "labels": {
+    "type": "Type",
+    "date": "Date",
+    "vehicle": "Vehicle",
+    "price": "Sale Price",
+    "contact": "Contact",
+    "customer": "Customer",
+    "status": "Status",
+    "name": "Name",
+    "rut": "Tax ID",
+    "phone": "Phone",
+    "birthDate": "Birth Date",
+    "noCustomerInfo": "No customer information available",
+    "brand": "Brand",
+    "model": "Model",
+    "year": "Year",
+    "mileage": "Mileage",
+    "searchCriteria": "Search criteria",
+    "noLimit": "No limit",
+    "maxOwners": "Max. owners",
+    "searchedVehicle": "Searched vehicle",
+    "clientSearchesVehicle": "Client is looking for this type of vehicle",
+    "consigned": "Consigned",
+    "owned": "Owned",
+    "priceNotAvailable": "Price not available",
+    "notes": "Notes",
+    "associatedVehicles": "Associated Vehicles"
+  },
+  "buttons": {
+    "viewDetails": "View details",
+    "viewVehicle": "View vehicle",
+    "addLead": "Add Lead",
+    "editNotes": "Edit notes",
+    "deleteLead": "Delete",
+    "createRequest": "Create Request",
+    "exportLeads": "Export"
+  },
+  "export": {
+    "success": "Exported {{count}} leads",
+    "empty": "No leads to export with the current filters.",
+    "error": "We couldn't export the leads. Please try again."
+  },
+  "claim": {
+    "take": "Take this lead",
+    "claimed": "Lead taken",
+    "claimFailed": "Another seller already took it",
+    "release": "Release lead",
+    "released": "Lead returned to the pool",
+    "releaseFailed": "Couldn't release the lead"
+  },
+  "timeline": {
+    "title": "Activity log",
+    "loading": "Loading…",
+    "empty": "No activity recorded yet.",
+    "created": "Lead created",
+    "created_from": "Lead created ({{source}})",
+    "assigned": "Assigned to {{name}}",
+    "reassigned": "Reassigned to {{name}}",
+    "unassigned": "Assignment removed",
+    "status_changed": "Status: {{from}} → {{to}}",
+    "notes_changed": "Notes updated",
+    "source": {
+      "admin": "Panel",
+      "web": "Web",
+      "chileautos": "ChileAutos",
+      "system": "System"
+    }
+  },
+  "table": {
+    "emptyFilters": "No leads available with current filters",
+    "emptyState": "You don't have any leads yet",
+    "emptyStateHint": "Leads are created automatically from your website or you can add them manually.",
+    "addFirstLead": "Add first lead"
+  },
+  "kanban": {
+    "emptyColumn": "No leads"
+  },
+  "detail": {
+    "leadDetail": "Lead detail",
+    "noNotes": "No notes",
+    "requestCreated": "Request created",
+    "requestCreatedDesc": "You can view it in the Requests section"
+  },
+  "timeAgo": {
+    "justNow": "Just now",
+    "minutes": "{{count}} min ago",
+    "hours": "{{count}}h ago",
+    "yesterday": "Yesterday",
+    "days": "{{count}} days ago"
+  },
+  "createDialog": {
+    "title": "Add Lead",
+    "customer": "Customer",
+    "customerInfo": "Customer information",
+    "leadInfo": "Lead information",
+    "firstName": "First name",
+    "lastName": "Last name",
+    "email": "Email",
+    "phone": "Phone",
+    "rut": "Tax ID",
+    "type": "Lead type",
+    "notes": "Notes",
+    "notesPlaceholder": "Add notes about this lead...",
+    "typeGroupBuy": "Buy",
+    "typeGroupSell": "Sell",
+    "typeGroupOther": "Other",
+    "success": "Lead created successfully",
+    "error": "Error creating lead",
+    "selectType": "Select a type",
+    "existingCustomerUsed": "An existing customer with that email was found"
+  },
+  "editNotesDialog": {
+    "title": "Edit notes",
+    "placeholder": "Write notes about this lead...",
+    "success": "Notes updated successfully",
+    "error": "Error updating notes"
+  },
+  "deleteDialog": {
+    "title": "Delete lead",
+    "description": "This action is irreversible. The lead will be permanently deleted.",
+    "success": "Lead deleted successfully",
+    "error": "Error deleting lead"
+  },
+  "errors": {
+    "load": "Error loading leads"
+  },
+  "statusModal": {
+    "title": "Change lead status",
+    "description": "Select the new status for the lead."
+  },
+  "financing": {
+    "title": "Financing Information",
+    "downPayment": "Down Payment",
+    "monthlyIncome": "Monthly Income",
+    "employmentType": "Employment Type"
+  }
+}

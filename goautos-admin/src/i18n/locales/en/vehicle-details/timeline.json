@@ -1,0 +1,72 @@
+{
+  "title": "Movements",
+  "filters": {
+    "label": "Filter by:",
+    "all": "All",
+    "income": "Income",
+    "expenses": "Expenses"
+  },
+  "mobileDetails": {
+    "ariaClose": "Close details",
+    "title": "Movement details",
+    "labels": {
+      "name": "Name",
+      "description": "Description",
+      "number": "Movement No.",
+      "type": "Type",
+      "date": "Date",
+      "time": "Time",
+      "document": "Document",
+      "amount": "Amount"
+    },
+    "document": {
+      "viewTitle": "View document",
+      "viewLink": "View document",
+      "none": "No document"
+    },
+    "types": {
+      "income": "Income",
+      "sale": "Income",
+      "expense": "Expense",
+      "acquisition": "Acquisition",
+      "document": "Document"
+    }
+  },
+  "sheet": {
+    "title": {
+      "editIncome": "Edit Income",
+      "editExpense": "Edit Expense",
+      "edit": "Edit Movement",
+      "add": "Add Movement"
+    },
+    "buttons": {
+      "cancel": "Cancel",
+      "update": "Update",
+      "save": "Save"
+    }
+  },
+  "confirmDelete": {
+    "title": "Delete event?",
+    "message": "Are you sure you want to delete this event? This action cannot be undone.",
+    "cancel": "Cancel",
+    "delete": "Delete"
+  },
+  "toasts": {
+    "deleted": "Event deleted successfully",
+    "updated": "Event updated successfully",
+    "updateError": "Error updating event"
+  },
+  "summary": {
+    "totalProfit": "Total Profit",
+    "expenses": "Expenses",
+    "income": "Income"
+  },
+  "empty": "No movements registered",
+  "event": {
+    "viewDetails": "View details",
+    "editEvent": "Edit event",
+    "deleteEvent": "Delete event",
+    "statusChange": "Status Change",
+    "document": "Document"
+  }
+}

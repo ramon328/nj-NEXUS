@@ -1,0 +1,31 @@
+{
+  "_comment": "Changelog REAL de Nexus. Fuente de verdad para la pregunta '¿qué cambios/mejoras se hicieron?'. Newest first. Editar a mano cuando se agregue algo. NO inventar: solo lo que de verdad está activo.",
+  "actualizado": "2026-07-17",
+  "novedades": [
+    { "fecha": "2026-07-17", "area": "WhatsApp", "titulo": "Ahora entiendo VIDEOS", "detalle": "Si me mandas un video por WhatsApp, le saco fotogramas y te digo qué muestra (antes solo leía fotos y PDF; los videos se perdían). También facturar un auto ahora pide máximo el carnet y la dirección." },
+    { "fecha": "2026-07-17", "area": "Recordatorios", "titulo": "Lista personal de recordatorios", "detalle": "Dime 'guarda en recordatorios esto' o 'apúntame que…' y lo anoto en tu lista personal del Segundo Cerebro (una por Ramón y otra por Nico). Cada 10 días te mando por WhatsApp tus pendientes. Para avisos con hora exacta sigue siendo 'recuérdame mañana a las 9'." },
+    { "fecha": "2026-07-17", "area": "Nexus", "titulo": "Te cuento mis propios cambios", "detalle": "Ahora cuando me preguntas '¿qué cambios/mejoras se te hicieron?' respondo desde un registro real de novedades, igual en web y en WhatsApp (antes a veces decía que no detectaba)." },
+    { "fecha": "2026-07-15", "area": "Facturación (SII)", "titulo": "Martes emite facturas", "detalle": "Puedo armar y validar facturas de ANA CLARA (simular → confirmar). La emisión real está blindada hasta cargar la clave .pfx y habilitar el canal." },
+    { "fecha": "2026-07-15", "area": "MallorcAutos", "titulo": "Factura automática desde GoAutos", "detalle": "Le pides 'créame una factura para la Raptor' y saco motor/chasis del stock de GoAutos; también modo manual por dictado o CAV (guardo el CAV y no lo vuelvo a pedir)." },
+    { "fecha": "2026-07-15", "area": "Bancos", "titulo": "Agente Leo — bancos reales", "detalle": "Veo saldos y movimientos de los bancos de verdad (ingresos/egresos por mes, salud de las conexiones). Solo lectura, no muevo un peso." },
+    { "fecha": "2026-07-15", "area": "WhatsApp", "titulo": "Leo PDF y fotos entrantes", "detalle": "Ahora bajo el archivo que me mandas por WhatsApp (PDF/imagen) y lo leo. Antes lo descartaba." },
+    { "fecha": "2026-07-15", "area": "Cerebro", "titulo": "Qué hiciste hoy (mi_dia)", "detalle": "Respondo '¿qué hice hoy/ayer/esta semana?' con el análisis real de Plaud, en primera persona y corto. No lo invento." },
+    { "fecha": "2026-07-15", "area": "Criterio", "titulo": "Voz y criterio de Nico", "detalle": "Hablo en chileno neutro (trato de tú, sin voseo), sin sonar a IA y sin inventar datos." },
+    { "fecha": "2026-07-14", "area": "WhatsApp", "titulo": "Respondo directo como Nico", "detalle": "Ya no antepongo 'me comuniqué con Meme/Martes y me dijo…': contesto directo. Las preguntas personales las respondo cortas y en primera persona." },
+    { "fecha": "2026-07-10", "area": "Comunicación", "titulo": "Envío archivos por WhatsApp", "detalle": "Te mando documentos como imagen (JPG) por WhatsApp para que no expiren." },
+    { "fecha": "2026-07-09", "area": "Cobranza", "titulo": "Cobranza en ciclo, sin flood", "detalle": "Mando cobranza por SMS/WhatsApp en ciclo, sin saturar y sin contestarle al deudor si escribe." },
+    { "fecha": "2026-07-07", "area": "Voz", "titulo": "Voz TTS neural", "detalle": "Mi voz web es neural (edge-tts, es-CL Lorenzo), ya no la robótica." },
+    { "fecha": "2026-07-06", "area": "SII", "titulo": "Descargo boletas de honorarios", "detalle": "Bajo el PDF real de una BHE recibida (empresa/año/mes/emisor) y te la mando por WhatsApp." },
+    { "fecha": "2026-07-06", "area": "MallorcAutos", "titulo": "Gerente comercial (ex-GAIA)", "detalle": "Leads de compra/venta, citas, financiamientos y cuotas, documentos (cotizaciones/reservas/cierres), marketing publicado, equipo, comisiones, gastos fijos, tasación con precios vivos, y creo tareas/cotizaciones/reservas (simulando antes)." },
+    { "fecha": "2026-07-06", "area": "Criterio", "titulo": "Decido como Nico", "detalle": "Inyecto tu segundo cerebro (Principios + Situaciones) para decidir con tu criterio, no genérico." },
+    { "fecha": "2026-07-05", "area": "SAI", "titulo": "Conciliación SII ↔ banco ↔ Mallorca", "detalle": "Cruzo facturas del SII con los movimientos del banco de Ana Clara: cobertura, qué está pagado y qué no." },
+    { "fecha": "2026-07-05", "area": "Reportes", "titulo": "Gráficos automáticos", "detalle": "Los resúmenes financieros (Aliace/Mallorca) llevan siempre gráfico (barra/torta/línea) en vez de números sueltos." },
+    { "fecha": "2026-07-05", "area": "Centro de IAs", "titulo": "Panel de los subagentes", "detalle": "Front con el estado, actividad, salud y métricas de cada IA (Ali, Meme, Néstor, Martes, Cerebro…), también compartible externo." },
+    { "fecha": "2026-07-03", "area": "Rendimiento", "titulo": "Aguanto más gente a la vez", "detalle": "Subí la concurrencia del hub para atender a varias personas en simultáneo sin caerme." },
+    { "fecha": "2026-07-01", "area": "Aliace", "titulo": "Margen canónico", "detalle": "El margen sale neto de devoluciones (igual que Power BI): ventas netas menos costo, con las devoluciones descontadas." },
+    { "fecha": "2026-06-30", "area": "Aliace", "titulo": "Ahora también ESCRIBE", "detalle": "Muevo/apruebo notas de venta, registro pagos, edito una NV y creo NVs nuevas. Todo simulando primero y con tu OK antes de ejecutar." },
+    { "fecha": "2026-06-30", "area": "Aliace", "titulo": "Resúmenes canónicos", "detalle": "aliace_resumen y aliace_margen como fuente única del mes, y aliace_anual para todo el año (facturación/margen/meta/CxC coherentes)." },
+    { "fecha": "2026-06-26", "area": "MallorcAutos", "titulo": "Manejo el stock real", "detalle": "Escribo en la base real de MallorcAutos (GoAutos): subo, edito y vendo autos; el stock se muestra siempre con ficha y foto." },
+    { "fecha": "2026-06-26", "area": "Gestión", "titulo": "Alta/baja de usuarios", "detalle": "Ustedes (fundadores) dan de alta o baja gente en Nexus y definen a qué áreas tiene acceso, con bienvenida automática por WhatsApp." }
+  ]
+}

@@ -1,0 +1,32 @@
+@import "tailwindcss";
+
+/* Variables de tema: fondo casi negro con acentos violeta/fucsia */
+:root {
+  --background: #0a0712;
+  --foreground: #ece8f6;
+  --surface: #120d1d;
+  --surface-2: #1a1329;
+  --borde: #2b2140;
+  --acento: #8b5cf6;
+  --acento-2: #d946ef;
+  --texto-tenue: #9d94b8;
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-borde: var(--borde);
+  --color-acento: var(--acento);
+  --color-acento-2: var(--acento-2);
+  --color-tenue: var(--texto-tenue);
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), Arial, Helvetica, sans-serif;
+}

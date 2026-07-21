@@ -1,0 +1,1779 @@
+{
+  "buttons": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "add": "Agregar",
+    "create": "Crear",
+    "update": "Actualizar",
+    "view": "Ver",
+    "close": "Cerrar",
+    "back": "Volver",
+    "next": "Siguiente",
+    "previous": "Anterior",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "export": "Exportar",
+    "import": "Importar",
+    "download": "Descargar",
+    "upload": "Subir",
+    "confirm": "Confirmar",
+    "submit": "Enviar",
+    "reset": "Restablecer",
+    "clear": "Limpiar",
+    "refresh": "Actualizar",
+    "copy": "Copiar",
+    "duplicate": "Duplicar"
+  },
+  "actions": {
+    "loading": "Cargando...",
+    "saving": "Guardando...",
+    "processing": "Procesando...",
+    "deleting": "Eliminando...",
+    "uploading": "Subiendo...",
+    "downloading": "Descargando...",
+    "searching": "Buscando...",
+    "filtering": "Filtrando...",
+    "calculating": "Calculando...",
+    "success": "Éxito",
+    "error": "Error",
+    "warning": "Advertencia",
+    "info": "Información"
+  },
+  "status": {
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "pending": "Pendiente",
+    "completed": "Completado",
+    "cancelled": "Cancelado",
+    "draft": "Borrador",
+    "published": "Publicado",
+    "archived": "Archivado"
+  },
+  "general": {
+    "yes": "Sí",
+    "no": "No",
+    "ok": "OK",
+    "all": "Todos",
+    "none": "Ninguno",
+    "other": "Otro",
+    "optional": "Opcional",
+    "required": "Requerido",
+    "total": "Total",
+    "subtotal": "Subtotal",
+    "quantity": "Cantidad",
+    "price": "Precio Venta",
+    "amount": "Monto",
+    "date": "Fecha",
+    "time": "Hora",
+    "name": "Nombre",
+    "description": "Descripción",
+    "details": "Detalles",
+    "type": "Tipo",
+    "category": "Categoría",
+    "status": "Estado",
+    "actions": "Acciones"
+  },
+  "aiAssistant": {
+    "buttonLabel": "GAIA",
+    "buttonTitle": "Abrir GAIA",
+    "drawer": {
+      "title": "GAIA",
+      "subtitle": "GoAuto Intelligent Assistant",
+      "beta": "Beta",
+      "placeholder": "Escribe tu pregunta aquí...",
+      "helper": "Enter para enviar, Shift+Enter para nueva línea",
+      "clear": "Limpiar chat",
+      "thinking": "Analizando datos...",
+      "assistantLabel": "GAIA"
+    },
+    "messages": {
+      "welcome": "¡Hola! Soy GAIA, tu asistente inteligente de GoAutos. Puedo ayudarte con:\n\n• Consultar estadísticas de ventas, inventario y finanzas\n• Analizar el rendimiento de tu automotora\n• Buscar vehículos, clientes y leads específicos\n• Darte recomendaciones basadas en tus datos\n\n¿En qué puedo ayudarte hoy?",
+      "restart": "Chat reiniciado. ¿En qué puedo ayudarte?",
+      "error": "Lo siento, ocurrió un error: {{message}}. Por favor, intenta de nuevo.",
+      "defaultError": "Hubo un error al procesar tu mensaje",
+      "fallback": "Lo siento, no pude procesar tu solicitud."
+    },
+    "sidebar": {
+      "newConversation": "Nueva conversación",
+      "today": "Hoy",
+      "yesterday": "Ayer",
+      "last7Days": "Últimos 7 días",
+      "older": "Anteriores",
+      "noConversations": "Sin conversaciones aún",
+      "deleteTitle": "Eliminar conversación",
+      "deleteDescription": "¿Estás seguro de que quieres eliminar esta conversación? Esta acción no se puede deshacer.",
+      "renameTitle": "Renombrar",
+      "conversations": "Conversaciones"
+    },
+    "emptyState": {
+      "title": "¿En qué puedo ayudarte?",
+      "subtitle": "Pregunta lo que quieras a GAIA [GoAuto Intelligent Assistant]",
+      "stockSummary": "Resumen de stock",
+      "stockSummaryDesc": "¿Cuántos vehículos tengo disponibles?",
+      "monthlySales": "Ventas del mes",
+      "monthlySalesDesc": "¿Cuáles fueron las ventas de este mes?",
+      "latestLeads": "Últimos leads",
+      "latestLeadsDesc": "¿Qué lead llegó último?",
+      "vehicleLookup": "Buscar vehículo",
+      "vehicleLookupDesc": "Info del vehículo con patente..."
+    },
+    "actions": {
+      "copy": "Copiar",
+      "copied": "Copiado"
+    },
+    "suggestions": {
+      "showMore": "Muéstrame más detalles",
+      "compareSales": "Compara con el mes anterior",
+      "topVehicles": "¿Cuáles son los más visitados?",
+      "leadDetails": "Dame más info de los leads",
+      "stockByBrand": "Stock por marca",
+      "recentActivity": "Actividad reciente"
+    }
+  },
+  "dashboard": {
+    "title": "Panel de Control",
+    "subtitle": "Vista general del desempeño del negocio",
+    "pendingSalesAlert": "venta pendiente de aprobación",
+    "pendingSalesAlertPlural": "ventas pendientes de aprobación",
+    "noVehiclesAlert": "No hay vehículos registrados. Agregue vehículos para ver estadísticas.",
+    "topVisitedVehicles": {
+      "title": "Top 3 Vehículos Más Visitados"
+    },
+    "timeFilters": {
+      "all": "Histórico",
+      "year": "Este año",
+      "month": "Este mes",
+      "last7": "Últimos 7 días",
+      "selectPeriod": "Seleccionar período"
+    },
+    "charts": {
+      "visits": "Visitas",
+      "sales": "Ventas",
+      "expenses": "Gastos",
+      "vehiclesSoldBySeller": "Vehículos Vendidos por Vendedor",
+      "commissionsBySeller": "Comisiones por Vendedor",
+      "brandDistribution": "Distribución por Marca"
+    },
+    "labels": {
+      "vehicles": "vehículos",
+      "quantity": "Cantidad",
+      "percentage": "Porcentaje"
+    },
+    "messages": {
+      "noData": "No hay datos disponibles"
+    },
+    "alerts": {
+      "thereAre": "Hay"
+    },
+    "stats": {
+      "totalSales": "Ventas Totales",
+      "totalExpenses": "Gastos Totales",
+      "grossMargin": "Margen Bruto",
+      "totalVisits": "Visitas Totales",
+      "totalVehicles": "Total Vehículos",
+      "publishedVehicles": "Vehículos Publicados",
+      "consignedVehicles": "Vehículos Consignados",
+      "commissions": "Comisiones",
+      "totalNetProfit": "Utilidad Neta Total"
+    },
+    "fixedExpenses": {
+      "title": "Gastos Mensuales Fijos",
+      "monthlyTotal": "Total mensual",
+      "empty": "No hay gastos mensuales fijos registrados.",
+      "hint": "Agrega gastos como arriendo, personal, etc."
+    }
+  },
+  "marketing": {
+    "page": {
+      "title": "Marketing Inteligente",
+      "subtitle": "Encuentra clientes potenciales usando inteligencia artificial"
+    },
+    "tabs": {
+      "campaign": "Campaña",
+      "history": "Historial"
+    },
+    "checkingCustomers": "Verificando base de datos de clientes...",
+    "dbRequired": {
+      "title": "Base de Datos de Clientes Requerida",
+      "description": "Para utilizar el Marketing Inteligente, necesitas descargar primero la base de datos de clientes desde Autofact.",
+      "howItWorks": "¿Cómo funciona?",
+      "points": {
+        "1": "La IA necesita datos de transacciones previas de tus clientes",
+        "2": "Estos datos permiten encontrar clientes con gustos similares",
+        "3": "La información se obtiene de forma segura desde Autofact",
+        "4": "Una vez descargada, podrás usar todas las funciones de marketing"
+      },
+      "contactSupport": "Contactar Soporte GoAuto",
+      "needHelpTitle": "¿Necesitas ayuda?",
+      "needHelpText": "Contacta a soporte de GoAuto para configurar la descarga de datos desde Autofact."
+    },
+    "ai": {
+      "howTitle": "¿Cómo funciona la IA?",
+      "howText": "La IA buscará clientes que compraron o vendieron vehículos de marcas y modelos similares.",
+      "exampleLabel": "Ejemplo:",
+      "exampleText": "Si seleccionas un 'Toyota Corolla', encontrará clientes que compraron/vendieron Toyota Corolla, Nissan Sentra, Honda Civic, etc."
+    },
+    "step1": {
+      "title": "Paso 1: Configuración de Búsqueda Inteligente",
+      "description": "Configura los parámetros para encontrar clientes que compraron o vendieron vehículos de marca y modelo similar usando inteligencia artificial",
+      "targetAudience": "Tipo de Cliente Objetivo",
+      "buyers": "Compradores (que compraron vehículos similares)",
+      "sellers": "Vendedores (que vendieron vehículos similares)"
+    },
+    "filters": {
+      "title": "Selección y Filtros",
+      "prefilled": "Filtros pre-configurados basados en el {{vehicle}}",
+      "autoConfigOnSelect": "Los filtros se configurarán automáticamente al seleccionar un vehículo",
+      "reset": "Resetear",
+      "selectVehicleToSee": "Selecciona un vehículo para ver los filtros inteligentes",
+      "selectedVehicle": "Vehículo Seleccionado",
+      "noLimit": "Sin límite",
+      "price": {
+        "title": "Filtrar por Rango de Precio",
+        "badge": "±30% del precio del vehículo",
+        "min": "Precio Mínimo",
+        "max": "Precio Máximo"
+      },
+      "year": {
+        "title": "Filtrar por Año del Vehículo",
+        "badge": "±3 años del vehículo",
+        "from": "Año Desde",
+        "to": "Año Hasta"
+      },
+      "category": {
+        "title": "Filtrar por Categoría"
+      }
+    },
+    "step1": {
+      "similarity": {
+        "whyTitle": "¿Por qué es importante?",
+        "whyText": "Un nivel alto de similitud asegura que solo contactes clientes con gustos realmente similares, evitando spam y aumentando las posibilidades de conversión. Valores muy bajos pueden resultar en correos irrelevantes.",
+        "levels": {
+          "gt80": "Muy Similar (alta precisión)",
+          "between70_80": "Similar (buena precisión)",
+          "between60_70": "Moderadamente Similar",
+          "lt60": "Poco Similar (más resultados)"
+        }
+      }
+    },
+    "step2": {
+      "title": "Paso 2: Seleccionar Vehículo a Promocionar",
+      "description": "Elige el vehículo que quieres promocionar a clientes potenciales",
+      "loadingVehicles": "Cargando vehículos...",
+      "searchPlaceholder": "Buscar vehículo..."
+    },
+    "step4": {
+      "title": "Paso 4: Buscar Clientes Potenciales",
+      "description": "Ejecuta la búsqueda inteligente con los parámetros configurados",
+      "readyTitle": "Listo para buscar clientes similares a:",
+      "similarity": "Similitud:",
+      "audience": "Audiencia:",
+      "buyersAndSellers": "Compradores y Vendedores",
+      "buyers": "Compradores",
+      "sellers": "Vendedores",
+      "withFilters": "Con filtros aplicados",
+      "searching": "Buscando con IA...",
+      "searchButton": "Buscar Clientes Potenciales"
+    },
+    "results": {
+      "title": "Clientes Potenciales Encontrados",
+      "foundSuffix": "encontrados",
+      "composeEmail": "Redactar Email",
+      "selectVehiclePrompt": "Selecciona un vehículo para encontrar clientes potenciales",
+      "clickSearchPrompt": "Haz clic en \"Buscar Clientes Potenciales\" para comenzar la búsqueda con IA",
+      "nameUnavailable": "Nombre no disponible",
+      "similar": "similar",
+      "boughtSimilar": "Compró un vehículo similar:",
+      "soldSimilar": "Vendió un vehículo similar:"
+    },
+    "history": {
+      "loadError": "Error al cargar el historial",
+      "loading": "Cargando historial...",
+      "emptyTitle": "No hay campañas enviadas",
+      "emptySubtitle": "Cuando envíes tu primera campaña de marketing, aparecerá aquí.",
+      "totalCampaigns": "Total Campañas",
+      "totalRecipients": "Total Destinatarios",
+      "promotedVehicles": "Vehículos Promocionados",
+      "title": "Historial de Campañas",
+      "headers": {
+        "date": "Fecha",
+        "vehicle": "Vehículo",
+        "subject": "Asunto",
+        "recipients": "Destinatarios",
+        "filters": "Filtros",
+        "sender": "Remitente"
+      },
+      "labels": {
+        "similarity": "Similitud:",
+        "buyers": "Compradores",
+        "sellers": "Vendedores"
+      }
+    },
+    "email": {
+      "historySaveError": "Error guardando historial de email",
+      "historySaved": "Historial de email guardado correctamente",
+      "missingVehicleOrCustomers": "No hay vehículo o clientes seleccionados."
+    }
+  },
+  "clients": {
+    "page": {
+      "superadminTitle": "Gestión de Clientes",
+      "superadminSubtitle": "Administra los clientes de la plataforma.",
+      "title": "Clientes",
+      "subtitle": "Gestión de clientes."
+    },
+    "buttons": {
+      "newClient": "Nuevo Cliente",
+      "createCustomer": "Crear Cliente",
+      "bulkUpload": "Carga Masiva"
+    },
+    "search": {
+      "placeholder": "Buscar cliente por nombre, email o RUT"
+    },
+    "empty": {
+      "title": "No hay clientes registrados",
+      "superadminDescription": "Haz clic en 'Nuevo Cliente' para agregar un cliente.",
+      "description": "No hay clientes registrados."
+    },
+    "dialog": {
+      "newCustomerTitle": "Nuevo Cliente"
+    },
+    "superadminTable": {
+      "caption": "Lista de clientes registrados en la plataforma",
+      "headers": {
+        "company": "Empresa",
+        "name": "Nombre",
+        "contact": "Contacto",
+        "domain": "Dominio",
+        "status": "Estado",
+        "registered": "Registro"
+      },
+      "labels": {
+        "id": "ID"
+      }
+    },
+    "badges": {
+      "demoActive": "Demo Activa",
+      "production": "Producción"
+    },
+    "bulk": {
+      "title": "Carga Masiva de Clientes",
+      "embeddingsNote": "Este proceso puede tomar varios minutos. Por favor no cierres esta ventana.",
+      "processing": "Procesando datos de importación...",
+      "confirm": "Confirmar Importación"
+    }
+  },
+  "customers": {
+    "table": {
+      "caption": "Lista de clientes",
+      "headers": {
+        "name": "Nombre",
+        "email": "Email",
+        "phone": "Teléfono",
+        "rut": "RUT",
+        "address": "Dirección",
+        "birthday": "Cumpleaños",
+        "registeredAt": "Registro"
+      }
+    },
+    "dialog": {
+      "editTitle": "Editar Cliente"
+    },
+    "detail": {
+      "contact": "Contacto",
+      "bankingInfo": "Información Bancaria",
+      "vehicleHistory": "Historial de Vehículos",
+      "noVehicles": "Sin historial de vehículos",
+      "editCustomer": "Editar Cliente",
+      "deleteCustomer": "Eliminar Cliente",
+      "registeredOn": "Registrado el"
+    },
+    "vehicleHistory": {
+      "title": "Historial de Vehículos",
+      "vehicles": "Vehículos",
+      "noHistory": "Sin historial de vehículos",
+      "sale": "Venta",
+      "purchase": "Compra",
+      "consignment": "Consignación"
+    }
+  },
+  "pagination": {
+    "previous": "Página anterior",
+    "next": "Siguiente página"
+  },
+  "financing": {
+    "page": {
+      "title": "Crédito Directo",
+      "newFinancing": "Nuevo Financiamiento"
+    },
+    "toasts": {
+      "loadVehiclesError": "No se pudo cargar la lista de vehículos",
+      "loadFinancingError": "No se pudo cargar la lista de financiamientos",
+      "added": "Financiamiento agregado correctamente"
+    },
+    "list": {
+      "empty": "No hay financiamientos registrados.",
+      "headers": {
+        "customer": "Cliente",
+        "vehicle": "Vehículo",
+        "downPayment": "Pie",
+        "installment": "Cuota",
+        "status": "Estado",
+        "nextPayment": "Próximo Pago",
+        "progress": "Progreso"
+      },
+      "labels": {
+        "customerUnavailable": "Cliente no disponible",
+        "vehicleUnavailable": "Vehículo no disponible"
+      },
+      "buttons": {
+        "viewDetail": "Ver Detalle"
+      }
+    },
+    "status": {
+      "completed": "Completado",
+      "late": "Con atraso",
+      "inProgress": "En progreso",
+      "pending": "Pendiente"
+    },
+    "nextPayment": {
+      "none": "No hay pagos programados",
+      "completed": "Todos los pagos completados"
+    },
+    "form": {
+      "titleNew": "Nuevo Financiamiento",
+      "titleEdit": "Editar Financiamiento",
+      "descNew": "Complete la información para registrar un nuevo financiamiento directo",
+      "descEdit": "Complete la información para actualizar el financiamiento directo",
+      "save": "Guardar Financiamiento",
+      "noPlate": "Sin placa",
+      "noRut": "Sin RUT",
+      "labels": {
+        "vehicle": "Vehículo",
+        "customer": "Cliente",
+        "downPayment": "Pie (CLP)",
+        "monthlyInstallment": "Cuota Mensual (CLP)",
+        "paymentDay": "Día de Pago",
+        "totalInstallments": "Total de Cuotas",
+        "startDate": "Fecha de Inicio",
+        "notes": "Notas"
+      },
+      "placeholders": {
+        "selectVehicle": "Seleccione un vehículo",
+        "selectCustomer": "Seleccione un cliente",
+        "downPayment": "Ej: 1000000",
+        "monthlyInstallment": "Ej: 150000",
+        "paymentDay": "Seleccione el día de pago",
+        "totalInstallments": "Ej: 36",
+        "selectDate": "Seleccione una fecha",
+        "notes": "Información adicional sobre este financiamiento"
+      },
+      "descriptions": {
+        "paymentDay": "El día del mes en que se vencen las cuotas",
+        "totalInstallments": "Número total de pagos mensuales",
+        "startDate": "Fecha desde la cual comienza el financiamiento"
+      }
+    },
+    "detail": {
+      "title": "Información del Cliente y Vehículo",
+      "financingDetailsTitle": "Detalles del Financiamiento",
+      "labels": {
+        "customer": "Cliente",
+        "rut": "RUT",
+        "vehicle": "Vehículo",
+        "licensePlate": "Patente"
+      },
+      "paymentForm": {
+        "labels": {
+          "installmentNumber": "Número de Cuota",
+          "amount": "Monto",
+          "interest": "Interés por Mora (si aplica)",
+          "paymentDate": "Fecha de Pago",
+          "notes": "Notas (Opcional)"
+        },
+        "placeholders": {
+          "installmentNumber": "Ej: 1",
+          "amount": "Ej: 150000",
+          "interest": "Ej: 5000",
+          "notes": "Observaciones adicionales"
+        },
+        "toasts": {
+          "noPaymentSelected": "No se seleccionó un pago para actualizar",
+          "saved": "El pago ha sido registrado correctamente",
+          "saveError": "No se pudo registrar el pago"
+        }
+      },
+      "paymentSchedule": {
+        "title": "Calendario de Pagos",
+        "headers": {
+          "installment": "N° Cuota",
+          "dueDate": "Fecha Vencimiento",
+          "amount": "Monto",
+          "status": "Estado",
+          "paymentDate": "Fecha de Pago",
+          "interest": "Interés",
+          "notes": "Notas",
+          "actions": "Acciones"
+        },
+        "buttons": {
+          "markPaid": "Marcar Pagado"
+        },
+        "status": {
+          "paid": "Pagado",
+          "late": "Atrasado",
+          "pending": "Pendiente"
+        },
+        "empty": "No hay pagos registrados",
+        "totalAmount": "Monto Total",
+        "remainingBalance": "Saldo Pendiente"
+      }
+    }
+  },
+  "leads": {
+    "page": {
+      "title": "Leads",
+      "subtitle": "Gestiona los leads de compra y venta de vehículos"
+    },
+    "tabs": {
+      "buy": "Leads de Compra",
+      "buyTooltip": "Personas que quieren vender su vehículo a tu automotora (compra directa, consignación)",
+      "sell": "Leads de Venta",
+      "sellTooltip": "Personas interesadas en comprar un vehículo de tu inventario (venta, financiamiento)"
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar por nombre o email",
+      "typeAll": "Tipo: Todos",
+      "statusAll": "Estado: Todos",
+      "clear": "Limpiar filtros"
+    },
+    "types": {
+      "buyDirect": "Compra Directa",
+      "buyConsignment": "Consignación",
+      "searchRequest": "Buscar tu Auto",
+      "sellVehicle": "Venta Vehículo",
+      "sellFinancing": "Financiamiento",
+      "sellTransfer": "Transferencia",
+      "contactGeneral": "Contacto General"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "assigned": "Asignado",
+      "completed": "Completado",
+      "cancelled": "Cancelado"
+    },
+    "statusDescriptions": {
+      "pending": "El lead está pendiente de procesamiento.",
+      "assigned": "El lead ha sido asignado a un vendedor.",
+      "completed": "El proceso del lead ha sido completado exitosamente.",
+      "cancelled": "El lead ha sido cancelado o rechazado."
+    },
+    "labels": {
+      "type": "Tipo",
+      "date": "Fecha",
+      "vehicle": "Vehículo",
+      "price": "Precio Venta",
+      "contact": "Contacto",
+      "customer": "Cliente",
+      "status": "Estado",
+      "name": "Nombre",
+      "rut": "RUT",
+      "phone": "Teléfono",
+      "birthDate": "Fecha de Nacimiento",
+      "noCustomerInfo": "No hay información de cliente disponible",
+      "brand": "Marca",
+      "model": "Modelo",
+      "year": "Año",
+      "mileage": "Kilometraje",
+      "searchCriteria": "Criterios de búsqueda",
+      "noLimit": "Sin límite",
+      "maxOwners": "Máx. dueños",
+      "searchedVehicle": "Vehículo buscado",
+      "clientSearchesVehicle": "Cliente busca este tipo de vehículo",
+      "consigned": "Consignado",
+      "owned": "Propio",
+      "priceNotAvailable": "Precio no disponible",
+      "notes": "Notas"
+    },
+    "buttons": {
+      "viewDetails": "Ver detalles",
+      "viewVehicle": "Ver vehículo"
+    },
+    "buttons": {
+      "viewDetails": "Ver detalles"
+    },
+    "table": {
+      "emptyFilters": "No hay leads disponibles con los filtros actuales"
+    },
+    "errors": {
+      "load": "Error al cargar los leads"
+    },
+    "statusModal": {
+      "title": "Cambiar estado del lead",
+      "description": "Selecciona el nuevo estado para el lead."
+    }
+  },
+  "sales": {
+    "status": {
+      "pending": "Pendiente",
+      "approved": "Aprobada",
+      "rejected": "Rechazada"
+    },
+    "table": {
+      "emptyPrefix": "No hay ventas",
+      "emptySuffix": "para mostrar",
+      "pendingLower": "pendientes",
+      "approvedLower": "aprobadas",
+      "rejectedLower": "rechazadas",
+      "headers": {
+        "date": "Fecha",
+        "vehicle": "Vehículo",
+        "customer": "Cliente",
+        "price": "Precio Venta",
+        "seller": "Vendedor",
+        "commission": "Comisión",
+        "status": "Estado",
+        "actions": "Acciones"
+      },
+      "labels": {
+        "customer": "Cliente",
+        "seller": "Vendedor",
+        "price": "Precio Venta",
+        "date": "Fecha",
+        "notAssigned": "No asignado"
+      },
+      "buttons": {
+        "review": "Revisar",
+        "details": "Detalles"
+      }
+    },
+    "dialog": {
+      "titleApprove": "Aprobar Venta",
+      "titleDetails": "Detalles de Venta",
+      "descApprove": "Revisa los detalles y aprueba o rechaza esta venta",
+      "descDetails": "Información de la venta y su estado",
+      "notesLabel": "Observaciones",
+      "notesPlaceholder": "Notas para el vendedor (opcional)",
+      "actions": {
+        "reject": "Rechazar",
+        "approve": "Aprobar",
+        "cancel": "Cancelar",
+        "save": "Guardar Cambios"
+      }
+    },
+    "saleInfo": {
+      "vehicle": "Vehículo",
+      "customer": "Cliente",
+      "salePrice": "Precio de Venta",
+      "seller": "Vendedor",
+      "selectSeller": "Seleccionar vendedor",
+      "noSeller": "Sin vendedor asignado"
+    },
+    "saleStatus": {
+      "status": "Estado",
+      "approvedOn": "Aprobado el {{date}}",
+      "rejectedOn": "Rechazado el {{date}}",
+      "approved": "Aprobado",
+      "rejected": "Rechazado"
+    },
+    "commission": {
+      "title": "Comisión del Vendedor",
+      "percentageLabel": "Porcentaje de Comisión",
+      "calculatedAmount": "Monto Calculado",
+      "amountLabel": "Monto de Comisión",
+      "calculatedPercentage": "Porcentaje Calculado"
+    }
+  },
+  "salesPage": {
+    "title": "Gestión de Ventas",
+    "accessDeniedTitle": "Acceso Denegado",
+    "accessDeniedDesc": "No tienes permisos para acceder a esta página.",
+    "tabs": {
+      "pending": "Pendientes de Aprobación",
+      "approved": "Aprobadas",
+      "rejected": "Rechazadas",
+      "all": "Todas"
+    },
+    "descriptions": {
+      "pending": "Revisa y aprueba las ventas realizadas por tus vendedores",
+      "approved": "Historial de ventas aprobadas por el administrador",
+      "rejected": "Ventas que han sido rechazadas por el administrador",
+      "all": "Listado completo de todas las ventas registradas"
+    }
+  },
+  "vehiclesPage": {
+    "title": "Vehículos",
+    "subtitle": "Gestión de inventario de vehículos.",
+    "addVehicleButton": "Agregar Vehículo",
+    "exportToExcelButton": "Exportar a Excel",
+    "loadingClient": "Cargando información de cliente..."
+  },
+  "vehicles": {
+    "viewToggle": {
+      "table": "Lista de vehículos",
+      "board": "Flujo de trabajo",
+      "cards": "Tarjetas"
+    },
+    "table": {
+      "loading": "Cargando vehículos...",
+      "empty": "No hay vehículos disponibles para mostrar.",
+      "noSeller": "No Asignado",
+      "changeSeller": "Cambiar vendedor"
+    },
+    "filters": {
+      "searchPlaceholder": "Buscar por patente, marca, año, color, estado, precio, días en stock...",
+      "sellerAll": "Vendedor: Todos",
+      "statuses": "Estados",
+      "consignmentAll": "Stock: Todos",
+      "consignedOnly": "Solo consignados",
+      "ownedOnly": "Solo propios"
+    },
+    "pagination": {
+      "showing": "Mostrando {{start}} - {{end}} de {{total}} vehículos"
+    },
+    "actions": {
+      "deleteConfirmTitle": "¿Estás seguro?",
+      "deleteConfirmDescription": "Esta acción no se puede deshacer. Se eliminará permanentemente el vehículo {{vehicle}} de la base de datos.",
+      "deleteMarketplaceWarning": "Si el vehículo está publicado, también se quitará de ChileAutos y MercadoLibre."
+    },
+    "board": {
+      "dragHint": "Arrastra el vehículo a otra columna para cambiar su estado",
+      "noStatuses": "No hay estados definidos para mostrar.",
+      "noVehicles": "No hay vehículos",
+      "days": "días"
+    },
+    "labels": {
+      "unknown": "Desconocido",
+      "noBrand": "Sin marca",
+      "noModel": "Sin modelo",
+      "visitsLower": "visitas"
+    },
+    "messages": {
+      "notFound": "No se encontró el vehículo ID: {{id}}"
+    },
+    "detail": {
+      "notFoundTitle": "Vehículo no encontrado",
+      "notFoundDescription": "El vehículo solicitado no existe o no tienes permisos para verlo.",
+      "publishInstagram": "Publicar en Instagram",
+      "actionsButton": "Acciones",
+      "actionsTitle": "Acciones del vehículo",
+      "viewReservation": "Ver reserva",
+      "generateReservation": "Generar reserva",
+      "generateQuotation": "Generar cotización",
+      "addExpense": "Añadir Gasto",
+      "addIncome": "Añadir Ingreso",
+      "editSale": "Editar venta",
+      "sellVehicle": "Vender vehículo",
+      "editCloseDeal": "Editar cierre de negocio",
+      "closeDeal": "Cierre de negocio",
+      "editVehicle": "Editar vehículo",
+      "titles": {
+        "generalInfo": "Información general",
+        "details": "Detalles del vehículo",
+        "legalFinancial": "Información Legal y Financiera",
+        "expiryDates": "Fechas de Vencimiento",
+        "extras": "Extras (Uso Interno)",
+        "description": "Descripción"
+      },
+      "labels": {
+        "brand": "Marca",
+        "model": "Modelo",
+        "year": "Año",
+        "color": "Color",
+        "mileage": "Kilometraje",
+        "licensePlate": "Patente",
+        "keys": "Número de Llaves",
+        "engineNumber": "Número de Motor",
+        "chassisNumber": "Número de Chasis",
+        "condition": "Condición",
+        "fuelType": "Combustible",
+        "transmission": "Transmisión",
+        "category": "Categoría",
+        "owners": "Número de Dueños",
+        "hasLien": "Tiene Prenda",
+        "isBillable": "Es Facturable",
+        "techInspection": "Revisión Técnica",
+        "emissions": "SOAP",
+        "circulationPermit": "Venc. Permiso de Circulación",
+        "municipalityPermit": "Municipalidad",
+        "daysInStock": "Días en stock",
+        "status": "Estado",
+        "review": "Revisión",
+        "mechanicalReview": "Revisión Mecánica"
+      },
+      "kmSuffix": "km",
+      "unspecified": "No especificado",
+      "tabs": {
+        "resume": "Resumen",
+        "timeline": "Línea de tiempo",
+        "details": "Detalles",
+        "documents": "Documentos",
+        "instagram": "Instagram"
+      },
+      "documents": {
+        "title": "Documentos del Vehículo",
+        "missingLegalInfo": "Falta información legal en su perfil. La generación de documentos no estará completa sin esta información.",
+        "additional": "Documentos Adicionales",
+        "addDocuments": "Añadir Documentos"
+      },
+      "reservations": {
+        "dialog": {
+          "titles": {
+            "customer": "Seleccionar Cliente",
+            "details": "Detalles de la Reserva",
+            "paymentsFor": "Reserva para {{brand}} {{model}}"
+          }
+        },
+        "form": {
+          "validityTitle": "Validez de la Reserva",
+          "selectedCustomerLabel": "Cliente seleccionado",
+          "noCustomerSelected": "Sin cliente seleccionado",
+          "vehicleLabel": "Vehículo",
+          "agreedPriceLabel": "Precio acordado de Reserva",
+          "validityDaysLabel": "Días de validez",
+          "validityDaysPlaceholder": "Ej: 3",
+          "expirationDateLabel": "Fecha de expiración",
+          "notesLabel": "Observaciones",
+          "notesPlaceholder": "Agregar observaciones o condiciones especiales...",
+          "createButton": "Crear Reserva",
+          "validation": {
+            "validityDaysMin": "La vigencia debe ser de al menos 1 día",
+            "agreedPriceMin": "El precio acordado debe ser mayor o igual a 0"
+          }
+        },
+        "customerSelection": {
+          "title": "Cliente",
+          "searchPlaceholder": "Buscar cliente por nombre o email",
+          "newCustomer": "Nuevo cliente",
+          "loading": "Cargando clientes...",
+          "empty": "No se encontraron clientes con ese criterio",
+          "noEmail": "Sin correo",
+          "noPhone": "Sin teléfono",
+          "rut": "RUT"
+        }
+      },
+      "timeline": {
+        "summary": {
+          "totalProfit": "Beneficio total",
+          "expenses": "Gastos",
+          "income": "Ingresos"
+        },
+        "empty": "No hay eventos registrados para este vehículo.",
+        "event": {
+          "viewDetails": "Ver detalles",
+          "editEvent": "Editar evento",
+          "deleteEvent": "Eliminar evento",
+          "statusChange": "Cambio de estado",
+          "document": "Documento"
+        }
+      },
+      "reservations": {
+        "dialog": {
+          "titles": {
+            "customer": "Seleccionar Cliente",
+            "details": "Detalles de la Reserva",
+            "paymentsFor": "Reserva para {{brand}} {{model}}"
+          }
+        }
+      },
+      "financial": {
+        "title": "Resumen Financiero",
+        "detailOf": "Detalle de {{label}}",
+        "untitled": "Sin título",
+        "noDetails": "No hay detalles disponibles.",
+        "expenses": {
+          "title": "Gastos",
+          "purchasePrice": "Precio de compra",
+          "agreedPriceConsignment": "Precio acordado (consignación)",
+          "otherExpenses": "Otros gastos",
+          "total": "Total gastos"
+        },
+        "income": {
+          "title": "Ingresos",
+          "salePrice": "Precio de venta",
+          "customerPayment": "Pago del cliente",
+          "otherIncome": "Otros ingresos",
+          "tradeInVehicle": "Vehículo en parte de pago",
+          "total": "Total ingresos"
+        },
+        "transferValue": "Valor de transferencia",
+        "netResult": "Resultado neto"
+      }
+    },
+
+    "columns": {
+      "configureButton": "Configurar Columnas",
+      "dialogTitle": "Configurar Columnas de la Tabla",
+      "dialogDescription": "Selecciona las columnas que quieres ver en la tabla de vehículos.",
+      "restoreDefault": "Restaurar por Defecto",
+      "selectedCount": "{{selected}} de {{total}} columnas seleccionadas",
+      "required": "Requerido",
+      "default": "Por defecto",
+      "apply": "Aplicar Cambios",
+      "vehicle": {
+        "label": "Vehículo",
+        "description": "Imagen, marca, modelo y año del vehículo"
+      },
+      "license_plate": {
+        "label": "Patente",
+        "description": "Patente del vehículo"
+      },
+      "price": {
+        "label": "Precio Venta",
+        "description": "Precio de venta final (solo para vehículos vendidos)"
+      },
+      "status": {
+        "label": "Estado",
+        "description": "Estado actual del vehículo"
+      },
+      "seller": {
+        "label": "Vendedor",
+        "description": "Vendedor asignado al vehículo"
+      },
+      "is_consigned": {
+        "label": "Consignado",
+        "description": "Si el vehículo está en consignación"
+      },
+      "created_at": {
+        "label": "Días en Stock",
+        "description": "Días desde que se agregó el vehículo"
+      },
+      "mileage": {
+        "label": "Kilometraje",
+        "description": "Kilometraje del vehículo"
+      },
+      "year": {
+        "label": "Año",
+        "description": "Año del vehículo"
+      },
+      "category": {
+        "label": "Categoría",
+        "description": "Categoría del vehículo (sedán, SUV, etc.)"
+      },
+      "color": {
+        "label": "Color",
+        "description": "Color del vehículo"
+      },
+      "condition": {
+        "label": "Condición",
+        "description": "Condición del vehículo (nuevo, usado, etc.)"
+      },
+      "fuel_type": {
+        "label": "Combustible",
+        "description": "Tipo de combustible"
+      },
+      "transmission": {
+        "label": "Transmisión",
+        "description": "Tipo de transmisión"
+      },
+      "views": {
+        "label": "Visualizaciones",
+        "description": "Número de visualizaciones"
+      },
+      "min_price": {
+        "label": "Precio Mínimo de Venta",
+        "description": "Precio mínimo de venta del vehículo"
+      },
+      "price": {
+        "label": "Precio Publicado",
+        "description": "Precio publicado del vehículo"
+      },
+      "sale_price": {
+        "label": "Precio de Venta",
+        "description": "Precio final de venta (solo para vehículos vendidos)"
+      },
+      "purchase_price": {
+        "label": "Precio Compra/Consignación",
+        "description": "Precio de compra o consignación del vehículo"
+      },
+      "owners": {
+        "label": "Dueños",
+        "description": "Número de dueños anteriores"
+      },
+      "keys": {
+        "label": "Llaves",
+        "description": "Número de llaves"
+      },
+      "engine_number": {
+        "label": "N° Motor",
+        "description": "Número de motor"
+      },
+      "chassis_number": {
+        "label": "N° Chasis",
+        "description": "Número de chasis"
+      },
+      "transfer_value": {
+        "label": "Valor de Transferencia",
+        "description": "Valor de transferencia registrado en la venta"
+      },
+      "net_profit": {
+        "label": "Utilidad Neta",
+        "description": "Utilidad real solo para vehículos vendidos: Propios (Venta - Compra - Gastos) | Consignados (Venta - Gastos)"
+      },
+      "consigned": {
+        "label": "Consignado",
+        "description": "Si el vehículo está en consignación"
+      },
+      "days_in_stock": {
+        "label": "Días en Stock",
+        "description": "Días desde que se agregó el vehículo al inventario"
+      },
+      "municipality_permit_expiry": {
+        "label": "Venc. Permiso Municipal",
+        "description": "Fecha de vencimiento del permiso municipal"
+      },
+      "checklist_status": {
+        "label": "Checklist",
+        "description": "Estado del checklist de preparación del vehículo"
+      },
+      "net_profit_after_commission": {
+        "label": "Utilidad Neta c/ Comisión",
+        "description": "Utilidad neta descontando la comisión pagada al vendedor (solo para vehículos vendidos)"
+      },
+      "acquired_from": {
+        "label": "Compró / Consignó",
+        "description": "Persona que vendió o consignó el vehículo a la automotora"
+      },
+      "total_expenses": {
+        "label": "Gastos Totales",
+        "description": "Suma de precio de compra/consignación, gastos adicionales registrados y valor de transferencia"
+      },
+      "stock_location": {
+        "label": "Ubicación",
+        "description": "Online o en sucursal"
+      },
+      "consignment_seller": {
+        "label": "Captado por",
+        "description": "Vendedor que trajo la consignación"
+      }
+    }
+  },
+  "addVehicle": {
+    "title": "Agregar Vehículo",
+    "subtitle": "",
+    "tabs": {
+      "basic": "Información Básica",
+      "media": "Multimedia",
+      "acquisition": "Adquisición",
+      "sales": "Venta",
+      "summary": "Resumen"
+    },
+    "common": {
+      "notDefined": "No definido",
+      "notSelected": "No seleccionado",
+      "customerNotFound": "Cliente no encontrado"
+    },
+    "basic": {
+      "title": "Información Básica",
+      "placeholders": {
+        "selectTransmission": "Seleccionar transmisión",
+        "selectBrand": "Seleccionar marca",
+        "selectModel": "Seleccionar modelo"
+      },
+      "transmissionOptions": {
+        "manual": "Manual",
+        "automatic": "Automática"
+      },
+      "examples": {
+        "mileage": "Ejemplo: 10.000 km"
+      },
+      "prefilled": {
+        "title": "Información autocompletada",
+        "description": "Se han prellenado automáticamente algunos campos usando la información encontrada por patente. Puedes editarlos si es necesario."
+      },
+      "toasts": {
+        "missingFieldsTitle": "Campos requeridos faltantes",
+        "missingFieldsDescription": "Por favor completa los siguientes campos: {{fields}}",
+        "saveError": "No se pudieron procesar los datos del formulario.",
+        "updatedTitle": "Información actualizada",
+        "updatedDescription": "Los datos básicos del vehículo han sido actualizados."
+      }
+    },
+    "price": {
+      "displayPriceLabel": "Precio mostrado en la web *",
+      "discountLabel": "Descuento mostrado en la web",
+      "finalDisplayPrice": "Precio final mostrado en la web:"
+    },
+    "details": {
+      "title": "Detalles del Vehículo",
+      "labels": {
+        "dealership": "Sucursal",
+        "webLabel": "Etiqueta visible en la web"
+      },
+      "placeholders": {
+        "selectCategory": "Seleccionar categoría",
+        "selectStatus": "Seleccionar estado",
+        "selectFuel": "Seleccionar tipo",
+        "selectColor": "Seleccionar color",
+        "selectCondition": "Seleccionar condición",
+        "selectDealership": "Seleccionar sucursal",
+        "description": "Ingrese una descripción detallada del vehículo",
+        "webLabel": "Ej: 'Recién publicado', 'Todo Motor', 'Oportunidad'",
+        "extras": "Anotaciones internas, ej: Última mantención a los 80mil km, todas fueron realizadas en la marca. 60mil km se realizó mantención de caja.",
+        "selectDate": "Seleccionar fecha"
+      },
+      "hints": {
+        "webLabel": "Esta etiqueta aparecerá como tag visible en la web junto al precio",
+        "hasLien": "Marque si el vehículo tiene prenda vigente",
+        "isBillable": "Marque si el vehículo es facturable"
+      }
+    },
+    "media": {
+      "title": "Multimedia",
+      "mainImage": "Imagen Principal",
+      "uploadMainImage": "Subir imagen principal",
+      "cropHint": "Todas las imágenes se recortan para mantener consistencia visual con formato 4:3.",
+      "documentsTitle": "Documentos del vehículo",
+      "documentsSubtitle": "Añade documentos del vehículo para tenerlos registrados",
+      "addDocuments": "Añadir Documentos",
+      "selectedDocuments": "Documentos seleccionados:",
+      "galleryTitle": "Galería de Imágenes",
+      "galleryLimit": "Añade hasta {{max}} imágenes adicionales del vehículo ({{count}}/{{max}})",
+      "galleryCount": "Galería ({{count}} imágenes):",
+      "imageAlt": "Imagen {{index}}",
+      "noImages": "No hay imágenes adicionales",
+      "toasts": {
+        "limitReached": {
+          "title": "Límite alcanzado",
+          "description": "No puedes agregar más de {{max}} imágenes a la galería."
+        },
+        "limitReachedMax": "Ya has alcanzado el límite de {{max}} imágenes.",
+        "limitExceeded": {
+          "title": "Límite excedido",
+          "description": "Solo se agregarán {{remaining}} de las {{selected}} imágenes seleccionadas debido al límite."
+        },
+        "mainImageRequired": {
+          "title": "Imagen principal requerida",
+          "description": "Debes subir una imagen principal para continuar."
+        },
+        "saveError": "No se pudieron guardar los cambios en la multimedia.",
+        "unexpectedError": "Ocurrió un error al procesar la multimedia."
+      }
+    },
+    "sales": {
+      "title": "Información de Venta",
+      "assignedSeller": "Vendedor Asignado (Opcional)",
+      "assignedSellerShort": "Vendedor Asignado",
+      "selectSeller": "Seleccionar vendedor",
+      "noSeller": "Sin vendedor asignado",
+      "notAssigned": "No asignado",
+      "minPrice": "Precio Mínimo de Venta",
+      "minPricePlaceholder": "Ingrese el precio mínimo"
+    },
+    "summary": {
+      "title": "Resumen del Vehículo",
+      "subtitle": "Revise los detalles del vehículo antes de guardar.",
+      "clientId": "Client ID para verificación: {{clientId}}",
+      "saveVehicle": "Guardar Vehículo"
+    },
+    "acquisition": {
+      "title": "Información de Adquisición",
+      "type": "Tipo de Adquisición",
+      "purchase": "Compra",
+      "consignment": "Consignación",
+      "consignmentCustomer": "Cliente Consignante",
+      "sellerCustomer": "Cliente Vendedor",
+      "agreedPrice": "Precio Acordado",
+      "purchasePrice": "Precio de Compra",
+      "documentNotes": "Notas del Documento",
+      "form": {
+        "typeLabel": "Tipo de Adquisición",
+        "options": {
+          "purchase": "Compra",
+          "consignment": "Consignación"
+        },
+        "purchase": {
+          "customerLabel": "Dueño al momento de la compra",
+          "customerDescription": "A quién le compraste el auto (su dueño anterior). Puede ser persona o empresa.",
+          "priceLabel": "Precio de Compra"
+        },
+        "consignment": {
+          "customerLabel": "Cliente Consignante",
+          "customerDescription": "Cliente que consigna el vehículo",
+          "suggestedPriceLabel": "Precio Sugerido por Consignador",
+          "agreedPriceLabel": "Precio garantizado de consignación"
+        },
+        "notesLabel": "Notas del Documento",
+        "customerSelect": {
+          "selectCustomer": "Seleccione un cliente",
+          "searchPlaceholder": "Buscar cliente...",
+          "noResults": "No se encontraron clientes"
+        }
+      }
+    },
+    "autocomplete": {
+      "title": "Carga con Patente + IA",
+      "subtitle": "Ingresa la patente y completaremos automáticamente la información del vehículo",
+      "inputPlaceholder": "Patente (ej: ABC123)",
+      "search": "Buscar",
+      "loading": {
+        "title": "Analizando información...",
+        "subtitle": "Buscando datos del vehículo en tiempo real"
+      },
+      "toasts": {
+        "required": {
+          "title": "Patente requerida",
+          "description": "Por favor ingrese una patente válida"
+        }
+      },
+      "results": {
+        "success": "¡Información encontrada exitosamente!",
+        "notFound": "No se encontró información para esta patente",
+        "error": "Error al buscar información del vehículo"
+      },
+      "infoFound": "Información encontrada:",
+      "prices": {
+        "title": "Valuación Automática",
+        "estimated": "Precio Estimado",
+        "marketRange": "Rango de Mercado",
+        "tradeIn": "Precio Retoma",
+        "hint": "Valuación automática basada en datos de mercado"
+      },
+      "actions": {
+        "useDataFull": "Usar Esta Información",
+        "useDataShort": "Usar Información",
+        "fillManuallyFull": "Llenar Manualmente",
+        "fillManuallyShort": "Manual",
+        "continueWithoutFull": "Continuar Sin Autocompletar",
+        "continueShort": "Continuar"
+      },
+      "footer": {
+        "editable": "Editable:",
+        "editableText": "Todos los datos encontrados se pueden modificar posteriormente en el formulario de información básica."
+      }
+    },
+    "toasts": {
+      "savedTitle": "Vehículo guardado",
+      "savedDescription": "El vehículo ha sido agregado exitosamente.",
+      "incompleteTitle": "Información incompleta",
+      "incompleteDescription": "Por favor complete la información actual antes de continuar."
+    },
+    "errors": {
+      "saveFailed": "No se pudo guardar el vehículo. Por favor intente nuevamente.",
+      "generic": "Ocurrió un error al guardar el vehículo. Por favor intente nuevamente."
+    }
+  },
+  "admin": {
+    "fixedExpenses": {
+      "addButton": "Agregar Gasto Fijo",
+      "dialog": {
+        "createTitle": "Agregar Gasto Mensual Fijo",
+        "editTitle": "Editar Gasto Mensual Fijo"
+      },
+      "fields": {
+        "title": "Título",
+        "titlePlaceholder": "Ej: Arriendo, Personal, etc.",
+        "amount": "Monto ($)",
+        "amountPlaceholder": "100.000",
+        "description": "Descripción",
+        "descriptionPlaceholder": "Descripción adicional del gasto...",
+        "active": "Activo",
+        "activeHint": "¿Este gasto está activo y debe incluirse en los cálculos?"
+      },
+      "validation": {
+        "titleRequired": "El título es requerido",
+        "amountRequired": "El monto es requerido"
+      }
+    }
+  },
+  "configuration": {
+    "title": "Configuración Go Auto",
+    "subtitle": "Gestiona la configuración de tu automotora",
+    "company": {
+      "title": "Configuración de la empresa",
+      "general": {
+        "title": "Configuración General",
+        "description": "Configurar información general de la automotora"
+      },
+      "dealerships": {
+        "title": "Sucursales",
+        "description": "Gestionar sucursales"
+      },
+      "legal": {
+        "title": "Información legal",
+        "description": "Gestionar datos legales de la empresa"
+      }
+    },
+    "operation": {
+      "title": "Operación de la plataforma",
+      "vehicleStates": {
+        "title": "Vehículos",
+        "description": "Configurar vehículos y estados"
+      },
+      "documentTemplates": {
+        "title": "Plantillas de documentos",
+        "description": "Configurar plantillas para compra, venta y más"
+      },
+      "sellerPermissions": {
+        "title": "Permisos de vendedores",
+        "description": "Configurar permisos de vendedores"
+      }
+    },
+    "integrations": {
+      "title": "Integraciones",
+      "social": {
+        "title": "Redes sociales",
+        "description": "Conectar redes sociales",
+        "connectInstagram": "Conectar Instagram"
+      },
+      "webBuilder": {
+        "title": "Web builder",
+        "description": "Configurar plantillas para compra, venta y más"
+      }
+    },
+    "states": {
+      "title": "Estados de Vehículos",
+      "subtitle": "Administre los estados por los que pasan los vehículos en su concesionario",
+      "addButton": "Agregar Estado",
+      "searchPlaceholder": "Buscar estados...",
+      "table": {
+        "order": "ORDEN",
+        "name": "NOMBRE",
+        "description": "DESCRIPCIÓN",
+        "color": "COLOR",
+        "actions": "ACCIONES"
+      },
+      "toasts": {
+        "nonEditable": {
+          "title": "Estado no editable",
+          "editDescription": "Este estado es común para todos los concesionarios y no puede ser modificado.",
+          "deleteDescription": "Este estado es común para todos los concesionarios y no puede ser eliminado."
+        },
+        "deleted": {
+          "title": "Estado eliminado",
+          "description": "El estado ha sido eliminado exitosamente."
+        },
+        "deleteErrorDescription": "No se pudo eliminar el estado."
+      },
+      "confirmDelete": "¿Está seguro de eliminar este estado?"
+    },
+    "vehicles": {
+      "tabs": {
+        "states": "Estados",
+        "page": "Página"
+      }
+    },
+    "vehiclesPage": {
+      "title": "Configuración de Página",
+      "subtitle": "Personalice cómo se muestra la página de vehículos",
+      "defaultView": {
+        "label": "Vista por defecto",
+        "description": "Seleccione qué vista se mostrará al abrir la página de vehículos",
+        "options": {
+          "table": "Lista de vehículos",
+          "tableDescription": "Muestra los vehículos en formato de tabla con columnas personalizables",
+          "board": "Flujo de trabajo",
+          "boardDescription": "Muestra los vehículos organizados por estado en un tablero tipo Kanban"
+        }
+      },
+      "toasts": {
+        "saved": {
+          "title": "Configuración guardada",
+          "description": "La vista por defecto ha sido actualizada"
+        }
+      }
+    },
+    "dealerships": {
+      "newButton": "Nueva Sucursal",
+      "table": {
+        "address": "Dirección",
+        "phone": "Teléfono",
+        "email": "Email",
+        "location": "Ubicación",
+        "actions": "Acciones"
+      },
+      "viewOnMaps": "Ver en Google Maps",
+      "notDefined": "No definida",
+      "toasts": {
+        "deleted": "Sucursal eliminada exitosamente",
+        "deleteError": "No se pudo eliminar la sucursal"
+      },
+      "noCoordinates": "No hay coordenadas disponibles para esta sucursal",
+      "deleteDialog": {
+        "title": "¿Estás seguro?",
+        "description": "Esta acción no se puede deshacer. Se eliminará permanentemente la sucursal."
+      }
+    },
+    "sellerPermissions": {
+      "updated": "Configuración actualizada correctamente",
+      "updateError": "Error al actualizar la configuración",
+      "viewTitle": "Visualización de Vehículos",
+      "viewDescription": "Permitir que los vendedores vean todos los vehículos"
+    },
+    "documents": {
+      "title": "Plantillas de Documentos",
+      "saveButton": "Guardar cambios",
+      "previewWithBranch": "Vista Previa con Sucursal:",
+      "selectBranch": "Seleccionar sucursal",
+      "dealershipPreview": "Información legal",
+      "generalLegalInfo": "Información Legal General",
+      "branch": "Sucursal",
+      "documentContent": "Contenido del Documento",
+      "customizeTerms": "Personaliza los términos y condiciones",
+      "observations": "Observaciones",
+      "observationsPlaceholder": "Agrega observaciones adicionales para el documento...",
+      "termsAndConditions": "Términos y Condiciones",
+      "termsPlaceholder": "Escribe los términos y condiciones que aparecerán en el documento...",
+      "documentPreview": "Vista Previa del Documento",
+      "tabs": {
+        "sale": "Nota de Venta",
+        "purchase": "Nota de Compra",
+        "consignment": "Consignación",
+        "reservation": "Reservación",
+        "quotation": "Cotización",
+        "closeDeal": "Cierre de Negocio"
+      },
+      "extraPages": {
+        "title": "Hojas Extras (PDF/Word)",
+        "description": "Sube documentos PDF o Word que se agregarán como páginas extras al final de la nota de venta",
+        "files": "Archivos",
+        "uploading": "Subiendo...",
+        "uploadFiles": "Subir Archivos",
+        "noFiles": "No hay archivos subidos",
+        "filesWillAppear": "Los archivos aparecerán como páginas extras en la nota de venta",
+        "tip": "Los archivos PDF/Word se mostrarán como páginas adicionales al final de cada nota de venta. Los PDFs se visualizarán embebidos y los documentos Word se podrán descargar."
+      },
+      "editor": {
+        "line": "línea",
+        "lines": "líneas",
+        "characters": "caracteres",
+        "collapse": "Contraer",
+        "expand": "Expandir",
+        "placeholder": "Escribe aquí...",
+        "clickToWrite": "Haz clic para escribir",
+        "tip": "Usa saltos de línea para organizar mejor el contenido"
+      },
+      "toasts": {
+        "successTitle": "Éxito",
+        "successDescription": "Plantilla guardada correctamente",
+        "errorDescription": "No se pudo guardar la plantilla",
+        "emptyTermsDescription": "No se pueden guardar términos y condiciones vacíos",
+        "invalidFileType": "Tipo de archivo no válido",
+        "invalidFileTypeDescription": "El archivo \"{{name}}\" no es un PDF o Word",
+        "uploadError": "Error al subir archivo",
+        "uploadErrorDescription": "No se pudo subir \"{{name}}\"",
+        "filesUploaded": "Archivos subidos",
+        "filesUploadedDescription": "Se subieron {{count}} archivo(s) correctamente. No olvides hacer clic en \"Guardar cambios\"",
+        "error": "Error",
+        "uploadGeneralError": "Ocurrió un error al subir los archivos",
+        "fileDeleted": "Archivo eliminado",
+        "fileDeletedDescription": "El archivo se eliminó. No olvides hacer clic en \"Guardar cambios\"",
+        "deleteError": "No se pudo eliminar el archivo"
+      }
+    },
+    "legal": {
+      "title": "Información Legal",
+      "subtitle": "Configura los datos legales de tu empresa que aparecerán en los documentos",
+      "cardTitle": "Datos Legales",
+      "labels": {
+        "companyName": "Razón Social",
+        "rut": "RUT",
+        "legalRepresentative": "Representante Legal",
+        "legalAddress": "Domicilio Legal"
+      },
+      "placeholders": {
+        "companyName": "Nombre de la empresa",
+        "rut": "Formato: 12345678-9",
+        "legalRepresentative": "Nombre y apellidos del representante",
+        "legalAddress": "Dirección comercial completa"
+      },
+      "saveButton": "Guardar Cambios",
+      "loadError": "No se pudo cargar la información legal",
+      "toasts": {
+        "successTitle": "Éxito",
+        "successDescription": "Información legal guardada correctamente",
+        "saveErrorDescription": "No se pudo guardar la información legal"
+      }
+    },
+    "general": {
+      "tabs": {
+        "basic": "Información Básica",
+        "theme": "Tema",
+        "seo": "SEO",
+        "contact": "Contacto",
+        "permissions": "Permisos",
+        "language": "Idioma",
+        "subscription": "Suscripción"
+      },
+      "titles": {
+        "basic": "Información Básica",
+        "theme": "Configuración de Tema"
+      },
+      "labels": {
+        "dealershipName": "Nombre de la Automotora"
+      },
+      "placeholders": {
+        "dealershipName": "Ingrese el nombre de la automotora"
+      },
+      "favicon": {
+        "title": "Favicon",
+        "description": "Sube el favicon de tu sitio web (formatos .ico, .png, .svg) o ingresa una URL.",
+        "urlTab": "URL",
+        "uploadTab": "Subir Archivo",
+        "urlPlaceholder": "Ingrese la URL del favicon",
+        "current": "Favicon Actual:"
+      },
+      "theme": {
+        "enableDarkMode": "Habilitar Modo Oscuro",
+        "enableDarkModeDescription": "Permitir a los usuarios cambiar a un tema oscuro.",
+        "primaryColorLight": "Color Primario (Claro)",
+        "secondaryColorLight": "Color Secundario (Claro)",
+        "primaryColorDark": "Color Primario (Oscuro)",
+        "secondaryColorDark": "Color Secundario (Oscuro)"
+      },
+      "uploadingFile": "Subiendo archivo...",
+      "saveButton": "Guardar Cambios"
+    }
+  },
+  "instagram": {
+    "loading": "Cargando...",
+    "header": {
+      "title": "Integración de Instagram",
+      "description": "Conecta y gestiona cuentas de Instagram Business para publicar contenido",
+      "connectButton": "Conectar cuenta"
+    },
+    "card": {
+      "followersSuffix": "seguidores",
+      "business": "Business",
+      "creator": "Creador"
+    },
+    "posts": {
+      "title": "Publicaciones de @{{username}}",
+      "loadingPosts": "Cargando publicaciones...",
+      "errorLoading": "Error al cargar las publicaciones de Instagram",
+      "noPosts": "No hay publicaciones para mostrar",
+      "viewOnInstagram": "Ver en Instagram",
+      "likes": "me gusta",
+      "comments": "comentarios"
+    },
+    "empty": {
+      "title": "No hay cuentas de Instagram conectadas",
+      "description": "Conecta tu cuenta de Instagram Business para publicar contenido automáticamente",
+      "button": "Conectar cuenta de Instagram"
+    },
+    "toasts": {
+      "connectSuccess": {
+        "title": "Cuenta conectada",
+        "description": "Tu cuenta de Instagram ha sido conectada exitosamente."
+      },
+      "connectError": {
+        "title": "Error",
+        "description": "No se pudo conectar la cuenta de Instagram. Por favor intenta nuevamente."
+      },
+      "connectNeedsHelp": {
+        "title": "Te ayudamos a conectar tu cuenta"
+      },
+      "disconnectSuccess": {
+        "title": "Cuenta desconectada",
+        "description": "La cuenta de Instagram ha sido desconectada exitosamente."
+      },
+      "disconnectError": {
+        "title": "Error",
+        "description": "No se pudo desconectar la cuenta de Instagram. Por favor intenta nuevamente."
+      }
+    },
+    "errors": {
+      "connectFailed": "No se pudo conectar la cuenta de Instagram. Por favor intenta nuevamente."
+    },
+    "page": {
+      "disconnect": "Desconectar",
+      "followers": "seguidores",
+      "tabPublish": "Publicar",
+      "tabPosts": "Publicaciones",
+      "selectVehicleTitle": "Selecciona un vehículo para publicar",
+      "selectVehicleDesc": "Elige un vehículo de tu inventario para crear una publicación en Instagram",
+      "officialIntegration": "Integración oficial de Instagram",
+      "heroTitle": "Publica tus vehículos directamente en Instagram",
+      "heroDesc": "Conecta tu cuenta profesional de Instagram y publica vehículos de tu inventario con un solo clic. Crea publicaciones atractivas sin salir de GoAutos.",
+      "connecting": "Conectando...",
+      "connectInstagram": "Conectar Instagram",
+      "secureConnection": "Conexión segura vía OAuth",
+      "featurePublishTitle": "Publica desde tu inventario",
+      "featurePublishDesc": "Selecciona vehículos y publícalos en Instagram con fotos y descripción generada automáticamente.",
+      "featureManageTitle": "Gestiona publicaciones",
+      "featureManageDesc": "Visualiza todas tus publicaciones de Instagram en un solo lugar con métricas de interacción.",
+      "featureProfileTitle": "Perfil conectado",
+      "featureProfileDesc": "Consulta tu perfil, seguidores y tipo de cuenta directamente desde el panel.",
+      "howItWorks": "Cómo funciona",
+      "step1": "Haz clic en \"Conectar Instagram\" e inicia sesión con tu cuenta profesional.",
+      "step2": "Autoriza los permisos para publicar contenido desde GoAutos.",
+      "step3": "Selecciona un vehículo de tu inventario y publícalo con un clic.",
+      "requirements": "Requisitos",
+      "req1": "Cuenta de Instagram Profesional (Business o Creador)",
+      "req2": "Al menos una foto de perfil en tu cuenta",
+      "req3": "Vehículos con fotos cargadas en tu inventario",
+      "privacyNote": "Al conectar aceptas nuestra",
+      "privacyPolicy": "Política de Privacidad"
+    },
+    "createPost": {
+      "title": "Crear publicación en Instagram",
+      "description": "Previsualiza y edita tu publicación antes de compartirla",
+      "noImagesAlert": "Este vehículo no tiene imágenes. Añade al menos una imagen antes de publicar en Instagram.",
+      "noImagesError": "Este vehículo no tiene imágenes para publicar en Instagram",
+      "photosLabel": "Fotos a publicar",
+      "descriptionLabel": "Descripción",
+      "descriptionPlaceholder": "Escribe la descripción de tu publicación...",
+      "publishButton": "Publicar en Instagram",
+      "publishing": "Publicando...",
+      "successTitle": "¡Éxito!",
+      "successDesc": "Publicación creada exitosamente en Instagram",
+      "errorGeneric": "Error publicando en Instagram",
+      "errorPublish": "No se pudo crear la publicación en Instagram",
+      "errorPublishShort": "No se pudo publicar en Instagram. Revisa el detalle en el panel.",
+      "errorNoClient": "No se pudo identificar el cliente"
+    },
+    "vehicleGrid": {
+      "searchPlaceholder": "Buscar vehículo...",
+      "filterByStatus": "Filtrar por estado",
+      "allStatuses": "Todos los estados",
+      "noVehicles": "Sin vehículos",
+      "noVehiclesDesc": "No hay vehículos disponibles para publicar.",
+      "noFilterResults": "No se encontraron vehículos con los filtros aplicados"
+    },
+    "emptyState": {
+      "noAccounts": "No hay cuentas de Instagram conectadas",
+      "processing": "Procesando...",
+      "connectAccount": "Conectar cuenta de Instagram"
+    },
+    "pageHeader": {
+      "processing": "Procesando...",
+      "connectNew": "Conectar nueva cuenta"
+    },
+    "stats": {
+      "title": "Instagram",
+      "subtitle": "Integración y publicaciones",
+      "linked": "Vinculadas",
+      "linkPercentage": "% Vinculación",
+      "active30d": "Activas (30d)",
+      "activePercentage": "% Activas",
+      "note": "El conteo corresponde a fotos subidas desde la página web que también se publican en Instagram.",
+      "chartTitle": "Publicaciones por automotora",
+      "noData": "No hay automotoras con Instagram integrado.",
+      "publication": "publicación",
+      "publications": "publicaciones",
+      "avgBetweenPosts": "Promedio entre publicaciones:",
+      "days": "días"
+    },
+    "termsDialog": {
+      "title": "Términos y Condiciones",
+      "subtitle": "Integración de Instagram",
+      "permissionsTitle": "Permisos solicitados",
+      "permBasicTitle": "instagram_business_basic",
+      "permBasicDesc": "Permite leer la información de tu perfil profesional de Instagram, incluyendo nombre de usuario, foto de perfil y cantidad de seguidores.",
+      "permPublishTitle": "instagram_business_content_publish",
+      "permPublishDesc": "Permite publicar fotos y carruseles en tu cuenta profesional de Instagram en tu nombre.",
+      "dataUsageTitle": "Cómo usamos tus datos",
+      "dataUsage1": "Mostrar la información de tu perfil de Instagram dentro de GoAutos",
+      "dataUsage2": "Publicar contenido de vehículos que tú apruebes explícitamente",
+      "dataUsage3": "Mostrar métricas de interacción (me gusta, comentarios) de tus publicaciones",
+      "dataNotTitle": "Lo que NO hacemos",
+      "dataNot1": "No vendemos ni compartimos tus datos con terceros",
+      "dataNot2": "No almacenamos tu contraseña de Instagram",
+      "dataNot3": "Puedes desconectar tu cuenta en cualquier momento",
+      "checkboxLabel": "He leído y acepto la",
+      "privacyPolicy": "Política de Privacidad",
+      "and": "y los",
+      "termsOfUse": "Términos de Uso",
+      "cancelButton": "Cancelar",
+      "acceptButton": "Aceptar y Conectar"
+    },
+    "vehicleTab": {
+      "noPost": "No hay publicación de Instagram vinculada a este vehículo.",
+      "errorLoading": "Error al cargar la publicación de Instagram",
+      "viewOnInstagram": "Ver en Instagram",
+      "likes": "me gusta",
+      "comments": "comentarios"
+    }
+  },
+  "documents": {
+    "title": "Documentos",
+    "subtitle": "Gestiona todos tus documentos en un solo lugar",
+    "tabs": {
+      "templates": "Plantillas de Documentos",
+      "templatesShort": "Plantillas",
+      "templatesDescription": "Configura las plantillas de documentos para ventas, compras y más",
+      "vehicleDocs": "Documentos de Vehículos",
+      "vehicleDocsShort": "Documentos",
+      "vehicleDocsDescription": "Todos los documentos generados para vehículos",
+      "additionalDocs": "Documentos Adicionales",
+      "additionalDocsShort": "Adicionales",
+      "additionalDocsDescription": "Archivos y documentos extras subidos manualmente"
+    },
+    "table": {
+      "type": "Tipo",
+      "vehicle": "Vehículo",
+      "date": "Fecha",
+      "actions": "Acciones"
+    },
+    "templates": {
+      "infoTitle": "Plantillas de Documentos",
+      "infoDescription": "Las plantillas de documentos te permiten personalizar los términos y condiciones de cada tipo de documento. Haz clic en 'Ir a Configuración' para editarlas.",
+      "goToConfiguration": "Ir a Configuración",
+      "sale": "Nota de Venta",
+      "saleDescription": "Plantilla para documentos de venta de vehículos",
+      "purchase": "Nota de Compra",
+      "purchaseDescription": "Plantilla para documentos de compra de vehículos",
+      "consignment": "Acta de Consignación",
+      "consignmentDescription": "Plantilla para contratos de consignación",
+      "reservation": "Acta de Reservación",
+      "reservationDescription": "Plantilla para documentos de reserva de vehículos",
+      "quotation": "Cotización",
+      "quotationDescription": "Plantilla para cotizaciones de vehículos",
+      "closeDeal": "Cierre de Negocio",
+      "closeDealDescription": "Plantilla para documentos de cierre de negocio"
+    },
+    "types": {
+      "sale": "Venta",
+      "purchase": "Compra",
+      "consignment": "Consignación",
+      "reservation": "Reserva",
+      "quotation": "Cotización",
+      "closeDeal": "Cierre de Negocio",
+      "other": "Otro"
+    },
+    "status": {
+      "pending": "Pendiente",
+      "completed": "Completado"
+    },
+    "vehicleDocs": {
+      "searchPlaceholder": "Buscar por vehículo, patente o tipo...",
+      "filterByType": "Filtrar por tipo",
+      "filterByStatus": "Filtrar por estado",
+      "allTypes": "Todos los tipos",
+      "allStatus": "Todos los estados",
+      "totalDocuments": "Total de Documentos",
+      "noDocuments": "No hay documentos",
+      "noDocumentsDescription": "No se encontraron documentos con los filtros aplicados",
+      "createNew": "Crear Nuevo",
+      "selectVehicle": "Seleccionar Vehículo",
+      "selectVehicleDesc": "Selecciona el vehículo para el documento",
+      "searchVehicle": "Buscar por marca, modelo, patente...",
+      "noVehiclesFound": "No se encontraron vehículos",
+      "noConsignedVehicles": "No hay vehículos consignados disponibles",
+      "showing": "Mostrando {{start}} - {{end}} de {{total}} documentos"
+    },
+    "additionalDocs": {
+      "searchPlaceholder": "Buscar por vehículo, descripción o tipo...",
+      "filterByType": "Filtrar por tipo",
+      "allTypes": "Todos los tipos",
+      "totalDocuments": "Documentos Adicionales",
+      "totalFiles": "Archivos Totales",
+      "file": "archivo",
+      "files": "archivos",
+      "untitled": "Sin título",
+      "noDocuments": "No hay documentos adicionales",
+      "noDocumentsDescription": "No se encontraron documentos adicionales con los filtros aplicados",
+      "types": {
+        "document": "Documento",
+        "expense": "Gasto",
+        "income": "Ingreso",
+        "contract": "Contrato",
+        "invoice": "Factura",
+        "receipt": "Recibo",
+        "certificate": "Certificado",
+        "other": "Otro"
+      }
+    }
+  }
+}

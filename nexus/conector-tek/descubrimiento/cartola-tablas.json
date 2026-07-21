@@ -1,0 +1,25 @@
+{
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCNA_SDOCTACTE&ts=1784602487290",
+  "tablas": [
+    {
+      "frame": "https://eob.officebanking.cl/CTA.UI.Web/saldoctacte/?servicioId=TRNCNA_SDOCTACTE",
+      "tablas": [
+        {
+          "filas": 4,
+          "headers": [],
+          "muestra": "Saldo Disponible\t$ 137.180.592"
+        },
+        {
+          "filas": 1,
+          "headers": [],
+          "muestra": "Línea de crédito\t\n\nCta. asociada: 0-020-0269880-6"
+        },
+        {
+          "filas": 3,
+          "headers": [],
+          "muestra": "Monto disponible\t$ 5.000.000"
+        }
+      ]
+    }
+  ]
+}

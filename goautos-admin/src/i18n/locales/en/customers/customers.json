@@ -1,0 +1,69 @@
+{
+  "page": {
+    "superadminTitle": "Client Management",
+    "superadminSubtitle": "Manage platform clients.",
+    "title": "Customers",
+    "subtitle": "Customer management."
+  },
+  "buttons": {
+    "newClient": "New Client",
+    "createCustomer": "Create Customer",
+    "bulkUpload": "Bulk Upload",
+    "exportTransactions": "Export Database",
+    "exporting": "Exporting..."
+  },
+  "export": {
+    "noData": "No data",
+    "noDataDescription": "No transactions to export",
+    "success": "Export successful",
+    "successDescription": "Transactions exported successfully",
+    "error": "Error",
+    "errorDescription": "Could not export transactions"
+  },
+  "search": {
+    "placeholder": "Search customer by name, email or Tax ID"
+  },
+  "empty": {
+    "title": "No registered customers",
+    "superadminDescription": "Click 'New Client' to add a client.",
+    "description": "No registered customers."
+  },
+  "dialog": {
+    "newCustomerTitle": "New Customer"
+  },
+  "superadminTable": {
+    "caption": "List of registered clients on the platform",
+    "headers": {
+      "company": "Company",
+      "name": "Name",
+      "contact": "Contact",
+      "domain": "Domain",
+      "status": "Status",
+      "registered": "Registered"
+    },
+    "labels": {
+      "id": "ID"
+    }
+  },
+  "table": {
+    "caption": "Customer list",
+    "headers": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "rut": "Tax ID",
+      "address": "Address",
+      "registeredAt": "Registration date"
+    }
+  },
+  "badges": {
+    "demoActive": "Active Demo",
+    "production": "Production"
+  },
+  "bulk": {
+    "title": "Bulk Customer Upload",
+    "embeddingsNote": "This process may take several minutes. Please do not close this window.",
+    "processing": "Processing import data...",
+    "confirm": "Confirm Import"
+  }
+}

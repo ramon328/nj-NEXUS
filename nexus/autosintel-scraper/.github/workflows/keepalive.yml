@@ -1,0 +1,30 @@
+name: Keep alive
+
+# Mantiene el repo "activo" para que GitHub no pause los workflows programados
+# (los desactiva tras 60 días sin actividad). Hace un commit chico cada semana.
+on:
+  schedule:
+    - cron: '17 6 * * 1'   # cada lunes 06:17 UTC
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: keepalive
+  cancel-in-progress: false
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Bump keepalive timestamp
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          date -u +"%Y-%m-%dT%H:%M:%SZ" > .keepalive
+          git add .keepalive
+          git commit -m "chore: keepalive [skip ci]" || { echo "sin cambios"; exit 0; }
+          git push

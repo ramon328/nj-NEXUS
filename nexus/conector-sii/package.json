@@ -1,0 +1,15 @@
+{
+  "name": "conector-sii",
+  "version": "1.0.0",
+  "description": "Conector al SII de Chile: vía clave tributaria (fallback) y vía certificado digital (recomendada).",
+  "type": "module",
+  "private": true,
+  "scripts": {
+    "descargar": "node descargar-todo.mjs"
+  },
+  "dependencies": {
+    "@xmldom/xmldom": "^0.8.10",
+    "node-forge": "^1.3.1",
+    "xml-crypto": "^6.0.0"
+  }
+}

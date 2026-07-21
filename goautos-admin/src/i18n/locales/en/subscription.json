@@ -1,0 +1,153 @@
+{
+  "title": "Activate your subscription",
+  "subtitle": "Start with 7 days free, cancel anytime",
+  "plan": {
+    "title": "Basic Plan",
+    "description": "Everything you need to get started",
+    "price": "$249,900",
+    "period": "/month",
+    "features": {
+      "trial": {
+        "title": "7 days free",
+        "description": "No commitment trial"
+      },
+      "website": {
+        "title": "Published website",
+        "description": "Your personalized online catalog"
+      },
+      "inventory": {
+        "title": "Inventory management",
+        "description": "Unlimited"
+      },
+      "leads": {
+        "title": "Leads and customers",
+        "description": "Complete management"
+      },
+      "support": {
+        "title": "Priority support",
+        "description": "Fast service"
+      }
+    },
+    "disclaimer": "First charge on day 8. Cancel anytime without penalty."
+  },
+  "form": {
+    "title": "Payment information",
+    "description": "Enter your credit or debit card details",
+    "cardNumber": "Card number",
+    "cardNumberPlaceholder": "1234 5678 9012 3456",
+    "cardholder": "Cardholder name",
+    "cardholderPlaceholder": "JOHN DOE",
+    "month": "Month",
+    "monthPlaceholder": "MM",
+    "year": "Year",
+    "yearPlaceholder": "YY",
+    "cvv": "CVV",
+    "cvvPlaceholder": "123",
+    "submit": "Activate subscription",
+    "processing": "Processing...",
+    "secure": "Your data is protected. Processed by Mercado Pago."
+  },
+  "status": {
+    "title": "Your subscription",
+    "noSubscription": "No active subscription",
+    "needSubscription": "You need an active subscription to publish your website",
+    "activate": "Activate subscription",
+    "trial": "Free trial",
+    "trialing": "Free trial",
+    "active": "Active",
+    "pastDue": "Payment pending",
+    "cancelled": "Cancelled",
+    "inactive": "Inactive",
+    "trialPeriod": "Trial period",
+    "daysRemaining": "days remaining",
+    "lastDay": "Last trial day",
+    "nextPayment": "Next payment",
+    "paymentMethod": "Payment method",
+    "monthlyAmount": "Monthly amount",
+    "annualAmount": "Annual amount",
+    "cardEndingIn": "Card ending in",
+    "memberSince": "Member since",
+    "currentPlan": "Current plan",
+    "billingCycle": "Billing cycle",
+    "monthly": "Monthly",
+    "annual": "Annual",
+    "manage": "Manage subscription",
+    "updatePayment": "Update payment method",
+    "cancel": "Cancel subscription",
+    "needHelp": "Need to make changes?"
+  },
+  "settings": {
+    "title": "Subscription",
+    "description": "Manage your subscription and payment method",
+    "currentStatus": "Current status",
+    "planDetails": "Plan details",
+    "paymentInfo": "Payment information",
+    "noActiveSubscription": "You don't have an active subscription",
+    "activateNow": "Activate now",
+    "activateDescription": "Activate your subscription to publish your website and access all features.",
+    "manageInMp": "Update your payment method on MercadoPago",
+    "manageInMpHint": "Your subscription is billed through MercadoPago: update your card by signing in there, under Subscriptions. If you paid without a MercadoPago account, contact us and we'll help."
+  },
+  "cancel": {
+    "title": "Cancel subscription",
+    "step1": {
+      "title": "Before you go...",
+      "description": "We're sorry to see you go. Tell us why so we can improve.",
+      "selectReason": "Select a reason",
+      "reasons": {
+        "tooExpensive": "It's too expensive for me",
+        "notUsing": "I'm not using the service",
+        "missingFeatures": "Missing features I need",
+        "technicalIssues": "Frequent technical issues",
+        "foundAlternative": "Found a better alternative",
+        "closingBusiness": "I'm closing my business",
+        "temporaryPause": "I just need a temporary pause",
+        "other": "Other reason"
+      },
+      "otherPlaceholder": "Tell us more about your reason...",
+      "continue": "Continue"
+    },
+    "step2": {
+      "title": "Talk to an executive",
+      "description": "Before cancelling, we recommend talking to one of our executives. We can offer you:",
+      "offers": {
+        "discount": "Special discounts",
+        "pause": "Temporarily pause your subscription",
+        "support": "Personalized support to solve your problems",
+        "features": "Early access to new features"
+      },
+      "contactWhatsApp": "Contact via WhatsApp",
+      "contactEmail": "Contact via Email",
+      "skipAndContinue": "Skip and continue with cancellation"
+    },
+    "step3": {
+      "title": "Confirm cancellation",
+      "description": "By cancelling your subscription:",
+      "consequences": {
+        "website": "Your website will no longer be published",
+        "features": "You will lose access to premium features",
+        "data": "Your data will be kept for 30 days",
+        "reactivate": "You can reactivate anytime"
+      },
+      "confirmText": "Type CANCEL to confirm",
+      "confirmPlaceholder": "Type CANCEL",
+      "cancelSubscription": "Cancel subscription",
+      "goBack": "Go back",
+      "cancelling": "Cancelling..."
+    },
+    "success": {
+      "title": "Subscription cancelled",
+      "description": "Your subscription has been cancelled. You will have access until the end of your current billing period.",
+      "close": "Close"
+    }
+  },
+  "messages": {
+    "success": "Subscription activated",
+    "successDescription": "Enjoy 7 days free! Your card will be charged after the trial period.",
+    "error": "Error creating subscription",
+    "cancelled": "Subscription cancelled",
+    "cancelledDescription": "Your subscription has been cancelled successfully",
+    "updateSuccess": "Payment method updated",
+    "updateError": "Error updating payment method"
+  }
+}

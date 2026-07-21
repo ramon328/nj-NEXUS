@@ -1,0 +1,30 @@
+name: Changelog
+
+# Al pushear a `production`, genera una entrada de changelog en Novedades a partir de
+# los commits (feat/fix/perf → "Nuevas funciones"/"Correcciones"/"Mejoras"). Inserta en
+# la tabla `updates` (type='changelog', status='published') vía service_role.
+#
+# SETUP (una vez): agregar el secret de repo `SUPABASE_SERVICE_ROLE_KEY`
+# (Settings → Secrets and variables → Actions). Sin él, el job no hace nada (no falla).
+on:
+  push:
+    branches: [production]
+
+jobs:
+  publish-changelog:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # historial completo para leer el rango de commits del push
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+
+      - name: Generar y publicar changelog
+        env:
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.sha }}
+        run: node scripts/changelog-from-commits.mjs

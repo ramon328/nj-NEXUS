@@ -1,0 +1,177 @@
+{
+  "page": {
+    "title": "Leads",
+    "subtitle": "Gestiona los leads de compra y venta de vehículos"
+  },
+  "tabs": {
+    "buy": "Leads de Compra",
+    "sell": "Leads de Venta"
+  },
+  "viewToggle": {
+    "kanban": "Kanban",
+    "table": "Tabla"
+  },
+  "filters": {
+    "searchPlaceholder": "Buscar por nombre o email",
+    "typeAll": "Tipo: Todos",
+    "statusAll": "Estado: Todos",
+    "clear": "Limpiar filtros"
+  },
+  "types": {
+    "buyDirect": "Compra Directa",
+    "buyConsignment": "Consignación",
+    "searchRequest": "Buscar tu Auto",
+    "sellVehicle": "Venta Vehículo",
+    "sellFinancing": "Financiamiento",
+    "sellTransfer": "Transferencia",
+    "contactGeneral": "Contacto General"
+  },
+  "status": {
+    "pending": "Pendiente",
+    "assigned": "Asignado",
+    "completed": "Completado",
+    "cancelled": "Cancelado"
+  },
+  "statusDescriptions": {
+    "pending": "El lead está pendiente de procesamiento.",
+    "assigned": "El lead ha sido asignado a un vendedor.",
+    "completed": "El proceso del lead ha sido completado exitosamente.",
+    "cancelled": "El lead ha sido cancelado o rechazado."
+  },
+  "labels": {
+    "type": "Tipo",
+    "date": "Fecha",
+    "vehicle": "Vehículo",
+    "price": "Precio Venta",
+    "contact": "Contacto",
+    "customer": "Cliente",
+    "status": "Estado",
+    "name": "Nombre",
+    "rut": "RUT",
+    "phone": "Teléfono",
+    "birthDate": "Fecha de Nacimiento",
+    "noCustomerInfo": "No hay información de cliente disponible",
+    "brand": "Marca",
+    "model": "Modelo",
+    "year": "Año",
+    "mileage": "Kilometraje",
+    "searchCriteria": "Criterios de búsqueda",
+    "noLimit": "Sin límite",
+    "maxOwners": "Máx. dueños",
+    "searchedVehicle": "Vehículo buscado",
+    "clientSearchesVehicle": "Cliente busca este tipo de vehículo",
+    "consigned": "Consignado",
+    "owned": "Propio",
+    "priceNotAvailable": "Precio no disponible",
+    "notes": "Notas",
+    "associatedVehicles": "Vehículos Asociados"
+  },
+  "buttons": {
+    "viewDetails": "Ver detalles",
+    "viewVehicle": "Ver vehículo",
+    "addLead": "Agregar Lead",
+    "editNotes": "Editar notas",
+    "deleteLead": "Eliminar",
+    "createRequest": "Crear Solicitud",
+    "exportLeads": "Exportar"
+  },
+  "export": {
+    "success": "Exportados {{count}} leads",
+    "empty": "No hay leads para exportar con los filtros actuales.",
+    "error": "No pudimos exportar los leads. Intenta de nuevo."
+  },
+  "claim": {
+    "take": "Tomar este lead",
+    "claimed": "Lead tomado",
+    "claimFailed": "Otro vendedor ya lo tomó",
+    "release": "Soltar lead",
+    "released": "Lead devuelto al pool",
+    "releaseFailed": "No se pudo soltar el lead"
+  },
+  "timeline": {
+    "title": "Historial",
+    "loading": "Cargando…",
+    "empty": "Sin actividad registrada todavía.",
+    "created": "Lead creado",
+    "created_from": "Lead creado ({{source}})",
+    "assigned": "Asignado a {{name}}",
+    "reassigned": "Reasignado a {{name}}",
+    "unassigned": "Asignación quitada",
+    "status_changed": "Estado: {{from}} → {{to}}",
+    "notes_changed": "Notas actualizadas",
+    "source": {
+      "admin": "Panel",
+      "web": "Web",
+      "chileautos": "ChileAutos",
+      "system": "Sistema"
+    }
+  },
+  "table": {
+    "emptyFilters": "No hay leads disponibles con los filtros actuales",
+    "emptyState": "Aún no tienes leads registrados",
+    "emptyStateHint": "Los leads se crean automáticamente desde tu sitio web o puedes agregarlos manualmente.",
+    "addFirstLead": "Agregar primer lead"
+  },
+  "kanban": {
+    "emptyColumn": "Sin leads"
+  },
+  "detail": {
+    "leadDetail": "Detalle del lead",
+    "noNotes": "Sin notas",
+    "requestCreated": "Solicitud creada",
+    "requestCreatedDesc": "Puedes verla en la sección de Solicitudes"
+  },
+  "timeAgo": {
+    "justNow": "Justo ahora",
+    "minutes": "Hace {{count}} min",
+    "hours": "Hace {{count}}h",
+    "yesterday": "Ayer",
+    "days": "Hace {{count}} días"
+  },
+  "createDialog": {
+    "title": "Agregar Lead",
+    "customer": "Cliente",
+    "customerInfo": "Información del cliente",
+    "leadInfo": "Información del lead",
+    "firstName": "Nombre",
+    "lastName": "Apellido",
+    "email": "Email",
+    "phone": "Teléfono",
+    "rut": "RUT",
+    "type": "Tipo de lead",
+    "notes": "Notas",
+    "notesPlaceholder": "Agrega notas sobre este lead...",
+    "typeGroupBuy": "Compra",
+    "typeGroupSell": "Venta",
+    "typeGroupOther": "Otro",
+    "success": "Lead creado exitosamente",
+    "error": "Error al crear el lead",
+    "selectType": "Selecciona un tipo",
+    "existingCustomerUsed": "Se encontró un cliente existente con ese email"
+  },
+  "editNotesDialog": {
+    "title": "Editar notas",
+    "placeholder": "Escribe notas sobre este lead...",
+    "success": "Notas actualizadas exitosamente",
+    "error": "Error al actualizar las notas"
+  },
+  "deleteDialog": {
+    "title": "Eliminar lead",
+    "description": "Esta acción es irreversible. El lead será eliminado permanentemente.",
+    "success": "Lead eliminado exitosamente",
+    "error": "Error al eliminar el lead"
+  },
+  "errors": {
+    "load": "Error al cargar los leads"
+  },
+  "statusModal": {
+    "title": "Cambiar estado del lead",
+    "description": "Selecciona el nuevo estado para el lead."
+  },
+  "financing": {
+    "title": "Información de Financiamiento",
+    "downPayment": "Pie",
+    "monthlyIncome": "Ingreso Mensual",
+    "employmentType": "Tipo de Empleo"
+  }
+}

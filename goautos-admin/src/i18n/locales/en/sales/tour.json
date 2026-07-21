@@ -1,0 +1,28 @@
+{
+  "welcome": {
+    "title": "Sales Management",
+    "description": "This is where you manage all your dealership's sales. You can approve, reject, and review each transaction.\n\nLet's see how it works."
+  },
+  "header": {
+    "title": "Sales Header",
+    "description": "General section info. The description changes automatically based on the active tab."
+  },
+  "tabs": {
+    "title": "Status Tabs",
+    "description": "Filter your sales by status:\n\nPending: Sales awaiting your approval\nApproved: Confirmed sales\nRejected: Rejected sales\nAll: Complete view of all sales"
+  },
+  "table": {
+    "title": "Sales Table",
+    "description": "Detail of each sale: date, vehicle, customer, price, seller, commission, and status.\n\nFrom pending sales you can approve or reject, adjust commissions, and add notes.\n\nApproved sales are automatically reflected in your financial reports."
+  },
+  "finish": {
+    "title": "All Set!",
+    "description": "You now know the sales management tools. Remember to regularly review pending sales to keep your operations up to date."
+  },
+  "buttons": {
+    "next": "Next",
+    "previous": "Previous",
+    "done": "Finish",
+    "skip": "Skip"
+  }
+}

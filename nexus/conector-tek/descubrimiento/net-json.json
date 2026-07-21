@@ -1,0 +1,45 @@
+[
+  {
+    "url": "https://privado.officebanking.cl/assets/params.json",
+    "status": 200,
+    "arrays": [
+      {
+        "path": ".notifications.mandatoryNotifications",
+        "len": 3,
+        "keys": [
+          "id",
+          "codeMenu",
+          "dest"
+        ]
+      },
+      {
+        "path": ".campaigns.POST_MESSAGE_LIST",
+        "len": 14,
+        "keys": [
+          "postMessageName",
+          "codeMenu"
+        ]
+      }
+    ]
+  },
+  {
+    "url": "https://wup-7b4df495.santander.cl/client/v3/web/wup",
+    "status": 200,
+    "arrays": []
+  },
+  {
+    "url": "https://log-7b4df495.santander.cl/api/v1/sendLogs",
+    "status": 200,
+    "arrays": []
+  },
+  {
+    "url": "https://wup-7b4df495.santander.cl/client/v3/web/wup",
+    "status": 200,
+    "arrays": []
+  },
+  {
+    "url": "https://wup-7b4df495.santander.cl/client/v3/web/wup",
+    "status": 200,
+    "arrays": []
+  }
+]

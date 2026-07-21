@@ -1,0 +1,54 @@
+# Logs
+logs
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+lerna-debug.log*
+
+node_modules
+dist
+dist-ssr
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Supabase
+supabase/.temp
+
+# Environment variables
+.env
+
+# Temp data files
+*.xlsx
+fix_dap_stock.sql
+import_dap_stock.sql
+
+# Internal docs (no subir al repo)
+FUNCIONALIDADES_GOAUTOS.md
+MERCADOPAGO_SETUP.md
+MIGRATION_README.md
+tutorial-cambiar-estado-vehiculo.md
+context.md
+AI_CHATBOT_DOCS.md
+
+# Presentaciones internas de pagos/suscripciones (NO subir a git)
+presentacion-pagos-automaticos.html
+presentacion-pasos-implementacion.html
+*.presentacion.html
+
+# Crawler temp files
+scripts/.crawl-progress.json
+scripts/chileautos-catalog.json
+scripts/chileautos-inspect.png
+scripts/.marginHarness.mjs

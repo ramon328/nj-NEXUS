@@ -1,0 +1,46 @@
+# Blueprint de Render para el backend extractor SII.
+# Despliega un Web Service Docker. Las credenciales/secretos se cargan a mano
+# en el dashboard (sync:false → NO se versionan).
+#
+# Empresas → Supabase (persistente). Documentos → efímeros (sin disco). Por eso
+# NO se monta disco persistente: al reiniciar, los documentos descargados se
+# limpian solos (no se acumula basura).
+services:
+  - type: web
+    name: sii-extractor
+    runtime: docker
+    dockerfilePath: ./Dockerfile
+    # Chromium (carpeta/F29/F22) necesita ~2 GB de RAM: en 'starter' (512 MB) se
+    # queda sin memoria. 'standard' (2 GB) corre todos los flujos con navegador.
+    plan: standard
+    region: oregon
+    autoDeploy: true
+    healthCheckPath: /api/health
+    envVars:
+      # ── Token que exige la API (mismo valor que API_TOKEN en el front Vercel) ──
+      - key: API_TOKEN
+        sync: false
+      # ── Cifrado de la clave tributaria guardada (Fernet). GENÉRALA tú:        ──
+      #    python -c "from cryptography.fernet import Fernet; print(Fernet.generate_key().decode())"
+      - key: ENCRYPTION_KEY
+        sync: false
+      # ── Empresas en Supabase (Postgres). La SERVICE KEY es secreta: solo aquí ──
+      - key: SUPABASE_URL
+        sync: false
+      - key: SUPABASE_SERVICE_KEY
+        sync: false
+      - key: SUPABASE_BUCKET
+        value: sii-documentos
+      # ── Anti-bloqueo: proxy con IP chilena (déjalo VACÍO para probar directo) ──
+      - key: SII_PROXY
+        sync: false                 # ej: http://usuario:clave@TU-TUNEL:puerto
+      # ── Origen del frontend para CORS (ej: https://tuapp.vercel.app) ─────────
+      - key: FRONTEND_ORIGIN
+        sync: false
+      # ── Ritmo humano entre peticiones (anti-bloqueo) ─────────────────────────
+      - key: SII_DELAY_MIN
+        value: "2.0"
+      - key: SII_DELAY_MAX
+        value: "5.0"
+      - key: SII_MAX_RETRIES
+        value: "3"

@@ -1,0 +1,113 @@
+{
+  "title": "Team",
+  "subtitle": "Manage user permissions and access",
+  "tabs": {
+    "admins": "Administrators",
+    "sellers": "Sellers"
+  },
+  "actions": {
+    "addUser": "Add User"
+  },
+  "sellers": {
+    "header": {
+      "title": "Sellers",
+      "subtitle": "Select a seller to manage commissions and sales",
+      "add": "Add Seller"
+    },
+    "empty": "No sellers registered",
+    "table": {
+      "name": "Name",
+      "email": "Email",
+      "phone": "Phone",
+      "assignedCommissions": "Assigned Commissions",
+      "actions": "Actions",
+      "assigned": "Assigned",
+      "pending": "Pending",
+      "sellerFallback": "Seller",
+      "configureCommissions": "Configure commissions",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "confirmDelete": {
+      "title": "Are you sure?",
+      "description": "This action will delete the seller {{seller}} and cannot be undone.",
+      "confirm": "Delete"
+    }
+  },
+  "userTable": {
+    "headers": {
+      "name": "Name",
+      "email": "Email",
+      "role": "Role",
+      "client": "Client",
+      "actions": "Actions"
+    },
+    "tooltips": {
+      "changePassword": "Change password",
+      "edit": "Edit",
+      "delete": "Delete"
+    },
+    "empty": "No users found.",
+    "pagination": {
+      "prev": "Previous",
+      "next": "Next",
+      "pageOf": "Page {{current}} of {{total}}"
+    },
+    "noClient": "No client"
+  },
+  "empty": {
+    "title": "No {{type}} registered",
+    "subtitle": "Click \"{{addLabel}}\" to add a user."
+  },
+  "accessDenied": "People administration area exclusive to superadmins.",
+  "dialog": {
+    "title": {
+      "new": "Add User",
+      "edit": "Edit User"
+    },
+    "loadClientsError": "Could not load clients",
+    "created": "User created successfully",
+    "updated": "User updated successfully",
+    "processError": "An error occurred while processing the request"
+  },
+  "form": {
+    "labels": {
+      "email": "Email",
+      "password": "Password",
+      "firstName": "First Name",
+      "lastName": "Last Name",
+      "role": "Role",
+      "client": "Client",
+      "phone": "Phone"
+    },
+    "placeholders": {
+      "email": "example@email.com",
+      "password": "••••••••",
+      "firstName": "Enter first name",
+      "lastName": "Enter last name",
+      "role": "Select role",
+      "client": "Select client",
+      "phone": "Enter phone"
+    },
+    "roles": {
+      "superadmin": "Superadmin",
+      "admin": "Admin",
+      "seller": "Seller"
+    },
+    "client": {
+      "none": "No client"
+    },
+    "validation": {
+      "emailInvalid": "Invalid email",
+      "passwordMin": "Password must be at least 6 characters",
+      "firstNameRequired": "First name is required",
+      "lastNameRequired": "Last name is required",
+      "roleRequired": "Role is required"
+    },
+    "buttons": {
+      "processing": "Processing...",
+      "save": "Save",
+      "create": "Create"
+    }
+  }
+}
