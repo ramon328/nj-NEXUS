@@ -272,7 +272,7 @@ async function autoGraficarResumen(r, ctx) {
     }
   } catch (e) { /* best-effort */ }
 }
-async function aliaceResumenMes(fecha) {
+export async function aliaceResumenMes(fecha) {
   const P = resumenMesPeriodo(fecha)
   const num = (n) => Math.round(Number(n || 0))
   // Las 5 consultas son INDEPENDIENTES entre sí: las disparamos EN PARALELO (Promise.all)
@@ -455,7 +455,7 @@ async function aliaceResumenMes(fecha) {
 // (aliaceFacturasApp), así el total del año cuadra al peso con la suma de los meses y
 // con el tool aliace_resumen. La CxC NO va aquí: es un snapshot a fecha de corte (no se
 // acumula); para CxC usa aliace_resumen. anio opcional → por defecto el año en curso.
-async function aliaceResumenAnual(anio) {
+export async function aliaceResumenAnual(anio) {
   const num = (n) => Math.round(Number(n || 0))
   const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
   const anioHoy = Number(hoy.slice(0, 4)); const mesHoy = Number(hoy.slice(5, 7))
@@ -871,7 +871,7 @@ async function aliaceMargenEstimado(anio, mes, ncMonto = 0) {
   }
 }
 
-async function aliaceMargen({ fecha, id } = {}) {
+export async function aliaceMargen({ fecha, id } = {}) {
   const num = (n) => Math.round(Number(n || 0))
   if (id) {
     const uuid = String(id).trim()
@@ -929,7 +929,7 @@ async function aliaceMargen({ fecha, id } = {}) {
       monto_total_facturado_sin_iva: fa.monto_total_facturado_sin_iva,
       fuente_costo: est.fuente_costo, validacion: est.validacion,
       costeo: costeo || undefined,
-      instruccion: `⚠️ MARGEN ESTIMADO (no oficial): ${mesISO} NO tiene costeo WAC en Aliace, así que el costo se estimó con unit_costs (tabla de costo mensual por producto de Aliace), matcheado por nombre con ${est.cobertura_pct}% de cobertura. Repórtalo SIEMPRE marcado como "estimado (unit_costs), no es el WAC oficial" y menciona la cobertura. Es fiable (validado a ~0,7 pto del WAC real de junio) pero NO lo presentes como cifra oficial. Los meses con WAC (costeo.meses_costeados) sí son oficiales. margen_pct es FRACCIÓN → usa margen_pct_texto.`,
+      instruccion: `⚠️ MARGEN ESTIMADO (no oficial): ${mesISO} NO tiene costeo WAC en Aliace, así que el costo se estimó con unit_costs (tabla de costo mensual por producto de Aliace), matcheado por nombre con ${est.cobertura_pct}% de cobertura. En el apartado "Margen" MUESTRA SOLO tres líneas: • Costo de Ventas (estimado) = costo_estimado • Margen Bruto = margen_bruto • Margen % = margen_pct_texto. NO pongas "Ventas netas" en ese apartado. Márcalo SIEMPRE como "estimado (unit_costs), no es el WAC oficial" con una línea de aviso debajo. Es fiable (validado a ~0,7 pto del WAC real de junio) pero NO lo presentes como cifra oficial. Los meses con WAC (costeo.meses_costeados) sí son oficiales. margen_pct es FRACCIÓN → usa margen_pct_texto.`,
     }
   }
   return {
@@ -949,7 +949,7 @@ async function aliaceMargen({ fecha, id } = {}) {
     cotejo_app: { costo_ventas_wac: fa.costo_ventas_wac, ventas_con_costo: fa.ventas_con_costo, margen_bruto: fa.margen_bruto, margen_pct: fa.margen_pct },
     instruccion: (sinCosteo
       ? `⚠️ El margen de este mes NO es calculable: el costeo WAC de ${mesISO} tiene 0% de cobertura (el equipo de costos de Aliace aún no procesó ese período). NO inventes un margen. Reporta el Facturado (monto_total_facturado_sin_iva) y di claramente que el margen no está disponible por falta de costeo. Dile al usuario qué meses SÍ están costeados usando costeo.meses_costeados (y ultimo_costeado como referencia). `
-      : 'MARGEN CORRECTO = margen_bruto / margen_pct de este objeto (NETO de notas de crédito): Ventas Netas (costeadas − devoluciones), Costo de Ventas (WAC ventas − WAC devoluciones), Margen Bruto y Margen % sobre ventas netas. OJO: margen_pct es una FRACCIÓN — usa margen_pct_texto para mostrarlo. Si cobertura_costeo_pct es bajo (<99%), avisa que el costeo del mes está incompleto y puede afinarse al terminar de costear. ') +
+      : 'MARGEN CORRECTO = margen_bruto / margen_pct de este objeto (NETO de notas de crédito, calculado sobre ventas netas). En el apartado "Margen" MUESTRA SOLO estas TRES líneas, nada más: • Costo de Ventas (WAC) = costo_ventas_total • Margen Bruto = margen_bruto • Margen % = margen_pct_texto. NO pongas "Ventas netas" ni "Cobertura de costeo" en ese apartado (esas cifras pertenecen a Facturación, no a Margen). OJO: margen_pct es una FRACCIÓN — usa margen_pct_texto para mostrarlo. Si cobertura_costeo_pct es bajo (<99%), agrega DEBAJO de las tres líneas UNA sola línea corta de aviso ("costeo del mes incompleto, el margen puede afinarse al terminar de costear"), sin ponerla como métrica ni como porcentaje destacado. ') +
       'cotejo_app es la pantalla Facturas de la app (sin netear NC); úsalo solo si te lo piden comparar. La app advierte: "Costos y márgenes: información en revisión, no oficial". Si hay margen, acompaña con un gráfico (Margen vs Costo).',
   }
 }
