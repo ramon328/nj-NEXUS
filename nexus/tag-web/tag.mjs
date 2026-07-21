@@ -29,6 +29,24 @@ export const TIPOS = {
   },
 }
 
+// Documentos requeridos por caso (paso 1 del instructivo oficial).
+export function documentosRequeridos(tipo, es_empresa) {
+  let docs
+  if (tipo === 'nuevo_propio') {
+    // Propios (Ana Clara): basta poder + CAV, no exige contrato firmado.
+    docs = ['Poder', 'CAV (Certificado de Anotaciones Vigentes)']
+  } else {
+    // traspaso / tercero: contrato + carnet + documento de tag firmado.
+    docs = [
+      'Contrato de compraventa firmado por ambas partes',
+      'Carnet por ambos lados del nuevo dueño',
+      'Documento de TAG firmado',
+    ]
+  }
+  if (es_empresa) docs = docs.concat(['Escritura de la empresa', 'e-RUT'])
+  return docs
+}
+
 function cuerpo(d, tipoLabel, nAdj) {
   const L = ['Estimados Tag Tico,', '', 'Solicitamos lo siguiente:', '']
   L.push(`• Tipo: ${tipoLabel}`)

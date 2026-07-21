@@ -32,6 +32,9 @@ import * as sai from '../conector-sai/src/tools.js'
 // Gmail — descargar adjuntos (documentos) del correo conectado (agente Néstor).
 import { descargarAdjuntos as gmailDescargarAdjuntos } from '../conector-correo/gmail-adjuntos.mjs'
 import { recordarHecho, textoMemoria } from './memoria-usuarios.mjs'
+// TAG — solicitud/traspaso de TAG (envía desde el correo de Mallorca) + conteo de autos con TAG.
+import { enviarSolicitudTag, documentosRequeridos, validar as validarTag, TIPOS as TAG_TIPOS } from '../tag-web/tag.mjs'
+import { conteo as tagConteo } from '../tag-web/autos-tag.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -1267,7 +1270,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -2508,6 +2511,36 @@ const HERRAMIENTAS = [
     description: 'GUARDA en tu MEMORIA PERSONAL de ESTE usuario un dato DURADERO para las próximas conversaciones (así te personalizas por persona). Úsalo cuando aprendas algo que valga la pena recordar de quien te habla: una preferencia ("prefiere respuestas cortas", "le gusta que le hable con humor"), un dato suyo (rol, cómo trabaja, un proyecto que lleva), un tema recurrente, o cuando te pidan explícitamente "acuérdate de…". NO guardes trivialidades ni datos de una sola vez ni cifras del negocio (esas van en sus tools). Un hecho por llamada, en 1 frase clara y en primera persona del usuario o descriptiva (ej. "A Ramón le molesta el voseo; quiere trato de tú y chileno").',
     input_schema: { type: 'object', properties: { hecho: { type: 'string', description: 'El dato a recordar, en una frase clara.' } }, required: ['hecho'] },
   },
+  // ── TAG · solicitud / traspaso de TAG (MallorcAutos → Tag Tico) ──────────────
+  {
+    name: 'solicitar_tag',
+    description: 'SOLICITA o TRASPASA un TAG (peaje) de MallorcAutos a Tag Tico. El correo SALE desde el buzón de Mallorca (ventas@mallorcautos.cl) a contacto@tagtico.cl con copia a ventas@mallorcautos.cl, y queda registrado como "lead" con seguimiento. FLUJO DE 2 PASOS (obligatorio, es un correo real hacia afuera): (1) accion:"preparar" → NO envía: valida, arma el ASUNTO oficial, te dice qué DOCUMENTOS faltan y cuántos PDF adjuntos hay. Con eso PÍDELE a la persona los documentos que falten EN PDF por WhatsApp, y muéstrale el resumen para confirmar. (2) accion:"enviar" → SOLO tras el OK de la persona y con los PDF ya adjuntos: manda el correo y registra el lead. Los 3 CASOS: "nuevo_propio" = auto propio recién llegado (Ana Clara), asunto "Tag nuevo Ana clara (X)" (X=cantidad); basta poder + CAV. "traspaso" = auto con tag nuestro que se vende, asunto "Traspaso Tag patente XXXX". "nuevo_tercero" = auto de un tercero/consignación, asunto "Tag nuevo patente XXXX". Los PDF los toma de los que la persona mandó por WhatsApp en la conversación. Por defecto ENVÍA DE VERDAD (a Tag Tico); usa prueba:true para que llegue solo a Ramón mientras pruebas.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['preparar', 'enviar'], description: 'preparar = valida y dice qué falta (NO envía). enviar = manda el correo (solo tras confirmación y con los PDF adjuntos).' },
+        tipo: { type: 'string', enum: ['nuevo_propio', 'traspaso', 'nuevo_tercero'], description: 'nuevo_propio (Ana Clara, auto propio nuevo) · traspaso (auto con tag nuestro que se vende) · nuevo_tercero (auto de tercero/consignación).' },
+        patente: { type: 'string', description: 'Patente del vehículo. Obligatoria para traspaso y nuevo_tercero.' },
+        cantidad: { type: 'number', description: 'Cantidad de TAG a solicitar (solo nuevo_propio). Por defecto 1.' },
+        es_empresa: { type: 'boolean', description: 'true si es empresa (además se requieren escritura y e-RUT).' },
+        solicitante: { type: 'string', description: 'Nombre de quién solicita (opcional).' },
+        notas: { type: 'string', description: 'Notas adicionales para Tag Tico (opcional).' },
+        prueba: { type: 'boolean', description: 'true = el correo llega solo a Ramón (modo prueba). Omítelo/false = envío real a Tag Tico.' },
+      },
+      required: ['accion', 'tipo'],
+    },
+  },
+  {
+    name: 'autos_con_tag',
+    description: 'CONTEO de autos de MallorcAutos CON y SIN TAG. Cruza el STOCK de GoAutos (la fuente que ves con consultar_goautos, NO el Excel de SAI) con los TAG ya solicitados/traspasados (los leads de solicitar_tag). Úsalo para "¿cuántos autos tienen tag?", "¿a qué autos les falta el tag?", "conteo de tag". Devuelve total en stock, cuántos con tag, cuántos sin tag, y (con detalle:true) la lista de patentes de cada grupo. Un auto cuenta "con TAG" si tiene una solicitud/traspaso en curso o activa (los rechazados no cuentan).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        detalle: { type: 'boolean', description: 'true = incluye las listas de patentes con y sin tag; false = solo los números.' },
+      },
+      required: [],
+    },
+  },
   // ── NOVEDADES · qué cambios/mejoras se le hicieron a Nexus (changelog propio) ──
   {
     name: 'novedades_nexus',
@@ -2695,6 +2728,65 @@ async function ejecutar(nombre, input, ctx = {}) {
     if (nombre === 'recordar') {
       const r = recordarHecho(ctx.de, input.hecho, usuarioDe(ctx.de)?.nombre)
       return JSON.stringify(r)
+    }
+    // ── TAG · solicitud / traspaso de TAG ────────────────────────────────────────
+    if (nombre === 'solicitar_tag') {
+      const tipo = String(input.tipo || '')
+      const t = TAG_TIPOS[tipo]
+      if (!t) return JSON.stringify({ ok: false, error: 'Tipo inválido. Usa nuevo_propio, traspaso o nuevo_tercero.' })
+      const patente = String(input.patente || '').trim()
+      if ((tipo === 'traspaso' || tipo === 'nuevo_tercero') && !patente)
+        return JSON.stringify({ ok: false, error: 'Falta la patente del vehículo (obligatoria para traspaso y tercero).' })
+      const docs = documentosRequeridos(tipo, !!input.es_empresa)
+      // PDF que la persona mandó por WhatsApp (rutas en ctx.media). Solo .pdf.
+      const pdfs = (Array.isArray(ctx.media) ? ctx.media : []).filter((p) => /\.pdf$/i.test(String(p)))
+      const asunto = t.asunto({ cantidad: input.cantidad, patente })
+
+      if (input.accion === 'preparar') {
+        return JSON.stringify({
+          ok: true, paso: 'preparar',
+          caso: t.label, asunto,
+          documentos_requeridos: docs,
+          pdf_adjuntos: pdfs.length,
+          faltan_pdf: pdfs.length === 0,
+          destino: input.prueba ? 'ramon@dropout.cl (PRUEBA)' : 'contacto@tagtico.cl (copia ventas@mallorcautos.cl)',
+          instruccion: pdfs.length === 0
+            ? `Pídele a la persona que mande por WhatsApp, EN PDF, estos documentos: ${docs.join('; ')}. Cuando los tengas, confirma y llama accion:"enviar".`
+            : `Ya hay ${pdfs.length} PDF adjunto(s). Muéstrale el resumen (caso, asunto, destino) y con su OK llama accion:"enviar".`,
+        })
+      }
+
+      if (input.accion === 'enviar') {
+        if (pdfs.length === 0)
+          return JSON.stringify({ ok: false, error: `No hay PDF adjuntos. Pídele a la persona los documentos EN PDF por WhatsApp: ${docs.join('; ')}.` })
+        const { readFileSync } = await import('node:fs')
+        const { basename } = await import('node:path')
+        const adjuntos = pdfs.slice(0, 10).map((p) => ({ filename: basename(p), mime: 'application/pdf', buffer: readFileSync(p) }))
+        const r = await enviarSolicitudTag({
+          tipo, patente, cantidad: input.cantidad, es_empresa: !!input.es_empresa,
+          solicitante: input.solicitante, notas: input.notas,
+          adjuntos, prueba: input.prueba === true,
+        })
+        if (!r.ok) return JSON.stringify(r)
+        return JSON.stringify({
+          ok: true, paso: 'enviado', modo: r.modo, asunto: r.asunto,
+          destino: r.destino, enviado_desde: r.enviado_desde, adjuntos: r.adjuntos,
+          lead: r.registro_id,
+          nota: 'Registrado en el seguimiento de TAG. Recuerda confirmar la recepción del convenio el mismo día (si no, el auto queda sin tag y caen multas).',
+        })
+      }
+      return JSON.stringify({ ok: false, error: 'accion debe ser "preparar" o "enviar".' })
+    }
+    if (nombre === 'autos_con_tag') {
+      try {
+        const c = await tagConteo()
+        const base = { ok: true, total_stock: c.total_stock, con_tag: c.con_tag, sin_tag: c.sin_tag, tag_fuera_de_stock: c.tag_fuera_de_stock.length }
+        if (input.detalle) {
+          base.autos_con_tag = c.autos_con_tag.map((v) => ({ patente: v.patente, auto: `${v.marca} ${v.modelo} ${v.anio || ''}`.trim(), estado_tag: v.tag_estado }))
+          base.autos_sin_tag = c.autos_sin_tag.map((v) => ({ patente: v.patente, auto: `${v.marca} ${v.modelo} ${v.anio || ''}`.trim() }))
+        }
+        return JSON.stringify(base)
+      } catch (e) { return JSON.stringify({ ok: false, error: e.message }) }
     }
     // ── NOVEDADES · changelog propio de Nexus (mismo resultado en web y WhatsApp) ──
     if (nombre === 'novedades_nexus') {
