@@ -1212,7 +1212,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco'],
+  banco: ['banco', 'tek_transferir', 'tek_pago'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -1610,6 +1610,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 4) 🔴 EMITIR DE VERDAD (firmar): SOLO después de haberle mandado la imagen del borrador (paso 3) y de que el usuario, ADVERTIDO de que es IRREVERSIBLE (consume folio y le llega al cliente), dé una 2ª confirmación EXPLÍCITA ("sí, fírmala y emítela"). Ahí llamas sii(accion:'emitir', ...) con los MISMOS datos y **emitir_real=true**. Eso firma en el SII y te devuelve el comprobante. NUNCA pongas emitir_real=true sin esa segunda confirmación clara, ni en la misma vuelta que generas el borrador. Si responde modo:'emision_bloqueada', la emisión está apagada: dilo, NO afirmes que se emitió.
 
 💸 PAGAR UNA FACTURA DE COMPRA de ANA CLARA (sistema "tek", herramienta tek_pago) — paga a un proveedor desde la cuenta de ANA CLARA en Santander Empresa. ⚠️ HOY EN SIMULACIÓN: arma el borrador y "paga" en modo prueba, pero NO mueve plata (el canal real con el banco aún no está listo). Va SIEMPRE en 2 pasos: (a) con la factura de compra (proveedor, RUT, monto en CLP, folio) llama tek_pago accion:'preparar' → te da el BORRADOR (a quién, cuánto, desde qué cuenta). Muéstraselo y pregúntale CLARO por WhatsApp: "¿emito el pago de $X a [proveedor]?". (b) SOLO con su OK, llama tek_pago accion:'emitir' con los MISMOS datos → hoy responde SIMULACIÓN (te dice qué se transferiría, sin ejecutar). NUNCA emitas sin confirmación. Cuando en el futuro toque pagar de verdad, se pedirá tu segundo factor (Superclave). Si detectas una factura de compra por pagar, ofrécele armar el pago.
+
+💸 TRANSFERIR PLATA A UNA PERSONA guardada (sistema "tek", agente "Leo", herramienta **tek_transferir**) — transfiere desde la cuenta de ANA CLARA (Santander Empresa) a una persona de la libreta. ✅ ES REAL: **crea** la transferencia y la deja *PENDIENTE "por liberar"*. OJO: crear ≠ enviar plata — el dinero NO se mueve hasta la **Liberación** (autorizar con Superclave), que es un paso APARTE, manual, que Nexus NO hace. Va SIEMPRE en 2 pasos: (a) con el nombre y el monto (CLP) llama tek_transferir accion:'preparar' → devuelve el BORRADOR (a quién, cuánto, banco, cuenta); si hay varias personas con ese nombre te da una lista para que ELIJA cuál. Muéstraselo y pregúntale CLARO: "¿creo la transferencia de $X a [persona]?". (b) SOLO con su OK explícito, llama tek_transferir accion:'enviar' con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó. NUNCA pongas accion:'enviar' sin confirmación. Al confirmar, recuérdale que queda PENDIENTE y que alguien debe LIBERARLA en el banco para que la plata salga. Si la persona no está en la libreta, dilo y ofrécele guardarla primero.
 
 REGLA DE ORO (acciones sensibles):
 - Las acciones que muevan dinero o sean irreversibles (pagar, transferir, eliminar, enviar, confirmar, comprar, etc.) NO se ejecutan solas: requieren aprobación humana explícita de Ramón.
