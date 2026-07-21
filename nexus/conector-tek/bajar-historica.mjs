@@ -27,8 +27,7 @@ const r = spawnSync(NODE, [join(DIR, 'login-humano.mjs')], {
 const out = (r.stdout || '') + (r.stderr || '')
 const m = out.match(/RESULTADO:\s*(\{.*\})\s*$/m)
 let res = {}; try { res = m ? JSON.parse(m[1]) : {} } catch {}
-const filas = res?.carthist?.filas_por_mes || []
-const totalFilas = filas.reduce((a, x) => a + (x.filas || 0), 0)
+const totalFilas = res?.carthist?.filas_total ?? (res?.carthist?.filas_por_mes || []).reduce((a, x) => a + (x.filas || 0), 0)
 
 if (/error-seguridad/.test(res.url || '') || res.estado === 'error_seguridad') {
   log('banco CALIENTE (error-seguridad) — no bajó. Reintenta en la próxima corrida.'); process.exit(1)

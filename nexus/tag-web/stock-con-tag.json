@@ -1,9 +1,9 @@
 {
-  "actualizado": "2026-07-21T17:21:56.715Z",
+  "actualizado": "2026-07-21T17:34:13.332Z",
   "fuente": "Excel Mallorca · STOCK VALORIZADO",
-  "total": 42,
+  "total": 43,
   "con_tag": 33,
-  "sin_tag": 9,
+  "sin_tag": 10,
   "autos": [
     {
       "patente": "VFYG69",
@@ -256,11 +256,19 @@
       "marca": "SSANGYONG",
       "modelo": "MUSSO",
       "tag": false
+    },
+    {
+      "patente": "RZBG51",
+      "marca": "TOYOTA",
+      "modelo": "HILUX",
+      "tag": false
     }
   ],
   "cambios": {
     "nuevos_con_tag": [],
-    "nuevos_en_stock": [],
+    "nuevos_en_stock": [
+      "RZBG51(sin tag)"
+    ],
     "salieron_del_stock": []
   }
 }

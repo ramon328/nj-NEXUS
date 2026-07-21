@@ -989,59 +989,69 @@ async function cartolaHistorica(page, log) {
   log('cartola histórica mapeada · frames:', dump.length)
   if (process.env.TEK_CARTOLA_HIST !== 'bajar') return { estado: entro ? 'mapeado_cartola_hist' : 'no_encontre_opcion', usada, url: page.url() }
 
-  // ── BAJAR: por cada mes de TEK_CARTOLA_MESES (nº de mes de 2026), elige cuenta+mes+año,
-  //    Buscar, y extrae la tabla de movimientos. Devuelve todos los movimientos crudos. ──
-  const MESNOM = ['', 'Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre']
+  // ── BAJAR: el form es un RANGO Desde→Hasta (2 selects de mes + 2 de año). Hacemos UNA
+  //    consulta Enero 2026 → mes actual (evita el bug de "el mes se pega") y PAGINAMOS para
+  //    traer TODOS los movimientos (el banco pagina de a ~60). ──
   const MESABR = ['', 'ene', 'feb', 'mar', 'abr', 'may', 'jun', 'jul', 'ago', 'sep', 'oct', 'nov', 'dic']
   const anio = process.env.TEK_CARTOLA_ANIO || '2026'
-  const meses = (process.env.TEK_CARTOLA_MESES || '1,2,3').split(',').map((x) => Number(x.trim())).filter(Boolean)
-  // Frame eob de la cartola histórica; si aún no cargó, cae al frame principal (así nunca
-  // es undefined). Prioriza el que tenga la URL de cartola histórica.
+  const mesHasta = Number(process.env.TEK_CARTOLA_HASTA_MES || String(new Date().getMonth() + 1))
   const fEob = () => page.frames().find((f) => /eob\.officebanking\.cl.*(CTLHT|Cartola|Historic|saldoctacte)/i.test(f.url()))
     || page.frames().find((f) => /eob\.officebanking\.cl/i.test(f.url()))
     || page.mainFrame()
-  const todos = []
-  for (const mes of meses) {
-    try {
-      // RE-NAVEGAR fresco a la Cartola Histórica cada mes: el form quedaba cacheado y
-      // repetía el 1er mes (las 6 consultas daban enero). Volver a entrar lo resetea.
-      for (let i = 0; i < 3 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2200) }
-      await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(9000)
-      // elegir cuenta ANA CLARA (índice 1) → revela los selectores de período
-      const f0 = fEob()
-      await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
-      await sleep(3800)
-      const f = fEob()
-      // setear TODOS los selects de mes (nombre completo o abreviado) y de año
-      for (const s of await f.locator('select').all()) {
-        const opts = await s.locator('option').allTextContents().catch(() => [])
-        const low = opts.map((o) => o.trim().toLowerCase())
-        if (low.includes(MESNOM[mes].toLowerCase())) { await s.selectOption({ label: MESNOM[mes] }).catch(() => {}) }
-        else if (low.includes(MESABR[mes])) { const idx = low.indexOf(MESABR[mes]); await s.selectOption({ index: idx }).catch(() => {}) }
-        else if (opts.map((o) => o.trim()).includes(anio)) { await s.selectOption({ label: anio }).catch(() => {}) }
-      }
-      await sleep(1200)
-      const btn = f.getByText(/^buscar$/i).first()
-      if (await btn.isVisible().catch(() => false)) { await clickHumano(page, btn) } else { const b2 = f.getByText(/^aceptar$/i).first(); if (await b2.isVisible().catch(() => false)) await clickHumano(page, b2) }
-      log(`carthist ${MESNOM[mes]} ${anio}: Buscar`)
-      await sleep(9000)
-      await page.screenshot({ path: join(DATA, `carthist-${anio}-${String(mes).padStart(2, '0')}.png`) }).catch(() => {})
-      // extraer filas de la tabla más grande del frame eob
-      const ff = fEob()
-      const filas = await ff.evaluate(() => {
-        const tablas = [...document.querySelectorAll('table')]
-        let best = null, max = 0
-        for (const t of tablas) { const r = t.querySelectorAll('tr').length; if (r > max) { max = r; best = t } }
-        if (!best) return []
-        return [...best.querySelectorAll('tr')].map((tr) => [...tr.querySelectorAll('th,td')].map((c) => (c.innerText || '').trim()))
-      }).catch(() => [])
-      writeFileSync(join(DATA, `carthist-${anio}-${String(mes).padStart(2, '0')}.json`), JSON.stringify({ mes, anio, filas }, null, 2))
-      log(`carthist ${MESNOM[mes]}: ${filas.length} filas`)
-      todos.push({ mes, anio, filas })
-    } catch (e) { log(`carthist ${MESNOM[mes]} falló:`, e.message) }
+  const extraerPagina = async () => {
+    const ff = fEob()
+    return await ff.evaluate(() => {
+      const tablas = [...document.querySelectorAll('table')]
+      let best = null, max = 0
+      for (const t of tablas) { const r = t.querySelectorAll('tr').length; if (r > max) { max = r; best = t } }
+      if (!best) return []
+      return [...best.querySelectorAll('tr')].map((tr) => [...tr.querySelectorAll('th,td')].map((c) => (c.innerText || '').trim()))
+    }).catch(() => [])
   }
-  writeFileSync(join(DATA, 'carthist-crudo.json'), JSON.stringify({ anio, meses, capturas: todos }, null, 2))
-  return { estado: 'cartola_hist_bajada', usada, meses, filas_por_mes: todos.map((t) => ({ mes: t.mes, filas: t.filas.length })), url: page.url() }
+  let filasAll = []
+  try {
+    // elegir cuenta ANA CLARA (índice 1) → revela los selectores de período
+    const f0 = fEob()
+    await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
+    await sleep(4200)
+    const f = fEob()
+    // Rango: month-full-name select → Enero (Desde); month-abbr select → mes actual (Hasta);
+    // todos los selects de año → 2026.
+    for (const s of await f.locator('select').all()) {
+      const opts = (await s.locator('option').allTextContents().catch(() => [])).map((o) => o.trim())
+      const low = opts.map((o) => o.toLowerCase())
+      if (low.includes('enero')) { await s.selectOption({ label: 'Enero' }).catch(() => {}) }                 // Desde = Enero
+      else if (low.includes(MESABR[mesHasta])) { await s.selectOption({ index: low.indexOf(MESABR[mesHasta]) }).catch(() => {}) } // Hasta = mes actual
+      else if (opts.includes(anio)) { await s.selectOption({ label: anio }).catch(() => {}) }                  // años → 2026
+    }
+    await sleep(1200)
+    const btn = f.getByText(/^buscar$/i).first()
+    if (await btn.isVisible().catch(() => false)) { await clickHumano(page, btn) } else { const b2 = f.getByText(/^aceptar$/i).first(); if (await b2.isVisible().catch(() => false)) await clickHumano(page, b2) }
+    log(`carthist RANGO Enero→mes${mesHasta} ${anio}: Buscar`)
+    await sleep(9000)
+    // PAGINACIÓN: extraer página, buscar "Siguiente"/número siguiente, repetir.
+    const vistas = new Set()
+    for (let pag = 1; pag <= 80; pag++) {
+      const filas = await extraerPagina()
+      let nuevas = 0
+      for (const r of filas) { const k = r.join('|'); if (!vistas.has(k)) { vistas.add(k); filasAll.push(r); nuevas++ } }
+      log(`  página ${pag}: ${filas.length} filas (${nuevas} nuevas)`)
+      if (pag <= 3) await page.screenshot({ path: join(DATA, `carthist-rango-p${pag}.png`) }).catch(() => {})
+      if (nuevas <= 1) break   // sin filas nuevas → fin de la paginación
+      const ff = fEob()
+      const next = ff.getByText(/^(siguiente|next|»|›)$/i).first()
+      const nextNum = ff.getByText(new RegExp(`^\\s*${pag + 1}\\s*$`)).first()
+      let clicked = false
+      if (await next.isVisible().catch(() => false)) { await clickHumano(page, next); clicked = true }
+      else if (await nextNum.isVisible().catch(() => false)) { await clickHumano(page, nextNum); clicked = true }
+      if (!clicked) { log('  sin control de página siguiente → fin'); break }
+      await sleep(5000)
+    }
+  } catch (e) { log('carthist rango falló:', e.message) }
+  // una sola "captura" con mes=null → parse-carthist conserva TODOS los meses del año.
+  writeFileSync(join(DATA, 'carthist-crudo.json'), JSON.stringify({ anio, meses: 'rango', capturas: [{ anio, mes: null, filas: filasAll }] }, null, 2))
+  log(`carthist rango: ${filasAll.length} filas totales`)
+  return { estado: 'cartola_hist_bajada', usada, filas_total: filasAll.length, url: page.url() }
 }
 
 async function main() {
