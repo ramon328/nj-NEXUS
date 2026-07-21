@@ -1006,11 +1006,9 @@ async function cartolaHistorica(page, log) {
   const resumenMeses = []
   for (const mes of meses) {
     try {
-      // RE-NAVEGAR fresco desde el dashboard (resetea del todo el form de la cartola).
-      await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
-      await sleep(6000); await cerrarPopups(page, log)
-      for (let i = 0; i < 3 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2400) }
-      await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(9000)
+      // RE-NAVEGAR por el MENU (rapido, sin volver al dashboard, para no timeoutear).
+      for (let i = 0; i < 4 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2200) }
+      await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(7000)
       const f0 = fEob()
       await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
       await sleep(4000)
