@@ -618,6 +618,44 @@ async function crearTransferencia(page, log) {
       await loc.type(String(valTxt), { delay: rnd(70, 150) }).catch(() => {})
       await sleep(rnd(300, 700))
     }
+    // Llenado ROBUSTO por PLACEHOLDER (prefijo, case-insensitive) seteando el valor por JS
+    // con el native setter + eventos input/change/blur. No depende del foco → arregla el
+    // corrimiento de campos del form de otros bancos (con type() el email caía en "nombre"
+    // y el mensaje en "email"). Busca el input VISIBLE (offsetParent != null) en cualquier frame.
+    const fillByPlaceholder = async (phPrefix, valTxt) => {
+      if (valTxt == null || valTxt === '') return false
+      for (const f of page.frames()) {
+        const ok = await f.evaluate(({ ph, value }) => {
+          const pfx = ph.toLowerCase()
+          const el = [...document.querySelectorAll('input,textarea')]
+            .find((e) => (e.placeholder || '').toLowerCase().startsWith(pfx) && e.offsetParent !== null)
+          if (!el) return false
+          const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
+          const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
+          el.focus()
+          setter ? setter.call(el, '') : (el.value = '')
+          setter ? setter.call(el, value) : (el.value = value)
+          el.dispatchEvent(new Event('input', { bubbles: true }))
+          el.dispatchEvent(new Event('change', { bubbles: true }))
+          el.dispatchEvent(new Event('blur', { bubbles: true }))
+          return el.value === value
+        }, { ph: phPrefix, value: String(valTxt) }).catch(() => false)
+        if (ok) return true
+      }
+      log('fillByPlaceholder: no llené', phPrefix)
+      return false
+    }
+    const valByPlaceholder = async (phPrefix) => {
+      for (const f of page.frames()) {
+        const v = await f.evaluate((ph) => {
+          const el = [...document.querySelectorAll('input,textarea')]
+            .find((e) => (e.placeholder || '').toLowerCase().startsWith(ph.toLowerCase()) && e.offsetParent !== null)
+          return el ? el.value : null
+        }, phPrefix).catch(() => null)
+        if (v != null) return v
+      }
+      return ''
+    }
     // EMAIL robusto y CASE-INSENSITIVE: mismo banco usa placeholder "Ingrese Email" (E
     // mayúscula), otros bancos "Ingrese email" (minúscula). getByPlaceholder con regex /i
     // matchea ambos. fill() + verifica + reintenta con type (antes quedaba vacío → el banco
@@ -662,13 +700,14 @@ async function crearTransferencia(page, log) {
         log('banco destino elegido (' + key + '):', elegido)
         await sleep(rnd(700, 1100))
       }
-      // 2) cuenta destino (id #cuenta) + blur, rut, nombre, email, mensaje
-      await setVal('#cuenta', process.env.TEK_DEST_CUENTA)
-      await page.keyboard.press('Tab').catch(() => {}); await sleep(rnd(900, 1500))
-      await setVal('#rut', process.env.TEK_DEST_RUT)
-      await setVal('#nombre', process.env.TEK_DEST_NOMBRE)
-      await llenarEmail()
-      await setVal('#mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Transferencia')
+      // 2) cuenta / rut / nombre / email / mensaje — por PLACEHOLDER exacto vía JS (robusto,
+      //    sin corrimiento de foco). El email caía en "nombre" y el mensaje en "email" con type().
+      await fillByPlaceholder('Ingrese cuenta destino', process.env.TEK_DEST_CUENTA); await sleep(rnd(800, 1300))
+      await fillByPlaceholder('Ingrese RUT', process.env.TEK_DEST_RUT); await sleep(rnd(300, 600))
+      await fillByPlaceholder('Ingrese nombre', process.env.TEK_DEST_NOMBRE); await sleep(rnd(300, 600))
+      const emOk = await fillByPlaceholder('Ingrese email', process.env.TEK_DEST_EMAIL); await sleep(rnd(300, 600))
+      await fillByPlaceholder('Ingrese mensaje', process.env.TEK_DEST_MSG || process.env.TEK_MOTIVO || 'Transferencia')
+      log('otros bancos: campos por placeholder llenados · email ok=' + emOk)
     } else {
       // ── MISMO BANCO (Santander→Santander): cuenta + MONEDA (autocomplete) + rut/nombre/email/mensaje ──
       await setVal('input[placeholder*="cuenta destino" i]', process.env.TEK_DEST_CUENTA)
@@ -705,8 +744,13 @@ async function crearTransferencia(page, log) {
       const emailV = await emailLocator().inputValue().catch(() => '')
       if (tipoOtros) {
         // otros bancos: NO hay moneda; exigimos cuenta/rut/nombre/email (el banco destino se
-        // eligió del dropdown). Si falta alguno, abortamos ANTES de apretar Crear.
-        campos = { cuenta: await val('#cuenta'), rut: await val('#rut'), nombre: await val('#nombre'), email: emailV }
+        // eligió del dropdown). Leemos por placeholder (mismos campos que se llenaron por JS).
+        campos = {
+          cuenta: await valByPlaceholder('Ingrese cuenta destino'),
+          rut: await valByPlaceholder('Ingrese RUT'),
+          nombre: await valByPlaceholder('Ingrese nombre'),
+          email: await valByPlaceholder('Ingrese email'),
+        }
         if (campos.cuenta && campos.rut && campos.nombre && campos.email) break
       } else {
         campos = {
