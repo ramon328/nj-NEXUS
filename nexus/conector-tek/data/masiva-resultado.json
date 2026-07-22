@@ -1,12 +1,14 @@
 {
-  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1784752941395",
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1784753153382",
   "concepto": "Transferencias Masivas",
   "clicImportar": true,
-  "botonesConfirm": [],
-  "resumen": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú Registros rechazados en proceso de importación. Importación masiva de transferencia de fondos - registros rechazados Sr. (a): Ramon Molina Fierro Empresa: ANA CLARA SPA RUT empresa: 77.271.121-2 Fecha: 22 de julio de 2026 Hora: 16:42 Total registros rechazados: 1 Monto total: $ 82.000.000 CUENTA ORIGEN CUENTA DESTINO BANCO DESTINO RUT BENEFICIARIO NOMBRE BENEFICIARIO MONTO MOTIVO RECHAZO 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 82.000.000 La Transferencia debe ser menor o igual a $ 7.000.000 Volver Generar PDF Infórmese sobre la garantía estatal de los depósitos en su banco o en www.sbif.cl. ",
+  "botonesConfirm": [
+    "Continuar"
+  ],
+  "resumen": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú Fin del proceso de importación. La importación se ha realizado de forma exitosa. Importación masiva de transferencia de fondos Sr. (a): Ramon Molina Fierro Empresa: ANA CLARA SPA RUT empresa: 77.271.121-2 Fecha: 22 de julio de 2026 Hora: 16:46 Total registros aprobados: 12 Monto total: $ 82.000.000 CUENTA ORIGEN CUENTA DESTINO BANCO DESTINO RUT BENEFICIARIO NOMBRE BENEFICIARIO MONTO ESTADO TIPO 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 5.000.000 Por Autorizar En línea 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 7.000.000 Por Autorizar En línea 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 7.000.000 Por Autorizar En línea 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 7.000.000 Por Autorizar En línea 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 7.000.000 Por Autorizar En línea 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 7.000.000 Por Autorizar En línea 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 7.000.000 Por Autorizar En línea 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE",
   "forms": [
     {
-      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1784752941395",
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1784753153382",
       "inputs": [],
       "botones": [
         "Accesibilidad",
@@ -16,13 +18,13 @@
       "titulos": []
     },
     {
-      "url": "https://eob.officebanking.cl//TEFM.UI.Web/Importacion/Rechazados",
+      "url": "https://eob.officebanking.cl//TEFM.UI.Web/Importacion/Aprobados",
       "inputs": [],
       "botones": [
         "Generar PDF"
       ],
       "titulos": [
-        "Importación masiva de transferencia de fondos - registros rechazados"
+        "Importación masiva de transferencia de fondos"
       ]
     }
   ]
