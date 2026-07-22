@@ -1274,7 +1274,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva'],
+  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -1679,6 +1679,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 💸 TRANSFERIR PLATA A UNA PERSONA guardada (sistema "tek", agente "Leo", herramienta **tek_transferir**) — transfiere desde la cuenta de ANA CLARA (Santander Empresa) a una persona de la libreta. ✅ ES REAL: **crea** la transferencia y la deja *PENDIENTE "por liberar"*. OJO: crear ≠ enviar plata — el dinero NO se mueve hasta la **Liberación** (autorizar con Superclave), que es un paso APARTE, manual, que Nexus NO hace. Va SIEMPRE en 2 pasos: (a) con el nombre y el monto (CLP) llama tek_transferir accion:'preparar' → devuelve el BORRADOR (a quién, cuánto, banco, cuenta); si hay varias personas con ese nombre te da una lista para que ELIJA cuál. Muéstraselo y pregúntale CLARO: "¿creo la transferencia de $X a [persona]?". (b) SOLO con su OK explícito, llama tek_transferir accion:'enviar' con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó. NUNCA pongas accion:'enviar' sin confirmación. Al confirmar, recuérdale que queda PENDIENTE y que alguien debe LIBERARLA en el banco para que la plata salga. Si el beneficiario NO está guardado en la libreta, NO digas que "Ramón/Nico deben cargarlo en el banco primero" (el banco NO exige inscribirlo): pídele al usuario el RUT, el banco y el número de cuenta (y la razón social/nombre) y llama tek_transferir pasando nombre, rut, banco y cuenta — se transfiere directo y queda guardado para la próxima. ⚠️ El banco de ANA CLARA (Santander Empresa) YA está vinculado y es la ÚNICA cuenta ORIGEN que se usa para transferir o pagar: NUNCA le pidas al usuario que "vincule", "conecte" o "configure" su banco, ni le preguntes de qué cuenta sale — usa siempre la conexión de ANA CLARA ya vinculada. Esto vale para cualquier usuario habilitado (ej. Joaquín), no solo Ramón.
 
 💸💸 TRANSFERENCIA MASIVA — varias transferencias en un LOTE (sistema "tek", herramienta **tek_masiva**) — cuando pidan pagar/transferir a VARIOS de una (nómina, varios proveedores). Sube un LOTE a Santander Empresa que queda PENDIENTE por liberar (no mueve plata hasta la Liberación con Superclave, paso manual aparte). Cada transferencia lleva nombre + monto (+ rut, banco y cuenta si el beneficiario NO está guardado; mismo criterio que tek_transferir). ANTES de subir necesitas SIEMPRE 2 datos que le PREGUNTAS al usuario: (1) el **concepto** (muéstrale las opciones: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) el **motivo** (glosa cartola originador, texto corto). Va en 2 pasos: (a) tek_masiva accion:'preparar' con la lista → devuelve el RESUMEN (cantidad, total, beneficiarios, problemas). Si falta el concepto o el motivo, la tool te lo dice: pregúntaselo. Muéstrale el resumen y pregúntale "¿subo el lote?". (b) SOLO con su OK explícito + concepto + motivo, tek_masiva accion:'enviar' con los MISMOS datos → sube el lote pendiente. NUNCA envíes sin confirmación. 📄 Si el usuario pide VER/revisar el Excel que se sube al banco ("mándame el excel", "el archivo que subes", "quiero revisarlo"), llama tek_masiva accion:'excel' con las mismas transferencias → se lo manda por WhatsApp. ⛔ NUNCA digas que "no puedes generar/enviar el Excel": SÍ puedes, es accion:'excel'. El RUT en el archivo va sin puntos ni guion (el sistema lo formatea solo). Si el banco RECHAZA (0 aceptados), NO es el click de confirmar: es que la cuenta/RUT/banco del beneficiario no cuadran — dile al usuario que revise esos datos (ofrécele mandarle el Excel para chequear).
+
+📄 DESCARGAR COMPROBANTES de pago (sistema "tek", herramienta **tek_comprobantes**) — cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", etc. Va en 2 pasos: (a) tek_comprobantes accion:'listar' → trae la lista de transferencias/comprobantes; muéstrasela NUMERADA (fecha · beneficiario · monto) y pregúntale CUÁL quiere. (b) tek_comprobantes accion:'bajar' con indice = el número que eligió → baja el PDF y se lo manda por WhatsApp. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco primero.
 
 REGLA DE ORO (acciones sensibles):
 - Las acciones que muevan dinero o sean irreversibles (pagar, transferir, eliminar, enviar, confirmar, comprar, etc.) NO se ejecutan solas: requieren aprobación humana explícita de Ramón.
@@ -2630,6 +2632,19 @@ const HERRAMIENTAS = [
       required: ['accion', 'transferencias'],
     },
   },
+  // ── tek · DESCARGAR COMPROBANTES de pago/transferencia (Consultas Histórica) ────
+  {
+    name: 'tek_comprobantes',
+    description: 'DESCARGAR comprobantes de pago/transferencia de ANA CLARA desde Santander Empresa (sistema "tek"). SOLO LECTURA (no mueve plata). Úsalo cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", "el comprobante de la transferencia". Va en 2 pasos: (1) accion:"listar" → devuelve la LISTA de transferencias/comprobantes disponibles (fecha, beneficiario, monto, estado). Muéstrasela NUMERADA y pregúntale CUÁL quiere. (2) accion:"bajar" con "indice" (el número que eligió) → baja el PDF y se lo MANDA por WhatsApp. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco (login asistido) primero.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['listar', 'bajar'], description: 'listar = trae la lista para elegir. bajar = descarga y manda el comprobante elegido.' },
+        indice: { type: 'integer', description: 'Número (1-based) del comprobante a bajar, de la lista que mostraste al usuario. Solo para accion:bajar.' },
+      },
+      required: ['accion'],
+    },
+  },
   // ── Alertas a usuarios de Nexus, incluso FUERA de la ventana de 24h de WhatsApp ──
   {
     name: 'alertar_usuario',
@@ -3063,6 +3078,31 @@ async function ejecutar(nombre, input, ctx = {}) {
         texto: `💸 Lote masivo: ${resumen.cantidad} transferencias · total ${resumen.monto_total_fmt} · concepto "${concepto}" · motivo "${motivo}". Quedará PENDIENTE por liberar (no mueve plata hasta la liberación con Superclave).`,
         instruccion: 'Muéstrale el resumen (cada beneficiario · banco · cuenta · monto, el total, el concepto y el motivo) y pregúntale claro "¿subo el lote?". SOLO con su OK explícito, llamá tek_masiva con accion:"enviar" y los MISMOS datos.',
       })
+    }
+    // ── tek · DESCARGAR COMPROBANTES de pago/transferencia (Consultas Histórica) ────
+    if (nombre === 'tek_comprobantes') {
+      let cm
+      try { cm = await import('../conector-tek/comprobantes.mjs') }
+      catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de comprobantes (tek): ' + e.message }) }
+      if (input.accion === 'bajar') {
+        const idx = Math.max(1, parseInt(input.indice, 10) || 1)
+        const r = await cm.bajarComprobante(idx)
+        if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de bajar comprobantes.' })
+        if (r.ok && r.pdf) {
+          const target = destinoValido(ctx.de)
+          if (target) {
+            try { await enviarMediaWhatsApp(target, r.pdf, `📄 Comprobante #${idx}`, { forceDocument: true }); return JSON.stringify({ ok: true, enviado: true, pdf: r.pdf, texto: 'Te mandé el comprobante 📄' }) }
+            catch (e) { return JSON.stringify({ ok: false, error: 'No pude enviar el comprobante por WhatsApp: ' + e.message, pdf: r.pdf }) }
+          }
+          return JSON.stringify({ ok: true, pdf: r.pdf, texto: 'Comprobante descargado en ' + r.pdf })
+        }
+        return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude bajar ese comprobante (${r.estado || 'desconocido'}). Puede que esa fila no tenga PDF o el banco no lo entregó.` })
+      }
+      // listar
+      const r = await cm.listarComprobantes()
+      if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de leer comprobantes.' })
+      if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer los comprobantes (${r.estado || 'desconocido'}).` })
+      return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (fecha · beneficiario · monto · estado, lo que traiga cada fila) y pregúntale cuál comprobante quiere. Cuando elija, llama tek_comprobantes accion:"bajar" con indice = ese número.' })
     }
     // ── SII · descargar el PDF de una boleta de honorarios recibida y mandarla por WhatsApp ──
     if (nombre === 'sii_boleta_honorarios') {

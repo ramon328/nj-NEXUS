@@ -449,22 +449,41 @@ async function entrarEmpresa(page, log, objetivo) {
 // NUNCA clickea "Cambiar Clave" (eso arranca el cambio de clave): solo cierra/omite.
 async function cerrarPopups(page, log) {
   for (let i = 0; i < 3; i++) {
-    const hay = await page.evaluate(() => /Actualiza tu Clave|Protege la seguridad/i.test(document.body?.innerText || '')).catch(() => false)
+    // El popup "Actualiza tu Clave" vive en un IFRAME de campaña → hay que mirar TODOS los frames.
+    let hay = false
+    for (const fr of page.frames()) {
+      if (await fr.evaluate(() => /Actualiza tu Clave|Protege la seguridad/i.test(document.body?.innerText || '')).catch(() => false)) { hay = true; break }
+    }
     if (!hay) return true
     let done = false
-    for (const re of [/^m[aá]s tarde/i, /^ahora no/i, /^omitir/i, /^recordar/i, /^continuar/i, /^saltar/i, /^cerrar/i]) {
-      const b = page.getByText(re, { exact: false }).first()
-      if (await b.boundingBox().catch(() => null)) { await clickHumano(page, b); done = true; break }
+    // 1) botón de descarte, en cualquier frame
+    for (const fr of page.frames()) {
+      for (const re of [/^m[aá]s tarde/i, /^ahora no/i, /^omitir/i, /^recordar/i, /^continuar/i, /^saltar/i, /^cerrar/i, /^no gracias/i]) {
+        const b = fr.getByText(re, { exact: false }).first()
+        if (await b.boundingBox().catch(() => null)) { await b.click({ force: true, timeout: 2000 }).catch(() => {}); done = true; break }
+      }
+      if (done) break
+      const x = fr.locator('[aria-label*="cerrar" i],[aria-label*="close" i],button.close,[class*="close" i],.modal-close,.icon-close').first()
+      if (await x.boundingBox().catch(() => null)) { await x.click({ force: true, timeout: 2000 }).catch(() => {}); done = true; break }
     }
+    // 2) fallback: sacar el iframe de campaña (+ su modal/backdrop) del DOM principal.
     if (!done) {
-      const x = page.locator('[aria-label*="cerrar" i],[aria-label*="close" i],button.close,[class*="close" i]').first()
-      if (await x.boundingBox().catch(() => null)) { await clickHumano(page, x); done = true }
+      await page.evaluate(() => {
+        for (const el of document.querySelectorAll('iframe')) {
+          if (/campna|campana/i.test(el.getAttribute('src') || '')) {
+            const cont = el.closest('[class*="modal" i],[class*="overlay" i],[class*="popup" i]') || el
+            try { cont.remove() } catch { cont.style.display = 'none' }
+          }
+        }
+        document.querySelectorAll('.modal-backdrop,[class*="backdrop" i]').forEach((e) => { try { e.remove() } catch { /* */ } })
+      }).catch(() => {})
+      done = true
     }
-    if (!done) await page.keyboard.press('Escape').catch(() => {})
+    await page.keyboard.press('Escape').catch(() => {})
     await sleep(1600)
   }
-  log && log('popup: no se pudo cerrar solo (cerralo por VNC si tapa)')
-  return false
+  log && log('popup: intenté cerrarlo (frame-aware + quité overlay de campaña)')
+  return true
 }
 
 // Clic en la opción (p.ej. "Creación") que pertenece a la COLUMNA de un header
@@ -1064,11 +1083,71 @@ async function comprobantesConsulta(page, log) {
   log('clic Consultas Histórica → Histórico:', entro)
   await sleep(rnd(8000, 10500)); await idle(page, rnd(800, 1600))
   await page.screenshot({ path: join(DATA, 'comprob-01-historico.png') }).catch(() => {})
+
+  // Frame del histórico (el que tenga tabla/filas).
+  const impFrame = page.frames().find((f) => f !== page.mainFrame() && /officebanking/i.test(f.url())) || page.mainFrame()
+  // Muchas consultas necesitan apretar "Consultar"/"Buscar" para cargar el rango por defecto.
+  for (const fr of page.frames()) {
+    const b = fr.getByRole('button', { name: /^\s*(consultar|buscar)\s*$/i }).first()
+    if ((await b.count().catch(() => 0)) && (await b.isVisible().catch(() => false))) { await b.click({ timeout: 3000 }).catch(() => {}); await sleep(rnd(4000, 6000)); break }
+  }
+  await page.screenshot({ path: join(DATA, 'comprob-02-lista.png') }).catch(() => {})
+
+  // Extrae las FILAS de transferencias de la(s) tabla(s) de todos los frames (genérico).
+  const filas = []
+  for (const fr of page.frames()) {
+    const rows = await fr.evaluate(() => {
+      const out = []
+      for (const tr of document.querySelectorAll('table tr, [role="row"]')) {
+        const cels = [...tr.querySelectorAll('td,[role="cell"]')].map((c) => (c.innerText || '').replace(/\s+/g, ' ').trim())
+        if (cels.filter(Boolean).length >= 3) out.push(cels)
+      }
+      return out.slice(0, 60)
+    }).catch(() => [])
+    for (const r of rows) filas.push(r)
+  }
   const dump = await volcarFrames(page)
-  const textos = (await Promise.all(page.frames().map((f) => f.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 1500)).catch(() => '')))).join(' | ')
-  writeFileSync(join(DATA, 'comprob-historico.json'), JSON.stringify({ url: page.url(), entro, dump, textos: textos.slice(0, 3000) }, null, 2))
-  log('comprobantes/histórico mapeado · frames:', dump.length)
-  return { estado: 'mapeado', url: page.url() }
+  writeFileSync(join(DATA, 'comprob-historico.json'), JSON.stringify({ url: page.url(), entro, total_filas: filas.length, filas: filas.slice(0, 40), dump }, null, 2))
+  log('comprobantes/histórico · filas detectadas:', filas.length)
+
+  // BAJAR: descarga el comprobante (PDF) de la fila pedida (TEK_COMPROB_IDX, 1-based).
+  if (process.env.TEK_COMPROBANTES === 'bajar') {
+    const idx = Math.max(1, parseInt(process.env.TEK_COMPROB_IDX || '1', 10)) - 1
+    let pdfPath = null
+    for (const fr of page.frames()) {
+      const trs = fr.locator('table tr, [role="row"]')
+      const n = await trs.count().catch(() => 0)
+      // saltamos encabezados: buscamos la (idx)-ésima fila con celdas de datos
+      let dataRow = -1, seen = -1
+      for (let i = 0; i < n; i++) {
+        const cel = await trs.nth(i).locator('td,[role="cell"]').count().catch(() => 0)
+        if (cel >= 3) { seen++; if (seen === idx) { dataRow = i; break } }
+      }
+      if (dataRow < 0) continue
+      const fila = trs.nth(dataRow)
+      // un link/botón de comprobante/PDF/descarga/ver dentro de la fila
+      const acc = fila.locator('a[href*=".pdf"], a[href*="comprobante" i], a[download], button[title*="comprobante" i], [class*="pdf" i], [title*="comprobante" i], a:has-text("Comprobante"), a:has-text("PDF")').first()
+      if (!(await acc.count().catch(() => 0))) continue
+      const dest = join(DATA, `comprobante-${process.env.TEK_COMPROB_IDX || '1'}.pdf`)
+      const href = await acc.getAttribute('href').catch(() => null)
+      try {
+        if (href && /\.pdf|comprobante|descarg/i.test(href)) {
+          const abs = href.startsWith('http') ? href : new URL(href, page.url()).href
+          const resp = await page.request.get(abs).catch(() => null)
+          if (resp && resp.ok()) { writeFileSync(dest, await resp.body()); pdfPath = dest }
+        }
+        if (!pdfPath) {
+          const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }).catch(() => null), acc.click({ timeout: 4000 }).catch(() => {})])
+          if (dl) { await dl.saveAs(dest).catch(() => {}); pdfPath = dest }
+        }
+      } catch (e) { log('bajar comprobante falló:', e.message) }
+      if (pdfPath) break
+    }
+    await page.screenshot({ path: join(DATA, 'comprob-03-bajado.png') }).catch(() => {})
+    return { estado: pdfPath ? 'descargado' : 'sin_pdf', pdf: pdfPath, idx: idx + 1, total_filas: filas.length, url: page.url() }
+  }
+
+  return { estado: 'listado', filas: filas.slice(0, 40), total_filas: filas.length, url: page.url() }
 }
 
 // ── CARTOLA HISTÓRICA (Cuentas Corrientes → Cartola/Histórico) ──────────────────
