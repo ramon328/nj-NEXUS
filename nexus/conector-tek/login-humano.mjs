@@ -1070,6 +1070,29 @@ async function cartolaHistorica(page, log) {
       resumenMeses.push(R)
       log(`  ${MESNOM[mes]}: cartola ${R.n_cartola || '?'} - ${R.periodo} - cargos ${R.cargos} - abonos ${R.abonos}`)
       guardarMerge(resumenMeses)
+      if (process.env.TEK_CARTOLA_MOVS === '1') {
+        try {
+          const seen = new Set(); const movs = []
+          for (let sc = 0; sc < 160; sc++) {
+            const ffm = fEob()
+            const filas = await withTimeout(ffm.evaluate(() => {
+              const tablas = [...document.querySelectorAll('table')]; let best = null, max = 0
+              for (const t of tablas) { const r = t.querySelectorAll('tr').length; if (r > max) { max = r; best = t } }
+              const rows = best ? [...best.querySelectorAll('tr')].map((tr) => [...tr.querySelectorAll('td')].map((c) => (c.innerText || '').trim())).filter((r) => r.length >= 4) : []
+              // scrollear TODOS los contenedores con overflow + la ventana
+              for (const el of document.querySelectorAll('*')) { const st = getComputedStyle(el); if (/auto|scroll/.test(st.overflowY) && el.scrollHeight > el.clientHeight + 10) el.scrollTop = el.scrollHeight }
+              window.scrollBy(0, 3000)
+              return rows
+            }), 8000, [])
+            let nuevas = 0
+            for (const r of filas) { const k = r.join('|'); if (!seen.has(k)) { seen.add(k); movs.push(r); nuevas++ } }
+            if (nuevas === 0 && sc > 2) break
+            await sleep(500)
+          }
+          writeFileSync(join(DATA, `carthist-movs-${anio}-${String(mes).padStart(2, '0')}.json`), JSON.stringify({ mes, anio, filas: movs }, null, 2))
+          log(`  ${MESNOM[mes]}: movimientos scrolleados = ${movs.length}`)
+        } catch (e) { log('  scroll movs fallo:', e.message) }
+      }
       if (process.env.TEK_CARTOLA_PDF === '1') {
       try {
         const dest = join(PDFDIR, `Cartola ${anio}-${String(mes).padStart(2, '0')} ${MESNOM[mes]}.pdf`)
