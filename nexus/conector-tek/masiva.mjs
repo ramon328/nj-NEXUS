@@ -7,15 +7,33 @@
 // (TEK_MASIVA=subir); y el lote queda "por liberar" — la liberación es manual, NO mueve
 // plata sola. Blindaje igual que la transferencia individual.
 import ExcelJS from 'exceljs'
+import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { mkdirSync } from 'node:fs'
+import * as credenciales from './credenciales.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = join(DIR, 'data', 'masivas')
 
 // Cuenta origen por defecto (ANA CLARA SPA, CLP) — dígitos, como en el archivo real.
 export const CUENTA_ORIGEN_ANACLARA = '80280939'   // = 0-000-8028093-9
+
+// Opciones del dropdown "Concepto asociado" del banco (ÚNICO campo editable del panel de
+// importación). Nexus le pregunta al usuario cuál usar antes de subir el lote.
+export const CONCEPTOS = [
+  'Pago de Asignaciones', 'Pago de Dividendos', 'Pago de Pensiones', 'Pago de Proveedores',
+  'Pago de Reembolsos', 'Pago de Remuneraciones', 'Pago de Subsidios', 'Pago de Viáticos',
+  'Pago Extraordinarios', 'Transferencias Masivas',
+]
+// Resuelve un concepto tolerando texto libre ("proveedores" → "Pago de Proveedores").
+export function resolverConcepto(txt) {
+  const q = String(txt || '').toLowerCase().trim()
+  if (!q) return ''
+  return CONCEPTOS.find((c) => c.toLowerCase() === q)
+    || CONCEPTOS.find((c) => c.toLowerCase().includes(q) || q.includes(c.toLowerCase().replace('pago de ', '')))
+    || ''
+}
 
 // Códigos de banco chilenos (SBIF) para "Código banco destino" (obligatorio si el banco
 // destino NO es Santander). Santander va SIN código (la col queda vacía).
@@ -36,6 +54,8 @@ export const CODIGOS_BANCO = {
   'banco consorcio': '055', 'consorcio': '055',
   'banco btg pactual': '059', 'btg pactual': '059', 'btg': '059',
   'coopeuch': '672',
+  'tenpo': '729', 'tenpo prepago': '729',
+  'mercado pago': '875', 'mercadopago': '875', 'mercado-pago': '875', 'mercado pago prepago': '875',
 }
 
 // Encabezados EXACTOS del archivo de Santander (orden importa). El importador lee por
