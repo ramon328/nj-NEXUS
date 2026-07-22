@@ -1,6 +1,6 @@
 {
   "anio": "2026",
-  "actualizado": "2026-07-22T02:09:33.267Z",
+  "actualizado": "2026-07-22T02:19:44.609Z",
   "meses": [
     {
       "mes": 1,
@@ -21,6 +21,46 @@
       "cargos": 505377682,
       "abonos": 510747393,
       "saldo_final": 65739405
+    },
+    {
+      "mes": 3,
+      "anio": 2026,
+      "n_cartola": "61 - 31/03/2026",
+      "periodo": "27/02/2026-31/03/2026",
+      "saldo_inicial": 65739405,
+      "cargos": 946859423,
+      "abonos": 910094012,
+      "saldo_final": 28973994
+    },
+    {
+      "mes": 4,
+      "anio": 2026,
+      "n_cartola": "62 - 30/04/2026",
+      "periodo": "31/03/2026-30/04/2026",
+      "saldo_inicial": 28973994,
+      "cargos": 632873400,
+      "abonos": 641900967,
+      "saldo_final": 38001561
+    },
+    {
+      "mes": 5,
+      "anio": 2026,
+      "n_cartola": "63 - 29/05/2026",
+      "periodo": "30/04/2026-29/05/2026",
+      "saldo_inicial": 38001561,
+      "cargos": 627871678,
+      "abonos": 649183674,
+      "saldo_final": 59313557
+    },
+    {
+      "mes": 6,
+      "anio": 2026,
+      "n_cartola": "64 - 30/06/2026",
+      "periodo": "29/05/2026-30/06/2026",
+      "saldo_inicial": 59313557,
+      "cargos": 305525083,
+      "abonos": 363678211,
+      "saldo_final": 117466685
     }
   ]
 }
