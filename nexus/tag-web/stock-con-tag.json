@@ -1,56 +1,266 @@
 {
-  "actualizado": "2026-07-21T23:55:02.321Z",
+  "actualizado": "2026-07-22T00:07:20.169Z",
   "fuente": "Excel Mallorca · STOCK VALORIZADO",
-  "total": 0,
-  "con_tag": 0,
-  "sin_tag": 0,
-  "autos": [],
+  "total": 42,
+  "con_tag": 32,
+  "sin_tag": 10,
+  "autos": [
+    {
+      "patente": "VFYG69",
+      "marca": "CHEVROLET",
+      "modelo": "SUBURBAN",
+      "tag": true
+    },
+    {
+      "patente": "HWJF12",
+      "marca": "FORD",
+      "modelo": "F150",
+      "tag": true
+    },
+    {
+      "patente": "WH2884",
+      "marca": "PORSCHE ",
+      "modelo": "CAYENNE S ",
+      "tag": true
+    },
+    {
+      "patente": "GYRG43",
+      "marca": "FORD",
+      "modelo": "RAPTOR ",
+      "tag": true
+    },
+    {
+      "patente": "JCGV83",
+      "marca": "BMW",
+      "modelo": "M3 3.0 AUT",
+      "tag": true
+    },
+    {
+      "patente": "KZCW87",
+      "marca": "BMW ",
+      "modelo": "M3 3.0 AUT",
+      "tag": true
+    },
+    {
+      "patente": "KPDT21",
+      "marca": "BMW ",
+      "modelo": "M3 3.0 AUT",
+      "tag": true
+    },
+    {
+      "patente": "HSDX59",
+      "marca": "BMW ",
+      "modelo": "M3 3.0 AUT AUTO DE CARRERA",
+      "tag": true
+    },
+    {
+      "patente": "TKKS71",
+      "marca": "PEUGEOT ",
+      "modelo": "308 PURETECH",
+      "tag": true
+    },
+    {
+      "patente": "PH5432",
+      "marca": "HONDA ",
+      "modelo": "CIVIC 1.6",
+      "tag": true
+    },
+    {
+      "patente": "TWRB38",
+      "marca": "AUDI",
+      "modelo": "RSQ3",
+      "tag": true
+    },
+    {
+      "patente": "TN1673",
+      "marca": "HONDA ",
+      "modelo": "CIVIC",
+      "tag": true
+    },
+    {
+      "patente": "TWGX29",
+      "marca": "CHEVROLET ",
+      "modelo": "SILVERADO",
+      "tag": true
+    },
+    {
+      "patente": "KXTK54",
+      "marca": "SUBARU",
+      "modelo": "FORESTER",
+      "tag": true
+    },
+    {
+      "patente": "STVB52",
+      "marca": "BMW ",
+      "modelo": "320 DYNAMIC",
+      "tag": true
+    },
+    {
+      "patente": "SXPX29",
+      "marca": "EXEED BORN FOR MORE",
+      "modelo": "TXL UNLIMITED 2.0 AUT",
+      "tag": true
+    },
+    {
+      "patente": "KLJV59",
+      "marca": "AUDI ",
+      "modelo": "S1",
+      "tag": true
+    },
+    {
+      "patente": "TZRK98",
+      "marca": "CHEVROLET",
+      "modelo": "SILVERADO 4X4 3.0L AUT",
+      "tag": true
+    },
+    {
+      "patente": "CFKS77",
+      "marca": "JAGUAR",
+      "modelo": "XK R COUPE 4.2",
+      "tag": true
+    },
+    {
+      "patente": "VFBL93",
+      "marca": "OPEL",
+      "modelo": "NEW GRANDLAND",
+      "tag": true
+    },
+    {
+      "patente": "RKSS71",
+      "marca": "CHEVROLET ",
+      "modelo": "SILVERADO DCAB",
+      "tag": true
+    },
+    {
+      "patente": "SPLB73",
+      "marca": "PEUGEOT ",
+      "modelo": "LANDTREK",
+      "tag": true
+    },
+    {
+      "patente": "SRSJ38",
+      "marca": "MITSUBISHI",
+      "modelo": "L200 CRM",
+      "tag": true
+    },
+    {
+      "patente": "SPCT11",
+      "marca": "VOLKSWAGEN",
+      "modelo": "AMAROK ",
+      "tag": true
+    },
+    {
+      "patente": "SRVT62",
+      "marca": "MAXUZ",
+      "modelo": "T60 GL",
+      "tag": true
+    },
+    {
+      "patente": "TJGR53",
+      "marca": "MITSUBISHI",
+      "modelo": "L200 CRM",
+      "tag": true
+    },
+    {
+      "patente": "SPHV53",
+      "marca": "MAXUS ",
+      "modelo": "T60 DX",
+      "tag": true
+    },
+    {
+      "patente": "SSDX77",
+      "marca": "MITSUBISHI",
+      "modelo": "L200 ",
+      "tag": true
+    },
+    {
+      "patente": "LWLL89",
+      "marca": "CHEVROLET",
+      "modelo": "SILVERADO",
+      "tag": true
+    },
+    {
+      "patente": "TYLW33",
+      "marca": "FORD",
+      "modelo": "TRANSIT CUSTOM",
+      "tag": true
+    },
+    {
+      "patente": "RZ2087",
+      "marca": "BMW",
+      "modelo": 320,
+      "tag": true
+    },
+    {
+      "patente": "KXRK86",
+      "marca": "AUDI",
+      "modelo": "Q3",
+      "tag": true
+    },
+    {
+      "patente": "PT0454-4",
+      "marca": "MOTORRAD",
+      "modelo": "FB100 DAX",
+      "tag": false
+    },
+    {
+      "patente": "JTZW92",
+      "marca": "PORSCHE",
+      "modelo": "CAYMAN GT4",
+      "tag": false
+    },
+    {
+      "patente": "NO TIENE PAPELES",
+      "marca": "OPEL",
+      "modelo": "CORSA OPC",
+      "tag": false
+    },
+    {
+      "patente": "BKJ103",
+      "marca": "CARRO PRATT",
+      "modelo": "CARRO DE ARRASTRE ",
+      "tag": false
+    },
+    {
+      "patente": "SJ8771-8",
+      "marca": "VOLKSWAGEN",
+      "modelo": "ESCARABAJO",
+      "tag": false
+    },
+    {
+      "patente": "TKXY30",
+      "marca": "RAM",
+      "modelo": "1500 REBEL CREW DCAB 4X4",
+      "tag": false
+    },
+    {
+      "patente": "LLWP64-3",
+      "marca": "DODGE",
+      "modelo": "RAM",
+      "tag": false
+    },
+    {
+      "patente": "VWWC41-9",
+      "marca": "FORD ",
+      "modelo": "MAVERICK",
+      "tag": false
+    },
+    {
+      "patente": "RGVG27-1",
+      "marca": "SSANGYONG",
+      "modelo": "MUSSO",
+      "tag": false
+    },
+    {
+      "patente": "RZBG51",
+      "marca": "TOYOTA",
+      "modelo": "HILUX",
+      "tag": false
+    }
+  ],
   "cambios": {
     "nuevos_con_tag": [],
     "nuevos_en_stock": [],
-    "salieron_del_stock": [
-      "VFYG69",
-      "HWJF12",
-      "WH2884",
-      "GYRG43",
-      "JCGV83",
-      "KZCW87",
-      "KPDT21",
-      "HSDX59",
-      "TKKS71",
-      "PH5432",
-      "TWRB38",
-      "TN1673",
-      "TWGX29",
-      "KXTK54",
-      "STVB52",
-      "SXPX29",
-      "KLJV59",
-      "TZRK98",
-      "CFKS77",
-      "VFBL93",
-      "RKSS71",
-      "SPLB73",
-      "SRSJ38",
-      "SPCT11",
-      "SRVT62",
-      "TJGR53",
-      "SPHV53",
-      "SSDX77",
-      "LWLL89",
-      "TYLW33",
-      "RZ2087",
-      "KXRK86",
-      "PT0454-4",
-      "JTZW92",
-      "NO TIENE PAPELES",
-      "BKJ103",
-      "SJ8771-8",
-      "TKXY30",
-      "LLWP64-3",
-      "VWWC41-9",
-      "RGVG27-1",
-      "RZBG51"
-    ]
+    "salieron_del_stock": []
   }
 }
