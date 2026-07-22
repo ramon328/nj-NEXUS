@@ -227,3 +227,4 @@
 {"ts":"2026-07-22T20:11:12.895Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":67320,"tratamiento_id":390569,"hora":"2026-08-20T16:00:00-04:00","cliente":{"nombre":"Prueba Panel Nexor","rut":"11111111-1","telefono":"+56900000000"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"3785717847510727c9d01c6_8609_11f1_a7af_0242ac170002","error":null}
 {"ts":"2026-07-22T20:11:25.845Z","accion":"anular","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_id":75103536},"simulado":true,"ok":true,"cita_uuid":null}
 {"ts":"2026-07-22T20:11:40.669Z","accion":"anular","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_id":75103536,"simular":false},"simulado":false,"ok":true,"cita_uuid":null}
+{"ts":"2026-07-22T20:19:49.586Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
