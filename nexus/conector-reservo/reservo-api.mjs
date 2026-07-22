@@ -459,24 +459,33 @@ async function resolverPaciente(term) {
   const j = await internalJson('/pacienteDentista/buscarAjaxPerson/', 'POST', new URLSearchParams({ term: String(term || '') }).toString())
   return (Array.isArray(j) ? j : [])[0] || null
 }
-// Arma el body EXACTO del form #createAppt (mapeado desde el HTML autenticado de makeAppointment).
-// Endpoint real: POST /appointment/makeAppointment/ (view Django que renderiza en GET y crea en POST).
+// Endpoint REAL de creación (CAPTURADO 2026-07-22 del botón "Reservar", intercept+abort, cero escritura):
+//   POST /appointment/createAppt/  (antes NO se sabía; makeAppointment NO crea).
+// Y previo dispara /appointment/ValidaTomaHora/ (chequeo "hora libre").
+const CREAR_EP = process.env.RESERVO_CREAR_EP || '/appointment/createAppt/'
+const VALIDA_EP = '/appointment/ValidaTomaHora/'
+// Arma el body EXACTO de createAppt tal cual lo manda la web (orden/campos del Form Data capturado).
+// servicio = id del box/agenda (37857-37863) que la app ya tiene de obtenerDisponibilidad (= b.agenda).
 function buildCrearBody(b) {
   const [y, m, d] = String(b.fecha || '').split('-')
-  const form = {
+  const p = b.paciente_nuevo || {}
+  return {
+    person_id: b.person_id ? String(b.person_id) : '', cellphone: '',
     day: String(Number(d)), month: String(Number(m)), year: y,
+    direccion: '', cliente: b.cliente ? String(b.cliente) : '', recursos: '',
+    tiene_profesionales: '1', ver_codigo: '0', phone_feo: '', origen: '',
+    rut: p.rut || '', name: p.nombre || '', app_paterno: p.apellido_paterno || '', app_materno: p.apellido_materno || '',
+    phone_0: p.telefono ? 'CL' : 'CL', phone_1: p.telefono || '', mail: p.mail || '',
+    hour: '', minute: '',
+    profesionales: String(b.profesional_id ?? ''),
+    servicio: String(b.agenda ?? b.servicio ?? ''),
+    tratamientos: String(b.tratamiento_id ?? ''),
+    comentario: b.comentario || '', antecedentes_personales: '',
+    registrar: b.person_id ? '0' : (b.paciente_nuevo ? '1' : '0'),
+    Nficha: '', sexo: '0', fecha_nacimiento: '', prevision: '', comuna: '', address: '', referencia: '', categoria: '', convenio: '',
     horaInicio: b.hora_inicio || b.hora || '', horaFin: b.hora_fin || '',
-    profesionales: String(b.profesional_id ?? ''), tiene_profesionales: '1',
-    tratamientos: String(b.tratamiento_id ?? ''), servicio: String(b.tratamiento_id ?? ''),
-    origen: b.origen || '', recursos: b.recursos || '', ver_codigo: '', phone_feo: '',
-    sendmail: b.sendmail ? '1' : '0', registrar: '0',
+    view: 'viewAppt', sendmail: b.sendmail ? 'true' : 'false', phone: '',
   }
-  if (b.person_id) { form.person_id = String(b.person_id); form.cliente = String(b.cliente || b.person_id) }
-  else if (b.paciente_nuevo) {
-    const p = b.paciente_nuevo
-    Object.assign(form, { registrar: '1', rut: p.rut || '', name: p.nombre || '', app_paterno: p.apellido_paterno || '', app_materno: p.apellido_materno || '', phone_0: p.pais || '56', phone_1: p.telefono || '', cellphone: p.telefono || '', mail: p.mail || '' })
-  }
-  return form
 }
 // CREAR cita. DEFAULT = simular (cero escritura): devuelve el body exacto que mandaría, sin tocar Reservo.
 // Real solo con simular:false Y RESERVO_ESCRITURA=1 (blindaje: nunca a ciegas; certificar con cita de test).
@@ -484,17 +493,19 @@ async function accionCrearCita(b) {
   for (const k of ['fecha', 'profesional_id', 'tratamiento_id']) if (b[k] == null || b[k] === '') throw new Error('falta campo obligatorio: ' + k)
   if (!b.hora_inicio && !b.hora) throw new Error('falta campo obligatorio: hora_inicio')
   if (!b.person_id && !b.paciente_nuevo) throw new Error('falta paciente: pasá person_id (existente) o paciente_nuevo{rut,nombre,...}')
+  if (b.agenda == null || b.agenda === '') throw new Error('falta campo obligatorio: agenda (id del box/servicio 37857-37863, viene de obtenerDisponibilidad)')
   const form = buildCrearBody(b)
-  // OJO (2026-07-22): /appointment/makeAppointment/ POST NO crea — devuelve {servicio,schedule}
-  // (probado). El endpoint REAL de creación vive en un bundle webpack; se fija cuando Ramón
-  // capture el request del Network (URL + Form Data). Hasta entonces RESERVO_CREAR_EP=undefined.
-  const ep = process.env.RESERVO_CREAR_EP || ''
   const simular = b.simular !== false
-  if (simular) return { ok: true, simulado: true, endpoint: ep || '(por confirmar: capturar del Network)', metodo: 'POST', form }
-  if (!ep) throw pendienteCaptura('endpoint de creación (RESERVO_CREAR_EP sin fijar)')
-  if (!ESCRITURA_OK) throw pendienteCaptura(ep)
-  const j = await internalJson(ep, 'POST', new URLSearchParams(form).toString())
-  return { ok: !!(j && (j.uuid || j.id || j.ok || j.exito)), cita_uuid: j?.uuid || j?.id || null, raw: j }
+  if (simular) return { ok: true, simulado: true, endpoint: CREAR_EP, metodo: 'POST', form }
+  if (!ESCRITURA_OK) throw pendienteCaptura(CREAR_EP)
+  // 1) chequeo de disponibilidad (mismo que hace la web) → "hora ya tomada"
+  const vparams = new URLSearchParams({ id: '', recursos: '', horaInicio: form.horaInicio, horaFin: form.horaFin, fecha: `${form.year}-${String(form.month).padStart(2, '0')}-${String(form.day).padStart(2, '0')}`, profesionales: form.profesionales, servicio: form.servicio })
+  const val = await internalJson(VALIDA_EP, 'POST', vparams.toString())
+  if (val && (val.disponible === false || val.error || /tomada|ocupad/i.test(JSON.stringify(val)))) return { ok: false, raw: { error: 'hora ya tomada', valida: val } }
+  // 2) creación
+  const j = await internalJson(CREAR_EP, 'POST', new URLSearchParams(form).toString())
+  const okCreate = !!(j && (j.uuid || j.id || j.ok === true || j.exito || j.success || j.cita))
+  return { ok: okCreate, cita_uuid: j?.uuid || j?.id || j?.cita?.uuid || null, raw: j }
 }
 // REAGENDAR (mover) cita. Mismo blindaje. El endpoint interno de edición se confirma en el test
 // controlado (su handler vive en un bundle webpack, no en el HTML) → en simular se marca "por confirmar".

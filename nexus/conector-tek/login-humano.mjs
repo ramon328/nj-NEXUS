@@ -17,7 +17,7 @@
 // ⚠️ SOLO loguea/lee estado y guarda la sesión. NO transfiere.
 import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchright/index.js'
 const { chromium } = patchright
-import { readFileSync, mkdirSync, writeFileSync, unlinkSync } from 'node:fs'
+import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { obtener as obtenerCreds } from '/Users/AIagenteia/nexus/conector-tek/credenciales.mjs'
 
