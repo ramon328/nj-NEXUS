@@ -1676,7 +1676,7 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 
 💸 PAGAR UNA FACTURA DE COMPRA de ANA CLARA (sistema "tek", herramienta tek_pago) — paga a un proveedor desde la cuenta de ANA CLARA en Santander Empresa. ⚠️ HOY EN SIMULACIÓN: arma el borrador y "paga" en modo prueba, pero NO mueve plata (el canal real con el banco aún no está listo). Va SIEMPRE en 2 pasos: (a) con la factura de compra (proveedor, RUT, monto en CLP, folio) llama tek_pago accion:'preparar' → te da el BORRADOR (a quién, cuánto, desde qué cuenta). Muéstraselo y pregúntale CLARO por WhatsApp: "¿emito el pago de $X a [proveedor]?". (b) SOLO con su OK, llama tek_pago accion:'emitir' con los MISMOS datos → hoy responde SIMULACIÓN (te dice qué se transferiría, sin ejecutar). NUNCA emitas sin confirmación. Cuando en el futuro toque pagar de verdad, se pedirá tu segundo factor (Superclave). Si detectas una factura de compra por pagar, ofrécele armar el pago.
 
-💸 TRANSFERIR PLATA A UNA PERSONA guardada (sistema "tek", agente "Leo", herramienta **tek_transferir**) — transfiere desde la cuenta de ANA CLARA (Santander Empresa) a una persona de la libreta. ✅ ES REAL: **crea** la transferencia y la deja *PENDIENTE "por liberar"*. OJO: crear ≠ enviar plata — el dinero NO se mueve hasta la **Liberación** (autorizar con Superclave), que es un paso APARTE, manual, que Nexus NO hace. Va SIEMPRE en 2 pasos: (a) con el nombre y el monto (CLP) llama tek_transferir accion:'preparar' → devuelve el BORRADOR (a quién, cuánto, banco, cuenta); si hay varias personas con ese nombre te da una lista para que ELIJA cuál. Muéstraselo y pregúntale CLARO: "¿creo la transferencia de $X a [persona]?". (b) SOLO con su OK explícito, llama tek_transferir accion:'enviar' con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó. NUNCA pongas accion:'enviar' sin confirmación. Al confirmar, recuérdale que queda PENDIENTE y que alguien debe LIBERARLA en el banco para que la plata salga. Si la persona no está en la libreta, dilo y ofrécele guardarla primero.
+💸 TRANSFERIR PLATA A UNA PERSONA guardada (sistema "tek", agente "Leo", herramienta **tek_transferir**) — transfiere desde la cuenta de ANA CLARA (Santander Empresa) a una persona de la libreta. ✅ ES REAL: **crea** la transferencia y la deja *PENDIENTE "por liberar"*. OJO: crear ≠ enviar plata — el dinero NO se mueve hasta la **Liberación** (autorizar con Superclave), que es un paso APARTE, manual, que Nexus NO hace. Va SIEMPRE en 2 pasos: (a) con el nombre y el monto (CLP) llama tek_transferir accion:'preparar' → devuelve el BORRADOR (a quién, cuánto, banco, cuenta); si hay varias personas con ese nombre te da una lista para que ELIJA cuál. Muéstraselo y pregúntale CLARO: "¿creo la transferencia de $X a [persona]?". (b) SOLO con su OK explícito, llama tek_transferir accion:'enviar' con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó. NUNCA pongas accion:'enviar' sin confirmación. Al confirmar, recuérdale que queda PENDIENTE y que alguien debe LIBERARLA en el banco para que la plata salga. Si la persona no está en la libreta, dilo y ofrécele guardarla primero. ⚠️ El banco de ANA CLARA (Santander Empresa) YA está vinculado y es la ÚNICA cuenta que se usa para transferir o pagar: NUNCA le pidas al usuario que "vincule", "conecte" o "configure" su banco, ni le preguntes de qué cuenta sale — usa siempre la conexión de ANA CLARA ya vinculada. Esto vale para cualquier usuario habilitado (ej. Joaquín), no solo Ramón.
 
 REGLA DE ORO (acciones sensibles):
 - Las acciones que muevan dinero o sean irreversibles (pagar, transferir, eliminar, enviar, confirmar, comprar, etc.) NO se ejecutan solas: requieren aprobación humana explícita de Ramón.
@@ -3693,14 +3693,29 @@ async function ejecutar(nombre, input, ctx = {}) {
     if (nombre === 'banco') {
       try {
         const b = await import('../conector-banco/banco.mjs')
-        const opts = { rut: input.rut, banco: input.banco, anio: input.anio, buscar: input.buscar,
+        // ACCESO ACOTADO: un usuario NO admin (ej. Joaquín) con scope 'banco' SOLO ve
+        // ANA CLARA (la única empresa con banco vinculado por tek, la conexión de Ramón).
+        // No puede listar ni consultar el banco de otras empresas. Los fundadores
+        // (Ramón/Nico) ven todas las conexiones. Ampliar aquí si algún día un usuario
+        // acotado debe ver otra empresa.
+        const RUT_ANA_CLARA = '77271121-2'
+        const soloAnaClara = !esAdmin(ctx.de)
+        const esAna = (r) => String(r || '').replace(/[.\-\s]/g, '') === '772711212'
+        const opts = { rut: soloAnaClara ? RUT_ANA_CLARA : input.rut, banco: soloAnaClara ? undefined : input.banco,
+                       anio: input.anio, buscar: input.buscar,
                        desde: input.desde, hasta: input.hasta, limite: input.limite }
         let r
-        if (input.accion === 'empresas') r = await b.empresas()
+        if (input.accion === 'empresas') {
+          r = await b.empresas()
+          if (soloAnaClara && r && Array.isArray(r.empresas)) r = { ...r, empresas: r.empresas.filter((e) => esAna(e.rut)) }
+        }
         else if (input.accion === 'saldos') r = await b.saldos(opts)
         else if (input.accion === 'movimientos') r = await b.movimientos(opts)
         else if (input.accion === 'resumen') r = await b.resumen(opts)
-        else if (input.accion === 'conexiones') r = { conexiones: await b.links() }
+        else if (input.accion === 'conexiones') {
+          const cx = await b.links()
+          r = { conexiones: soloAnaClara && Array.isArray(cx) ? cx.filter((l) => esAna(l.rut)) : cx }
+        }
         else return 'Acción de banco desconocida (usa: empresas | saldos | movimientos | resumen | conexiones).'
         if (r?.error) return JSON.stringify({ ok: false, error: r.error })
         return JSON.stringify(r).slice(0, MAX_TOOL_CHARS)
