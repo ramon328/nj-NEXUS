@@ -237,3 +237,4 @@
 {"ts":"2026-07-22T21:26:33.374Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-22T21:31:49.001Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":67320,"tratamiento_id":390569,"hora":"2026-07-23T17:00:00-04:00","hora_fin":"17:30","cliente":{"nombre":"Prueba Playground","rut":"11.111.111-1","telefono":"+56900000000"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"378571784755908bf27d2ae_8614_11f1_891c_0242ac130004","error":null}
 {"ts":"2026-07-22T21:36:05.461Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-22T21:51:10.558Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
