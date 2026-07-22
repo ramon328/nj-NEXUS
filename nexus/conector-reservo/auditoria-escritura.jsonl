@@ -185,3 +185,6 @@
 {"ts":"2026-07-22T17:18:24.262Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
 {"ts":"2026-07-22T17:33:29.913Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
 {"ts":"2026-07-22T17:48:35.787Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: profesional_uuid"}
+{"ts":"2026-07-22T17:58:06.303Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{"fecha":"2026-08-15","hora_inicio":"10:00","hora_fin":"10:30","profesional_id":67296,"tratamiento_id":12345,"person_id":17516824,"sendmail":false},"simulado":true,"ok":true,"cita_uuid":null}
+{"ts":"2026-07-22T17:58:06.379Z","accion":"reagendar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_uuid":"TEST-UUID","fecha":"2026-08-16","hora_inicio":"11:00","hora_fin":"11:30"},"simulado":true,"ok":true,"cita_uuid":"TEST-UUID"}
+{"ts":"2026-07-22T17:58:06.449Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{"fecha":"2026-08-15","hora_inicio":"10:00","profesional_id":67296,"tratamiento_id":12345,"person_id":17516824,"simular":false},"error":"acción no habilitada: faltan los params exactos de /appointment/makeAppointment/ (capturar Form Data del Network) y/o RESERVO_ESCRITURA≠1"}

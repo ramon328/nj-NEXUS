@@ -429,12 +429,57 @@ function pendienteCaptura(ep) { const e = new Error('acción no habilitada: falt
 // Los internos reales son makeAppointment/ (crear), estadoAppt/ (estado), + anular.
 // El MAPEO exacto de campos se clava cuando llegue la captura de Ramón; hoy validan y
 // registran, pero NO golpean Reservo hasta ESCRITURA_OK (prueba primero con cita de test).
+// Resolver paciente por rut/nombre → id interno (person_id) + datos. Read-only (buscarAjaxPerson).
+async function resolverPaciente(term) {
+  const j = await internalJson('/pacienteDentista/buscarAjaxPerson/', 'POST', new URLSearchParams({ term: String(term || '') }).toString())
+  return (Array.isArray(j) ? j : [])[0] || null
+}
+// Arma el body EXACTO del form #createAppt (mapeado desde el HTML autenticado de makeAppointment).
+// Endpoint real: POST /appointment/makeAppointment/ (view Django que renderiza en GET y crea en POST).
+function buildCrearBody(b) {
+  const [y, m, d] = String(b.fecha || '').split('-')
+  const form = {
+    day: String(Number(d)), month: String(Number(m)), year: y,
+    horaInicio: b.hora_inicio || b.hora || '', horaFin: b.hora_fin || '',
+    profesionales: String(b.profesional_id ?? ''), tiene_profesionales: '1',
+    tratamientos: String(b.tratamiento_id ?? ''), servicio: String(b.tratamiento_id ?? ''),
+    origen: b.origen || '', recursos: b.recursos || '', ver_codigo: '', phone_feo: '',
+    sendmail: b.sendmail ? '1' : '0', registrar: '0',
+  }
+  if (b.person_id) { form.person_id = String(b.person_id); form.cliente = String(b.cliente || b.person_id) }
+  else if (b.paciente_nuevo) {
+    const p = b.paciente_nuevo
+    Object.assign(form, { registrar: '1', rut: p.rut || '', name: p.nombre || '', app_paterno: p.apellido_paterno || '', app_materno: p.apellido_materno || '', phone_0: p.pais || '56', phone_1: p.telefono || '', cellphone: p.telefono || '', mail: p.mail || '' })
+  }
+  return form
+}
+// CREAR cita. DEFAULT = simular (cero escritura): devuelve el body exacto que mandaría, sin tocar Reservo.
+// Real solo con simular:false Y RESERVO_ESCRITURA=1 (blindaje: nunca a ciegas; certificar con cita de test).
 async function accionCrearCita(b) {
-  for (const k of ['profesional_uuid', 'fecha', 'hora', 'tratamiento_uuid', 'paciente_uuid']) if (!b[k]) throw new Error('falta campo obligatorio: ' + k)
-  if (!ESCRITURA_OK) throw pendienteCaptura('/appointment/makeAppointment/')
-  // TODO(captura): new URLSearchParams({ ...campos exactos del Form Data... })
-  const j = await internalJson('/appointment/makeAppointment/', 'POST', new URLSearchParams(b).toString())
-  return { ok: !!(j && (j.uuid || j.id || j.ok)), cita_uuid: j?.uuid || j?.id || null, raw: j }
+  for (const k of ['fecha', 'profesional_id', 'tratamiento_id']) if (b[k] == null || b[k] === '') throw new Error('falta campo obligatorio: ' + k)
+  if (!b.hora_inicio && !b.hora) throw new Error('falta campo obligatorio: hora_inicio')
+  if (!b.person_id && !b.paciente_nuevo) throw new Error('falta paciente: pasá person_id (existente) o paciente_nuevo{rut,nombre,...}')
+  const form = buildCrearBody(b)
+  const ep = '/appointment/makeAppointment/'
+  const simular = b.simular !== false
+  if (simular) return { ok: true, simulado: true, endpoint: ep, metodo: 'POST', form }
+  if (!ESCRITURA_OK) throw pendienteCaptura(ep)
+  const j = await internalJson(ep, 'POST', new URLSearchParams(form).toString())
+  return { ok: !!(j && (j.uuid || j.id || j.ok || j.exito)), cita_uuid: j?.uuid || j?.id || null, raw: j }
+}
+// REAGENDAR (mover) cita. Mismo blindaje. El endpoint interno de edición se confirma en el test
+// controlado (su handler vive en un bundle webpack, no en el HTML) → en simular se marca "por confirmar".
+async function accionReagendarCita(b) {
+  for (const k of ['cita_uuid', 'fecha']) if (!b[k]) throw new Error('falta campo obligatorio: ' + k)
+  if (!b.hora_inicio && !b.hora) throw new Error('falta campo obligatorio: hora_inicio')
+  const [y, m, d] = String(b.fecha).split('-')
+  const form = { cita: String(b.cita_uuid), day: String(Number(d)), month: String(Number(m)), year: y, horaInicio: b.hora_inicio || b.hora, horaFin: b.hora_fin || '', ...(b.profesional_id ? { profesionales: String(b.profesional_id) } : {}) }
+  const ep = '/appointment/editAppt/'
+  const simular = b.simular !== false
+  if (simular) return { ok: true, simulado: true, endpoint: ep + ' (por confirmar en el test)', metodo: 'POST', form }
+  if (!ESCRITURA_OK) throw pendienteCaptura(ep)
+  const j = await internalJson(ep, 'POST', new URLSearchParams(form).toString())
+  return { ok: !!j, raw: j }
 }
 async function accionAnularCita(b) {
   if (!b.cita_uuid) throw new Error('falta campo obligatorio: cita_uuid')
@@ -489,10 +534,11 @@ const server = http.createServer(async (req, res) => {
     try {
       let out
       if (accion === 'crear') out = await accionCrearCita(b)
+      else if (accion === 'reagendar') out = await accionReagendarCita(b)
       else if (accion === 'anular') out = await accionAnularCita(b)
       else if (accion === 'estado') out = await accionEstadoCita(b)
-      else return send(404, { error: 'acción inválida (crear|anular|estado)', endpoint: pn })
-      auditar(accion, { quien, ip: req.socket.remoteAddress, body: b, ok: out.ok, cita_uuid: out.cita_uuid || b.cita_uuid || null })
+      else return send(404, { error: 'acción inválida (crear|reagendar|anular|estado)', endpoint: pn })
+      auditar(accion, { quien, ip: req.socket.remoteAddress, body: b, simulado: !!out.simulado, ok: out.ok, cita_uuid: out.cita_uuid || b.cita_uuid || null })
       return send(out.ok ? 200 : 502, out)
     } catch (e) {
       auditar(accion, { quien, ip: req.socket.remoteAddress, body: b, error: e.message })
