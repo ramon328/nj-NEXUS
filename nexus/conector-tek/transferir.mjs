@@ -21,10 +21,22 @@ export const TOPE_TRANSFER_CLP = Number(process.env.TEK_TOPE_TRANSFER || 1_000_0
 const clp = (n) => '$' + Number(n || 0).toLocaleString('es-CL')
 // Deja la cuenta con puros dígitos (el form del banco no quiere guiones ni espacios).
 const soloDigitos = (s) => String(s || '').replace(/\D/g, '')
+// Normaliza un RUT a "12345678-9" (sin puntos, guion antes del DV). El form del banco
+// pide el RUT en ese formato.
+function normRutFmt(rut) {
+  const s = String(rut || '').replace(/[.\s]/g, '').replace(/-/g, '').toUpperCase()
+  if (s.length < 2) return String(rut || '').trim()
+  return s.slice(0, -1) + '-' + s.slice(-1)
+}
 
 /** Wrapper de la libreta: resuelve una persona por nombre/alias (con desambiguación). */
 export function resolver(nombre) {
   return beneficiarios.buscar(nombre)
+}
+
+/** Da de alta / actualiza un beneficiario en la libreta local (para recordarlo la próxima). */
+export function guardarBeneficiario(b) {
+  try { return beneficiarios.guardar(b) } catch (e) { return { ok: false, error: e.message } }
 }
 
 /**
@@ -34,12 +46,33 @@ export function resolver(nombre) {
  *  - { ok:false, error }                             si no resuelve o el monto es inválido
  *  - { ok:true, borrador:{ beneficiario, monto, motivo, origen, supera_tope, tope } }
  */
-export function armarBorrador({ userId, nombre, monto, motivo } = {}) {
-  const r = resolver(nombre)
-  if (!r.ok) {
-    // Propagamos la ambigüedad tal cual (con candidatos) para que Nexus pregunte cuál.
-    if (r.ambiguo) return { ok: false, ambiguo: true, candidatos: r.candidatos, error: r.error }
-    return { ok: false, error: r.error }
+export function armarBorrador({ userId, nombre, monto, motivo, rut, banco, cuenta, tipo_cuenta, email } = {}) {
+  let b, nuevo = false
+  const rutFmt = normRutFmt(rut)
+  const cuentaDig = soloDigitos(cuenta)
+
+  // Beneficiario NUEVO por datos completos: si viene RUT + número de cuenta, se transfiere
+  // DIRECTO a esa cuenta sin exigir que esté en la libreta ni pre-inscrito en el banco (el
+  // form "A Tercero" del banco toma los datos inline). Así Nexus no obliga a "cargarlo primero".
+  if (rutFmt && cuentaDig) {
+    b = {
+      id: null,
+      nombre: String(nombre || '').trim() || 'Beneficiario',
+      rut: rutFmt,
+      banco: String(banco || '').trim() || 'Santander',
+      tipo_cuenta: String(tipo_cuenta || '').trim() || 'Cuenta Corriente',
+      cuenta: String(cuenta || '').trim(),
+      email: email || null,
+    }
+    nuevo = true
+  } else {
+    const r = resolver(nombre)
+    if (!r.ok) {
+      // Propagamos la ambigüedad tal cual (con candidatos) para que Nexus pregunte cuál.
+      if (r.ambiguo) return { ok: false, ambiguo: true, candidatos: r.candidatos, error: r.error }
+      return { ok: false, error: r.error, falta_datos: true }
+    }
+    b = r.beneficiario
   }
 
   const m = Math.trunc(Number(monto))
@@ -47,7 +80,6 @@ export function armarBorrador({ userId, nombre, monto, motivo } = {}) {
     return { ok: false, error: 'Monto inválido (debe ser un entero en CLP > 0).' }
   }
 
-  const b = r.beneficiario
   const borrador = {
     tipo: 'transferencia_persona',
     beneficiario: {
@@ -63,6 +95,7 @@ export function armarBorrador({ userId, nombre, monto, motivo } = {}) {
     moneda: 'CLP',
     motivo: (motivo && String(motivo).trim()) || 'Transferencia',
     origen: userId,
+    nuevo,                       // true = beneficiario no guardado (datos dados a mano)
     supera_tope: m > TOPE_TRANSFER_CLP,
     tope: TOPE_TRANSFER_CLP,
   }
