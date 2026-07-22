@@ -233,3 +233,4 @@
 {"ts":"2026-07-22T20:50:04.573Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-22T20:53:29.990Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":67320,"tratamiento_id":390569,"hora":"2026-08-21T16:00:00-04:00","cliente":{"nombre":"Test Circuito","rut":"11111111-1","telefono":"+56900000000"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"37857178475360964d8008a_860f_11f1_a4c3_0242ac120003","error":null}
 {"ts":"2026-07-22T21:05:11.104Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-22T21:20:57.793Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
