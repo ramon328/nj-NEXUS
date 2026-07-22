@@ -58,6 +58,16 @@ try { if (existsSync(ESTADO)) previo = JSON.parse(readFileSync(ESTADO, 'utf8')) 
 const stamp = new Date().toISOString()
 writeFileSync(ESTADO, JSON.stringify({ sano, problemas, ts: stamp }))
 
+// AUTO-RECUPERACIÓN: si el proxy no responde (COLGADO o caído), lo reiniciamos solo.
+// KeepAlive de launchd solo cubre proceso MUERTO; un proceso vivo pero colgado se cura acá.
+if (problemas.some((p) => /proxy caído/.test(p))) {
+  try {
+    const { spawnSync } = await import('node:child_process')
+    spawnSync('launchctl', ['kickstart', '-k', `gui/${process.getuid()}/com.nexus.reservo-api`])
+    console.log('auto-reinicio: reservo-api reiniciado (proxy no respondía)')
+  } catch (e) { console.error('no pude auto-reiniciar:', e.message) }
+}
+
 async function avisar(msg) {
   try { const k = await import(path.join(os.homedir(), 'nexus', 'hub', 'kapso.mjs')); await k.enviarKapso(TEL, msg) }
   catch (e) { console.error('no pude avisar por WhatsApp:', e.message) }

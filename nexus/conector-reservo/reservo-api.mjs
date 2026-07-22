@@ -105,6 +105,35 @@ async function ensure() {
 const cacheData = new Map()   // key = "citas/?..." → { status, ct, body, ts }
 const inflight = new Map()    // dedupe de fetches concurrentes al mismo key
 const CACHE_TTL = Number(process.env.RESERVO_CACHE_TTL || 600) * 1000   // fresco 10 min
+
+// ── PERSISTENCIA DE CACHÉ A DISCO ─────────────────────────────────────────────
+// Sin esto, cada reinicio arranca en FRÍO (primeras cargas lentas). Guardamos los
+// datasets pesados (ALL:/D2:) a disco y los cargamos al arrancar → data al instante
+// (stale-while-revalidate refresca en segundo plano). No guardamos el gzip (se recomputa).
+const CACHE_FILE = path.join(DIR, 'cache.json')
+let _guardando = false
+function guardarCacheDisco() {
+  if (_guardando) return; _guardando = true
+  try {
+    const obj = {}
+    for (const [k, v] of cacheData) {
+      if (!/^(ALL:|D2:|ALL_INDEX)/.test(k)) continue           // solo los grandes/computados
+      if (!v || v.status !== 200 || !v.body) continue
+      obj[k] = { status: v.status, ct: v.ct, body: v.body, ts: v.ts }   // sin gz
+    }
+    writeFileSync(CACHE_FILE, JSON.stringify(obj))
+  } catch (e) { log('guardarCache falló: ' + e.message.slice(0, 80)) } finally { _guardando = false }
+}
+function cargarCacheDisco() {
+  try {
+    if (!existsSync(CACHE_FILE)) return 0
+    const obj = JSON.parse(readFileSync(CACHE_FILE, 'utf8'))
+    let n = 0
+    for (const [k, v] of Object.entries(obj)) { if (v && v.body) { cacheData.set(k, v); n++ } }
+    log(`caché cargada de disco: ${n} datasets (arranque en caliente)`)
+    return n
+  } catch (e) { log('cargarCache falló: ' + e.message.slice(0, 80)); return 0 }
+}
 const esMesActual = (mes) => mes === new Date().toISOString().slice(0, 7)
 const ttlFor = (mes) => (mes && esMesActual(mes) ? 120_000 : CACHE_TTL)   // mes actual: 2 min; cerrados: largo
 // fetch con reintentos ante caídas de red (ECONNRESET/timeout).
@@ -564,10 +593,19 @@ const server = http.createServer(async (req, res) => {
 })
 function leerBody(req) { return new Promise(r => { const ch = []; req.on('data', d => ch.push(d)); req.on('end', () => r(Buffer.concat(ch))) }) }
 
+// ── BLINDAJE: que NUNCA se caiga por un error no capturado ────────────────────
+process.on('uncaughtException', (e) => { try { log('uncaughtException (ignorado, sigo vivo): ' + (e?.stack || e?.message || e).toString().slice(0, 200)) } catch {} })
+process.on('unhandledRejection', (e) => { try { log('unhandledRejection (ignorado): ' + (e?.message || e).toString().slice(0, 200)) } catch {} })
+server.on('clientError', (e, socket) => { try { socket.destroy() } catch {} })   // requests malformados no tumban el server
+
 cargar()
+cargarCacheDisco()   // ⚡ arranque en CALIENTE: data servida al instante desde la última caché
 server.listen(PORT, '127.0.0.1', () => log(`conector-reservo escuchando en 127.0.0.1:${PORT} (token fijo)`))
 // keep-warm: cada 3h revisa la sesión y re-loguea si murió
 setInterval(() => { ensure().catch(() => {}) }, 3 * 3600_000)
 ensure().catch(() => {})
-// Pre-calentar la caché v2: al arrancar (tras 5s) y cada TTL, para servir rápido.
-if (API_TOKEN) { setTimeout(() => warm().catch(() => {}), 5000); setInterval(() => warm().catch(() => {}), CACHE_TTL) }
+// Pre-calentar la caché v2: refresca en segundo plano (rápido si ya cargó de disco) y cada TTL.
+if (API_TOKEN) { setTimeout(() => warm().catch(() => {}), 1500); setInterval(() => warm().catch(() => {}), CACHE_TTL) }
+// Persistir la caché a disco: periódica + al salir → el próximo reinicio arranca caliente.
+setInterval(guardarCacheDisco, 120_000)
+for (const sig of ['SIGTERM', 'SIGINT', 'exit']) process.on(sig, () => { try { guardarCacheDisco() } catch {} })
