@@ -495,6 +495,67 @@ async function accionEstadoCita(b) {
   return { ok: !!j, raw: j }
 }
 
+// ── /r/reservar : fachada limpia con contrato uuid (la que pidió Ramón) ───────
+// Traduce el mundo uuid (v2/agenda_online) al form interno de makeAppointment.
+//  - profesional: uuid → id interno vía /cliente/list_profesional/ (uuid↔id). ✅
+//  - tratamiento: v2 NO expone id interno (todo uuid). Se acepta tratamiento_id directo;
+//    si viene uuid_tratamiento se intenta calzar por codigo/nombre (mapa best-effort).
+//  - hora ISO (con offset) → fecha + horaInicio en la hora LOCAL que trae el string.
+let _profMapCache = { ts: 0, byUuid: new Map() }
+async function profMap() {
+  if (Date.now() - _profMapCache.ts < 10 * 60 * 1000 && _profMapCache.byUuid.size) return _profMapCache.byUuid
+  const profs = (await internalJson('/cliente/list_profesional/')) || []
+  const m = new Map(); for (const p of profs) if (p.uuid) m.set(p.uuid, { id: p.id, nombre: p.nombre })
+  _profMapCache = { ts: Date.now(), byUuid: m }; return m
+}
+function partirHoraISO(iso) {
+  // "2026-07-23T16:00:00-04:00" → { fecha:"2026-07-23", hora:"16:00" } (respeta la hora local del string)
+  const m = String(iso).match(/^(\d{4}-\d{2}-\d{2})[T ](\d{2}:\d{2})/)
+  if (!m) throw new Error('hora inválida: usá ISO tipo 2026-07-23T16:00:00-04:00')
+  return { fecha: m[1], hora: m[2] }
+}
+function partirNombre(nom) {
+  const p = String(nom || '').trim().split(/\s+/)
+  if (p.length <= 1) return { name: p[0] || '', app_paterno: '', app_materno: '' }
+  if (p.length === 2) return { name: p[0], app_paterno: p[1], app_materno: '' }
+  // 3+: nombre = primero(s) hasta -2, apellidos = últimos 2
+  return { name: p.slice(0, p.length - 2).join(' '), app_paterno: p[p.length - 2], app_materno: p[p.length - 1] }
+}
+async function reservarFacade(b) {
+  const errores = []
+  // profesional
+  let profesional_id = b.profesional_id
+  if (!profesional_id && b.uuid_profesional) { const pm = await profMap(); profesional_id = pm.get(b.uuid_profesional)?.id }
+  if (!profesional_id) errores.push('no pude resolver el profesional (pasá uuid_profesional válido o profesional_id interno)')
+  // tratamiento (sin puente uuid→id en la API: hoy requiere tratamiento_id interno)
+  let tratamiento_id = b.tratamiento_id
+  if (!tratamiento_id && b.uuid_tratamiento) errores.push('el tratamiento llega como uuid pero el form interno usa id numérico y la API v2 no expone ese id; pasá tratamiento_id (o habilitamos el mapa con el test controlado)')
+  else if (!tratamiento_id) errores.push('falta tratamiento (uuid_tratamiento o tratamiento_id)')
+  // hora
+  let fecha, hora
+  try { ({ fecha, hora } = partirHoraISO(b.hora)) } catch (e) { errores.push(e.message) }
+  // cliente: por rut → person_id; si no existe, paciente nuevo
+  const cli = b.cliente || {}
+  let person_id = b.person_id, paciente_nuevo = null
+  // OJO: buscarAjaxPerson es fuzzy y devuelve la 1ª fila aunque NO calce → exigir rut EXACTO
+  // (jamás agendar sobre el paciente equivocado).
+  const rutNorm = (r) => String(r || '').replace(/[.\-\s]/g, '').toLowerCase()
+  if (!person_id && cli.rut) { const p = await resolverPaciente(cli.rut); if (p && p.id && rutNorm(p.rut) && rutNorm(p.rut) === rutNorm(cli.rut)) person_id = p.id }
+  if (!person_id) {
+    if (!cli.nombre) errores.push('falta cliente.nombre (o person_id) para registrar el paciente')
+    else { const nm = partirNombre(cli.nombre); paciente_nuevo = { rut: cli.rut || '', nombre: nm.name, apellido_paterno: nm.app_paterno, apellido_materno: nm.app_materno, telefono: (cli.telefono || '').replace(/^\+?56/, ''), mail: cli.email || '' } }
+  }
+  if (errores.length) return { ok: false, error: errores.join(' | ') }
+  const out = await accionCrearCita({
+    fecha, hora_inicio: hora, hora_fin: b.hora_fin || '', profesional_id, tratamiento_id,
+    ...(person_id ? { person_id } : { paciente_nuevo }), sendmail: !!b.sendmail,
+    agenda: b.agenda, simular: b.simular,
+  })
+  if (out.simulado) return { ok: true, simulado: true, estado: 'NC', form: out.form, endpoint: out.endpoint }
+  if (out.ok) return { ok: true, cita_uuid: out.cita_uuid, estado: 'NC' }
+  return { ok: false, error: out.raw?.error || out.raw?.mensaje || 'no se pudo crear la cita' }
+}
+
 // Pre-calienta las consultas que la app pide siempre (mes actual + anterior).
 function mesRango(off = 0) { const n = new Date(); const ini = new Date(n.getFullYear(), n.getMonth() + off, 1); const fin = new Date(n.getFullYear(), n.getMonth() + off + 1, 0); const f = (d) => d.toISOString().slice(0, 10); return `fecha_inicial=${f(ini)}&fecha_final=${f(fin)}` }
 async function warm() {
@@ -523,6 +584,22 @@ const server = http.createServer(async (req, res) => {
     return send(200, { ok: true, sesion_viva: viva, need2fa: sess.need2fa, ultimo_login: sess.ts ? new Date(sess.ts).toISOString() : null, token_fijo: true })
   }
   if (!autorizado(req, url)) return send(401, { error: 'token inválido (X-Token)', endpoint: pn })
+
+  // ── /r/reservar : contrato limpio uuid → crea cita (fachada de accionCrearCita) ──
+  if (pn === '/r/reservar' || pn === '/r/reservar/') {
+    if (req.method !== 'POST') return send(405, { ok: false, error: 'usá POST' })
+    let b = {}
+    try { const raw = (await leerBody(req)).toString('utf8').trim(); b = raw ? JSON.parse(raw) : {} } catch { return send(400, { ok: false, error: 'el body debe ser JSON' }) }
+    const quien = req.headers['x-actor'] || req.socket.remoteAddress || 'desconocido'
+    try {
+      const out = await reservarFacade(b)
+      auditar('reservar', { quien, ip: req.socket.remoteAddress, body: b, simulado: !!out.simulado, ok: out.ok, cita_uuid: out.cita_uuid || null, error: out.error || null })
+      return send(out.ok ? 200 : (out.error && /obligatorio|resolver|falta|inválid|uuid/.test(out.error) ? 400 : 200), out)
+    } catch (e) {
+      auditar('reservar', { quien, ip: req.socket.remoteAddress, body: b, error: e.message })
+      return send(e.pendiente ? 501 : 500, { ok: false, error: e.message.slice(0, 200) })
+    }
+  }
 
   // ── data2 ESCRITURA: /r/data2/cita/{crear,anular,estado}/ (POST + auditoría) ──
   if (pn.startsWith('/r/data2/cita/')) {
