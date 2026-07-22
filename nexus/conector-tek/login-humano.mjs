@@ -1047,19 +1047,24 @@ async function cartolaHistorica(page, log) {
         const btn = await locEnFrames(/^buscar$/i)
         if (btn) await clickHumano(page, btn)
         log(`carthist ${MESNOM[mes]} ${anio}: Buscar (intento ${intento + 1})`)
-        await sleep(8000)
-        const txt = await withTimeout(textoTodosFrames(), 15000, '')
+        await sleep(6000)
+        // ESPERAR a que cargue el resumen (hasta ~20s): el texto debe tener "Saldo inicial"/"Cargos"
+        let txt = ''
+        for (let w = 0; w < 10; w++) { txt = await withTimeout(textoTodosFrames(), 12000, ''); if (/Saldo\s*inicial|Cargos\s*\$/i.test(txt)) break; await sleep(2000) }
         const g = (re) => { const m = txt.match(re); return m ? m[1].trim() : '' }
         const hasta = g(/Fecha\s*hasta\s*([\d/]+)/i)
         const mesHasta = Number((hasta.match(/\/(\d{2})\//) || [])[1])
+        const cargos = num(g(/Cargos\s*\$?\s*([\d.]+)/i))
+        const abonos = num(g(/Abonos\s*\$?\s*([\d.]+)/i))
+        // rechazar si NO cargo (sin fecha hasta o sin montos) o si vino el mes equivocado
+        if (!hasta || (!cargos && !abonos)) { log(`  ${MESNOM[mes]}: resumen no cargo -> reintento`); continue }
         if (mesHasta && mesHasta !== mes) { log(`  la cartola volvio del mes ${mesHasta}, pedi ${mes} -> reintento`); continue }
         R = {
           mes, anio: Number(anio),
           n_cartola: g(/N[°º]\s*Cartola\s*([\d]+\s*-\s*[\d/]+)/i),
           periodo: g(/Fecha\s*desde\s*([\d/]+)/i) + '-' + hasta,
           saldo_inicial: num(g(/Saldo\s*inicial\s*\$?\s*([\d.]+)/i)),
-          cargos: num(g(/Cargos\s*\$?\s*([\d.]+)/i)),
-          abonos: num(g(/Abonos\s*\$?\s*([\d.]+)/i)),
+          cargos, abonos,
           saldo_final: num(g(/Saldo\s*final\s*\$?\s*([\d.]+)/i)),
         }
       }
