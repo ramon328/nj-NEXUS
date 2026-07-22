@@ -245,3 +245,4 @@
 {"ts":"2026-07-22T22:54:36.346Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":79659,"tratamiento_id":398214,"hora":"2026-08-21T10:00:00-04:00","cliente":{"nombre":"Test NumIds","rut":"11111111-1","telefono":"+56900000000"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"3785817847608764fec2050_8620_11f1_8433_0242ac130004","error":null}
 {"ts":"2026-07-22T22:54:53.470Z","accion":"anular","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_id":75117339,"simular":false},"simulado":false,"ok":true,"cita_uuid":null}
 {"ts":"2026-07-22T23:06:30.698Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-22T23:21:34.550Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
