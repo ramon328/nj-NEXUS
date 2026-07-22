@@ -1678,7 +1678,7 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 
 💸 TRANSFERIR PLATA A UNA PERSONA guardada (sistema "tek", agente "Leo", herramienta **tek_transferir**) — transfiere desde la cuenta de ANA CLARA (Santander Empresa) a una persona de la libreta. ✅ ES REAL: **crea** la transferencia y la deja *PENDIENTE "por liberar"*. OJO: crear ≠ enviar plata — el dinero NO se mueve hasta la **Liberación** (autorizar con Superclave), que es un paso APARTE, manual, que Nexus NO hace. Va SIEMPRE en 2 pasos: (a) con el nombre y el monto (CLP) llama tek_transferir accion:'preparar' → devuelve el BORRADOR (a quién, cuánto, banco, cuenta); si hay varias personas con ese nombre te da una lista para que ELIJA cuál. Muéstraselo y pregúntale CLARO: "¿creo la transferencia de $X a [persona]?". (b) SOLO con su OK explícito, llama tek_transferir accion:'enviar' con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó. NUNCA pongas accion:'enviar' sin confirmación. Al confirmar, recuérdale que queda PENDIENTE y que alguien debe LIBERARLA en el banco para que la plata salga. Si el beneficiario NO está guardado en la libreta, NO digas que "Ramón/Nico deben cargarlo en el banco primero" (el banco NO exige inscribirlo): pídele al usuario el RUT, el banco y el número de cuenta (y la razón social/nombre) y llama tek_transferir pasando nombre, rut, banco y cuenta — se transfiere directo y queda guardado para la próxima. ⚠️ El banco de ANA CLARA (Santander Empresa) YA está vinculado y es la ÚNICA cuenta ORIGEN que se usa para transferir o pagar: NUNCA le pidas al usuario que "vincule", "conecte" o "configure" su banco, ni le preguntes de qué cuenta sale — usa siempre la conexión de ANA CLARA ya vinculada. Esto vale para cualquier usuario habilitado (ej. Joaquín), no solo Ramón.
 
-💸💸 TRANSFERENCIA MASIVA — varias transferencias en un LOTE (sistema "tek", herramienta **tek_masiva**) — cuando pidan pagar/transferir a VARIOS de una (nómina, varios proveedores). Sube un LOTE a Santander Empresa que queda PENDIENTE por liberar (no mueve plata hasta la Liberación con Superclave, paso manual aparte). Cada transferencia lleva nombre + monto (+ rut, banco y cuenta si el beneficiario NO está guardado; mismo criterio que tek_transferir). ANTES de subir necesitas SIEMPRE 2 datos que le PREGUNTAS al usuario: (1) el **concepto** (muéstrale las opciones: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) el **motivo** (glosa cartola originador, texto corto). Va en 2 pasos: (a) tek_masiva accion:'preparar' con la lista → devuelve el RESUMEN (cantidad, total, beneficiarios, problemas). Si falta el concepto o el motivo, la tool te lo dice: pregúntaselo. Muéstrale el resumen y pregúntale "¿subo el lote?". (b) SOLO con su OK explícito + concepto + motivo, tek_masiva accion:'enviar' con los MISMOS datos → sube el lote pendiente. NUNCA envíes sin confirmación.
+💸💸 TRANSFERENCIA MASIVA — varias transferencias en un LOTE (sistema "tek", herramienta **tek_masiva**) — cuando pidan pagar/transferir a VARIOS de una (nómina, varios proveedores). Sube un LOTE a Santander Empresa que queda PENDIENTE por liberar (no mueve plata hasta la Liberación con Superclave, paso manual aparte). Cada transferencia lleva nombre + monto (+ rut, banco y cuenta si el beneficiario NO está guardado; mismo criterio que tek_transferir). ANTES de subir necesitas SIEMPRE 2 datos que le PREGUNTAS al usuario: (1) el **concepto** (muéstrale las opciones: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) el **motivo** (glosa cartola originador, texto corto). Va en 2 pasos: (a) tek_masiva accion:'preparar' con la lista → devuelve el RESUMEN (cantidad, total, beneficiarios, problemas). Si falta el concepto o el motivo, la tool te lo dice: pregúntaselo. Muéstrale el resumen y pregúntale "¿subo el lote?". (b) SOLO con su OK explícito + concepto + motivo, tek_masiva accion:'enviar' con los MISMOS datos → sube el lote pendiente. NUNCA envíes sin confirmación. 📄 Si el usuario pide VER/revisar el Excel que se sube al banco ("mándame el excel", "el archivo que subes", "quiero revisarlo"), llama tek_masiva accion:'excel' con las mismas transferencias → se lo manda por WhatsApp. ⛔ NUNCA digas que "no puedes generar/enviar el Excel": SÍ puedes, es accion:'excel'. El RUT en el archivo va sin puntos ni guion (el sistema lo formatea solo). Si el banco RECHAZA (0 aceptados), NO es el click de confirmar: es que la cuenta/RUT/banco del beneficiario no cuadran — dile al usuario que revise esos datos (ofrécele mandarle el Excel para chequear).
 
 REGLA DE ORO (acciones sensibles):
 - Las acciones que muevan dinero o sean irreversibles (pagar, transferir, eliminar, enviar, confirmar, comprar, etc.) NO se ejecutan solas: requieren aprobación humana explícita de Ramón.
@@ -2608,7 +2608,7 @@ const HERRAMIENTAS = [
     input_schema: {
       type: 'object',
       properties: {
-        accion: { type: 'string', enum: ['preparar', 'enviar'], description: 'preparar = valida y muestra el resumen (no sube nada). enviar = sube el lote (pendiente por liberar). Solo enviar tras OK + concepto + motivo.' },
+        accion: { type: 'string', enum: ['preparar', 'enviar', 'excel'], description: 'preparar = valida y muestra el resumen (no sube nada). enviar = sube el lote (pendiente por liberar; solo tras OK + concepto + motivo). excel = genera y MANDA por WhatsApp el archivo .xlsx que se sube al banco, para que el usuario lo revise (úsalo cuando pidan "mándame el excel", "el archivo que subes", "quiero revisar el excel").' },
         transferencias: {
           type: 'array',
           description: 'Transferencias del lote. Cada una: { nombre, monto, y si el beneficiario NO está guardado: rut, banco, cuenta }.',
@@ -3004,6 +3004,22 @@ async function ejecutar(nombre, input, ctx = {}) {
         } else faltantes.push({ nombre: t.nombre, motivo: 'faltan rut, banco y cuenta' })
       }
       if (faltantes.length) return JSON.stringify({ ok: false, faltan_datos: faltantes, instruccion: 'Para estos beneficiarios faltan datos. Pídele al usuario el RUT, el banco y el número de cuenta de cada uno (o el nombre exacto si estaba guardado) y vuelve a llamar tek_masiva.' })
+
+      // EXCEL: genera el .xlsx que se sube al banco y se lo MANDA al usuario para que lo revise
+      // (no exige concepto/motivo). Útil cuando el banco rechaza y hay que revisar los datos.
+      if (input.accion === 'excel') {
+        const gen = await mm.generarMasivo(resueltas, { stamp: String(Date.now()) })
+        const target = destinoValido(ctx.de)
+        if (target) {
+          try {
+            await enviarMediaWhatsApp(target, gen.ruta, `📄 Excel de la transferencia masiva que se sube a Santander (${resueltas.length} ${resueltas.length === 1 ? 'transferencia' : 'transferencias'}). Revisa que los datos estén correctos (cuenta, RUT, banco, monto).`, { forceDocument: true })
+            return JSON.stringify({ ok: true, enviado: true, archivo: gen.ruta, problemas: gen.problemas, texto: 'Te mandé el Excel que se sube al banco para que lo revises 📄' + (gen.problemas?.length ? ' — ojo, tiene observaciones: ' + JSON.stringify(gen.problemas) : '') })
+          } catch (e) {
+            return JSON.stringify({ ok: false, error: 'No pude enviar el Excel por WhatsApp: ' + e.message, archivo: gen.ruta })
+          }
+        }
+        return JSON.stringify({ ok: true, archivo: gen.ruta, problemas: gen.problemas, nota: 'Canal sin WhatsApp: el Excel quedó guardado en ' + gen.ruta })
+      }
 
       const total = resueltas.reduce((a, t) => a + (Math.trunc(Number(t.monto)) || 0), 0)
       const resumen = {

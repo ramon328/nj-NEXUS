@@ -971,20 +971,35 @@ async function masivaImportar(page, log) {
     await sleep(8000)
     await page.screenshot({ path: join(DATA, 'masiva-03-importado.png') }).catch(() => {})
 
-    // 4) CONFIRMAR la importación → crea el LOTE (queda "por liberar"). Tras "Importar" el
-    //    banco muestra una PREVISUALIZACIÓN (registros aceptados/rechazados) con "Continuar";
-    //    luego puede pedir un "Aceptar"/"Confirmar" final. Hacemos SOLO esos.
-    //    ⛔ BLINDAJE: si la pantalla pide Superclave o dice Autorizar/Liberar, NOS DETENEMOS
-    //    (no ingresamos clave, no autorizamos): el lote queda pendiente de liberación manual.
     const textoTodo = async () => (await Promise.all(page.frames().map((f) => f.evaluate(() => document.body.innerText || '').catch(() => '')))).join(' ')
-    // rxConfirm SOLO avanza (continuar/confirmar/aceptar) — NUNCA "Autorizar"/"Liberar".
+
+    // 3.5) ¿El banco RECHAZÓ el/los registros? (0 aceptados). Si es así, capturamos el MOTIVO
+    //      real (link "Ver registros rechazados") y NO confirmamos (no hay nada que crear).
+    let rechazoDetalle = ''
+    const preTxt = (await textoTodo().catch(() => '')).replace(/\s+/g, ' ')
+    const hayRechazo = /no existen registros aceptados/i.test(preTxt) || /ver registros rechazados/i.test(preTxt)
+    if (hayRechazo) {
+      for (const fr of page.frames()) {
+        const link = fr.getByText(/ver registros rechazados/i).first()
+        if ((await link.count().catch(() => 0)) && (await link.isVisible().catch(() => false))) {
+          await link.scrollIntoViewIfNeeded().catch(() => {})
+          await link.click({ timeout: 4000 }).catch(async () => { await clickHumano(page, link) })
+          await sleep(rnd(2500, 4000)); break
+        }
+      }
+      await page.screenshot({ path: join(DATA, 'masiva-06-rechazo.png') }).catch(() => {})
+      rechazoDetalle = (await textoTodo().catch(() => '')).replace(/\s+/g, ' ').slice(0, 1400)
+      try { writeFileSync(join(DATA, 'masiva-rechazo.json'), JSON.stringify({ detalle: rechazoDetalle, forms: await volcarFrames(page) }, null, 2)) } catch { /* */ }
+      log('masiva: registro RECHAZADO por el banco — motivo capturado')
+    }
+
+    // 4) CONFIRMAR (SOLO si NO hubo rechazo) → crea el LOTE (queda "por liberar"). Tras "Importar"
+    //    el banco muestra la previsualización con "Continuar" (y a veces un "Aceptar" final).
+    //    ⛔ BLINDAJE: si pide Superclave o Autorizar/Liberar, NOS DETENEMOS (no autorizamos).
     const rxConfirm = /^\s*(continuar|confirmar|aceptar)\s*$/i
-    // rxProhibido = señal de un PROMPT REAL de Superclave/coordenadas/token → detenerse. OJO:
-    // NO usar "autoriz"/"liberaci" a secas: aparecen como ETIQUETAS en la previsualización
-    // ("Estado post autorización", "Tipo autorización") y cortarían el flujo antes de tiempo.
     const rxProhibido = /(super\s?clave|clave din[aá]mica|tarjeta de coordenada|coordenada[s]? de seguridad|token de seguridad|segundo factor|ingrese.{0,25}(clave|c[oó]digo))/i
     const botonesConfirm = []
-    for (let paso = 0; paso < 3; paso++) {
+    for (let paso = 0; !hayRechazo && paso < 3; paso++) {
       const txtAhora = await textoTodo().catch(() => '')
       if (rxProhibido.test(txtAhora)) { log('masiva: pantalla de autorización/Superclave → me DETENGO (no autorizo; el lote queda pendiente)'); break }
       let btn = null
@@ -1011,7 +1026,7 @@ async function masivaImportar(page, log) {
     writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ url: page.url(), concepto, clicImportar, botonesConfirm, resumen, forms: await volcarFrames(page) }, null, 2))
     const sigueEnForm = /Caracter[ií]sticas importaci[oó]n/i.test(resumen) && /Examinar/i.test(resumen)
     // El banco RECHAZÓ el/los registros (0 aceptados) → señal inequívoca en pantalla.
-    const rechazado = /no existen registros aceptados/i.test(resumen)
+    const rechazado = hayRechazo || /no existen registros aceptados/i.test(resumen)
     const enPreview = /registros aceptados/i.test(resumen) && /por confirmar/i.test(resumen) && !rechazado
     const exito = !rechazado && /(n[uú]mero de lote|lote\s*n[°º:]|comprobante|se ingres[oó]|ingresad[oa] correctamente|importaci[oó]n exitosa|realizad[oa].{0,15}exitosa|registros? aprobad|por autorizar|pendiente de (autoriz|liberaci)|por liberar|env[ií]o exitoso|procesad[oa] (con )?[eé]xito)/i.test(resumen)
     const errorVal = rechazado || /(no fue posible|formato incorrecto|archivo inv[aá]lid|fueron rechazad|con errores de)/i.test(resumen)
@@ -1019,7 +1034,8 @@ async function masivaImportar(page, log) {
     return {
       estado: creado ? 'lote_creado_pendiente' : (rechazado ? 'rechazado_por_banco' : (enPreview ? 'en_previsualizacion' : (sigueEnForm ? 'sin_confirmar_en_form' : (clicImportar ? 'importado_sin_confirmar' : 'no_importado')))),
       creado, rechazado, concepto, clicImportar, botonesConfirm, sigueEnForm, en_preview: enPreview, error_detectado: errorVal,
-      nota: rechazado ? 'El banco RECHAZÓ el registro (0 aceptados). Suele ser porque la CUENTA o el RUT del beneficiario no son válidos en ese banco. Revisa los datos de la cuenta.' : undefined,
+      rechazo_detalle: rechazoDetalle || undefined,
+      nota: rechazado ? ('El banco RECHAZÓ el registro (0 aceptados). ' + (rechazoDetalle ? 'Motivo del banco: ' + rechazoDetalle.slice(0, 300) : 'Suele ser porque la CUENTA, el RUT o el banco del beneficiario no son válidos. Revisa esos datos.')) : undefined,
       resumen: resumen.slice(0, 700), url: page.url(),
     }
   }

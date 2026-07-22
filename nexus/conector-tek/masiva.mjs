@@ -92,6 +92,9 @@ const HEADERS = [
 ]
 
 const soloDigitos = (s) => String(s || '').replace(/\D/g, '')
+// RUT para el documento del banco: SIN puntos ni guion, pero CON el dígito verificador
+// (incluye K). "76.242.074-0" → "762420740" · "12.345.678-K" → "12345678K".
+const rutDoc = (s) => String(s || '').replace(/[.\-\s]/g, '').toUpperCase().replace(/[^0-9K]/g, '')
 const esSantander = (banco) => /santander/i.test(String(banco || ''))
 // Normaliza SIN acentos (para que "Banco de Crédito e Inversiones" matchee la clave sin tilde).
 const sinAcentos = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
@@ -114,7 +117,7 @@ export function armarFila(t, { cuentaOrigen = CUENTA_ORIGEN_ANACLARA } = {}) {
       soloDigitos(t.cuenta),                      // 3 Cuenta destino
       'CLP',                                      // 4 Moneda destino
       cod,                                        // 5 Código banco destino (vacío si Santander)
-      soloDigitos(t.rut),                         // 6 RUT beneficiario
+      rutDoc(t.rut),                              // 6 RUT beneficiario (sin puntos ni guion, con DV/K)
       String(t.nombre || '').trim(),              // 7 Nombre beneficiario
       monto,                                      // 8 Monto (número)
       String(t.glosa || t.mensaje || '').slice(0, 40),        // 9 Glosa personalizada transferencia
@@ -128,7 +131,7 @@ export function armarFila(t, { cuentaOrigen = CUENTA_ORIGEN_ANACLARA } = {}) {
       !soloDigitos(t.cuenta) && 'cuenta destino vacía',
       !monto && 'monto inválido',
       !santander && !cod && `sin código de banco para "${t.banco}" (banco no reconocido)`,
-      !santander && !soloDigitos(t.rut) && 'RUT obligatorio (banco no Santander)',
+      !santander && !rutDoc(t.rut) && 'RUT obligatorio (banco no Santander)',
       !santander && !String(t.nombre || '').trim() && 'nombre obligatorio (banco no Santander)',
     ].filter(Boolean),
   }
