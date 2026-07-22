@@ -1072,25 +1072,35 @@ async function comprobantesConsulta(page, log) {
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
   await sleep(rnd(2000, 3500)); await idle(page, rnd(600, 1200))
   await cerrarPopups(page, log)
-  log('comprob: clic Transferencias…')
-  const menu = page.getByText(/^transferencias?$/i).first()
-  await clickHumano(page, menu)
-  await sleep(rnd(5000, 7500)); await idle(page, rnd(800, 1600))
-  await page.screenshot({ path: join(DATA, 'comprob-00-menu.png') }).catch(() => {})
-  log('comprob: menú capturado')
-  // "Consultas Histórica y Eliminación → Histórico" (transferencias hechas + comprobantes).
-  // "Histórico" es único en el menú de Transferencias → clic DIRECTO (en cualquier frame);
-  // fallback al clickColumna posicional (header+opción).
-  let entro = false
-  for (const f of page.frames()) {
-    const h = f.getByText(/^\s*Hist[oó]rico\s*$/i).first()
-    if ((await h.count().catch(() => 0)) && (await h.isVisible().catch(() => false))) {
-      await h.scrollIntoViewIfNeeded().catch(() => {})
-      await h.click({ timeout: 4000 }).catch(async () => { await clickHumano(page, h) })
-      entro = true; break
+  // Abrir el mega-menú de Transferencias y VERIFICAR que abrió (aparece "Histórico"). Reintenta:
+  // a veces el primer clic no despliega el menú (timing/popup) y caíamos al dashboard.
+  const verHistorico = async () => {
+    for (const f of page.frames()) {
+      const h = f.getByText(/^\s*Hist[oó]rico\s*$/i).first()
+      if ((await h.count().catch(() => 0)) && (await h.isVisible().catch(() => false))) return h
     }
+    return null
   }
-  if (!entro) entro = await clickColumna(page, /Consultas Hist[oó]rica/i, /^Hist[oó]rico$/i, log)
+  let histLoc = null
+  for (let intento = 0; intento < 4 && !histLoc; intento++) {
+    log(`comprob: abrir menú Transferencias (intento ${intento + 1})…`)
+    await cerrarPopups(page, log)
+    const menu = page.getByText(/^transferencias?$/i).first()
+    await clickHumano(page, menu)
+    await sleep(rnd(4500, 6500)); await idle(page, rnd(600, 1200))
+    histLoc = await verHistorico()
+    if (!histLoc) { await page.keyboard.press('Escape').catch(() => {}); await sleep(1200) }
+  }
+  await page.screenshot({ path: join(DATA, 'comprob-00-menu.png') }).catch(() => {})
+  // Clic en "Histórico" (único en el menú); fallback al clickColumna posicional.
+  let entro = false
+  if (histLoc) {
+    await histLoc.scrollIntoViewIfNeeded().catch(() => {})
+    await histLoc.click({ timeout: 4000 }).catch(async () => { await clickHumano(page, histLoc) })
+    entro = true
+  } else {
+    entro = await clickColumna(page, /Consultas Hist[oó]rica/i, /^Hist[oó]rico$/i, log)
+  }
   log('clic Consultas Histórica → Histórico:', entro)
   await sleep(rnd(8000, 10500)); await idle(page, rnd(800, 1600))
   await page.screenshot({ path: join(DATA, 'comprob-01-historico.png') }).catch(() => {})
@@ -1135,57 +1145,77 @@ async function comprobantesConsulta(page, log) {
   writeFileSync(join(DATA, 'comprob-historico.json'), JSON.stringify({ url: page.url(), entro, total_filas: filas.length, filas: filas.slice(0, 40), accionInfo, dump }, null, 2))
   log('comprobantes/histórico · filas detectadas:', filas.length)
 
-  // MAP: abrir el popover de "Impresos" de la 1ª fila para ver las opciones (comprobante/PDF).
+  // MAP: abrir el popover de "Impresos" de la 1ª FILA (no el "Descargar" de arriba) para ver
+  // las opciones del comprobante individual.
   if (process.env.TEK_COMPROBANTES === 'map') {
     for (const fr of page.frames()) {
-      const icon = fr.locator('td[data-th="Impresos"] a, a.btn-popover, a.btn-inner-table').first()
+      const icon = fr.locator('td[data-th="Impresos"] a.btn-inner-table, td.td-btn-inner-table a.btn-popover').first()
       if (await icon.count().catch(() => 0)) { await icon.scrollIntoViewIfNeeded().catch(() => {}); await icon.click({ timeout: 4000 }).catch(() => {}); await sleep(2800); break }
     }
     await page.screenshot({ path: join(DATA, 'comprob-04-popover.png') }).catch(() => {})
     let popover = null
     for (const fr of page.frames()) {
-      const p = await fr.evaluate(() => { const el = document.querySelector('#list-popover, .popover, [class*="popover"]'); return el ? (el.outerHTML || '').replace(/\s+/g, ' ').slice(0, 900) : null }).catch(() => null)
+      const p = await fr.evaluate(() => {
+        const els = [...document.querySelectorAll('#list-popover, .popover, [id*="popover"], [class*="popover"]')].filter((e) => (e.innerText || '').trim())
+        const el = els.map((e) => e.closest('.popover') || e).find((e) => /comprobante|pdf|descargar|imprimir/i.test(e.innerText || ''))
+        return el ? (el.outerHTML || '').replace(/\s+/g, ' ').slice(0, 1200) : (els[0] ? els[0].outerHTML.replace(/\s+/g, ' ').slice(0, 1200) : null)
+      }).catch(() => null)
       if (p) { popover = p; break }
     }
     writeFileSync(join(DATA, 'comprob-popover.json'), JSON.stringify({ popover }, null, 2))
-    log('popover comprobante capturado:', Boolean(popover))
+    log('popover fila capturado:', Boolean(popover))
   }
 
   // BAJAR: descarga el comprobante (PDF) de la fila pedida (TEK_COMPROB_IDX, 1-based).
   if (process.env.TEK_COMPROBANTES === 'bajar') {
-    const idx = Math.max(1, parseInt(process.env.TEK_COMPROB_IDX || '1', 10)) - 1
-    let pdfPath = null
+    // Flujo real: en la columna "Impresos" cada fila tiene un ícono "⋮" (a.btn-inner-table) que
+    // abre un popover con "Comprobante Transferencia" / "Certificado Transferencia".
+    const idx = Math.max(1, parseInt(process.env.TEK_COMPROB_IDX || '1', 10))   // 1-based
+    const dest = join(DATA, `comprobante-${idx}.pdf`)
+    try { if (existsSync(dest)) unlinkSync(dest) } catch { /* */ }
+    let pdfPath = null, detalle = ''
     for (const fr of page.frames()) {
-      const trs = fr.locator('table tr, [role="row"]')
-      const n = await trs.count().catch(() => 0)
-      // saltamos encabezados: buscamos la (idx)-ésima fila con celdas de datos
-      let dataRow = -1, seen = -1
-      for (let i = 0; i < n; i++) {
-        const cel = await trs.nth(i).locator('td,[role="cell"]').count().catch(() => 0)
-        if (cel >= 3) { seen++; if (seen === idx) { dataRow = i; break } }
+      const iconos = fr.locator('td[data-th="Impresos"] a.btn-inner-table, td.td-btn-inner-table a.btn-popover')
+      const n = await iconos.count().catch(() => 0)
+      if (n < idx) continue
+      const icon = iconos.nth(idx - 1)
+      await icon.scrollIntoViewIfNeeded().catch(() => {})
+      await icon.click({ timeout: 4000 }).catch(async () => { await clickHumano(page, icon) })
+      await sleep(1800)
+      await page.screenshot({ path: join(DATA, 'comprob-05-popover-fila.png') }).catch(() => {})
+      // "Comprobante Transferencia" en el popover. OJO: existe un template OCULTO (#list-popover)
+      // con el mismo texto + el popover VISIBLE clonado → hay que elegir el VISIBLE (no .first()).
+      let opt = null
+      for (const f2 of page.frames()) {
+        const cands = await f2.getByText(/comprobante\s*transferencia/i).all().catch(() => [])
+        for (const c of cands) { if (await c.isVisible().catch(() => false)) { opt = c; break } }
+        if (opt) break
       }
-      if (dataRow < 0) continue
-      const fila = trs.nth(dataRow)
-      // un link/botón de comprobante/PDF/descarga/ver dentro de la fila
-      const acc = fila.locator('a[href*=".pdf"], a[href*="comprobante" i], a[download], button[title*="comprobante" i], [class*="pdf" i], [title*="comprobante" i], a:has-text("Comprobante"), a:has-text("PDF")').first()
-      if (!(await acc.count().catch(() => 0))) continue
-      const dest = join(DATA, `comprobante-${process.env.TEK_COMPROB_IDX || '1'}.pdf`)
-      const href = await acc.getAttribute('href').catch(() => null)
-      try {
-        if (href && /\.pdf|comprobante|descarg/i.test(href)) {
-          const abs = href.startsWith('http') ? href : new URL(href, page.url()).href
-          const resp = await page.request.get(abs).catch(() => null)
-          if (resp && resp.ok()) { writeFileSync(dest, await resp.body()); pdfPath = dest }
-        }
-        if (!pdfPath) {
-          const [dl] = await Promise.all([page.waitForEvent('download', { timeout: 15000 }).catch(() => null), acc.click({ timeout: 4000 }).catch(() => {})])
-          if (dl) { await dl.saveAs(dest).catch(() => {}); pdfPath = dest }
-        }
-      } catch (e) { log('bajar comprobante falló:', e.message) }
-      if (pdfPath) break
+      if (!opt) { detalle = 'no apareció "Comprobante Transferencia" en el popover'; break }
+      // Al hacer clic: puede DISPARAR una descarga o ABRIR una pestaña con el PDF.
+      const [dl, pop] = await Promise.all([
+        page.waitForEvent('download', { timeout: 14000 }).catch(() => null),
+        page.context().waitForEvent('page', { timeout: 14000 }).catch(() => null),
+        opt.click({ timeout: 4000 }).catch(() => {}),
+      ])
+      if (dl) { await dl.saveAs(dest).catch(() => {}); if (existsSync(dest)) pdfPath = dest }
+      if (!pdfPath && pop) {
+        await pop.waitForLoadState('domcontentloaded').catch(() => {})
+        const u = pop.url()
+        try {
+          if (/\.pdf|comprobante|blob:/i.test(u)) {
+            const resp = await pop.context().request.get(u).catch(() => null)
+            if (resp && resp.ok()) { writeFileSync(dest, await resp.body()); pdfPath = existsSync(dest) ? dest : null }
+          }
+          if (!pdfPath) { await pop.pdf({ path: dest }).catch(() => {}); if (existsSync(dest)) pdfPath = dest }
+        } catch (e) { detalle = 'pestaña PDF: ' + e.message }
+        await pop.close().catch(() => {})
+      }
+      if (!pdfPath && !detalle) detalle = 'clic en Comprobante pero no capturé la descarga'
+      break
     }
     await page.screenshot({ path: join(DATA, 'comprob-03-bajado.png') }).catch(() => {})
-    return { estado: pdfPath ? 'descargado' : 'sin_pdf', pdf: pdfPath, idx: idx + 1, total_filas: filas.length, url: page.url() }
+    return { estado: pdfPath ? 'descargado' : 'sin_pdf', pdf: pdfPath, idx, detalle, total_filas: filas.length, url: page.url() }
   }
 
   return { estado: 'listado', filas: filas.slice(0, 40), total_filas: filas.length, url: page.url() }
