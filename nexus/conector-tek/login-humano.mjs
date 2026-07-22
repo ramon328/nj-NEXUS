@@ -1042,6 +1042,35 @@ async function masivaImportar(page, log) {
   return { estado: 'mapeado_import', url: page.url() }
 }
 
+// ── COMPROBANTES DE PAGO (TEK_COMPROBANTES): Transferencias → Consultas Histórica →
+// Histórico. Lista las transferencias hechas y baja el comprobante (PDF) de una.
+//   map    → navega y VUELCA la pantalla (filtros + tabla + botones) para mapear.
+//   listar → devuelve las filas (fecha, beneficiario, monto, estado) para que el usuario elija.
+//   bajar  → descarga el PDF del comprobante de la fila TEK_COMPROB_IDX (1-based) a DATA.
+async function comprobantesConsulta(page, log) {
+  mkdirSync(DATA, { recursive: true })
+  await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+  await sleep(8000)
+  await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
+  await sleep(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
+  await cerrarPopups(page, log)
+  await sleep(rnd(700, 1400))
+  const menu = page.getByText(/^transferencias?$/i).first()
+  await clickHumano(page, menu)
+  await sleep(rnd(5000, 7500)); await idle(page, rnd(800, 1600))
+  await page.screenshot({ path: join(DATA, 'comprob-00-menu.png') }).catch(() => {})
+  // "Consultas Histórica y Eliminación → Histórico" (transferencias hechas + comprobantes).
+  const entro = await clickColumna(page, /^Consultas Hist[oó]rica( y Eliminaci[oó]n)?$/i, /^Hist[oó]rico$/i, log)
+  log('clic Consultas Histórica → Histórico:', entro)
+  await sleep(rnd(8000, 10500)); await idle(page, rnd(800, 1600))
+  await page.screenshot({ path: join(DATA, 'comprob-01-historico.png') }).catch(() => {})
+  const dump = await volcarFrames(page)
+  const textos = (await Promise.all(page.frames().map((f) => f.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 1500)).catch(() => '')))).join(' | ')
+  writeFileSync(join(DATA, 'comprob-historico.json'), JSON.stringify({ url: page.url(), entro, dump, textos: textos.slice(0, 3000) }, null, 2))
+  log('comprobantes/histórico mapeado · frames:', dump.length)
+  return { estado: 'mapeado', url: page.url() }
+}
+
 // ── CARTOLA HISTÓRICA (Cuentas Corrientes → Cartola/Histórico) ──────────────────
 // El banco online da ~90 días en "Saldos y movimientos"; los meses viejos (ene-mar 2026)
 // salen de la CARTOLA HISTÓRICA (estados mensuales, normalmente descargables). Este flujo
@@ -1297,7 +1326,9 @@ async function main() {
     if (['map', 'subir'].includes(process.env.TEK_MASIVA)) { try { masiva = await masivaImportar(page, log) } catch (e) { log('masiva falló:', e.message) } }
     let carthist = null
     if (['map', 'bajar'].includes(process.env.TEK_CARTOLA_HIST)) { try { carthist = await cartolaHistorica(page, log) } catch (e) { log('carthist falló:', e.message) } }
-    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}) })
+    let comprob = null
+    if (['map', 'listar', 'bajar'].includes(process.env.TEK_COMPROBANTES)) { try { comprob = await comprobantesConsulta(page, log) } catch (e) { log('comprobantes falló:', e.message) } }
+    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}) })
   }
 
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión
