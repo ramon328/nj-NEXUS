@@ -228,3 +228,5 @@
 {"ts":"2026-07-22T20:11:25.845Z","accion":"anular","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_id":75103536},"simulado":true,"ok":true,"cita_uuid":null}
 {"ts":"2026-07-22T20:11:40.669Z","accion":"anular","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_id":75103536,"simular":false},"simulado":false,"ok":true,"cita_uuid":null}
 {"ts":"2026-07-22T20:19:49.586Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-22T20:34:57.969Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-22T20:42:26.680Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":67320,"tratamiento_id":390569,"hora":"2026-08-20T16:00:00-04:00","cliente":{"nombre":"Test Simulado","rut":"11111111-1","telefono":"+56900000000"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"378571784752946d97d1daa_860d_11f1_b07b_0242ac120004","error":null}

@@ -1,0 +1,29 @@
+{
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1784752941395",
+  "concepto": "Transferencias Masivas",
+  "clicImportar": true,
+  "botonesConfirm": [],
+  "resumen": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú Registros rechazados en proceso de importación. Importación masiva de transferencia de fondos - registros rechazados Sr. (a): Ramon Molina Fierro Empresa: ANA CLARA SPA RUT empresa: 77.271.121-2 Fecha: 22 de julio de 2026 Hora: 16:42 Total registros rechazados: 1 Monto total: $ 82.000.000 CUENTA ORIGEN CUENTA DESTINO BANCO DESTINO RUT BENEFICIARIO NOMBRE BENEFICIARIO MONTO MOTIVO RECHAZO 0-000-8028093-9 000-000002-2930472-6 BANCO ITAU CHILE 77.271.121-2 Ana Clara SpA $ 82.000.000 La Transferencia debe ser menor o igual a $ 7.000.000 Volver Generar PDF Infórmese sobre la garantía estatal de los depósitos en su banco o en www.sbif.cl. ",
+  "forms": [
+    {
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1784752941395",
+      "inputs": [],
+      "botones": [
+        "Accesibilidad",
+        "Empresa / Rol",
+        "logout"
+      ],
+      "titulos": []
+    },
+    {
+      "url": "https://eob.officebanking.cl//TEFM.UI.Web/Importacion/Rechazados",
+      "inputs": [],
+      "botones": [
+        "Generar PDF"
+      ],
+      "titulos": [
+        "Importación masiva de transferencia de fondos - registros rechazados"
+      ]
+    }
+  ]
+}
