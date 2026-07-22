@@ -936,26 +936,45 @@ async function masivaImportar(page, log) {
     const concepto = process.env.TEK_MASIVA_CONCEPTO
     if (concepto) {
       let elegido = false
-      const rx = new RegExp('^\\s*' + concepto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i')
-      const sentinela = /^\s*Transferencias Masivas\s*$/i   // última opción del popup: si está visible, el popup está ABIERTO
-      try {
-        // Abrir el combo (clic en el caret/label). Reintenta si no abre.
-        for (let intento = 0; intento < 3 && !(await imp.getByText(sentinela).first().isVisible().catch(() => false)); intento++) {
-          const label = imp.getByText(/^\s*Pago de Asignaciones\s*$/i).first()
-          if (await label.count().catch(() => 0)) { await label.click({ timeout: 3000 }).catch(() => {}) }
-          await sleep(rnd(800, 1400))
+      const CONCEPTOS = ['Pago de Asignaciones', 'Pago de Dividendos', 'Pago de Pensiones', 'Pago de Proveedores', 'Pago de Reembolsos', 'Pago de Remuneraciones', 'Pago de Subsidios', 'Pago de Viáticos', 'Pago Extraordinarios', 'Transferencias Masivas']
+      const rxOf = (c) => new RegExp('^\\s*' + c.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i')
+      const rx = rxOf(concepto)
+      // Cuenta opciones VISIBLES del combo: popup ABIERTO → varias; CERRADO → 1 (solo el valor
+      // seleccionado). NO usar una opción fija como centinela: si el concepto elegido ES esa
+      // opción (p.ej. "Transferencias Masivas"), queda visible como valor y daba falso "abierto".
+      const visiblesCombo = async () => {
+        let n = 0
+        for (const c of CONCEPTOS) {
+          const l = imp.getByText(rxOf(c)).first()
+          if ((await l.count().catch(() => 0)) && (await l.isVisible().catch(() => false))) { n++; if (n >= 3) return n }
         }
-        // Clic DIRECTO en la opción (no "humano": aquí queremos precisión).
-        const opt = imp.getByText(rx).first()
-        if (await opt.count().catch(() => 0)) {
-          await opt.scrollIntoViewIfNeeded().catch(() => {})
-          await opt.click({ timeout: 4000 }).catch(() => {})
-          await sleep(rnd(700, 1200))
-        }
-        // VERIFICAR de verdad: el popup debe CERRARSE (sentinela ya no visible) tras elegir.
-        elegido = !(await imp.getByText(sentinela).first().isVisible().catch(() => false))
-        log(elegido ? ('concepto elegido: ' + concepto) : 'concepto: el popup no se cerró (no quedó seleccionado)')
-      } catch (e) { log('concepto: fallo al seleccionar:', e.message) }
+        return n
+      }
+      // Reintenta la selección COMPLETA (abrir → clic → verificar) hasta 3 veces: un clic que
+      // no aterriza NO debe abortar el lote; recién si tras 3 intentos no se confirma, abortamos.
+      for (let vuelta = 0; vuelta < 3 && !elegido; vuelta++) {
+        try {
+          // Abrir el combo (clic en el valor actual / caret). Reintenta hasta ver varias opciones.
+          for (let k = 0; k < 4 && (await visiblesCombo()) < 3; k++) {
+            let label = imp.getByText(/^\s*Pago de Asignaciones\s*$/i).first()
+            if (!(await label.count().catch(() => 0))) label = imp.getByText(rx).first()   // por si ya tiene otro valor
+            if (await label.count().catch(() => 0)) { await label.click({ timeout: 3000 }).catch(() => {}) }
+            await sleep(rnd(700, 1200))
+          }
+          // Clic en la opción pedida — la VISIBLE (hay un valor + la lista; elegir el de la lista).
+          const cands = await imp.getByText(rx).all().catch(() => [])
+          for (const c of cands) {
+            if (await c.isVisible().catch(() => false)) { await c.scrollIntoViewIfNeeded().catch(() => {}); await c.click({ timeout: 4000 }).catch(() => {}); break }
+          }
+          await sleep(rnd(800, 1300))
+          // VERIFICAR: popup CERRADO (≤1 opción visible) Y el valor mostrado ES el concepto pedido.
+          const cerrado = (await visiblesCombo()) <= 1
+          const valorOK = await imp.getByText(rx).first().isVisible().catch(() => false)
+          elegido = cerrado && valorOK
+          log(elegido ? ('concepto elegido: ' + concepto) : `concepto: intento ${vuelta + 1} no confirmado (cerrado=${cerrado} valorOK=${valorOK})`)
+        } catch (e) { log(`concepto: intento ${vuelta + 1} error:`, e.message) }
+        if (!elegido) { await page.keyboard.press('Escape').catch(() => {}); await sleep(rnd(900, 1400)) }
+      }
       await page.screenshot({ path: join(DATA, 'masiva-02a-concepto.png') }).catch(() => {})
       if (!elegido) {
         writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ estado: 'concepto_no_seteado', concepto, url: page.url() }, null, 2))
