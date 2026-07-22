@@ -140,6 +140,59 @@ export async function generarMasivo(transfers, opts = {}) {
   return { ruta, total: transfers.length, monto_total: montoTotal, filas, problemas }
 }
 
+/**
+ * EJECUTA una masiva de punta a punta: genera el .xlsx y lo SUBE al banco por
+ * login-humano.mjs (TEK_MASIVA=subir) → crea el LOTE y lo deja PENDIENTE de autorización.
+ * ⚠️ Blindaje: NO autoriza ni libera (eso pide Superclave y es un paso manual aparte); la
+ * plata NO se mueve hasta que alguien libere el lote en el banco.
+ * `concepto` = una de CONCEPTOS (lo elige el usuario). Devuelve { ok, estado, archivo, ... }.
+ */
+export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp, userId = 'ramon', empresa = 'ANA CLARA SPA' } = {}) {
+  if (!credenciales.tieneConexion(userId, empresa)) {
+    return { ok: false, estado: 'sin_conexion', error: `"${userId}" no tiene banco conectado para "${empresa}".` }
+  }
+  // 1) Genera el archivo (valida cada fila; si hay problemas, los reporta y NO sube).
+  const gen = await generarMasivo(transfers, { cuentaOrigen, stamp })
+  if (gen.problemas && gen.problemas.length) {
+    return { ok: false, estado: 'archivo_con_problemas', archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total, problemas: gen.problemas }
+  }
+  // 2) Sube el archivo por login-humano (crea el lote pendiente).
+  return await new Promise((resolve) => {
+    const env = {
+      ...process.env,
+      TEK_MASIVA: 'subir',
+      TEK_MASIVA_FILE: gen.ruta,
+      TEK_EMPRESA: empresa.replace(/ SPA$/i, '').trim() || 'ANA CLARA',
+    }
+    if (concepto) env.TEK_MASIVA_CONCEPTO = concepto
+    if (userId) env.TEK_USER = userId
+
+    const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
+    let out = '', err = ''
+    hijo.stdout.on('data', (d) => { out += d.toString() })
+    hijo.stderr.on('data', (d) => { err += d.toString() })
+    const to = setTimeout(() => { try { hijo.kill('SIGKILL') } catch {} }, 11 * 60_000)
+    hijo.on('close', (code) => {
+      clearTimeout(to)
+      let resultado = null
+      const lineas = out.split('\n')
+      for (let i = lineas.length - 1; i >= 0; i--) {
+        const idx = lineas[i].indexOf('RESULTADO:')
+        if (idx >= 0) { try { resultado = JSON.parse(lineas[i].slice(idx + 'RESULTADO:'.length).trim()); break } catch {} }
+      }
+      const masiva = resultado?.masiva || null
+      const ok = masiva?.creado === true || masiva?.estado === 'lote_creado_pendiente'
+      resolve({
+        ok, estado: masiva?.estado || resultado?.estado || 'sin_resultado',
+        archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total,
+        concepto: concepto || null, masiva, resumen: masiva?.resumen || null,
+        stderr: ok ? undefined : err.slice(-400),
+      })
+    })
+    hijo.on('error', (e) => { clearTimeout(to); resolve({ ok: false, estado: 'spawn_error', error: e.message }) })
+  })
+}
+
 // ── CLI de prueba ────────────────────────────────────────────────────────────
 // node masiva.mjs test            → genera un archivo de ejemplo (2 filas) para inspección
 if (process.argv[1] && process.argv[1].endsWith('masiva.mjs') && process.argv[2] === 'test') {

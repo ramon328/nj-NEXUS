@@ -909,18 +909,73 @@ async function masivaImportar(page, log) {
 
   const archivo = process.env.TEK_MASIVA_FILE
   if (process.env.TEK_MASIVA === 'subir' && archivo) {
-    let subido = false
+    // Frame de la importación (eob TEFM) — el que tiene el input de archivo.
+    let imp = null
     for (const f of page.frames()) {
-      const fileInput = f.locator('input[type="file"]').first()
-      if (await fileInput.count().catch(() => 0)) {
-        await fileInput.setInputFiles(archivo).catch((e) => log('setInputFiles falló:', e.message))
-        subido = true; log('archivo seteado en input file:', archivo); break
+      if (await f.locator('input[type="file"]').first().count().catch(() => 0)) { imp = f; break }
+    }
+    if (!imp) { log('masiva: no encontré el frame de importación'); return { estado: 'sin_frame_importacion', url: page.url() } }
+
+    // 1) CONCEPTO ASOCIADO — único campo editable del panel; lo elige el usuario. Si NO se
+    //    puede fijar el pedido, ABORTAMOS (no subimos con un concepto equivocado). Todo lo
+    //    demás queda por defecto (cuenta origen desde archivo, "Liberada a pago", etc.).
+    const concepto = process.env.TEK_MASIVA_CONCEPTO
+    if (concepto) {
+      let elegido = false
+      try {
+        const combo = imp.getByText(/^Pago de Asignaciones$/i).first()   // label por defecto del combo
+        if (await combo.count().catch(() => 0)) { await clickHumano(page, combo); await sleep(rnd(700, 1300)) }
+        const rx = new RegExp('^' + concepto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i')
+        const opt = imp.getByText(rx).last()
+        if (await opt.count().catch(() => 0)) { await clickHumano(page, opt); elegido = true; await sleep(rnd(600, 1200)); log('concepto elegido:', concepto) }
+      } catch (e) { log('concepto: fallo al seleccionar:', e.message) }
+      await page.screenshot({ path: join(DATA, 'masiva-02a-concepto.png') }).catch(() => {})
+      if (!elegido) {
+        writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ estado: 'concepto_no_seteado', concepto, url: page.url() }, null, 2))
+        return { estado: 'concepto_no_seteado', creado: false, concepto, nota: 'No pude fijar el concepto en el banco; NO subí el lote para no usar uno equivocado.', url: page.url() }
       }
     }
-    await sleep(7000)
-    await page.screenshot({ path: join(DATA, 'masiva-02-subido.png') }).catch(() => {})
-    writeFileSync(join(DATA, 'masiva-subido.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2))
-    return { estado: subido ? 'archivo_subido' : 'sin_input_file', url: page.url() }
+
+    // 2) Adjuntar el .xlsx.
+    const fileInput = imp.locator('input[type="file"]').first()
+    await fileInput.setInputFiles(archivo).catch((e) => log('setInputFiles falló:', e.message))
+    log('archivo adjuntado:', archivo)
+    await sleep(5000)
+    await page.screenshot({ path: join(DATA, 'masiva-02b-adjunto.png') }).catch(() => {})
+
+    // 3) "Importar" → crea el LOTE. ⚠️ NO autoriza ni libera (eso pide Superclave y es un
+    //    paso manual aparte): el lote queda pendiente. NUNCA tocamos botones de liberar/autorizar.
+    let clicImportar = false
+    const btnImp = imp.getByRole('button', { name: /^importar$/i }).first()
+    if (await btnImp.count().catch(() => 0)) { await clickHumano(page, btnImp); clicImportar = true }
+    else { const t = imp.getByText(/^importar$/i).first(); if (await t.count().catch(() => 0)) { await clickHumano(page, t); clicImportar = true } }
+    log(clicImportar ? 'clic Importar' : 'no encontré botón Importar')
+    await sleep(8000)
+    await page.screenshot({ path: join(DATA, 'masiva-03-importado.png') }).catch(() => {})
+
+    // 4) Confirmar la creación del lote si aparece un modal "Aceptar" (es confirmación de
+    //    importación, NO liberación de pago).
+    let clicAceptar = false
+    for (let k = 0; k < 2; k++) {
+      const ac = page.getByRole('button', { name: /^aceptar$/i }).first()
+      if ((await ac.count().catch(() => 0)) && (await ac.isVisible().catch(() => false))) {
+        await clickHumano(page, ac); clicAceptar = true; await sleep(rnd(3000, 4500))
+      } else break
+    }
+    await sleep(2500)
+    await page.screenshot({ path: join(DATA, 'masiva-04-final.png') }).catch(() => {})
+
+    // 5) Capturar el resultado (texto de pantalla → éxito / errores de validación).
+    let resumen = ''
+    try { resumen = await imp.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 1400)) } catch {}
+    writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ url: page.url(), concepto, clicImportar, clicAceptar, resumen, forms: await volcarFrames(page) }, null, 2))
+    const exito = /(n[uú]mero de lote|lote\s*n[°º]|importaci[oó]n exitosa|registros? procesad|pendiente de (autoriz|liberaci)|por liberar|se import[oó])/i.test(resumen)
+    const errorVal = /(rechaz|no fue posible|error de formato|inv[aá]lid|con errores)/i.test(resumen)
+    const creado = exito && !errorVal
+    return {
+      estado: creado ? 'lote_creado_pendiente' : (clicImportar ? 'importado_sin_confirmar' : 'no_importado'),
+      creado, concepto, clicImportar, clicAceptar, resumen: resumen.slice(0, 500), url: page.url(),
+    }
   }
   return { estado: 'mapeado_import', url: page.url() }
 }

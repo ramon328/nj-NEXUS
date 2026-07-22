@@ -1274,7 +1274,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_pago'],
+  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -1677,6 +1677,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 💸 PAGAR UNA FACTURA DE COMPRA de ANA CLARA (sistema "tek", herramienta tek_pago) — paga a un proveedor desde la cuenta de ANA CLARA en Santander Empresa. ⚠️ HOY EN SIMULACIÓN: arma el borrador y "paga" en modo prueba, pero NO mueve plata (el canal real con el banco aún no está listo). Va SIEMPRE en 2 pasos: (a) con la factura de compra (proveedor, RUT, monto en CLP, folio) llama tek_pago accion:'preparar' → te da el BORRADOR (a quién, cuánto, desde qué cuenta). Muéstraselo y pregúntale CLARO por WhatsApp: "¿emito el pago de $X a [proveedor]?". (b) SOLO con su OK, llama tek_pago accion:'emitir' con los MISMOS datos → hoy responde SIMULACIÓN (te dice qué se transferiría, sin ejecutar). NUNCA emitas sin confirmación. Cuando en el futuro toque pagar de verdad, se pedirá tu segundo factor (Superclave). Si detectas una factura de compra por pagar, ofrécele armar el pago.
 
 💸 TRANSFERIR PLATA A UNA PERSONA guardada (sistema "tek", agente "Leo", herramienta **tek_transferir**) — transfiere desde la cuenta de ANA CLARA (Santander Empresa) a una persona de la libreta. ✅ ES REAL: **crea** la transferencia y la deja *PENDIENTE "por liberar"*. OJO: crear ≠ enviar plata — el dinero NO se mueve hasta la **Liberación** (autorizar con Superclave), que es un paso APARTE, manual, que Nexus NO hace. Va SIEMPRE en 2 pasos: (a) con el nombre y el monto (CLP) llama tek_transferir accion:'preparar' → devuelve el BORRADOR (a quién, cuánto, banco, cuenta); si hay varias personas con ese nombre te da una lista para que ELIJA cuál. Muéstraselo y pregúntale CLARO: "¿creo la transferencia de $X a [persona]?". (b) SOLO con su OK explícito, llama tek_transferir accion:'enviar' con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó. NUNCA pongas accion:'enviar' sin confirmación. Al confirmar, recuérdale que queda PENDIENTE y que alguien debe LIBERARLA en el banco para que la plata salga. Si el beneficiario NO está guardado en la libreta, NO digas que "Ramón/Nico deben cargarlo en el banco primero" (el banco NO exige inscribirlo): pídele al usuario el RUT, el banco y el número de cuenta (y la razón social/nombre) y llama tek_transferir pasando nombre, rut, banco y cuenta — se transfiere directo y queda guardado para la próxima. ⚠️ El banco de ANA CLARA (Santander Empresa) YA está vinculado y es la ÚNICA cuenta ORIGEN que se usa para transferir o pagar: NUNCA le pidas al usuario que "vincule", "conecte" o "configure" su banco, ni le preguntes de qué cuenta sale — usa siempre la conexión de ANA CLARA ya vinculada. Esto vale para cualquier usuario habilitado (ej. Joaquín), no solo Ramón.
+
+💸💸 TRANSFERENCIA MASIVA — varias transferencias en un LOTE (sistema "tek", herramienta **tek_masiva**) — cuando pidan pagar/transferir a VARIOS de una (nómina, varios proveedores). Sube un LOTE a Santander Empresa que queda PENDIENTE por liberar (no mueve plata hasta la Liberación con Superclave, paso manual aparte). Cada transferencia lleva nombre + monto (+ rut, banco y cuenta si el beneficiario NO está guardado; mismo criterio que tek_transferir). ANTES de subir necesitas SIEMPRE 2 datos que le PREGUNTAS al usuario: (1) el **concepto** (muéstrale las opciones: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) el **motivo** (glosa cartola originador, texto corto). Va en 2 pasos: (a) tek_masiva accion:'preparar' con la lista → devuelve el RESUMEN (cantidad, total, beneficiarios, problemas). Si falta el concepto o el motivo, la tool te lo dice: pregúntaselo. Muéstrale el resumen y pregúntale "¿subo el lote?". (b) SOLO con su OK explícito + concepto + motivo, tek_masiva accion:'enviar' con los MISMOS datos → sube el lote pendiente. NUNCA envíes sin confirmación.
 
 REGLA DE ORO (acciones sensibles):
 - Las acciones que muevan dinero o sean irreversibles (pagar, transferir, eliminar, enviar, confirmar, comprar, etc.) NO se ejecutan solas: requieren aprobación humana explícita de Ramón.
@@ -2599,6 +2601,35 @@ const HERRAMIENTAS = [
       required: ['accion', 'nombre', 'monto'],
     },
   },
+  // ── tek · TRANSFERENCIA MASIVA (un LOTE con varias transferencias) ──────────────
+  {
+    name: 'tek_masiva',
+    description: 'TRANSFERENCIA MASIVA: varias transferencias en un LOTE, desde ANA CLARA vía Santander Empresa (sistema "tek"). Genera el archivo con TODAS y lo SUBE al banco creando un LOTE que queda PENDIENTE de autorización (NO mueve plata hasta que alguien lo libere con Superclave, paso manual aparte). Úsalo cuando pidan pagar/transferir a VARIAS personas o empresas de una (nómina, varios proveedores…). Cada transferencia: nombre/razón social, monto y —si el beneficiario NO está en la libreta— rut, banco y cuenta (si está guardado basta el nombre). Bancos distintos de Santander agregan solo su código automáticamente. Antes de subir DEBES pedirle al usuario 2 datos: (1) "concepto" (uno de: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) "motivo" (glosa cartola originador, texto corto). Flujo de 2 pasos con confirmación OBLIGATORIA: (1) accion:"preparar" con la lista (+ concepto y motivo si ya los tienes) → valida y devuelve el RESUMEN (cantidad, monto total, beneficiarios, problemas) y qué falta preguntar; muéstralo y pide OK. (2) SOLO con el OK + concepto + motivo, accion:"enviar" → sube el lote pendiente. NUNCA envíes sin confirmación ni sin concepto y motivo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['preparar', 'enviar'], description: 'preparar = valida y muestra el resumen (no sube nada). enviar = sube el lote (pendiente por liberar). Solo enviar tras OK + concepto + motivo.' },
+        transferencias: {
+          type: 'array',
+          description: 'Transferencias del lote. Cada una: { nombre, monto, y si el beneficiario NO está guardado: rut, banco, cuenta }.',
+          items: {
+            type: 'object',
+            properties: {
+              nombre: { type: 'string', description: 'Nombre/alias del guardado, o razón social/nombre del beneficiario nuevo.' },
+              monto: { type: 'number', description: 'Monto en CLP (entero > 0).' },
+              rut: { type: 'string', description: 'RUT del beneficiario (para uno nuevo, con banco y cuenta).' },
+              banco: { type: 'string', description: 'Banco destino (ej. "Santander", "Banco Falabella").' },
+              cuenta: { type: 'string', description: 'Número de cuenta destino.' },
+            },
+            required: ['nombre', 'monto'],
+          },
+        },
+        concepto: { type: 'string', description: 'Concepto asociado (PREGÚNTASELO al usuario). Uno de: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas.' },
+        motivo: { type: 'string', description: 'Motivo / glosa cartola originador (PREGÚNTASELO al usuario; texto corto, máx 40 chars).' },
+      },
+      required: ['accion', 'transferencias'],
+    },
+  },
   // ── Alertas a usuarios de Nexus, incluso FUERA de la ventana de 24h de WhatsApp ──
   {
     name: 'alertar_usuario',
@@ -2945,6 +2976,66 @@ async function ejecutar(nombre, input, ctx = {}) {
       return JSON.stringify({
         ok: true, modo: 'borrador', ejecutado: false, borrador: bo, texto: tr.textoBorrador(bo),
         instruccion: 'Mostrale este borrador y preguntale claro "¿creo la transferencia de $' + Number(bo.monto).toLocaleString('es-CL') + ' a ' + bo.beneficiario.nombre + '?". SOLO con su OK explícito, llamá tek_transferir con accion:"enviar".',
+      })
+    }
+    // ── tek · TRANSFERENCIA MASIVA (lote con varias transferencias) ─────────────
+    if (nombre === 'tek_masiva') {
+      let mm
+      try { mm = await import('../conector-tek/masiva.mjs') }
+      catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de masivas (tek): ' + e.message }) }
+      let tr = null
+      try { tr = await import('../conector-tek/transferir.mjs') } catch { /* la libreta es opcional */ }
+      const lista = Array.isArray(input.transferencias) ? input.transferencias : []
+      if (!lista.length) return JSON.stringify({ ok: false, error: 'Pásame la lista de transferencias (al menos una).' })
+
+      // Resolver cada transferencia a datos completos. Con rut+cuenta se usa directo; si no,
+      // se busca por nombre en la libreta de tek. El motivo va como glosa cartola originador.
+      const motivo = String(input.motivo || '').trim()
+      const resueltas = [], faltantes = []
+      for (const t of lista) {
+        const rutDig = String(t.rut || '').replace(/[^0-9kK]/g, '')
+        const ctaDig = String(t.cuenta || '').replace(/\D/g, '')
+        if (rutDig && ctaDig) {
+          resueltas.push({ nombre: String(t.nombre || '').trim() || 'Beneficiario', rut: t.rut, banco: t.banco || 'Santander', cuenta: t.cuenta, monto: t.monto, glosa_originador: motivo, glosa: motivo })
+        } else if (tr) {
+          const r = tr.resolver(t.nombre)
+          if (r.ok) { const b = r.beneficiario; resueltas.push({ nombre: b.nombre, rut: b.rut, banco: b.banco, cuenta: b.cuenta, monto: t.monto, glosa_originador: motivo, glosa: motivo }) }
+          else faltantes.push({ nombre: t.nombre, motivo: r.ambiguo ? 'hay varios con ese nombre, pasá el exacto' : 'no está en la libreta (pásame rut, banco y cuenta)' })
+        } else faltantes.push({ nombre: t.nombre, motivo: 'faltan rut, banco y cuenta' })
+      }
+      if (faltantes.length) return JSON.stringify({ ok: false, faltan_datos: faltantes, instruccion: 'Para estos beneficiarios faltan datos. Pídele al usuario el RUT, el banco y el número de cuenta de cada uno (o el nombre exacto si estaba guardado) y vuelve a llamar tek_masiva.' })
+
+      const total = resueltas.reduce((a, t) => a + (Math.trunc(Number(t.monto)) || 0), 0)
+      const resumen = {
+        cantidad: resueltas.length,
+        monto_total: total, monto_total_fmt: '$' + total.toLocaleString('es-CL'),
+        beneficiarios: resueltas.map((t) => ({ nombre: t.nombre, banco: t.banco, cuenta: t.cuenta, monto: t.monto, monto_fmt: '$' + Number(t.monto).toLocaleString('es-CL') })),
+        concepto: mm.resolverConcepto(input.concepto) || null, motivo: motivo || null,
+      }
+
+      // Concepto y motivo: OBLIGATORIOS — se le PREGUNTAN al usuario antes de subir.
+      const concepto = mm.resolverConcepto(input.concepto)
+      const faltaPreg = []
+      if (!concepto) faltaPreg.push({ campo: 'concepto', opciones: mm.CONCEPTOS })
+      if (!motivo) faltaPreg.push({ campo: 'motivo', nota: 'glosa cartola originador (texto corto, el que verá quien paga)' })
+      if (faltaPreg.length) {
+        const pedir = [faltaPreg.some((f) => f.campo === 'concepto') && 'el CONCEPTO (muéstrale las opciones)', faltaPreg.some((f) => f.campo === 'motivo') && 'el MOTIVO (glosa cartola originador)'].filter(Boolean).join(' y ')
+        return JSON.stringify({ ok: false, falta_preguntar: faltaPreg, resumen, instruccion: `Antes de subir, pregúntale al usuario ${pedir}. Después volvé a llamar tek_masiva con concepto y motivo.` })
+      }
+
+      if (input.accion === 'enviar') {
+        const res = await mm.ejecutarMasivo(resueltas, { concepto, stamp: String(Date.now()) })
+        if (res.ok && tr) { for (const t of resueltas) { try { if (String(t.rut || '').replace(/\D/g, '')) tr.guardarBeneficiario({ nombre: t.nombre, rut: t.rut, banco: t.banco, cuenta: t.cuenta }) } catch { /* */ } } }
+        const okTxt = res.ok
+          ? `✅ Lote masivo de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) CREADO — queda PENDIENTE por liberar (falta autorizarlo con Superclave para que salga).`
+          : `⚠️ No pude confirmar el lote (${res.estado || 'desconocido'}).${res.problemas ? ' Problemas en el archivo: ' + JSON.stringify(res.problemas) : ''}${res.masiva?.nota ? ' ' + res.masiva.nota : ''} Conviene reintentar asistido.`
+        return JSON.stringify({ ...res, resumen, texto: okTxt })
+      }
+      // accion 'preparar' (default): resumen para mostrar y pedir OK.
+      return JSON.stringify({
+        ok: true, modo: 'borrador', ejecutado: false, resumen,
+        texto: `💸 Lote masivo: ${resumen.cantidad} transferencias · total ${resumen.monto_total_fmt} · concepto "${concepto}" · motivo "${motivo}". Quedará PENDIENTE por liberar (no mueve plata hasta la liberación con Superclave).`,
+        instruccion: 'Muéstrale el resumen (cada beneficiario · banco · cuenta · monto, el total, el concepto y el motivo) y pregúntale claro "¿subo el lote?". SOLO con su OK explícito, llamá tek_masiva con accion:"enviar" y los MISMOS datos.',
       })
     }
     // ── SII · descargar el PDF de una boleta de honorarios recibida y mandarla por WhatsApp ──
