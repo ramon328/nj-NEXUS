@@ -30,9 +30,13 @@ export function anioActual() {
 }
 export function inicioAnio(anio = anioActual()) { return `${anio}-01-01` }
 
-// clave estable de un movimiento normalizado (para dedup entre capturas repetidas)
+// clave estable de un movimiento normalizado (para dedup entre capturas repetidas).
+// NO usa nroMov: la cartola histórica no lo trae, y el saldo (balance corrido, único por
+// movimiento) + fecha + monto neto + glosa identifican el mismo movimiento venga de la
+// captura online (con nroMov) o de la cartola histórica (sin nroMov) → cero duplicados.
 function claveMov(m) {
-  return [m.cuenta || '', m.fecha || '', m.nroMov || '', m.saldo ?? '', m.cargo ?? '', m.abono ?? '', String(m.descripcion || '').slice(0, 48)].join('|')
+  const monto = Math.round(Number(m.abono || 0) - Number(m.cargo || 0))
+  return [m.fecha || '', m.saldo ?? '', monto, String(m.descripcion || '').slice(0, 40)].join('|')
 }
 
 // Fusiona movimientos NORMALIZADOS nuevos dentro del store anual. Devuelve stats.
