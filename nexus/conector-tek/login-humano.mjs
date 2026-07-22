@@ -977,8 +977,12 @@ async function masivaImportar(page, log) {
     //    ⛔ BLINDAJE: si la pantalla pide Superclave o dice Autorizar/Liberar, NOS DETENEMOS
     //    (no ingresamos clave, no autorizamos): el lote queda pendiente de liberación manual.
     const textoTodo = async () => (await Promise.all(page.frames().map((f) => f.evaluate(() => document.body.innerText || '').catch(() => '')))).join(' ')
+    // rxConfirm SOLO avanza (continuar/confirmar/aceptar) — NUNCA "Autorizar"/"Liberar".
     const rxConfirm = /^\s*(continuar|confirmar|aceptar)\s*$/i
-    const rxProhibido = /(super\s?clave|autoriz|liberar|liberaci[oó]n|firmar|ingrese.*clave|coordenad|tarjeta de coordenada)/i
+    // rxProhibido = señal de un PROMPT REAL de Superclave/coordenadas/token → detenerse. OJO:
+    // NO usar "autoriz"/"liberaci" a secas: aparecen como ETIQUETAS en la previsualización
+    // ("Estado post autorización", "Tipo autorización") y cortarían el flujo antes de tiempo.
+    const rxProhibido = /(super\s?clave|clave din[aá]mica|tarjeta de coordenada|coordenada[s]? de seguridad|token de seguridad|segundo factor|ingrese.{0,25}(clave|c[oó]digo))/i
     const botonesConfirm = []
     for (let paso = 0; paso < 3; paso++) {
       const txtAhora = await textoTodo().catch(() => '')
@@ -1007,8 +1011,8 @@ async function masivaImportar(page, log) {
     writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ url: page.url(), concepto, clicImportar, botonesConfirm, resumen, forms: await volcarFrames(page) }, null, 2))
     const sigueEnForm = /Caracter[ií]sticas importaci[oó]n/i.test(resumen) && /Examinar/i.test(resumen)
     const enPreview = /registros aceptados/i.test(resumen) && /por confirmar/i.test(resumen)
-    const exito = /(n[uú]mero de lote|lote\s*n[°º:]|comprobante|se ingres[oó]|ingresad[oa] correctamente|importaci[oó]n exitosa|pendiente de (autoriz|liberaci)|por liberar|env[ií]o exitoso|procesad[oa] (con )?[eé]xito)/i.test(resumen)
-    const errorVal = /(registros rechazados\D{0,20}[1-9]|rechazad[oa]s?\s*[1-9]|con errores|no fue posible|formato incorrecto|archivo inv[aá]lid)/i.test(resumen)
+    const exito = /(n[uú]mero de lote|lote\s*n[°º:]|comprobante|se ingres[oó]|ingresad[oa] correctamente|importaci[oó]n exitosa|realizad[oa].{0,15}exitosa|registros? aprobad|por autorizar|pendiente de (autoriz|liberaci)|por liberar|env[ií]o exitoso|procesad[oa] (con )?[eé]xito)/i.test(resumen)
+    const errorVal = /(no fue posible|formato incorrecto|archivo inv[aá]lid|fueron rechazad|con errores de|registros? rechazad[oa]s?:\s*[1-9])/i.test(resumen)
     const creado = exito && !errorVal && !sigueEnForm && !enPreview
     return {
       estado: creado ? 'lote_creado_pendiente' : (enPreview ? 'en_previsualizacion' : (sigueEnForm ? 'sin_confirmar_en_form' : (clicImportar ? 'importado_sin_confirmar' : 'no_importado'))),
