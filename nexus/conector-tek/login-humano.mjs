@@ -457,10 +457,11 @@ async function cerrarPopups(page, log) {
     ).catch(() => false)
     if (!hay) return true
     let done = false
-    // 1) botón de descarte en el frame principal (por si el modal es nativo).
-    for (const re of [/^m[aá]s tarde/i, /^ahora no/i, /^omitir/i, /^recordar/i, /^continuar/i, /^saltar/i, /^cerrar/i, /^no gracias/i]) {
+    // 1) botón de descarte en el frame principal (por si el modal es nativo). Usamos count()
+    //    (instantáneo): boundingBox() ESPERA hasta 30s por regex si el texto no está → hang.
+    for (const re of [/^m[aá]s tarde/i, /^ahora no/i, /^omitir/i, /^recordar/i, /^saltar/i, /^no gracias/i]) {
       const b = page.getByText(re, { exact: false }).first()
-      if (await b.boundingBox().catch(() => null)) { await b.click({ force: true, timeout: 2000 }).catch(() => {}); done = true; break }
+      if (await b.count().catch(() => 0)) { await b.click({ force: true, timeout: 1500 }).catch(() => {}); done = true; break }
     }
     // 2) quitar el iframe de campaña (+ su modal/backdrop) del DOM principal — es lo que tapa.
     if (!done) {
@@ -1062,18 +1063,34 @@ async function masivaImportar(page, log) {
 //   bajar  → descarga el PDF del comprobante de la fila TEK_COMPROB_IDX (1-based) a DATA.
 async function comprobantesConsulta(page, log) {
   mkdirSync(DATA, { recursive: true })
-  await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
-  await sleep(8000)
-  await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
-  await sleep(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
+  log('comprob: goto dashboard…')
+  await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch((e) => log('comprob: goto err', e.message))
+  await sleep(6000)
+  log('comprob: cerrarPopups…')
   await cerrarPopups(page, log)
-  await sleep(rnd(700, 1400))
+  log('comprob: entrarEmpresa…')
+  await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
+  await sleep(rnd(2000, 3500)); await idle(page, rnd(600, 1200))
+  await cerrarPopups(page, log)
+  log('comprob: clic Transferencias…')
   const menu = page.getByText(/^transferencias?$/i).first()
   await clickHumano(page, menu)
   await sleep(rnd(5000, 7500)); await idle(page, rnd(800, 1600))
   await page.screenshot({ path: join(DATA, 'comprob-00-menu.png') }).catch(() => {})
+  log('comprob: menú capturado')
   // "Consultas Histórica y Eliminación → Histórico" (transferencias hechas + comprobantes).
-  const entro = await clickColumna(page, /^Consultas Hist[oó]rica( y Eliminaci[oó]n)?$/i, /^Hist[oó]rico$/i, log)
+  // "Histórico" es único en el menú de Transferencias → clic DIRECTO (en cualquier frame);
+  // fallback al clickColumna posicional (header+opción).
+  let entro = false
+  for (const f of page.frames()) {
+    const h = f.getByText(/^\s*Hist[oó]rico\s*$/i).first()
+    if ((await h.count().catch(() => 0)) && (await h.isVisible().catch(() => false))) {
+      await h.scrollIntoViewIfNeeded().catch(() => {})
+      await h.click({ timeout: 4000 }).catch(async () => { await clickHumano(page, h) })
+      entro = true; break
+    }
+  }
+  if (!entro) entro = await clickColumna(page, /Consultas Hist[oó]rica/i, /^Hist[oó]rico$/i, log)
   log('clic Consultas Histórica → Histórico:', entro)
   await sleep(rnd(8000, 10500)); await idle(page, rnd(800, 1600))
   await page.screenshot({ path: join(DATA, 'comprob-01-historico.png') }).catch(() => {})
@@ -1101,8 +1118,38 @@ async function comprobantesConsulta(page, log) {
     for (const r of rows) filas.push(r)
   }
   const dump = await volcarFrames(page)
-  writeFileSync(join(DATA, 'comprob-historico.json'), JSON.stringify({ url: page.url(), entro, total_filas: filas.length, filas: filas.slice(0, 40), dump }, null, 2))
+  // Estructura de la columna de comprobante/impresión (última(s) celda(s) con la acción por fila).
+  let accionInfo = null
+  for (const fr of page.frames()) {
+    const info = await fr.evaluate(() => {
+      const tbl = [...document.querySelectorAll('table')].find((t) => t.querySelectorAll('tr').length > 2)
+      if (!tbl) return null
+      const headers = [...tbl.querySelectorAll('th')].map((t) => (t.innerText || '').trim())
+      const dataRow = [...tbl.querySelectorAll('tr')].find((tr) => tr.querySelectorAll('td').length >= 5)
+      if (!dataRow) return null
+      const tds = [...dataRow.querySelectorAll('td')]
+      return { headers, lastCellsHTML: tds.slice(-3).map((td) => (td.outerHTML || '').replace(/\s+/g, ' ').slice(0, 500)) }
+    }).catch(() => null)
+    if (info && (info.headers?.length || info.lastCellsHTML?.length)) { accionInfo = info; break }
+  }
+  writeFileSync(join(DATA, 'comprob-historico.json'), JSON.stringify({ url: page.url(), entro, total_filas: filas.length, filas: filas.slice(0, 40), accionInfo, dump }, null, 2))
   log('comprobantes/histórico · filas detectadas:', filas.length)
+
+  // MAP: abrir el popover de "Impresos" de la 1ª fila para ver las opciones (comprobante/PDF).
+  if (process.env.TEK_COMPROBANTES === 'map') {
+    for (const fr of page.frames()) {
+      const icon = fr.locator('td[data-th="Impresos"] a, a.btn-popover, a.btn-inner-table').first()
+      if (await icon.count().catch(() => 0)) { await icon.scrollIntoViewIfNeeded().catch(() => {}); await icon.click({ timeout: 4000 }).catch(() => {}); await sleep(2800); break }
+    }
+    await page.screenshot({ path: join(DATA, 'comprob-04-popover.png') }).catch(() => {})
+    let popover = null
+    for (const fr of page.frames()) {
+      const p = await fr.evaluate(() => { const el = document.querySelector('#list-popover, .popover, [class*="popover"]'); return el ? (el.outerHTML || '').replace(/\s+/g, ' ').slice(0, 900) : null }).catch(() => null)
+      if (p) { popover = p; break }
+    }
+    writeFileSync(join(DATA, 'comprob-popover.json'), JSON.stringify({ popover }, null, 2))
+    log('popover comprobante capturado:', Boolean(popover))
+  }
 
   // BAJAR: descarga el comprobante (PDF) de la fila pedida (TEK_COMPROB_IDX, 1-based).
   if (process.env.TEK_COMPROBANTES === 'bajar') {

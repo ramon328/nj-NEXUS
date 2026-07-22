@@ -334,12 +334,24 @@ async function citasMes(mes) {
 }
 // Mapa agenda↔profesional↔box: list_profesional (id↔uuid) + box más usado por el prof (de las citas).
 async function d2_agendas() {
-  const profs = (await internalJson('/cliente/list_profesional/')) || []
-  const citas = await citasMes(new Date().toISOString().slice(0, 7)).catch(() => [])
+  const [profs, citas, clientes] = await Promise.all([
+    internalJson('/cliente/list_profesional/').then((x) => x || []),
+    citasMes(new Date().toISOString().slice(0, 7)).catch(() => []),
+    clientesAll().catch(() => []),
+  ])
   const boxByUuid = new Map()
   for (const c of citas) { const b = c.agenda?.descripcion, u = c.profesional?.uuid; if (b && u) { const s = boxByUuid.get(u) || new Map(); s.set(b, (s.get(b) || 0) + 1); boxByUuid.set(u, s) } }
   const topBox = (u) => { const s = boxByUuid.get(u); return s ? [...s.entries()].sort((a, b) => b[1] - a[1])[0][0] : '' }
-  return profs.filter((p) => p.estado).map((p) => ({ agenda_id: p.id, profesional_uuid: p.uuid, profesional_nombre: p.nombre, cargo: p.cargo, box: topBox(p.uuid) }))
+  // Teléfono/mail: primero del registro de profesional; si viene vacío (pasa en ~29/39),
+  // se completa cruzando el RUT con su ficha de paciente (v2 cliente.identificador).
+  const rn = (r) => String(r || '').replace(/[.\-\s]/g, '').toUpperCase()
+  const ficha = new Map()
+  for (const c of clientes) { const k = rn(c.identificador); if (k) ficha.set(k, { tel: String(c.telefono_1 || c.telefono_2 || '').trim(), mail: String(c.mail || '').trim() }) }
+  return profs.filter((p) => p.estado).map((p) => {
+    const f = ficha.get(rn(p.rut)) || {}
+    const telefono = String(p.telefono || p.celular || '').trim() || f.tel || ''
+    return { agenda_id: p.id, profesional_uuid: p.uuid, profesional_nombre: p.nombre, cargo: p.cargo, box: topBox(p.uuid), rut: p.rut || '', telefono, celular: String(p.celular || '').trim(), email: String(p.email || '').trim() || f.mail || '', telefono_origen: (String(p.telefono || p.celular || '').trim() ? 'profesional' : (f.tel ? 'ficha' : 'sin_dato')) }
+  })
 }
 // Lista de tratamientos con su ID INTERNO (numérico) — para el picker de la app.
 // Fuente: el <select id="id_tratamientos"> viene con las 63 opciones en el HTML de makeAppointment.
@@ -650,7 +662,9 @@ const server = http.createServer(async (req, res) => {
     const desde = url.searchParams.get('desde'), hasta = url.searchParams.get('hasta')
     const rango = (desde && hasta) ? { desde, hasta } : null
     if (url.searchParams.has('mes') && !/^\d{4}-\d{2}$/.test(mes)) return send(400, { error: 'mes inválido, usá YYYY-MM', endpoint: pn })
-    const clave = sub + ':' + mes + ':' + fecha + ':' + (rango ? desde + '_' + hasta : '')
+    // OJO: la clave DEBE incluir pagina + con_email, si no todas las páginas colisionan
+    // en la caché y ?pagina=N devuelve siempre la primera (bug de paginación de pacientes).
+    const clave = sub + ':' + mes + ':' + fecha + ':' + (rango ? desde + '_' + hasta : '') + ':p' + (pagina || '1') + ':' + (url.searchParams.get('con_email') === '1' ? 'e1' : '')
     const ck = 'D2:' + clave
     const ce = cacheData.get(ck)
     // mes actual = TTL corto (cambia durante el día); meses cerrados = caché largo.
