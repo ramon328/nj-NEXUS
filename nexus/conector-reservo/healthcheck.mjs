@@ -23,10 +23,13 @@ async function hit(pathr, ms = 20000) {
 }
 
 const problemas = []
+function evaluar(r, valida) { let ok = r.status === 200 && r.json != null; if (ok && valida) { try { ok = valida(r.json) } catch { ok = false } } return ok }
 async function probar(nombre, pathr, valida) {
-  const r = await hit(pathr)
-  let ok = r.status === 200 && r.json != null
-  if (ok && valida) { try { ok = valida(r.json) } catch { ok = false } }
+  // Reintento 1 vez ante fallo/timeout: mata falsos positivos transitorios (caché fría + proxy ocupado).
+  // Un caído REAL falla las dos veces; un pico (p.ej. comisiones fría ~7s bajo carga) se recupera.
+  let r = await hit(pathr)
+  if (!evaluar(r, valida)) { await new Promise((s) => setTimeout(s, 2500)); r = await hit(pathr, 30000) }
+  const ok = evaluar(r, valida)
   if (!ok) problemas.push(`${nombre} (HTTP ${r.status}${r.err ? ' ' + r.err : ''})`)
   return ok
 }
