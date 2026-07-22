@@ -113,7 +113,17 @@ createServer((req, res) => {
   if (u.pathname === '/saldos') { const act = asegurarFresco(); return send(res, 200, { ...(leer('saldos.json') || { cuentas: [] }), _actualizando: act.estado }) }
   if (u.pathname === '/movimientos') { const act = asegurarFresco(); return send(res, 200, { ...filtrarMovs(p), _actualizando: act.estado }) }
   if (u.pathname === '/resumen') { const act = asegurarFresco(); return send(res, 200, { ...resumen(p), _actualizando: act.estado }) }
+  // RESUMEN MENSUAL OFICIAL de la cartola histórica (ingresos/egresos/saldos por mes, COMPLETO
+  // ene→jun; los movimientos individuales de /movimientos son parciales para meses viejos).
+  if (u.pathname === '/resumen-mensual') {
+    const h = leer('carthist-resumen.json') || { meses: [] }
+    const meses = (h.meses || []).map((m) => ({
+      mes: m.mes, anio: m.anio, n_cartola: m.n_cartola, periodo: m.periodo,
+      ingresos: m.abonos, egresos: m.cargos, saldo_inicial: m.saldo_inicial, saldo_final: m.saldo_final,
+    })).sort((a, b) => a.mes - b.mes)
+    return send(res, 200, { empresa: 'ANA CLARA SPA', cuenta: '0-000-8028093-9', actualizado: h.actualizado, fuente: 'cartola histórica Santander', meses })
+  }
   if (u.pathname === '/refresh' && req.method === 'POST') return send(res, 202, lanzarActualizar(true))
-  if (u.pathname === '/') return send(res, 200, { api: 'tek-santander', rutas: ['/health', '/saldos', '/movimientos?desde=&hasta=&cuenta=&q=', '/resumen', 'POST /refresh'] })
+  if (u.pathname === '/') return send(res, 200, { api: 'tek-santander', rutas: ['/health', '/saldos', '/movimientos?desde=&hasta=&cuenta=&q=', '/resumen', '/resumen-mensual', 'POST /refresh'] })
   return send(res, 404, { error: 'no existe' })
 }).listen(PORT, process.env.TEK_API_HOST || '0.0.0.0', () => console.log(`[tek-api] http://${process.env.TEK_API_HOST || '0.0.0.0'}:${PORT}  token=${TOKEN.slice(0, 6)}… (alcanzable por Tailscale; auth por token)`))
