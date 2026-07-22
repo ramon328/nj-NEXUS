@@ -922,17 +922,30 @@ async function masivaImportar(page, log) {
     const concepto = process.env.TEK_MASIVA_CONCEPTO
     if (concepto) {
       let elegido = false
+      const rx = new RegExp('^\\s*' + concepto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '\\s*$', 'i')
+      const sentinela = /^\s*Transferencias Masivas\s*$/i   // última opción del popup: si está visible, el popup está ABIERTO
       try {
-        const combo = imp.getByText(/^Pago de Asignaciones$/i).first()   // label por defecto del combo
-        if (await combo.count().catch(() => 0)) { await clickHumano(page, combo); await sleep(rnd(700, 1300)) }
-        const rx = new RegExp('^' + concepto.replace(/[.*+?^${}()|[\]\\]/g, '\\$&') + '$', 'i')
-        const opt = imp.getByText(rx).last()
-        if (await opt.count().catch(() => 0)) { await clickHumano(page, opt); elegido = true; await sleep(rnd(600, 1200)); log('concepto elegido:', concepto) }
+        // Abrir el combo (clic en el caret/label). Reintenta si no abre.
+        for (let intento = 0; intento < 3 && !(await imp.getByText(sentinela).first().isVisible().catch(() => false)); intento++) {
+          const label = imp.getByText(/^\s*Pago de Asignaciones\s*$/i).first()
+          if (await label.count().catch(() => 0)) { await label.click({ timeout: 3000 }).catch(() => {}) }
+          await sleep(rnd(800, 1400))
+        }
+        // Clic DIRECTO en la opción (no "humano": aquí queremos precisión).
+        const opt = imp.getByText(rx).first()
+        if (await opt.count().catch(() => 0)) {
+          await opt.scrollIntoViewIfNeeded().catch(() => {})
+          await opt.click({ timeout: 4000 }).catch(() => {})
+          await sleep(rnd(700, 1200))
+        }
+        // VERIFICAR de verdad: el popup debe CERRARSE (sentinela ya no visible) tras elegir.
+        elegido = !(await imp.getByText(sentinela).first().isVisible().catch(() => false))
+        log(elegido ? ('concepto elegido: ' + concepto) : 'concepto: el popup no se cerró (no quedó seleccionado)')
       } catch (e) { log('concepto: fallo al seleccionar:', e.message) }
       await page.screenshot({ path: join(DATA, 'masiva-02a-concepto.png') }).catch(() => {})
       if (!elegido) {
         writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ estado: 'concepto_no_seteado', concepto, url: page.url() }, null, 2))
-        return { estado: 'concepto_no_seteado', creado: false, concepto, nota: 'No pude fijar el concepto en el banco; NO subí el lote para no usar uno equivocado.', url: page.url() }
+        return { estado: 'concepto_no_seteado', creado: false, concepto, nota: 'No pude fijar el concepto en el banco (el dropdown no cerró la selección); NO subí el lote para no usar uno equivocado.', url: page.url() }
       }
     }
 
@@ -946,35 +959,60 @@ async function masivaImportar(page, log) {
     // 3) "Importar" → crea el LOTE. ⚠️ NO autoriza ni libera (eso pide Superclave y es un
     //    paso manual aparte): el lote queda pendiente. NUNCA tocamos botones de liberar/autorizar.
     let clicImportar = false
-    const btnImp = imp.getByRole('button', { name: /^importar$/i }).first()
-    if (await btnImp.count().catch(() => 0)) { await clickHumano(page, btnImp); clicImportar = true }
-    else { const t = imp.getByText(/^importar$/i).first(); if (await t.count().catch(() => 0)) { await clickHumano(page, t); clicImportar = true } }
+    let btnImp = imp.getByRole('button', { name: /^\s*importar\s*$/i }).first()
+    if (!(await btnImp.count().catch(() => 0))) btnImp = imp.getByText(/^\s*Importar\s*$/i).first()
+    if (await btnImp.count().catch(() => 0)) {
+      await btnImp.scrollIntoViewIfNeeded().catch(() => {})   // el botón vive bajo el fold: hay que traerlo a la vista
+      await sleep(rnd(500, 900))
+      await btnImp.click({ timeout: 5000 }).catch(async () => { await clickHumano(page, btnImp) })
+      clicImportar = true
+    }
     log(clicImportar ? 'clic Importar' : 'no encontré botón Importar')
     await sleep(8000)
     await page.screenshot({ path: join(DATA, 'masiva-03-importado.png') }).catch(() => {})
 
-    // 4) Confirmar la creación del lote si aparece un modal "Aceptar" (es confirmación de
-    //    importación, NO liberación de pago).
-    let clicAceptar = false
-    for (let k = 0; k < 2; k++) {
-      const ac = page.getByRole('button', { name: /^aceptar$/i }).first()
-      if ((await ac.count().catch(() => 0)) && (await ac.isVisible().catch(() => false))) {
-        await clickHumano(page, ac); clicAceptar = true; await sleep(rnd(3000, 4500))
-      } else break
+    // 4) CONFIRMAR la importación → crea el LOTE (queda "por liberar"). Tras "Importar" el
+    //    banco muestra una PREVISUALIZACIÓN (registros aceptados/rechazados) con "Continuar";
+    //    luego puede pedir un "Aceptar"/"Confirmar" final. Hacemos SOLO esos.
+    //    ⛔ BLINDAJE: si la pantalla pide Superclave o dice Autorizar/Liberar, NOS DETENEMOS
+    //    (no ingresamos clave, no autorizamos): el lote queda pendiente de liberación manual.
+    const textoTodo = async () => (await Promise.all(page.frames().map((f) => f.evaluate(() => document.body.innerText || '').catch(() => '')))).join(' ')
+    const rxConfirm = /^\s*(continuar|confirmar|aceptar)\s*$/i
+    const rxProhibido = /(super\s?clave|autoriz|liberar|liberaci[oó]n|firmar|ingrese.*clave|coordenad|tarjeta de coordenada)/i
+    const botonesConfirm = []
+    for (let paso = 0; paso < 3; paso++) {
+      const txtAhora = await textoTodo().catch(() => '')
+      if (rxProhibido.test(txtAhora)) { log('masiva: pantalla de autorización/Superclave → me DETENGO (no autorizo; el lote queda pendiente)'); break }
+      let btn = null
+      for (const fr of page.frames()) {
+        const c = fr.getByRole('button', { name: rxConfirm }).first()
+        if ((await c.count().catch(() => 0)) && (await c.isVisible().catch(() => false))) { btn = c; break }
+        const c2 = fr.getByText(rxConfirm).first()
+        if ((await c2.count().catch(() => 0)) && (await c2.isVisible().catch(() => false))) { btn = c2; break }
+      }
+      if (!btn) break
+      const etiqueta = (((await btn.innerText().catch(() => '')) || '')).trim()
+      await btn.scrollIntoViewIfNeeded().catch(() => {})
+      await btn.click({ timeout: 4000 }).catch(async () => { await clickHumano(page, btn) })
+      botonesConfirm.push(etiqueta || '¿?')
+      log('masiva: clic "' + etiqueta + '"')
+      await sleep(rnd(4500, 6500))
+      await page.screenshot({ path: join(DATA, `masiva-05-confirm-${paso}.png`) }).catch(() => {})
     }
-    await sleep(2500)
+    await sleep(2000)
     await page.screenshot({ path: join(DATA, 'masiva-04-final.png') }).catch(() => {})
 
-    // 5) Capturar el resultado (texto de pantalla → éxito / errores de validación).
-    let resumen = ''
-    try { resumen = await imp.evaluate(() => (document.body.innerText || '').replace(/\s+/g, ' ').slice(0, 1400)) } catch {}
-    writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ url: page.url(), concepto, clicImportar, clicAceptar, resumen, forms: await volcarFrames(page) }, null, 2))
-    const exito = /(n[uú]mero de lote|lote\s*n[°º]|importaci[oó]n exitosa|registros? procesad|pendiente de (autoriz|liberaci)|por liberar|se import[oó])/i.test(resumen)
-    const errorVal = /(rechaz|no fue posible|error de formato|inv[aá]lid|con errores)/i.test(resumen)
-    const creado = exito && !errorVal
+    // 5) Resultado: texto de TODAS las frames → éxito / rechazos / aún en previsualización.
+    const resumen = (((await textoTodo().catch(() => '')) || '')).replace(/\s+/g, ' ').slice(0, 1600)
+    writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ url: page.url(), concepto, clicImportar, botonesConfirm, resumen, forms: await volcarFrames(page) }, null, 2))
+    const sigueEnForm = /Caracter[ií]sticas importaci[oó]n/i.test(resumen) && /Examinar/i.test(resumen)
+    const enPreview = /registros aceptados/i.test(resumen) && /por confirmar/i.test(resumen)
+    const exito = /(n[uú]mero de lote|lote\s*n[°º:]|comprobante|se ingres[oó]|ingresad[oa] correctamente|importaci[oó]n exitosa|pendiente de (autoriz|liberaci)|por liberar|env[ií]o exitoso|procesad[oa] (con )?[eé]xito)/i.test(resumen)
+    const errorVal = /(registros rechazados\D{0,20}[1-9]|rechazad[oa]s?\s*[1-9]|con errores|no fue posible|formato incorrecto|archivo inv[aá]lid)/i.test(resumen)
+    const creado = exito && !errorVal && !sigueEnForm && !enPreview
     return {
-      estado: creado ? 'lote_creado_pendiente' : (clicImportar ? 'importado_sin_confirmar' : 'no_importado'),
-      creado, concepto, clicImportar, clicAceptar, resumen: resumen.slice(0, 500), url: page.url(),
+      estado: creado ? 'lote_creado_pendiente' : (enPreview ? 'en_previsualizacion' : (sigueEnForm ? 'sin_confirmar_en_form' : (clicImportar ? 'importado_sin_confirmar' : 'no_importado'))),
+      creado, concepto, clicImportar, botonesConfirm, sigueEnForm, en_preview: enPreview, error_detectado: errorVal, resumen: resumen.slice(0, 700), url: page.url(),
     }
   }
   return { estado: 'mapeado_import', url: page.url() }
