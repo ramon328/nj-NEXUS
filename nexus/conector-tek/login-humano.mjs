@@ -1019,13 +1019,26 @@ async function cartolaHistorica(page, log) {
         await f0.locator('#cboCuentas, select').first().selectOption({ index: 1 }).catch(() => {})
         await sleep(3500)
         const f = fEob()
-        for (const sel of await f.locator('select').all()) {
+        const selectores = await f.locator('select').all()
+        log(`  [diag] ${selectores.length} selects en el frame`)
+        for (const sel of selectores) {
+          const id = await sel.getAttribute('id').catch(() => '') || await sel.getAttribute('name').catch(() => '') || '?'
           const opts = (await sel.locator('option').allTextContents().catch(() => [])).map((o) => o.trim())
           const low = opts.map((o) => o.toLowerCase())
-          let set = false
-          if (low.includes(MESNOM[mes].toLowerCase())) { await sel.selectOption({ label: MESNOM[mes] }).catch(() => {}); set = true }
-          else if (opts.includes(anio)) { await sel.selectOption({ label: anio }).catch(() => {}); set = true }
-          if (set) await sel.evaluate((el) => el.dispatchEvent(new Event('change', { bubbles: true }))).catch(() => {})
+          const valAntes = await sel.inputValue().catch(() => '')
+          let set = false, metodo = ''
+          if (low.includes(MESNOM[mes].toLowerCase())) {
+            const idx = low.indexOf(MESNOM[mes].toLowerCase())
+            // por INDICE (mas robusto que por label si hay espacios/mayusculas)
+            await sel.selectOption({ index: idx }).catch(() => {}); set = true; metodo = 'mes idx ' + idx
+          } else if (opts.includes(anio)) { await sel.selectOption({ label: anio }).catch(() => {}); set = true; metodo = 'anio' }
+          if (set) {
+            await sel.evaluate((el) => { el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })) }).catch(() => {})
+            const valDespues = await sel.inputValue().catch(() => '')
+            log(`  [diag] select ${id}: opts[${opts.slice(0,4).join(',')}...] set=${metodo} val ${valAntes}->${valDespues}`)
+          } else {
+            log(`  [diag] select ${id}: opts[${opts.slice(0,4).join(',')}...] (no seteado) val=${valAntes}`)
+          }
         }
         await sleep(1000)
         const btn = await locEnFrames(/^buscar$/i)
