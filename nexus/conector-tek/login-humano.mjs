@@ -1009,11 +1009,9 @@ async function cartolaHistorica(page, log) {
   const textoTodosFrames = async () => (await Promise.all(page.frames().map((fr) => withTimeout(fr.evaluate(() => document.body ? document.body.innerText : ''), 6000, '')))).join('\n').replace(/\u00a0/g, ' ')
   const locEnFrames = async (re) => { for (const fr of page.frames()) { const l = fr.getByText(re).first(); if (await l.isVisible().catch(() => false)) return l } return null }
   const resumenMeses = []
+  const guardarMerge = (arr) => { let prev = []; try { prev = JSON.parse(readFileSync(join(DATA, 'carthist-resumen.json'), 'utf8')).meses || [] } catch {}; const by = {}; for (const x of prev) if (x && x.mes) by[x.mes] = x; for (const x of arr) if (x && x.mes) by[x.mes] = x; writeFileSync(join(DATA, 'carthist-resumen.json'), JSON.stringify({ anio, actualizado: new Date().toISOString(), meses: Object.values(by).sort((a, b) => a.mes - b.mes) }, null, 2)) }
   for (const mes of meses) {
     try {
-      // RESET REAL: volver al dashboard y re-entrar (re-clic del menu NO resetea el form → el mes se pegaba).
-      await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
-      await sleep(5000); await cerrarPopups(page, log)
       for (let i = 0; i < 4 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2000) }
       await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(6000)
       let R = null
@@ -1071,7 +1069,7 @@ async function cartolaHistorica(page, log) {
       if (!R) { log(`  ${MESNOM[mes]}: no fije el mes correcto -> salto (no guardo data equivocada)`); continue }
       resumenMeses.push(R)
       log(`  ${MESNOM[mes]}: cartola ${R.n_cartola || '?'} - ${R.periodo} - cargos ${R.cargos} - abonos ${R.abonos}`)
-      /*INCREMENTAL*/ writeFileSync(join(DATA, 'carthist-resumen.json'), JSON.stringify({ anio, actualizado: new Date().toISOString(), meses: resumenMeses }, null, 2))
+      guardarMerge(resumenMeses)
       if (process.env.TEK_CARTOLA_PDF === '1') {
       try {
         const dest = join(PDFDIR, `Cartola ${anio}-${String(mes).padStart(2, '0')} ${MESNOM[mes]}.pdf`)
@@ -1102,7 +1100,7 @@ async function cartolaHistorica(page, log) {
       await sleep(1000)
     } catch (e) { log(`carthist ${MESNOM[mes]} fallo:`, e.message) }
   }
-  writeFileSync(join(DATA, 'carthist-resumen.json'), JSON.stringify({ anio, actualizado: new Date().toISOString(), meses: resumenMeses }, null, 2))
+  guardarMerge(resumenMeses)
   log(`carthist: ${resumenMeses.length} meses con resumen + PDF`)
   return { estado: 'cartola_hist_bajada', usada, meses_resumen: resumenMeses.map((r) => ({ mes: r.mes, cartola: r.n_cartola, cargos: r.cargos, abonos: r.abonos })), url: page.url() }
 }
