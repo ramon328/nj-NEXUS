@@ -504,8 +504,8 @@ async function accionCrearCita(b) {
   if (val && (val.disponible === false || val.error || /tomada|ocupad/i.test(JSON.stringify(val)))) return { ok: false, raw: { error: 'hora ya tomada', valida: val } }
   // 2) creación
   const j = await internalJson(CREAR_EP, 'POST', new URLSearchParams(form).toString())
-  const okCreate = !!(j && (j.uuid || j.id || j.ok === true || j.exito || j.success || j.cita))
-  return { ok: okCreate, cita_uuid: j?.uuid || j?.id || j?.cita?.uuid || null, raw: j }
+  const okCreate = !!(j && j.uuid && j.id)   // createAppt OK devuelve {id, uuid, estado:"No Confirmado"}
+  return { ok: okCreate, cita_id: j?.id || null, cita_uuid: j?.uuid || null, estado: j?.estado || null, raw: j }
 }
 // REAGENDAR (mover) cita. Mismo blindaje. El endpoint interno de edición se confirma en el test
 // controlado (su handler vive en un bundle webpack, no en el HTML) → en simular se marca "por confirmar".
