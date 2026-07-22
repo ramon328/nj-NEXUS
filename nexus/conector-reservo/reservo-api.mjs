@@ -353,6 +353,34 @@ async function d2_agendas() {
     return { agenda_id: p.id, profesional_uuid: p.uuid, profesional_nombre: p.nombre, cargo: p.cargo, box: topBox(p.uuid), rut: p.rut || '', telefono, celular: String(p.celular || '').trim(), email: String(p.email || '').trim() || f.mail || '', telefono_origen: (String(p.telefono || p.celular || '').trim() ? 'profesional' : (f.tel ? 'ficha' : 'sin_dato')) }
   })
 }
+// Disponibilidad (horario de atención) por profesional, proyectada N días desde una fecha.
+// Fuente: obtenerDisponibilidad (patrón SEMANAL: dias 1..7 = Lun..Dom con horaInicio/horaFin).
+// OJO: ignora id_agenda (da lo mismo el box) → se consulta 1 vez por semana del rango.
+function _isoWD(dstr) { const g = new Date(dstr + 'T12:00:00Z').getUTCDay(); return g === 0 ? 7 : g }   // Lun=1..Dom=7
+function _addDays(dstr, n) { const d = new Date(dstr + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
+function _lunesDe(dstr) { return _addDays(dstr, -(_isoWD(dstr) - 1)) }
+async function d2_disponibilidad(agendaId, fecha, dias) {
+  if (!agendaId) { const e = new Error('falta agenda_id (id numérico del profesional)'); e.noEncontrado = false; throw e }
+  const n = Math.min(Math.max(1, Number(dias) || 7), 62)
+  const fechas = []; for (let i = 0; i < n; i++) fechas.push(_addDays(fecha, i))
+  const semanas = [...new Set(fechas.map(_lunesDe))]
+  const patronSem = new Map()
+  for (const lunes of semanas) {
+    const j = await internalJson('/disponibilidad/obtenerDisponibilidad/', 'POST', new URLSearchParams({ id_agenda: '37857', fecha: lunes, vista: 'agendaWeek' }).toString())
+    const e = j && j[String(agendaId)]
+    const pat = new Map()
+    if (e && e.dias) for (const v of Object.values(e.dias)) pat.set(v.dia, { horaInicio: String(v.horaInicio || '').slice(0, 5), horaFin: String(v.horaFin || '').slice(0, 5) })
+    patronSem.set(lunes, pat)
+  }
+  let nombre = ''
+  try { const pm = await profMap(); for (const info of pm.values()) if (String(info.id) === String(agendaId)) { nombre = info.nombre; break } } catch {}
+  const DIAS = ['', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes', 'Sábado', 'Domingo']
+  const out = fechas.map((f) => {
+    const wd = _isoWD(f); const h = patronSem.get(_lunesDe(f))?.get(wd)
+    return { fecha: f, dia_semana: DIAS[wd], atiende: !!(h && h.horaInicio), horaInicio: h?.horaInicio || null, horaFin: h?.horaFin || null }
+  })
+  return { agenda_id: Number(agendaId), profesional: nombre, desde: fecha, dias: out }
+}
 // Lista de tratamientos con su ID INTERNO (numérico) — para el picker de la app.
 // Fuente: el <select id="id_tratamientos"> viene con las 63 opciones en el HTML de makeAppointment.
 let _tratCache = { ts: 0, list: [] }
@@ -726,7 +754,7 @@ const server = http.createServer(async (req, res) => {
     if (url.searchParams.has('mes') && !/^\d{4}-\d{2}$/.test(mes)) return send(400, { error: 'mes inválido, usá YYYY-MM', endpoint: pn })
     // OJO: la clave DEBE incluir pagina + con_email, si no todas las páginas colisionan
     // en la caché y ?pagina=N devuelve siempre la primera (bug de paginación de pacientes).
-    const clave = sub + ':' + mes + ':' + fecha + ':' + (rango ? desde + '_' + hasta : '') + ':p' + (pagina || '1') + ':' + (url.searchParams.get('con_email') === '1' ? 'e1' : '')
+    const clave = sub + ':' + mes + ':' + fecha + ':' + (rango ? desde + '_' + hasta : '') + ':p' + (pagina || '1') + ':' + (url.searchParams.get('con_email') === '1' ? 'e1' : '') + ':a' + (url.searchParams.get('agenda_id') || '') + ':d' + (url.searchParams.get('dias') || '')
     const ck = 'D2:' + clave
     const ce = cacheData.get(ck)
     // mes actual = TTL corto (cambia durante el día); meses cerrados = caché largo.
@@ -739,6 +767,7 @@ const server = http.createServer(async (req, res) => {
       else if (sub === 'deuda/') data = await d2_deuda(mes)
       else if (sub === 'agendas/') data = await d2_agendas()
       else if (sub === 'tratamientos/') data = await d2_tratamientos()
+      else if (sub === 'disponibilidad/') { data = await d2_disponibilidad(url.searchParams.get('agenda_id'), fecha, url.searchParams.get('dias')); esLista = false }
       else if (sub === 'cumpleanos/') data = await d2_cumpleanos(fecha)
       else if (sub === 'pacientes/') data = await d2_pacientes(url.searchParams.get('con_email') === '1')
       else if (sub === 'estado_resultado/') data = await d2_estado_resultado()
@@ -750,7 +779,7 @@ const server = http.createServer(async (req, res) => {
       else if (sub === 'bloqueos/') { data = await d2_bloqueos(mes); esLista = false }   // dict por agenda, no wrap
       else if (/^paciente\/[0-9a-f-]+\/$/i.test(sub)) { data = await d2_paciente(sub.split('/')[1]); esLista = false }
       else if (/^paciente\/[0-9a-f-]+\/historial\/$/i.test(sub)) data = await d2_historial(sub.split('/')[1])
-      else return send(404, { error: 'data2 aún no implementado: ' + sub, endpoint: pn, disponibles: ['caja/', 'comisiones/', 'deuda/', 'agendas/', 'bloqueos/', 'cumpleanos/', 'pacientes/', 'estado_resultado/', 'ocupacion_personal_box/', 'nuevos_pacientes/', 'atenciones_por_profesional/', 'citas_por_estado/', 'gastos_por_categoria/', 'paciente/{uuid}/', 'paciente/{uuid}/historial/'] })
+      else return send(404, { error: 'data2 aún no implementado: ' + sub, endpoint: pn, disponibles: ['caja/', 'comisiones/', 'deuda/', 'agendas/', 'tratamientos/', 'disponibilidad/?agenda_id=&fecha=&dias=', 'bloqueos/', 'cumpleanos/', 'pacientes/', 'estado_resultado/', 'ocupacion_personal_box/', 'nuevos_pacientes/', 'atenciones_por_profesional/', 'citas_por_estado/', 'gastos_por_categoria/', 'paciente/{uuid}/', 'paciente/{uuid}/historial/'] })
       const out = esLista ? wrapList(data, pagina, PUBLIC_BASE + '/r/data2/' + sub + (url.search || '')) : data
       const body = JSON.stringify(out)
       cacheData.set(ck, { status: 200, ct: 'application/json', body, ts: Date.now() })
