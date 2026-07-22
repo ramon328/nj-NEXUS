@@ -10,11 +10,26 @@ import ExcelJS from 'exceljs'
 import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { mkdirSync } from 'node:fs'
+import { mkdirSync, existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs'
 import * as credenciales from './credenciales.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = join(DIR, 'data', 'masivas')
+
+// Lock de operación bancaria: el banco tiene UNA sola sesión de navegador. Si se lanzan
+// dos subidas a la vez (p.ej. el modelo reintenta, o dos usuarios), chocan. Con esto la
+// 2ª falla RÁPIDO ("ocupado") en vez de encimarse. Lock viejo (>12 min) = huérfano, se ignora.
+const LOCK_FILE = join(DIR, 'data', '.masiva.lock')
+function masivaOcupada() {
+  try {
+    if (!existsSync(LOCK_FILE)) return false
+    const ts = Number(readFileSync(LOCK_FILE, 'utf8')) || 0
+    if (Date.now() - ts > 12 * 60_000) { try { unlinkSync(LOCK_FILE) } catch { /* */ } return false }
+    return true
+  } catch { return false }
+}
+function tomarLock() { try { mkdirSync(join(DIR, 'data'), { recursive: true }); writeFileSync(LOCK_FILE, String(Date.now())) } catch { /* */ } }
+function soltarLock() { try { unlinkSync(LOCK_FILE) } catch { /* */ } }
 
 // Cuenta origen por defecto (ANA CLARA SPA, CLP) — dígitos, como en el archivo real.
 export const CUENTA_ORIGEN_ANACLARA = '80280939'   // = 0-000-8028093-9
@@ -78,9 +93,12 @@ const HEADERS = [
 
 const soloDigitos = (s) => String(s || '').replace(/\D/g, '')
 const esSantander = (banco) => /santander/i.test(String(banco || ''))
+// Normaliza SIN acentos (para que "Banco de Crédito e Inversiones" matchee la clave sin tilde).
+const sinAcentos = (s) => String(s || '').toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/\s+/g, ' ').trim()
 export function codigoBanco(banco) {
-  const k = String(banco || '').toLowerCase().replace(/^banco\s+/, '').trim()
-  return CODIGOS_BANCO[k] || CODIGOS_BANCO['banco ' + k] || CODIGOS_BANCO[String(banco || '').toLowerCase().trim()] || ''
+  const base = sinAcentos(banco)             // "banco de crédito e inversiones" → "banco de credito e inversiones"
+  const k = base.replace(/^banco\s+/, '').trim()
+  return CODIGOS_BANCO[k] || CODIGOS_BANCO['banco ' + k] || CODIGOS_BANCO[base] || ''
 }
 
 // Normaliza una transferencia de entrada a la fila de 13 columnas.
@@ -156,7 +174,12 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
   if (gen.problemas && gen.problemas.length) {
     return { ok: false, estado: 'archivo_con_problemas', archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total, problemas: gen.problemas }
   }
-  // 2) Sube el archivo por login-humano (crea el lote pendiente).
+  // 2) Lock: una sola subida al banco a la vez (evita colisiones por reintentos / 2 usuarios).
+  if (masivaOcupada()) {
+    return { ok: false, estado: 'ocupado', error: 'Ya hay una transferencia bancaria en curso. Espera ~2 min a que termine y reintenta UNA sola vez.' }
+  }
+  tomarLock()
+  try {
   return await new Promise((resolve) => {
     const env = {
       ...process.env,
@@ -191,6 +214,7 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
     })
     hijo.on('error', (e) => { clearTimeout(to); resolve({ ok: false, estado: 'spawn_error', error: e.message }) })
   })
+  } finally { soltarLock() }
 }
 
 // ── CLI de prueba ────────────────────────────────────────────────────────────

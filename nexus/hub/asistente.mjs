@@ -3026,10 +3026,20 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (input.accion === 'enviar') {
         const res = await mm.ejecutarMasivo(resueltas, { concepto, stamp: String(Date.now()) })
         if (res.ok && tr) { for (const t of resueltas) { try { if (String(t.rut || '').replace(/\D/g, '')) tr.guardarBeneficiario({ nombre: t.nombre, rut: t.rut, banco: t.banco, cuenta: t.cuenta }) } catch { /* */ } } }
-        const okTxt = res.ok
-          ? `✅ Lote masivo de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) CREADO — queda PENDIENTE por liberar (falta autorizarlo con Superclave para que salga).`
-          : `⚠️ No pude confirmar el lote (${res.estado || 'desconocido'}).${res.problemas ? ' Problemas en el archivo: ' + JSON.stringify(res.problemas) : ''}${res.masiva?.nota ? ' ' + res.masiva.nota : ''} Conviene reintentar asistido.`
-        return JSON.stringify({ ...res, resumen, texto: okTxt })
+        let okTxt, instruccion
+        if (res.ok) {
+          okTxt = `✅ Lote masivo de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) CREADO — queda PENDIENTE por autorizar/liberar (falta la Superclave para que la plata salga).`
+        } else if (res.estado === 'ocupado') {
+          okTxt = '⏳ Ya hay una transferencia bancaria en curso. Esperá ~2 minutos y reintentá UNA sola vez.'
+          instruccion = '⛔ NO reintentes enviar ahora ni en este turno: hay una operación bancaria en curso. Dile al usuario que espere ~2 min y vuelva a pedirlo. NO vuelvas a llamar tek_masiva.'
+        } else if (res.masiva?.rechazado || res.estado === 'rechazado_por_banco') {
+          okTxt = `❌ El banco RECHAZÓ la transferencia (0 registros aceptados). ${res.masiva?.nota || 'Revisa la cuenta, el banco y el RUT del beneficiario.'}`
+          instruccion = '⛔ El banco rechazó el registro (cuenta/RUT no válidos para ese banco). NO reintentes automáticamente. Dile al usuario EXACTAMENTE qué pasó y pídele que verifique/corrija el número de cuenta, el banco y el RUT del beneficiario; solo reintenta cuando confirme los datos correctos.'
+        } else {
+          okTxt = `⚠️ No pude confirmar el lote (${res.estado || 'desconocido'}).${res.problemas ? ' Problemas: ' + JSON.stringify(res.problemas) : ''}${res.masiva?.nota ? ' ' + res.masiva.nota : ''}`
+          instruccion = '⛔ NO reintentes enviar automáticamente (podrías chocar la sesión del banco o duplicar). Cuéntale al usuario qué pasó y pregúntale si reintenta antes de volver a llamar tek_masiva.'
+        }
+        return JSON.stringify({ ...res, resumen, texto: okTxt, instruccion })
       }
       // accion 'preparar' (default): resumen para mostrar y pedir OK.
       return JSON.stringify({

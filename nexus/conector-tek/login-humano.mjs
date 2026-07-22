@@ -1010,13 +1010,17 @@ async function masivaImportar(page, log) {
     const resumen = (((await textoTodo().catch(() => '')) || '')).replace(/\s+/g, ' ').slice(0, 1600)
     writeFileSync(join(DATA, 'masiva-resultado.json'), JSON.stringify({ url: page.url(), concepto, clicImportar, botonesConfirm, resumen, forms: await volcarFrames(page) }, null, 2))
     const sigueEnForm = /Caracter[ií]sticas importaci[oó]n/i.test(resumen) && /Examinar/i.test(resumen)
-    const enPreview = /registros aceptados/i.test(resumen) && /por confirmar/i.test(resumen)
-    const exito = /(n[uú]mero de lote|lote\s*n[°º:]|comprobante|se ingres[oó]|ingresad[oa] correctamente|importaci[oó]n exitosa|realizad[oa].{0,15}exitosa|registros? aprobad|por autorizar|pendiente de (autoriz|liberaci)|por liberar|env[ií]o exitoso|procesad[oa] (con )?[eé]xito)/i.test(resumen)
-    const errorVal = /(no fue posible|formato incorrecto|archivo inv[aá]lid|fueron rechazad|con errores de|registros? rechazad[oa]s?:\s*[1-9])/i.test(resumen)
+    // El banco RECHAZÓ el/los registros (0 aceptados) → señal inequívoca en pantalla.
+    const rechazado = /no existen registros aceptados/i.test(resumen)
+    const enPreview = /registros aceptados/i.test(resumen) && /por confirmar/i.test(resumen) && !rechazado
+    const exito = !rechazado && /(n[uú]mero de lote|lote\s*n[°º:]|comprobante|se ingres[oó]|ingresad[oa] correctamente|importaci[oó]n exitosa|realizad[oa].{0,15}exitosa|registros? aprobad|por autorizar|pendiente de (autoriz|liberaci)|por liberar|env[ií]o exitoso|procesad[oa] (con )?[eé]xito)/i.test(resumen)
+    const errorVal = rechazado || /(no fue posible|formato incorrecto|archivo inv[aá]lid|fueron rechazad|con errores de)/i.test(resumen)
     const creado = exito && !errorVal && !sigueEnForm && !enPreview
     return {
-      estado: creado ? 'lote_creado_pendiente' : (enPreview ? 'en_previsualizacion' : (sigueEnForm ? 'sin_confirmar_en_form' : (clicImportar ? 'importado_sin_confirmar' : 'no_importado'))),
-      creado, concepto, clicImportar, botonesConfirm, sigueEnForm, en_preview: enPreview, error_detectado: errorVal, resumen: resumen.slice(0, 700), url: page.url(),
+      estado: creado ? 'lote_creado_pendiente' : (rechazado ? 'rechazado_por_banco' : (enPreview ? 'en_previsualizacion' : (sigueEnForm ? 'sin_confirmar_en_form' : (clicImportar ? 'importado_sin_confirmar' : 'no_importado')))),
+      creado, rechazado, concepto, clicImportar, botonesConfirm, sigueEnForm, en_preview: enPreview, error_detectado: errorVal,
+      nota: rechazado ? 'El banco RECHAZÓ el registro (0 aceptados). Suele ser porque la CUENTA o el RUT del beneficiario no son válidos en ese banco. Revisa los datos de la cuenta.' : undefined,
+      resumen: resumen.slice(0, 700), url: page.url(),
     }
   }
   return { estado: 'mapeado_import', url: page.url() }
