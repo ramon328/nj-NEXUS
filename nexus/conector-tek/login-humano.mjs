@@ -1011,6 +1011,9 @@ async function cartolaHistorica(page, log) {
   const resumenMeses = []
   for (const mes of meses) {
     try {
+      // RESET REAL: volver al dashboard y re-entrar (re-clic del menu NO resetea el form → el mes se pegaba).
+      await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+      await sleep(5000); await cerrarPopups(page, log)
       for (let i = 0; i < 4 && !(await esVisible(/^Cartola\s+hist[oó]rica$/i)); i++) { await clickTexto(/^Cuentas Corrientes$/i); await sleep(2000) }
       await clickTexto(/^Cartola\s+hist[oó]rica$/i); await sleep(6000)
       let R = null
