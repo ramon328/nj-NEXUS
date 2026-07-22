@@ -460,9 +460,13 @@ async function accionCrearCita(b) {
   if (!b.hora_inicio && !b.hora) throw new Error('falta campo obligatorio: hora_inicio')
   if (!b.person_id && !b.paciente_nuevo) throw new Error('falta paciente: pasá person_id (existente) o paciente_nuevo{rut,nombre,...}')
   const form = buildCrearBody(b)
-  const ep = '/appointment/makeAppointment/'
+  // OJO (2026-07-22): /appointment/makeAppointment/ POST NO crea — devuelve {servicio,schedule}
+  // (probado). El endpoint REAL de creación vive en un bundle webpack; se fija cuando Ramón
+  // capture el request del Network (URL + Form Data). Hasta entonces RESERVO_CREAR_EP=undefined.
+  const ep = process.env.RESERVO_CREAR_EP || ''
   const simular = b.simular !== false
-  if (simular) return { ok: true, simulado: true, endpoint: ep, metodo: 'POST', form }
+  if (simular) return { ok: true, simulado: true, endpoint: ep || '(por confirmar: capturar del Network)', metodo: 'POST', form }
+  if (!ep) throw pendienteCaptura('endpoint de creación (RESERVO_CREAR_EP sin fijar)')
   if (!ESCRITURA_OK) throw pendienteCaptura(ep)
   const j = await internalJson(ep, 'POST', new URLSearchParams(form).toString())
   return { ok: !!(j && (j.uuid || j.id || j.ok || j.exito)), cita_uuid: j?.uuid || j?.id || null, raw: j }
