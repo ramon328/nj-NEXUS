@@ -341,6 +341,19 @@ async function d2_agendas() {
   const topBox = (u) => { const s = boxByUuid.get(u); return s ? [...s.entries()].sort((a, b) => b[1] - a[1])[0][0] : '' }
   return profs.filter((p) => p.estado).map((p) => ({ agenda_id: p.id, profesional_uuid: p.uuid, profesional_nombre: p.nombre, cargo: p.cargo, box: topBox(p.uuid) }))
 }
+// Lista de tratamientos con su ID INTERNO (numérico) — para el picker de la app.
+// Fuente: el <select id="id_tratamientos"> viene con las 63 opciones en el HTML de makeAppointment.
+let _tratCache = { ts: 0, list: [] }
+async function d2_tratamientos() {
+  if (Date.now() - _tratCache.ts < 30 * 60 * 1000 && _tratCache.list.length) return _tratCache.list
+  const r = await fetchR(BASE + '/appointment/makeAppointment/', { headers: { 'User-Agent': UA, Cookie: cookieHeader() }, redirect: 'manual' })
+  const html = await r.text()
+  const m = html.match(/<select[^>]*id="id_tratamientos"[\s\S]*?<\/select>/)
+  const list = []
+  if (m) for (const mm of m[0].matchAll(/<option value="(\d+)"[^>]*>([^<]+)<\/option>/g)) list.push({ id: Number(mm[1]), nombre: mm[2].trim() })
+  if (list.length) _tratCache = { ts: Date.now(), list }
+  return list
+}
 // Bloqueos del mes por agenda: obtenerBloqueoProfesional es por día → recorremos el mes.
 async function d2_bloqueos(mes) {
   const { ini, fin } = rangoMes(mes)
@@ -649,6 +662,7 @@ const server = http.createServer(async (req, res) => {
       else if (sub === 'comisiones/') data = await d2_comisiones(mes)
       else if (sub === 'deuda/') data = await d2_deuda(mes)
       else if (sub === 'agendas/') data = await d2_agendas()
+      else if (sub === 'tratamientos/') data = await d2_tratamientos()
       else if (sub === 'cumpleanos/') data = await d2_cumpleanos(fecha)
       else if (sub === 'pacientes/') data = await d2_pacientes(url.searchParams.get('con_email') === '1')
       else if (sub === 'estado_resultado/') data = await d2_estado_resultado()

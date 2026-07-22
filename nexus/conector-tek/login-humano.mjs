@@ -449,40 +449,34 @@ async function entrarEmpresa(page, log, objetivo) {
 // NUNCA clickea "Cambiar Clave" (eso arranca el cambio de clave): solo cierra/omite.
 async function cerrarPopups(page, log) {
   for (let i = 0; i < 3; i++) {
-    // El popup "Actualiza tu Clave" vive en un IFRAME de campaña → hay que mirar TODOS los frames.
-    let hay = false
-    for (const fr of page.frames()) {
-      if (await fr.evaluate(() => /Actualiza tu Clave|Protege la seguridad/i.test(document.body?.innerText || '')).catch(() => false)) { hay = true; break }
-    }
+    // El popup "Actualiza tu Clave" es un IFRAME de campaña, HIJO del documento principal.
+    // Detectamos SOLO desde el frame principal (evaluar frames cross-origin puede colgar).
+    const hay = await page.evaluate(() =>
+      /Actualiza tu Clave|Protege la seguridad/i.test(document.body?.innerText || '')
+      || !!document.querySelector('iframe[src*="campna" i], iframe[src*="campana" i]'),
+    ).catch(() => false)
     if (!hay) return true
     let done = false
-    // 1) botón de descarte, en cualquier frame
-    for (const fr of page.frames()) {
-      for (const re of [/^m[aá]s tarde/i, /^ahora no/i, /^omitir/i, /^recordar/i, /^continuar/i, /^saltar/i, /^cerrar/i, /^no gracias/i]) {
-        const b = fr.getByText(re, { exact: false }).first()
-        if (await b.boundingBox().catch(() => null)) { await b.click({ force: true, timeout: 2000 }).catch(() => {}); done = true; break }
-      }
-      if (done) break
-      const x = fr.locator('[aria-label*="cerrar" i],[aria-label*="close" i],button.close,[class*="close" i],.modal-close,.icon-close').first()
-      if (await x.boundingBox().catch(() => null)) { await x.click({ force: true, timeout: 2000 }).catch(() => {}); done = true; break }
+    // 1) botón de descarte en el frame principal (por si el modal es nativo).
+    for (const re of [/^m[aá]s tarde/i, /^ahora no/i, /^omitir/i, /^recordar/i, /^continuar/i, /^saltar/i, /^cerrar/i, /^no gracias/i]) {
+      const b = page.getByText(re, { exact: false }).first()
+      if (await b.boundingBox().catch(() => null)) { await b.click({ force: true, timeout: 2000 }).catch(() => {}); done = true; break }
     }
-    // 2) fallback: sacar el iframe de campaña (+ su modal/backdrop) del DOM principal.
+    // 2) quitar el iframe de campaña (+ su modal/backdrop) del DOM principal — es lo que tapa.
     if (!done) {
       await page.evaluate(() => {
-        for (const el of document.querySelectorAll('iframe')) {
-          if (/campna|campana/i.test(el.getAttribute('src') || '')) {
-            const cont = el.closest('[class*="modal" i],[class*="overlay" i],[class*="popup" i]') || el
-            try { cont.remove() } catch { cont.style.display = 'none' }
-          }
+        for (const el of document.querySelectorAll('iframe[src*="campna" i], iframe[src*="campana" i]')) {
+          const cont = el.closest('[class*="modal" i],[class*="overlay" i],[class*="popup" i]') || el
+          try { cont.remove() } catch { cont.style.display = 'none' }
         }
-        document.querySelectorAll('.modal-backdrop,[class*="backdrop" i]').forEach((e) => { try { e.remove() } catch { /* */ } })
+        document.querySelectorAll('.modal-backdrop,[class*="backdrop" i],[class*="modal" i][style*="block"]').forEach((e) => { try { if (/campna|backdrop/i.test(e.outerHTML.slice(0, 200))) e.remove() } catch { /* */ } })
       }).catch(() => {})
       done = true
     }
     await page.keyboard.press('Escape').catch(() => {})
-    await sleep(1600)
+    await sleep(1500)
   }
-  log && log('popup: intenté cerrarlo (frame-aware + quité overlay de campaña)')
+  log && log('popup: intenté cerrarlo (quité el iframe de campaña del DOM)')
   return true
 }
 
