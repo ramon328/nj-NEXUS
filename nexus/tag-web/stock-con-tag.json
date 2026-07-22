@@ -1,9 +1,9 @@
 {
-  "actualizado": "2026-07-22T19:48:09.113Z",
+  "actualizado": "2026-07-22T20:00:26.257Z",
   "fuente": "Excel Mallorca · STOCK VALORIZADO",
-  "total": 44,
+  "total": 45,
   "con_tag": 31,
-  "sin_tag": 13,
+  "sin_tag": 14,
   "autos": [
     {
       "patente": "VFYG69",
@@ -268,15 +268,17 @@
       "marca": "MITSUBISHI",
       "modelo": "L200",
       "tag": false
+    },
+    {
+      "patente": "SPSG51",
+      "marca": "MITSUBISHI",
+      "modelo": "L200",
+      "tag": false
     }
   ],
   "cambios": {
     "nuevos_con_tag": [],
-    "nuevos_en_stock": [
-      "TFFH86(sin tag)",
-      "SZZG87(sin tag)",
-      "TFFC90(sin tag)"
-    ],
+    "nuevos_en_stock": [],
     "salieron_del_stock": []
   }
 }

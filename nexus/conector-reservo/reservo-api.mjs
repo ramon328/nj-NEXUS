@@ -487,6 +487,19 @@ function buildCrearBody(b) {
     view: 'viewAppt', sendmail: b.sendmail ? 'true' : 'false', phone: '',
   }
 }
+// Duración del tratamiento (gettratamientoajax devuelve duracion "HH:MM:SS") → minutos, cacheado.
+const _tratDur = new Map()
+async function tratDuracionMin(id) {
+  const k = String(id); if (_tratDur.has(k)) return _tratDur.get(k)
+  const j = await internalJson('/tratamiento/gettratamientoajax/', 'POST', new URLSearchParams({ tratamiento_id: k }).toString())
+  const t = Array.isArray(j) ? j[0] : j
+  const [h, m] = String((t && t.duracion) || '00:30:00').split(':').map(Number)
+  const min = (h * 60 + (m || 0)) || 30; _tratDur.set(k, min); return min
+}
+function sumaHora(hhmm, min) {
+  const [h, m] = String(hhmm).split(':').map(Number); const tot = h * 60 + m + Number(min)
+  return String(Math.floor(tot / 60) % 24).padStart(2, '0') + ':' + String(tot % 60).padStart(2, '0')
+}
 // CREAR cita. DEFAULT = simular (cero escritura): devuelve el body exacto que mandaría, sin tocar Reservo.
 // Real solo con simular:false Y RESERVO_ESCRITURA=1 (blindaje: nunca a ciegas; certificar con cita de test).
 async function accionCrearCita(b) {
@@ -494,6 +507,8 @@ async function accionCrearCita(b) {
   if (!b.hora_inicio && !b.hora) throw new Error('falta campo obligatorio: hora_inicio')
   if (!b.person_id && !b.paciente_nuevo) throw new Error('falta paciente: pasá person_id (existente) o paciente_nuevo{rut,nombre,...}')
   if (b.agenda == null || b.agenda === '') throw new Error('falta campo obligatorio: agenda (id del box/servicio 37857-37863, viene de obtenerDisponibilidad)')
+  // createAppt DA 500 si horaFin viene vacío → si no lo pasan, lo calculo con la duración del tratamiento.
+  if (!b.hora_fin) b.hora_fin = sumaHora(b.hora_inicio || b.hora, await tratDuracionMin(b.tratamiento_id).catch(() => 30))
   const form = buildCrearBody(b)
   const simular = b.simular !== false
   if (simular) return { ok: true, simulado: true, endpoint: CREAR_EP, metodo: 'POST', form }
@@ -561,6 +576,31 @@ function partirHoraISO(iso) {
   if (!m) throw new Error('hora inválida: usá ISO tipo 2026-07-23T16:00:00-04:00')
   return { fecha: m[1], hora: m[2] }
 }
+// Boxes/servicios (7 boxes 37857-37863) del <select id_servicio> del HTML de makeAppointment.
+let _boxCache = { ts: 0, byName: new Map(), list: [] }
+async function boxMap() {
+  if (Date.now() - _boxCache.ts < 30 * 60 * 1000 && _boxCache.list.length) return _boxCache
+  const r = await fetchR(BASE + '/appointment/makeAppointment/', { headers: { 'User-Agent': UA, Cookie: cookieHeader() }, redirect: 'manual' })
+  const html = await r.text()
+  const mm = html.match(/<select[^>]*id="id_servicio"[\s\S]*?<\/select>/)
+  const byName = new Map(), list = []
+  if (mm) for (const o of mm[0].matchAll(/<option value="(\d+)"[^>]*>([^<]+)<\/option>/g)) { const id = Number(o[1]), name = o[2].trim(); byName.set(name.toLowerCase(), id); list.push({ id, name }) }
+  if (list.length) _boxCache = { ts: Date.now(), byName, list }
+  return _boxCache
+}
+// Resuelve el box (servicio) de un profesional. createAppt acepta cualquier box (probado); usamos el
+// box HABITUAL del profesional (d2_agendas: el más usado en sus citas); si no, el primer box.
+// OJO: obtenerDisponibilidad NO trae el box (ignora id_agenda, solo da horas por día) → no sale de ahí.
+async function resolverBox(profId) {
+  const bm = await boxMap()
+  if (!bm.list.length) return null
+  try {
+    const ags = await d2_agendas()
+    const a = ags.find((x) => String(x.agenda_id) === String(profId))
+    if (a && a.box) { const id = bm.byName.get(String(a.box).toLowerCase()); if (id) return id }
+  } catch {}
+  return bm.list[0].id
+}
 function partirNombre(nom) {
   const p = String(nom || '').trim().split(/\s+/)
   if (p.length <= 1) return { name: p[0] || '', app_paterno: '', app_materno: '' }
@@ -593,10 +633,14 @@ async function reservarFacade(b) {
     else { const nm = partirNombre(cli.nombre); paciente_nuevo = { rut: cli.rut || '', nombre: nm.name, apellido_paterno: nm.app_paterno, apellido_materno: nm.app_materno, telefono: (cli.telefono || '').replace(/^\+?56/, ''), mail: cli.email || '' } }
   }
   if (errores.length) return { ok: false, error: errores.join(' | ') }
+  // agenda (box/servicio) OPCIONAL: si no viene, lo resuelvo con el box habitual del profesional.
+  let agenda = b.agenda
+  if ((agenda == null || agenda === '') && profesional_id) { agenda = await resolverBox(profesional_id).catch(() => null) }
+  if (agenda == null || agenda === '') return { ok: false, error: 'no pude resolver el box del profesional; pasá agenda (37857-37863)' }
   const out = await accionCrearCita({
     fecha, hora_inicio: hora, hora_fin: b.hora_fin || '', profesional_id, tratamiento_id,
     ...(person_id ? { person_id } : { paciente_nuevo }), sendmail: !!b.sendmail,
-    agenda: b.agenda, simular: b.simular,
+    agenda, simular: b.simular,
   })
   if (out.simulado) return { ok: true, simulado: true, estado: 'NC', form: out.form, endpoint: out.endpoint }
   if (out.ok) return { ok: true, cita_id: out.cita_id, cita_uuid: out.cita_uuid, estado: 'NC' }
