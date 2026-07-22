@@ -247,6 +247,23 @@ async function d2_cumpleanos(fecha) {
     .map((c) => ({ uuid: c.uuid, nombre: [c.nombre, c.apellido_paterno, c.apellido_materno].filter(Boolean).join(' '), rut: c.identificador || '', edad: anio - Number(c.fecha_nacimiento.slice(0, 4)), telefono: c.telefono_1 || '', mail: c.mail || '' }))
     .sort((a, b) => a.nombre.localeCompare(b.nombre))
 }
+// Pacientes con datos de CONTACTO (emails + teléfonos) para marketing/recordatorios.
+// ?con_email=1 → solo los que TIENEN correo válido. Del dataset de clientes cacheado (rápido).
+async function d2_pacientes(soloConEmail) {
+  const cs = await clientesAll()
+  let out = cs.map((c) => ({
+    uuid: c.uuid,
+    nombre: [c.nombre, c.apellido_paterno, c.apellido_materno].filter(Boolean).join(' '),
+    rut: c.identificador || '',
+    mail: String(c.mail || '').trim(),
+    telefono: String(c.telefono_1 || c.telefono_2 || '').trim(),
+    ficha: c.ficha || '',
+    fecha_nacimiento: c.fecha_nacimiento || '',
+    sexo: c.sexo || '',
+  }))
+  if (soloConEmail) out = out.filter((c) => /^[^@\s]+@[^@\s]+\.[^@\s]+$/.test(c.mail))
+  return out.sort((a, b) => a.nombre.localeCompare(b.nombre))
+}
 // Mapa uuid_cliente → { paciente, rut } (del dataset de clientes cacheado).
 async function clienteMap() {
   const ck = 'ALL:cliente/?'
@@ -477,6 +494,7 @@ const server = http.createServer(async (req, res) => {
       else if (sub === 'deuda/') data = await d2_deuda(mes)
       else if (sub === 'agendas/') data = await d2_agendas()
       else if (sub === 'cumpleanos/') data = await d2_cumpleanos(fecha)
+      else if (sub === 'pacientes/') data = await d2_pacientes(url.searchParams.get('con_email') === '1')
       else if (sub === 'estado_resultado/') data = await d2_estado_resultado()
       else if (sub === 'ocupacion_personal_box/') { data = await d2_dashboard('ocupacion_personal_box/', mes, rango); esLista = false }
       else if (sub === 'nuevos_pacientes/') { data = await d2_dashboard('nuevos_pacientes/', mes, rango); esLista = false }
@@ -486,7 +504,7 @@ const server = http.createServer(async (req, res) => {
       else if (sub === 'bloqueos/') { data = await d2_bloqueos(mes); esLista = false }   // dict por agenda, no wrap
       else if (/^paciente\/[0-9a-f-]+\/$/i.test(sub)) { data = await d2_paciente(sub.split('/')[1]); esLista = false }
       else if (/^paciente\/[0-9a-f-]+\/historial\/$/i.test(sub)) data = await d2_historial(sub.split('/')[1])
-      else return send(404, { error: 'data2 aún no implementado: ' + sub, endpoint: pn, disponibles: ['caja/', 'comisiones/', 'deuda/', 'agendas/', 'bloqueos/', 'cumpleanos/', 'estado_resultado/', 'ocupacion_personal_box/', 'nuevos_pacientes/', 'atenciones_por_profesional/', 'citas_por_estado/', 'gastos_por_categoria/', 'paciente/{uuid}/', 'paciente/{uuid}/historial/'] })
+      else return send(404, { error: 'data2 aún no implementado: ' + sub, endpoint: pn, disponibles: ['caja/', 'comisiones/', 'deuda/', 'agendas/', 'bloqueos/', 'cumpleanos/', 'pacientes/', 'estado_resultado/', 'ocupacion_personal_box/', 'nuevos_pacientes/', 'atenciones_por_profesional/', 'citas_por_estado/', 'gastos_por_categoria/', 'paciente/{uuid}/', 'paciente/{uuid}/historial/'] })
       const out = esLista ? wrapList(data, pagina, PUBLIC_BASE + '/r/data2/' + sub + (url.search || '')) : data
       const body = JSON.stringify(out)
       cacheData.set(ck, { status: 200, ct: 'application/json', body, ts: Date.now() })
