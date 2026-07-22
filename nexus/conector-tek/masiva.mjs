@@ -92,6 +92,25 @@ const HEADERS = [
 ]
 
 const soloDigitos = (s) => String(s || '').replace(/\D/g, '')
+
+// El banco limita cada LÍNEA de la masiva a este tope. Si una transferencia lo supera, se
+// PARTE en varias líneas (mismo beneficiario) que suman el total.
+export const MAX_TRANSFER_MASIVA = Number(process.env.TEK_MAX_TRANSFER_MASIVA || 7_000_000)
+// Parte una transferencia en líneas de ≤ tope. Ej: $82.000.000 → 11×$7.000.000 + $5.000.000.
+export function dividirPorTope(t, tope = MAX_TRANSFER_MASIVA) {
+  const monto = Math.trunc(Number(String(t.monto).replace(/[^\d]/g, '')))
+  if (!Number.isFinite(monto) || monto <= tope) return [{ ...t, monto }]
+  const partes = []
+  let resto = monto
+  while (resto > tope) { partes.push({ ...t, monto: tope }); resto -= tope }
+  if (resto > 0) partes.push({ ...t, monto: resto })
+  return partes
+}
+// Cuántas líneas ocupará una transferencia (para avisarle al usuario en el resumen).
+export function lineasDe(monto, tope = MAX_TRANSFER_MASIVA) {
+  const m = Math.trunc(Number(String(monto).replace(/[^\d]/g, ''))) || 0
+  return m <= tope ? 1 : Math.ceil(m / tope)
+}
 // RUT para el documento del banco: SIN puntos ni guion, pero CON el dígito verificador
 // (incluye K). "76.242.074-0" → "762420740" · "12.345.678-K" → "12345678K".
 const rutDoc = (s) => String(s || '').replace(/[.\-\s]/g, '').toUpperCase().replace(/[^0-9K]/g, '')
@@ -146,7 +165,9 @@ export async function generarMasivo(transfers, opts = {}) {
   ws.addRow(HEADERS)
   const filas = [], problemas = []
   let montoTotal = 0
-  transfers.forEach((t, i) => {
+  // Cada transferencia se PARTE en líneas de ≤$7M (tope del banco) si supera el tope.
+  const lineas = transfers.flatMap((t) => dividirPorTope(t))
+  lineas.forEach((t, i) => {
     const r = armarFila(t, opts)
     ws.addRow(r.fila)
     filas.push(r.fila)
@@ -158,7 +179,8 @@ export async function generarMasivo(transfers, opts = {}) {
   const stamp = opts.stamp || 'masiva'                    // pasar timestamp desde afuera (Date.now no disponible en workflows)
   const ruta = opts.ruta || join(OUT_DIR, `masiva-${stamp}.xlsx`)
   await wb.xlsx.writeFile(ruta)
-  return { ruta, total: transfers.length, monto_total: montoTotal, filas, problemas }
+  // total = líneas del archivo; beneficiarios = transferencias lógicas (antes de partir).
+  return { ruta, total: lineas.length, beneficiarios: transfers.length, monto_total: montoTotal, filas, problemas }
 }
 
 /**
