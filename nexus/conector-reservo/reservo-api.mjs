@@ -521,17 +521,24 @@ async function accionReagendarCita(b) {
   const j = await internalJson(ep, 'POST', new URLSearchParams(form).toString())
   return { ok: !!j, raw: j }
 }
+// ANULAR = estadoAppt con codigo=E (CERTIFICADO 2026-07-22: {id,status:"",codigo:"E"} → estado "Eliminado").
+// Necesita el ID NUMÉRICO de la cita (el que devuelve crear), NO el uuid (estadoAppt no acepta uuid).
 async function accionAnularCita(b) {
-  if (!b.cita_uuid) throw new Error('falta campo obligatorio: cita_uuid')
-  if (!ESCRITURA_OK) throw pendienteCaptura('/appointment/(anular)')
-  const j = await internalJson('/appointment/estadoAppt/', 'POST', new URLSearchParams(b).toString())
-  return { ok: !!j, raw: j }
-}
-async function accionEstadoCita(b) {
-  if (!b.cita_uuid) throw new Error('falta campo obligatorio: cita_uuid')
-  if (!b.estado) throw new Error('falta campo obligatorio: estado')
+  const id = b.cita_id || b.id
+  if (!id) throw new Error('falta campo obligatorio: cita_id (id numérico que devuelve crear; estadoAppt no usa uuid)')
+  if (b.simular !== false) return { ok: true, simulado: true, endpoint: '/appointment/estadoAppt/', form: { id: String(id), status: '', codigo: 'E' } }
   if (!ESCRITURA_OK) throw pendienteCaptura('/appointment/estadoAppt/')
-  const j = await internalJson('/appointment/estadoAppt/', 'POST', new URLSearchParams(b).toString())
+  const j = await internalJson('/appointment/estadoAppt/', 'POST', new URLSearchParams({ id: String(id), status: '', codigo: 'E' }).toString())
+  return { ok: !!(j && /eliminad/i.test((j.estado || j.status || '') + '')), raw: j }
+}
+// Cambiar estado: codigo letra (E eliminado, C/3 confirmado, A/1 atendido…). Certificado con E.
+async function accionEstadoCita(b) {
+  const id = b.cita_id || b.id
+  if (!id) throw new Error('falta campo obligatorio: cita_id')
+  if (!b.codigo) throw new Error('falta campo obligatorio: codigo (E=eliminar, C=confirmar…)')
+  if (b.simular !== false) return { ok: true, simulado: true, endpoint: '/appointment/estadoAppt/', form: { id: String(id), status: '', codigo: String(b.codigo) } }
+  if (!ESCRITURA_OK) throw pendienteCaptura('/appointment/estadoAppt/')
+  const j = await internalJson('/appointment/estadoAppt/', 'POST', new URLSearchParams({ id: String(id), status: '', codigo: String(b.codigo) }).toString())
   return { ok: !!j, raw: j }
 }
 
@@ -592,7 +599,7 @@ async function reservarFacade(b) {
     agenda: b.agenda, simular: b.simular,
   })
   if (out.simulado) return { ok: true, simulado: true, estado: 'NC', form: out.form, endpoint: out.endpoint }
-  if (out.ok) return { ok: true, cita_uuid: out.cita_uuid, estado: 'NC' }
+  if (out.ok) return { ok: true, cita_id: out.cita_id, cita_uuid: out.cita_uuid, estado: 'NC' }
   return { ok: false, error: out.raw?.error || out.raw?.mensaje || 'no se pudo crear la cita' }
 }
 
