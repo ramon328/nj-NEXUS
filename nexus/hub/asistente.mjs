@@ -1276,7 +1276,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'vincular_banco'],
+  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'vincular_banco', 'mis_bancos_conectados'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -1683,6 +1683,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 💸💸 TRANSFERENCIA MASIVA — varias transferencias en un LOTE (sistema "tek", herramienta **tek_masiva**) — cuando pidan pagar/transferir a VARIOS de una (nómina, varios proveedores). Sube un LOTE a Santander Empresa que queda PENDIENTE por liberar (no mueve plata hasta la Liberación con Superclave, paso manual aparte). Cada transferencia lleva nombre + monto (+ rut, banco y cuenta si el beneficiario NO está guardado; mismo criterio que tek_transferir). ANTES de subir necesitas SIEMPRE 2 datos que le PREGUNTAS al usuario: (1) el **concepto** (muéstrale las opciones: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) el **motivo** (glosa cartola originador, texto corto). Va en 2 pasos: (a) tek_masiva accion:'preparar' con la lista → devuelve el RESUMEN (cantidad, total, beneficiarios, problemas). ⚠️ El banco permite **máx $7.000.000 por línea**: si una transferencia supera eso, el sistema la PARTE solo en varias líneas del mismo beneficiario que suman el total (ej. $82M → 11 de $7M + 1 de $5M). Si el resumen trae "nota_division", avísale al usuario cómo quedó dividida. Si falta el concepto o el motivo, la tool te lo dice: pregúntaselo. Muéstrale el resumen y pregúntale "¿subo el lote?". (b) SOLO con su OK explícito + concepto + motivo, tek_masiva accion:'enviar' con los MISMOS datos → sube el lote pendiente. NUNCA envíes sin confirmación. 📄 Si el usuario pide VER/revisar el Excel que se sube al banco ("mándame el excel", "el archivo que subes", "quiero revisarlo"), llama tek_masiva accion:'excel' con las mismas transferencias → se lo manda por WhatsApp. ⛔ NUNCA digas que "no puedes generar/enviar el Excel": SÍ puedes, es accion:'excel'. El RUT en el archivo va sin puntos ni guion (el sistema lo formatea solo). Si el banco RECHAZA (0 aceptados), NO es el click de confirmar: es que la cuenta/RUT/banco del beneficiario no cuadran — dile al usuario que revise esos datos (ofrécele mandarle el Excel para chequear).
 
 📄 DESCARGAR COMPROBANTES de pago (sistema "tek", herramienta **tek_comprobantes**) — cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", etc. Va en 2 pasos: (a) tek_comprobantes accion:'listar' → trae la lista de transferencias/comprobantes; muéstrasela NUMERADA (fecha · beneficiario · monto) y pregúntale CUÁL quiere. (b) tek_comprobantes accion:'bajar' → baja y manda por WhatsApp: indice=<n> para uno, indices=[..] para varios, o **todos:true** si el usuario dice "mándame todos"/"todos los comprobantes". IMPORTANTE (contexto): después de mostrar la lista, RECUERDA los números en el próximo mensaje — si el usuario responde "todos" o "el 2 y el 4", mapea eso a la llamada correcta. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco primero.
+
+🏦 "¿QUÉ BANCOS/EMPRESAS TENGO CONECTADAS?" (herramienta **mis_bancos_conectados**) — cuando el usuario pregunte qué bancos/empresas/cuentas tiene conectadas o vinculadas, usa SIEMPRE mis_bancos_conectados y dile las empresas de SU cuenta (las que ÉL vinculó por el widget). ⛔ NO respondas con el tool "banco" (Leo/Rail) ni con las conexiones de Ramón u otros — cada usuario ve LO SUYO. El tool "banco" (Leo) es solo para SALDOS/MOVIMIENTOS ("cuánta plata hay"), NO para "qué tengo conectado".
 
 🏦 CONECTAR/VINCULAR UN BANCO (herramienta **vincular_banco**) — cuando el usuario diga "quiero agregar/conectar/vincular una cuenta de banco", "conectar mi banco", "dar las credenciales del banco", etc., llama vincular_banco y **mándale el LINK del widget seguro + el PIN** que devuelve. ⛔ JAMÁS le pidas el usuario/clave del banco por el chat (queda expuesto en WhatsApp): las credenciales se ingresan SOLO en esa página cifrada, que además —si el RUT tiene varias empresas— lo deja elegir cuál. NO le hables de "Rail" ni "login asistido": el camino es el link de vincular_banco.
 
@@ -2698,6 +2700,12 @@ const HERRAMIENTAS = [
     description: 'Cuando el usuario quiera AGREGAR / CONECTAR / VINCULAR un banco o una cuenta bancaria, o dice que quiere dar/ingresar las credenciales del banco ("quiero agregar una cuenta de banco", "conectar mi banco", "vincular banco", "agregar banco nuevo"). ⛔ NUNCA le pidas la CLAVE del banco por el chat (queda expuesta): se ingresa en una PÁGINA SEGURA cifrada. Esta tool devuelve el LINK del widget + el PIN para que el usuario entre y conecte su banco ahí (el widget pide usuario/banco/RUT/clave y, si el RUT tiene varias empresas, lo deja elegir cuál). Úsala en vez de pedir datos del banco en la conversación.',
     input_schema: { type: 'object', properties: {}, required: [] },
   },
+  // ── Qué bancos/empresas tiene conectadas ESTE usuario (sus vinculaciones en Nexus) ──
+  {
+    name: 'mis_bancos_conectados',
+    description: 'Cuando el usuario pregunte qué BANCOS/EMPRESAS/CUENTAS tiene CONECTADAS/VINCULADAS ("qué bancos tengo conectados", "qué empresas tengo vinculadas", "qué cuentas de banco tengo", "cuántos bancos tengo conectados"). Devuelve las empresas/bancos que ESE usuario (quien pregunta) conectó en Nexus vía el widget de vincular banco — SOLO de SU cuenta, no de otros. ⛔ NO uses el tool "banco" (Leo/Rail) para esto: ese muestra datos de otra vía y NO son las vinculaciones del usuario. Este es el correcto para "qué tengo conectado".',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
   // ── Alertas a usuarios de Nexus, incluso FUERA de la ventana de 24h de WhatsApp ──
   {
     name: 'alertar_usuario',
@@ -3185,6 +3193,22 @@ async function ejecutar(nombre, input, ctx = {}) {
       try { const vc = await import('../conector-tek/vincular-codes.mjs'); codigo = vc.generar(uidNexus) } catch { /* */ }
       const texto = `Para conectar tu banco, toca este link 👇\n\n🔗 ${url}\n\n🔒 Código: *${codigo}* (válido 30 min)\n\nAbre el link, escribe ese código, y ahí pones el banco, RUT y clave. 🔐 La clave se guarda CIFRADA y NO pasa por WhatsApp. Si tu RUT tiene varias empresas, te deja elegir cuál(es) conectar.`
       return JSON.stringify({ ok: true, url, codigo, texto, instruccion: 'Mándale el LINK (en su propia línea) y el CÓDIGO tal cual. El código es de un solo uso y NUEVO cada vez. ⛔ NUNCA le pidas la clave del banco por el chat — se ingresa SOLO en esa página segura.' })
+    }
+    // ── Qué bancos/empresas tiene conectadas ESTE usuario (sus vinculaciones en Nexus) ──
+    if (nombre === 'mis_bancos_conectados') {
+      const uid = (usuarioDe(ctx.de)?.nombre || '').toLowerCase().trim()
+      if (!uid) return JSON.stringify({ ok: false, texto: 'No sé de qué usuario mostrar los bancos.' })
+      let cm
+      try { cm = await import('../conector-tek/credenciales.mjs') } catch (e) { return JSON.stringify({ ok: false, error: 'No pude leer las conexiones: ' + e.message }) }
+      const cons = cm.listar(uid) || []
+      if (!cons.length) return JSON.stringify({ ok: true, total: 0, texto: 'No tienes ninguna cuenta de banco conectada en Nexus todavía. Si quieres conectar una, pídeme el link (te mando el widget seguro).' })
+      // Agrupamos por banco (hoy todo Santander) y listamos las empresas de ESTE usuario.
+      const empresas = cons.map((c) => c.empresa).filter(Boolean)
+      const bancos = [...new Set(cons.map((c) => c.banco).filter(Boolean))]
+      return JSON.stringify({
+        ok: true, total: cons.length, bancos, empresas,
+        instruccion: `Dile al usuario las EMPRESAS que ÉL tiene conectadas en Nexus (de SU cuenta, ${uid}): banco(s) ${bancos.join(', ')}, con estas ${empresas.length} empresas: ${empresas.join(', ')}. NO menciones las conexiones de Leo/Rail ni las de otros usuarios (Ramón u otros). Son SOLO las que este usuario vinculó por el widget.`,
+      })
     }
     // ── SII · descargar el PDF de una boleta de honorarios recibida y mandarla por WhatsApp ──
     if (nombre === 'sii_boleta_honorarios') {
