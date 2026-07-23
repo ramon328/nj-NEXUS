@@ -313,3 +313,4 @@
 {"ts":"2026-07-23T15:41:29.398Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-23T15:56:36.373Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-23T16:02:17.734Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":88350,"tratamiento_id":390569,"hora":"2026-07-25T09:00:00-04:00","hora_fin":"09:30","cliente":{"nombre":"Gustavo Caballero Miranda","rut":"26556376-7","telefono":"+569"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"378571784822537e0f6903c_86af_11f1_93bc_0242ac120004","error":null}
+{"ts":"2026-07-23T16:11:45.498Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
