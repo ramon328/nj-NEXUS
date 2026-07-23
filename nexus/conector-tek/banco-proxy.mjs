@@ -29,9 +29,11 @@ const server = http.createServer((req, res) => {
       pres.on('data', (d) => chunks.push(d))
       pres.on('end', () => {
         let body = Buffer.concat(chunks).toString('utf8')
-        // Reescribe TODAS las llamadas fetch del widget para que vayan bajo /banco.
+        // Reescribe TODAS las llamadas fetch del widget para que vayan bajo /banco. Matcheamos
+        // el PREFIJO de la ruta (sin exigir la comilla de cierre) → cubre también las que llevan
+        // query, ej. fetch('/conexiones?userId=...').
         for (const p of ['/auth', '/empresas', '/guardar', '/conexiones']) {
-          body = body.split(`fetch('${p}'`).join(`fetch('${PREFIX}${p}'`)
+          body = body.split(`fetch('${p}`).join(`fetch('${PREFIX}${p}`)
         }
         res.writeHead(pres.statusCode, h)
         res.end(body)

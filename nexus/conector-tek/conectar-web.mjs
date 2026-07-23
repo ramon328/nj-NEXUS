@@ -92,6 +92,12 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
  .ok{color:var(--ok);font-size:13px;min-height:16px;margin-top:10px;text-align:center}
  .lock{color:var(--mut);font-size:11.5px;text-align:center;margin-top:16px;line-height:1.45}
  .hide{display:none}
+ .empItem{display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin-top:8px;cursor:pointer;transition:border-color .2s,box-shadow .2s}
+ .empItem:hover{border-color:var(--blue)}
+ .empItem input{width:auto;margin-top:3px;accent-color:var(--ok)}
+ .empItem.ya{border-color:var(--ok);box-shadow:0 0 0 1.5px var(--ok),0 0 14px 2px rgba(34,197,94,.5);animation:glow 1.8s ease-in-out infinite}
+ @keyframes glow{0%,100%{box-shadow:0 0 0 1.5px var(--ok),0 0 8px 1px rgba(34,197,94,.35)}50%{box-shadow:0 0 0 1.5px var(--ok),0 0 18px 4px rgba(34,197,94,.7)}}
+ .badge{color:var(--ok);font-size:11px;font-weight:700;margin-left:7px}
  .done{text-align:center;padding:10px 0}
  .done .big{font-size:52px;line-height:1;margin-bottom:8px}
  .done h2{font-size:20px;margin:0 0 6px} .done p{color:var(--mut);font-size:14px;margin:0}
@@ -132,7 +138,7 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
       <label for="empManual">Nombre de la empresa (como sale en el banco)</label>
       <input id="empManual" autocomplete="off" placeholder="ej: ANA CLARA SPA">
     </div>
-    <button id="empBtn" type="button">Vincular empresa</button>
+    <button id="empBtn" type="button">Vincular seleccionadas</button>
     <div id="empMsg" class="err"></div>
     <button id="empVolver" type="button" style="background:#242736;margin-top:10px">← Volver a revisar RUT/clave</button>
   </div>
@@ -165,17 +171,24 @@ async function login(){
 $('#pinBtn').addEventListener('click',login)
 $('#pin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();login()}})
 
-/* Guarda la conexión (con la empresa elegida y la lista completa). */
-async function guardar(empresa){
-  const b={...CREDS, empresa: empresa||undefined, empresas: EMPRESAS.length?EMPRESAS:undefined}
+/* Guarda UNA o VARIAS empresas (mismas credenciales, un registro por empresa). */
+async function guardar(names){
+  const lista=(Array.isArray(names)?names:[names]).filter(Boolean)
+  if(!lista.length){ $('#empMsg').className='err'; $('#empMsg').textContent='Selecciona al menos una empresa.'; return }
   const msg = $('#empresas').classList.contains('hide') ? $('#formMsg') : $('#empMsg')
-  msg.className='ok'; msg.textContent='Guardando…'
-  try{
-    const r=await fetch('/guardar',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)})
-    const j=await r.json().catch(()=>({}))
-    if(r.ok&&j.ok){ $('#doneTxt').textContent=(j.empresa?('Empresa '+j.empresa+' — '):'')+CREDS.banco+' conectado para '+CREDS.userId+'.'; show('done') }
-    else{ msg.className='err'; msg.textContent=j.error||'No se pudo guardar.' }
-  }catch(e){ msg.className='err'; msg.textContent='Sin conexión, reintenta' }
+  msg.className='ok'; msg.textContent='Guardando '+lista.length+(lista.length>1?' empresas…':'…')
+  $('#empBtn').disabled=true
+  let ok=0
+  for(const empresa of lista){
+    try{
+      const b={...CREDS, empresa, empresas: EMPRESAS.length?EMPRESAS:undefined}
+      const r=await fetch('/guardar',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)})
+      const j=await r.json().catch(()=>({})); if(r.ok&&j.ok) ok++
+    }catch(e){}
+  }
+  $('#empBtn').disabled=false
+  if(ok){ $('#doneTxt').textContent=(ok>1?(ok+' empresas conectadas'):('Empresa "'+lista[0]+'" conectada'))+' — '+CREDS.banco+' para '+CREDS.userId+'.'; show('done') }
+  else{ msg.className='err'; msg.textContent='No se pudo guardar.' }
 }
 
 /* Paso 1 → buscar empresas del RUT (entra al banco, puede tardar). */
@@ -189,8 +202,13 @@ async function continuar(){
   $('#okBtn').disabled=false
   if(j.ok && Array.isArray(j.empresas) && j.empresas.length){
     EMPRESAS=j.empresas
-    if(j.empresas.length===1){ await guardar(j.empresas[0].empresa) }        // una sola → guarda directo
-    else { pintarEmpresas(j.empresas); manual(false); show('empresas') }      // varias → elegir de la lista
+    if(j.empresas.length===1){ await guardar([j.empresas[0].empresa]) }       // una sola → guarda directo
+    else {
+      // trae las empresas YA vinculadas de este usuario para marcarlas con borde brillante
+      let ya=[]
+      try{ const rc=await fetch('/conexiones?userId='+encodeURIComponent(CREDS.userId)); const jc=await rc.json().catch(()=>({})); ya=(jc.conexiones||[]).map(c=>(c.empresa||'').toLowerCase().trim()).filter(Boolean) }catch(e){}
+      pintarEmpresas(j.empresas, ya); manual(false); show('empresas')          // varias → elegir (multi-select)
+    }
   } else {
     // No pude leer las empresas (clave rechazada, banco ocupado o seguridad). Muestro el paso de
     // empresa con campo MANUAL + aviso → el usuario decide (Volver a revisar la clave, o escribir
@@ -209,23 +227,31 @@ function manual(on, msg){
   $('#empManualWrap').classList.toggle('hide', !on)
   if(on) $('#empSub').textContent=(msg||'')+'. Escribe el nombre de la empresa que quieres conectar (o toca «Volver» para revisar la clave):'
 }
-function pintarEmpresas(list){
-  $('#empSub').textContent='Tu RUT tiene '+list.length+' empresas. Elige la que quieres conectar:'
-  $('#empLista').innerHTML=list.map((e,i)=>
-    '<label style="display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin-top:8px;cursor:pointer">'+
-    '<input type="radio" name="emp" value="'+i+'" '+(i===0?'checked':'')+' style="width:auto;margin-top:3px">'+
-    '<span><b>'+(e.empresa||'').replace(/</g,'')+'</b><br><span style="color:var(--mut);font-size:12.5px">RUT '+(e.rut||'')+(e.rol?' · '+e.rol:'')+'</span></span></label>'
-  ).join('')
+function pintarEmpresas(list, ya){
+  ya=ya||[]
+  const nvinc=ya.length
+  $('#empSub').innerHTML='Tu RUT tiene <b>'+list.length+'</b> empresas. Marca TODAS las que quieras conectar (puedes elegir varias).'+(nvinc?' Las de <span style="color:var(--ok)">borde verde</span> ya están vinculadas.':'')
+  $('#empLista').innerHTML=list.map((e,i)=>{
+    const nom=(e.empresa||'').replace(/</g,'')
+    const vinc=ya.includes((e.empresa||'').toLowerCase().trim())
+    return '<label class="empItem'+(vinc?' ya':'')+'">'+
+      '<input type="checkbox" name="emp" value="'+i+'">'+
+      '<span><b>'+nom+'</b>'+(vinc?'<span class="badge">✓ ya vinculada</span>':'')+
+      '<br><span style="color:var(--mut);font-size:12.5px">RUT '+(e.rut||'')+(e.rol?' · '+e.rol:'')+'</span></span></label>'
+  }).join('')
 }
 $('#okBtn').addEventListener('click',continuar)
 $('#clave').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();continuar()}})
 $('#empBtn').addEventListener('click',()=>{
-  let empresa
-  if(!$('#empManualWrap').classList.contains('hide')){                    // modo manual
-    empresa=$('#empManual').value.trim()
+  if(!$('#empManualWrap').classList.contains('hide')){                    // modo manual (una)
+    const empresa=$('#empManual').value.trim()
     if(!empresa){$('#empMsg').className='err';$('#empMsg').textContent='Escribe el nombre de la empresa.';return}
-  } else { const sel=document.querySelector('input[name=emp]:checked'); const e=EMPRESAS[sel?+sel.value:0]; empresa=e?e.empresa:undefined }
-  guardar(empresa)
+    return guardar([empresa])
+  }
+  // multi-select: todas las marcadas
+  const marcadas=[...document.querySelectorAll('input[name=emp]:checked')].map(c=>(EMPRESAS[+c.value]||{}).empresa).filter(Boolean)
+  if(!marcadas.length){$('#empMsg').className='err';$('#empMsg').textContent='Marca al menos una empresa.';return}
+  guardar(marcadas)
 })
 $('#empVolver').addEventListener('click',()=>show('form'))
 $('#otro').addEventListener('click',()=>{CREDS=null;EMPRESAS=[];$('#clave').value='';$('#formMsg').textContent='';show('form');$('#userId').focus()})
