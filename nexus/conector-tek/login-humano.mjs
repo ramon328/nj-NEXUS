@@ -17,7 +17,7 @@
 // ⚠️ SOLO loguea/lee estado y guarda la sesión. NO transfiere.
 import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchright/index.js'
 const { chromium } = patchright
-import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync } from 'node:fs'
+import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync, cpSync, rmSync } from 'node:fs'
 import { join } from 'node:path'
 import { obtener as obtenerCreds } from '/Users/AIagenteia/nexus/conector-tek/credenciales.mjs'
 
@@ -1528,12 +1528,26 @@ async function main() {
   const headless = process.env.TEK_HEADLESS === '1'
   const assist = process.env.TEK_ASSIST === '1'
   const perfilReal = process.env.TEK_PROFILE_REAL === '1'
-  // VINCULACIÓN (probar creds de OTRO usuario): perfil EFÍMERO por RUT, así NO pisa ni reusa
-  // la sesión del perfil compartido (ANA CLARA). Se descarta al terminar.
+  // VINCULACIÓN (probar creds de un usuario para leer sus empresas): CLONAMOS el perfil
+  // CONFIABLE (chrome-profile) a un dir temporal. Así heredamos la CONFIANZA DEL DISPOSITIVO
+  // con el banco (cookies Incapsula/BioCatch, device token) → el antifraude NO lo trata como
+  // dispositivo nuevo; pero AISLADO, sin pisar la sesión de ANA CLARA. Se borra al terminar.
   const vinculando = process.env.TEK_VINCULAR === 'empresas'
-  const profileDir = perfilReal
-    ? join(process.env.HOME, 'Library/Application Support/Google/Chrome')
-    : (vinculando ? join('/tmp', 'tek-vinc-' + String(rut || 'x').replace(/[^0-9kK]/g, '')) : PROFILE_TEK)
+  let profileDir
+  if (perfilReal) profileDir = join(process.env.HOME, 'Library/Application Support/Google/Chrome')
+  else if (vinculando) {
+    profileDir = join('/tmp', 'tek-vinc-' + String(rut || 'x').replace(/[^0-9kK]/g, '') + '-' + process.pid)
+    try { rmSync(profileDir, { recursive: true, force: true }) } catch { /* */ }
+    // Copiamos SOLO lo que da la confianza del dispositivo (no los caches, que pesan GB).
+    try {
+      mkdirSync(join(profileDir, 'Default'), { recursive: true })
+      for (const it of ['Local State', 'First Run', 'Default/Cookies', 'Default/Cookies-journal', 'Default/Network', 'Default/Local Storage', 'Default/Session Storage', 'Default/WebStorage', 'Default/Preferences', 'Default/Trust Tokens', 'Default/Shared Dictionary', 'Default/Local State']) {
+        const s = join(PROFILE_TEK, it)
+        if (existsSync(s)) { try { cpSync(s, join(profileDir, it), { recursive: true }) } catch { /* */ } }
+      }
+      log('vincular: perfil confiable clonado (device-trust heredado)')
+    } catch (e) { log('vincular: clon de perfil falló:', e.message) }
+  } else profileDir = PROFILE_TEK
   // Patchright recomienda mínimos args (nada de --no-sandbox/UA: son señales de bot).
   const ctx = await chromium.launchPersistentContext(profileDir, {
     headless, channel: 'chrome',
@@ -1547,7 +1561,12 @@ async function main() {
   if (mapearOn) { ctx.on('request', (r) => regNet(r.method(), r.url())); ctx.on('response', (r) => regNet(r.request().method(), r.url(), r.status())) }
   for (const p of ctx.pages().slice(1)) { try { await p.close() } catch {} }
   const page = ctx.pages()[0] || await ctx.newPage()
-  const cerrar = async () => { try { await ctx.storageState({ path: SESSION_FILE }) } catch {} ; try { await ctx.close() } catch {} }
+  const cerrar = async () => {
+    // En VINCULACIÓN no guardamos la sesión (no pisar la de ANA CLARA) y borramos el clon.
+    if (!vinculando) { try { await ctx.storageState({ path: SESSION_FILE }) } catch {} }
+    try { await ctx.close() } catch {}
+    if (vinculando && profileDir.startsWith('/tmp/tek-vinc-')) { try { rmSync(profileDir, { recursive: true, force: true }) } catch {} }
+  }
   const shot = (n) => page.screenshot({ path: join(SHOTS, n) }).catch(() => {})
   const fin = async (estado, extra = {}) => { await shot(`fin-${estado}.png`); console.log('RESULTADO:', JSON.stringify({ estado, url: page.url(), ...extra })); await cerrar() }
 
