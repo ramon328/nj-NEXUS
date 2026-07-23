@@ -193,6 +193,57 @@ export async function validarDeudaPension(persona, { confirmar = false } = {}) {
 }
 
 // ============================================================
+//  INFORMES / CAV  (base /api/v2/reports) — la que quiere Meme
+// ============================================================
+// Tipos (radio UI -> reportType que se envía):
+//   'CAV'                      -> reportType 'CAV_RAW'   (el CAV rápido; se genera al instante)
+//   'Informe Autored'          -> reportType 'CAV'
+//   'Informe Autored Completo' -> reportType 'NMP'
+export const TIPOS_INFORME = { CAV: 'CAV_RAW', INFORME: 'CAV', COMPLETO: 'NMP' };
+
+// historial de informes comprados (lectura, gratis)
+export function listarInformes({ patente = '', tipo = '', pagina = 0, filas = 20 } = {}) {
+  return api(`${API_AUTH}/reports/`, {
+    params: { license_plate: patente, reportType: tipo, order: 'id', direction: 'desc', page: pagina, rowsPerPage: filas },
+  });
+}
+// avisa si ya se compró algún informe de esa patente (lectura, gratis) -> [{reportType, createdAt}]
+export const informesRepetidos = (patente) =>
+  api(`${API_AUTH}/reports/check-repeated`, { params: { licensePlate: patente } });
+
+// descarga un informe listo a un archivo local (lectura). Devuelve la ruta.
+export async function descargarInforme(url, destino) {
+  const r = await fetch(url, { headers: { cookie: `authorization=${await jwt()}` } });
+  if (!r.ok) throw new Error(`descarga HTTP ${r.status}`);
+  const buf = Buffer.from(await r.arrayBuffer());
+  fs.writeFileSync(destino, buf);
+  return { destino, bytes: buf.length };
+}
+
+// COMPRA un informe/CAV (COBRA) -> doble candado. tipo: clave de TIPOS_INFORME o reportType directo.
+export async function comprarInforme(patente, tipo = 'CAV', { confirmar = false, esperar = true, timeoutMs = 180000 } = {}) {
+  const reportType = TIPOS_INFORME[tipo] || tipo;
+  const g = guardia('buyCav', { license_plate: patente, reportType }, confirmar);
+  if (g) return { ...g, descripcion: `Compra informe ${reportType} de ${patente} (COBRA).` };
+  const previos = await informesRepetidos(patente).catch(() => []);
+  const res = await api(`${API_AUTH}/reports/buy`, { method: 'POST', body: { license_plate: patente, reportType } });
+  const rep = Array.isArray(res) ? res[0] : res;
+  if (!esperar) return { ...rep, repetidos_previos: previos };
+  // poll hasta ready + url
+  const t0 = Date.now();
+  while (Date.now() - t0 < timeoutMs) {
+    const lst = await listarInformes({ patente, filas: 20 });
+    const rows = lst.rows || lst || [];
+    const row = (Array.isArray(rows) ? rows : []).find((x) => x.id === rep.id);
+    if (row && row.ready && (row.url || row.publicUrl)) {
+      return { ...row, url: row.url || row.publicUrl, repetidos_previos: previos };
+    }
+    await new Promise((r) => setTimeout(r, 8000));
+  }
+  return { ...rep, ready: false, nota: 'no quedó listo en el timeout', repetidos_previos: previos };
+}
+
+// ============================================================
 //  CLI
 // ============================================================
 const ESTADOS = { pendientes: 'UPLOAD_DOCUMENTS', '': '' };
@@ -210,9 +261,11 @@ async function cli() {
       case 'estado': out(await estadoTransferencia(args[0])); break;
       case 'impuestos': out(await impuestosVehiculo(args[0])); break;
       case 'vehiculo': out(await infoVehiculo({ licensePlate: args[0] })); break;
+      case 'informes': out(await listarInformes({ patente: args[0] || '' })); break;
+      case 'repetidos': out(await informesRepetidos(args[0])); break;
       case 'login': out(await login().then(() => ({ ok: true, msg: 'sesión renovada' }))); break;
       default:
-        console.log(`Comandos: quien | creditos | resumen | rc | lista [patente] | estado <id> | impuestos <id> | vehiculo <patente> | login
+        console.log(`Comandos: quien | creditos | resumen | rc | lista [patente] | estado <id> | impuestos <id> | vehiculo <patente> | informes [patente] | repetidos <patente> | login
 Escritura (cobra) solo vía import + AUTORED_PERMITIR_ESCRITURA=1 + { confirmar:true }.`);
     }
   } catch (e) { console.error('ERROR:', e.message); process.exit(1); }
