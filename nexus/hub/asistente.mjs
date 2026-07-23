@@ -1682,7 +1682,7 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 
 💸💸 TRANSFERENCIA MASIVA — varias transferencias en un LOTE (sistema "tek", herramienta **tek_masiva**) — cuando pidan pagar/transferir a VARIOS de una (nómina, varios proveedores). Sube un LOTE a Santander Empresa que queda PENDIENTE por liberar (no mueve plata hasta la Liberación con Superclave, paso manual aparte). Cada transferencia lleva nombre + monto (+ rut, banco y cuenta si el beneficiario NO está guardado; mismo criterio que tek_transferir). ANTES de subir necesitas SIEMPRE 2 datos que le PREGUNTAS al usuario: (1) el **concepto** (muéstrale las opciones: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) el **motivo** (glosa cartola originador, texto corto). Va en 2 pasos: (a) tek_masiva accion:'preparar' con la lista → devuelve el RESUMEN (cantidad, total, beneficiarios, problemas). ⚠️ El banco permite **máx $7.000.000 por línea**: si una transferencia supera eso, el sistema la PARTE solo en varias líneas del mismo beneficiario que suman el total (ej. $82M → 11 de $7M + 1 de $5M). Si el resumen trae "nota_division", avísale al usuario cómo quedó dividida. Si falta el concepto o el motivo, la tool te lo dice: pregúntaselo. Muéstrale el resumen y pregúntale "¿subo el lote?". (b) SOLO con su OK explícito + concepto + motivo, tek_masiva accion:'enviar' con los MISMOS datos → sube el lote pendiente. NUNCA envíes sin confirmación. 📄 Si el usuario pide VER/revisar el Excel que se sube al banco ("mándame el excel", "el archivo que subes", "quiero revisarlo"), llama tek_masiva accion:'excel' con las mismas transferencias → se lo manda por WhatsApp. ⛔ NUNCA digas que "no puedes generar/enviar el Excel": SÍ puedes, es accion:'excel'. El RUT en el archivo va sin puntos ni guion (el sistema lo formatea solo). Si el banco RECHAZA (0 aceptados), NO es el click de confirmar: es que la cuenta/RUT/banco del beneficiario no cuadran — dile al usuario que revise esos datos (ofrécele mandarle el Excel para chequear).
 
-📄 DESCARGAR COMPROBANTES de pago (sistema "tek", herramienta **tek_comprobantes**) — cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", etc. Va en 2 pasos: (a) tek_comprobantes accion:'listar' → trae la lista de transferencias/comprobantes; muéstrasela NUMERADA (fecha · beneficiario · monto) y pregúntale CUÁL quiere. (b) tek_comprobantes accion:'bajar' con indice = el número que eligió → baja el PDF y se lo manda por WhatsApp. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco primero.
+📄 DESCARGAR COMPROBANTES de pago (sistema "tek", herramienta **tek_comprobantes**) — cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", etc. Va en 2 pasos: (a) tek_comprobantes accion:'listar' → trae la lista de transferencias/comprobantes; muéstrasela NUMERADA (fecha · beneficiario · monto) y pregúntale CUÁL quiere. (b) tek_comprobantes accion:'bajar' → baja y manda por WhatsApp: indice=<n> para uno, indices=[..] para varios, o **todos:true** si el usuario dice "mándame todos"/"todos los comprobantes". IMPORTANTE (contexto): después de mostrar la lista, RECUERDA los números en el próximo mensaje — si el usuario responde "todos" o "el 2 y el 4", mapea eso a la llamada correcta. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco primero.
 
 REGLA DE ORO (acciones sensibles):
 - Las acciones que muevan dinero o sean irreversibles (pagar, transferir, eliminar, enviar, confirmar, comprar, etc.) NO se ejecutan solas: requieren aprobación humana explícita de Ramón.
@@ -2665,7 +2665,7 @@ const HERRAMIENTAS = [
   // ── tek · DESCARGAR COMPROBANTES de pago/transferencia (Consultas Histórica) ────
   {
     name: 'tek_comprobantes',
-    description: 'DESCARGAR comprobantes de pago/transferencia de ANA CLARA desde Santander Empresa (sistema "tek"). SOLO LECTURA (no mueve plata). Úsalo cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", "el comprobante de la transferencia". Va en 2 pasos: (1) accion:"listar" → devuelve la LISTA de transferencias/comprobantes disponibles (fecha, beneficiario, monto, estado). Muéstrasela NUMERADA y pregúntale CUÁL quiere. (2) accion:"bajar" con "indice" (el número que eligió) → baja el PDF y se lo MANDA por WhatsApp. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco (login asistido) primero.',
+    description: 'DESCARGAR comprobantes de pago/transferencia de ANA CLARA desde Santander Empresa (sistema "tek"). SOLO LECTURA (no mueve plata). Úsalo cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", "el comprobante de la transferencia". Va en 2 pasos: (1) accion:"listar" → devuelve la LISTA de transferencias/comprobantes disponibles (fecha, beneficiario, monto, estado). Muéstrasela NUMERADA y pregúntale CUÁL quiere. (2) accion:"bajar" → baja el/los PDF y se los MANDA por WhatsApp: "indice" para UNO, "indices":[..] para VARIOS, o "todos":true para TODOS (los descarga a todos en una sola sesión). Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco (login asistido) primero.',
     input_schema: {
       type: 'object',
       properties: {
@@ -3124,24 +3124,34 @@ async function ejecutar(nombre, input, ctx = {}) {
       try { cm = await import('../conector-tek/comprobantes.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de comprobantes (tek): ' + e.message }) }
       if (input.accion === 'bajar') {
-        const idx = Math.max(1, parseInt(input.indice, 10) || 1)
-        const r = await cm.bajarComprobante(idx)
+        // Qué bajar: todos | varios (indices) | uno (indice).
+        let spec = '1'
+        if (input.todos === true) spec = 'todos'
+        else if (Array.isArray(input.indices) && input.indices.length) spec = input.indices.map((n) => parseInt(n, 10)).filter((n) => n >= 1).join(',')
+        else if (input.indice != null) spec = String(Math.max(1, parseInt(input.indice, 10) || 1))
+        const r = await cm.bajarComprobantes(spec)
         if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de bajar comprobantes.' })
-        if (r.ok && r.pdf) {
-          const target = destinoValido(ctx.de)
-          if (target) {
-            try { await enviarMediaWhatsApp(target, r.pdf, `📄 Comprobante #${idx}`, { forceDocument: true }); return JSON.stringify({ ok: true, enviado: true, pdf: r.pdf, texto: 'Te mandé el comprobante 📄' }) }
-            catch (e) { return JSON.stringify({ ok: false, error: 'No pude enviar el comprobante por WhatsApp: ' + e.message, pdf: r.pdf }) }
+        const oks = (r.comprobantes || []).filter((c) => c.pdf)
+        if (!oks.length) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude bajar ${spec === 'todos' ? 'los comprobantes' : 'ese comprobante'} (${r.estado || 'desconocido'}). Puede que esas filas no tengan PDF o el banco no los entregó.` })
+        const target = destinoValido(ctx.de)
+        let enviados = 0
+        if (target) {
+          for (const c of oks) {
+            try { await enviarMediaWhatsApp(target, c.pdf, `📄 Comprobante #${c.idx}`, { forceDocument: true }); enviados++ }
+            catch { /* sigue con los demás */ }
           }
-          return JSON.stringify({ ok: true, pdf: r.pdf, texto: 'Comprobante descargado en ' + r.pdf })
         }
-        return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude bajar ese comprobante (${r.estado || 'desconocido'}). Puede que esa fila no tenga PDF o el banco no lo entregó.` })
+        const fallidos = (r.comprobantes || []).length - oks.length
+        const texto = target
+          ? `Te mandé ${enviados} comprobante${enviados === 1 ? '' : 's'} 📄` + (enviados < oks.length ? ` (${oks.length - enviados} no se pudieron enviar)` : '') + (fallidos ? ` · ${fallidos} no tenían PDF disponible` : '')
+          : `Descargué ${oks.length} comprobante(s).`
+        return JSON.stringify({ ok: true, enviados, descargados: oks.length, fallidos, pdfs: oks.map((c) => c.idx), texto })
       }
       // listar
       const r = await cm.listarComprobantes()
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de leer comprobantes.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer los comprobantes (${r.estado || 'desconocido'}).` })
-      return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (fecha · beneficiario · monto · estado, lo que traiga cada fila) y pregúntale cuál comprobante quiere. Cuando elija, llama tek_comprobantes accion:"bajar" con indice = ese número.' })
+      return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (nº · fecha · beneficiario · monto · estado). RECUERDA esta lista para el próximo mensaje: si el usuario responde "todos"/"mándamelos todos" llama tek_comprobantes accion:"bajar" con todos:true; si dice "el 3 y el 5" usa indices:[3,5]; si dice uno, indice:ese número. Los números son los que le mostraste.' })
     }
     // ── SII · descargar el PDF de una boleta de honorarios recibida y mandarla por WhatsApp ──
     if (nombre === 'sii_boleta_honorarios') {

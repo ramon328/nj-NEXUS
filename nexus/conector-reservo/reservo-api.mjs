@@ -381,6 +381,19 @@ async function d2_disponibilidad(agendaId, fecha, dias) {
   })
   return { agenda_id: Number(agendaId), profesional: nombre, desde: fecha, dias: out }
 }
+// Link de pago (Webpay/Mercado Pago) de una cita — CERTIFICADO 2026-07-23.
+// El portal de reserva online usa POST agendamiento.reservo.cl/makereserva/boton_pago/
+// con { ticket:[<id_cita>], cliente_id, habilitar_multiprecio } → { link, valor_pago, countdown }.
+// OJO: ticket DEBE ir como ARRAY (string suelto devuelve link vacío). El link solo sale si la
+// cita tiene monto (tratamiento con precio); gratis → link vacío. Vale 15 min.
+const BOTON_PAGO_URL = 'https://agendamiento.reservo.cl/makereserva/boton_pago/'
+const CLIENTE_ID = process.env.RESERVO_CLIENTE_ID || '5666'
+async function d2_link_pago(citaId) {
+  const r = await fetchR(BOTON_PAGO_URL, { method: 'POST', headers: { 'Content-Type': 'application/json', 'User-Agent': UA }, body: JSON.stringify({ ticket: [String(citaId)], cliente_id: CLIENTE_ID, habilitar_multiprecio: false }) })
+  let j = {}; try { j = JSON.parse(await r.text()) } catch {}
+  const link = j.link || ''
+  return { cita_id: Number(citaId), disponible: !!link, link, valor: j.valor_pago ? Number(j.valor_pago) : 0, vence_en: j.countdown || '', motivo: link ? '' : 'sin link: la cita no tiene monto por pagar o el tratamiento es gratis' }
+}
 // Lista de tratamientos con su ID INTERNO (numérico) — para el picker de la app.
 // Fuente: el <select id="id_tratamientos"> viene con las 63 opciones en el HTML de makeAppointment.
 let _tratCache = { ts: 0, list: [] }
@@ -721,7 +734,7 @@ const server = http.createServer(async (req, res) => {
   }
 
   // ── data2 ESCRITURA: /r/data2/cita/{crear,anular,estado}/ (POST + auditoría) ──
-  if (pn.startsWith('/r/data2/cita/')) {
+  if (pn.startsWith('/r/data2/cita/') && !/\/link_pago\/?$/.test(pn)) {
     const accion = pn.slice('/r/data2/cita/'.length).replace(/\/+$/, '')   // crear|anular|estado
     if (req.method !== 'POST') return send(405, { error: 'usá POST', endpoint: pn })
     let b = {}
@@ -758,7 +771,7 @@ const server = http.createServer(async (req, res) => {
     const ck = 'D2:' + clave
     const ce = cacheData.get(ck)
     // mes actual = TTL corto (cambia durante el día); meses cerrados = caché largo.
-    const ttl = /bloqueos|caja|comisiones|deuda|ventas|ocupacion|nuevos_pacientes|atenciones|citas_por_estado|gastos/.test(sub) ? ttlFor(mes) : CACHE_TTL
+    const ttl = /link_pago/.test(sub) ? 0 : /bloqueos|caja|comisiones|deuda|ventas|ocupacion|nuevos_pacientes|atenciones|citas_por_estado|gastos/.test(sub) ? ttlFor(mes) : CACHE_TTL
     if (ce && Date.now() - ce.ts < ttl) return sendGz(req, res, 200, 'application/json', 'HIT', ce.body, ce)
     try {
       let data, esLista = true
@@ -777,6 +790,7 @@ const server = http.createServer(async (req, res) => {
       else if (sub === 'citas_por_estado/') { data = await d2_dashboard('citas_por_estado/', mes, rango); esLista = false }
       else if (sub === 'gastos_por_categoria/') { data = await d2_dashboard('gastos_por_categoria/', mes, rango); esLista = false }
       else if (sub === 'bloqueos/') { data = await d2_bloqueos(mes); esLista = false }   // dict por agenda, no wrap
+      else if (/^cita\/\d+\/link_pago\/$/.test(sub)) { data = await d2_link_pago(sub.split('/')[1]); esLista = false }
       else if (/^paciente\/[0-9a-f-]+\/$/i.test(sub)) { data = await d2_paciente(sub.split('/')[1]); esLista = false }
       else if (/^paciente\/[0-9a-f-]+\/historial\/$/i.test(sub)) data = await d2_historial(sub.split('/')[1])
       else return send(404, { error: 'data2 aún no implementado: ' + sub, endpoint: pn, disponibles: ['caja/', 'comisiones/', 'deuda/', 'agendas/', 'tratamientos/', 'disponibilidad/?agenda_id=&fecha=&dias=', 'bloqueos/', 'cumpleanos/', 'pacientes/', 'estado_resultado/', 'ocupacion_personal_box/', 'nuevos_pacientes/', 'atenciones_por_profesional/', 'citas_por_estado/', 'gastos_por_categoria/', 'paciente/{uuid}/', 'paciente/{uuid}/historial/'] })
