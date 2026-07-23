@@ -1254,6 +1254,41 @@ async function comprobantesConsulta(page, log) {
   return { estado: 'listado', filas: filas.slice(0, 40), total_filas: filas.length, url: page.url() }
 }
 
+// ── VINCULAR: LISTAR EMPRESAS del login (TEK_VINCULAR=empresas) ──────────────────
+// Tras el login, algunos RUT tienen VARIAS empresas asociadas (para elegir). Este modo
+// abre el selector "Empresa / Rol" del header (o detecta la pantalla de selección) y
+// VUELCA las empresas disponibles, para que el usuario elija en el widget. SOLO LECTURA.
+async function listarEmpresasBanco(page, log) {
+  mkdirSync(DATA, { recursive: true })
+  await sleep(2500)
+  await page.screenshot({ path: join(DATA, 'vincular-00-post-login.png') }).catch(() => {})
+  // 1) Si el login cayó en la pantalla de SELECCIÓN de empresa, las filas ya son las empresas.
+  // 2) Si cayó en el dashboard, abrimos el selector "Empresa / Rol" del header.
+  const enSeleccion = /seleccion-empresa|listado de empresas|selecciona.*empresa/i.test(page.url() + ' ' + (await page.evaluate(() => document.body?.innerText || '').catch(() => '')))
+  if (!enSeleccion) {
+    const btn = page.getByText(/Empresa\s*\/\s*Rol/i).first()
+    if (await btn.count().catch(() => 0)) { await btn.click({ timeout: 4000 }).catch(() => {}); await sleep(2800) }
+  }
+  await page.screenshot({ path: join(DATA, 'vincular-01-empresas.png') }).catch(() => {})
+  // Volcar candidatos a "empresa" (filas/opciones que contengan un RUT).
+  const dump = []
+  for (const fr of page.frames()) {
+    const arr = await fr.evaluate(() => {
+      const out = []
+      for (const el of document.querySelectorAll('tr, li, [role="option"], [role="row"], [class*="empresa" i], [class*="rol" i], [class*="item" i], td, button, a')) {
+        const t = (el.innerText || '').replace(/\s+/g, ' ').trim()
+        if (t && t.length >= 4 && t.length < 90 && /\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]/.test(t)) out.push(t)
+      }
+      return out
+    }).catch(() => [])
+    dump.push(...arr)
+  }
+  const empresas = [...new Set(dump)].slice(0, 30)
+  writeFileSync(join(DATA, 'vincular-empresas.json'), JSON.stringify({ url: page.url(), enSeleccion, empresas, dump: await volcarFrames(page) }, null, 2))
+  log('vincular: empresas detectadas:', empresas.length)
+  return { estado: 'empresas', empresas, enSeleccion, url: page.url() }
+}
+
 // ── CARTOLA HISTÓRICA (Cuentas Corrientes → Cartola/Histórico) ──────────────────
 // El banco online da ~90 días en "Saldos y movimientos"; los meses viejos (ene-mar 2026)
 // salen de la CARTOLA HISTÓRICA (estados mensuales, normalmente descargables). Este flujo
@@ -1462,12 +1497,18 @@ async function main() {
   // Credenciales: primero la BÓVEDA cifrada (por usuario+empresa), con fallback al
   // .creds.json legacy. Env: TEK_USER (default 'ramon'), TEK_EMPRESA (default ANA CLARA).
   let rut, password
-  try {
-    const cred = obtenerCreds(process.env.TEK_USER || 'ramon', process.env.TEK_EMPRESA || 'ANA CLARA SPA')
-    if (cred.ok) { rut = cred.rut; password = cred.clave }
-  } catch { /* bóveda no disponible → fallback */ }
-  if (!rut || !password) {
-    const j = JSON.parse(readFileSync(join(DIR, '.creds.json'), 'utf8')); rut = j.rut; password = j.password
+  // Override por ENV: flujo de VINCULACIÓN — probar las creds que el usuario acaba de
+  // ingresar en el widget, ANTES de guardarlas (no tocan la bóveda hasta que confirma).
+  if (process.env.TEK_RUT && process.env.TEK_CLAVE) {
+    rut = process.env.TEK_RUT; password = process.env.TEK_CLAVE
+  } else {
+    try {
+      const cred = obtenerCreds(process.env.TEK_USER || 'ramon', process.env.TEK_EMPRESA || 'ANA CLARA SPA')
+      if (cred.ok) { rut = cred.rut; password = cred.clave }
+    } catch { /* bóveda no disponible → fallback */ }
+    if (!rut || !password) {
+      const j = JSON.parse(readFileSync(join(DIR, '.creds.json'), 'utf8')); rut = j.rut; password = j.password
+    }
   }
   // SAFEGUARD: si ya hay una sesión de banco corriendo, NO abro otra (evita chocar el
   // perfil y re-loguear al pedo). Espero a que se libere; si no se libera, aviso y salgo.
@@ -1511,7 +1552,9 @@ async function main() {
     if (['map', 'bajar'].includes(process.env.TEK_CARTOLA_HIST)) { try { carthist = await cartolaHistorica(page, log) } catch (e) { log('carthist falló:', e.message) } }
     let comprob = null
     if (['map', 'listar', 'bajar'].includes(process.env.TEK_COMPROBANTES)) { try { comprob = await comprobantesConsulta(page, log) } catch (e) { log('comprobantes falló:', e.message) } }
-    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}) })
+    let vincular = null
+    if (process.env.TEK_VINCULAR === 'empresas') { try { vincular = await listarEmpresasBanco(page, log) } catch (e) { log('vincular falló:', e.message) } }
+    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}) })
   }
 
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión

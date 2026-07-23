@@ -1,0 +1,43 @@
+{
+  "url": "https://privado.officebanking.cl/dashboard",
+  "enSeleccion": false,
+  "empresas": [],
+  "dump": [
+    {
+      "url": "https://privado.officebanking.cl/dashboard",
+      "inputs": [
+        {
+          "tag": "select",
+          "type": "select-one",
+          "id": "sel-show",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "",
+          "label": "Roles",
+          "opciones": [
+            "Usuario"
+          ]
+        }
+      ],
+      "botones": [
+        "Accesibilidad",
+        "Empresa / Rol",
+        "Cambiar de Perfil",
+        "logout"
+      ],
+      "titulos": []
+    },
+    {
+      "url": "https://www.officebanking.cl/campna/CAMPANAS_OB/TC_GESTION_CLAVES/Dash.aspx?HDRUTUS=0218945783&HDNOMUS=Ramon%20Molina%20Fierro&HDRUTEM=0772711212&HDNOMEM=ANA%20CLARA%20SPA&CONTRATO=000690026173520&HDROL=1&PERFIL=Usuario&HDCODBT=1006&HDCODCM=1820&HDCMP01=&HDCMP02=&HDCMP03=&HDCMP04=&HDCMP05=&HDCMP06=&HDCMP07=&HDCMP08=&HDCMP09=&HDCMP10=&HDCMP11=&HDCMP12=&HDCMP13=&HDCMP14=&HDCMP15=&HDCMP16=&HDCMP17=&HDCMP18=&HDCMP19=&HDCMP20=",
+      "inputs": [],
+      "botones": [
+        "Cambiar Clave",
+        "Cambiar Clave"
+      ],
+      "titulos": [
+        "Actualiza tu Clave",
+        "Protege la seguridad de tu empresa"
+      ]
+    }
+  ]
+}
