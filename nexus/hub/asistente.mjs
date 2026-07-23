@@ -1276,7 +1276,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes'],
+  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'vincular_banco'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -1683,6 +1683,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 💸💸 TRANSFERENCIA MASIVA — varias transferencias en un LOTE (sistema "tek", herramienta **tek_masiva**) — cuando pidan pagar/transferir a VARIOS de una (nómina, varios proveedores). Sube un LOTE a Santander Empresa que queda PENDIENTE por liberar (no mueve plata hasta la Liberación con Superclave, paso manual aparte). Cada transferencia lleva nombre + monto (+ rut, banco y cuenta si el beneficiario NO está guardado; mismo criterio que tek_transferir). ANTES de subir necesitas SIEMPRE 2 datos que le PREGUNTAS al usuario: (1) el **concepto** (muéstrale las opciones: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) el **motivo** (glosa cartola originador, texto corto). Va en 2 pasos: (a) tek_masiva accion:'preparar' con la lista → devuelve el RESUMEN (cantidad, total, beneficiarios, problemas). ⚠️ El banco permite **máx $7.000.000 por línea**: si una transferencia supera eso, el sistema la PARTE solo en varias líneas del mismo beneficiario que suman el total (ej. $82M → 11 de $7M + 1 de $5M). Si el resumen trae "nota_division", avísale al usuario cómo quedó dividida. Si falta el concepto o el motivo, la tool te lo dice: pregúntaselo. Muéstrale el resumen y pregúntale "¿subo el lote?". (b) SOLO con su OK explícito + concepto + motivo, tek_masiva accion:'enviar' con los MISMOS datos → sube el lote pendiente. NUNCA envíes sin confirmación. 📄 Si el usuario pide VER/revisar el Excel que se sube al banco ("mándame el excel", "el archivo que subes", "quiero revisarlo"), llama tek_masiva accion:'excel' con las mismas transferencias → se lo manda por WhatsApp. ⛔ NUNCA digas que "no puedes generar/enviar el Excel": SÍ puedes, es accion:'excel'. El RUT en el archivo va sin puntos ni guion (el sistema lo formatea solo). Si el banco RECHAZA (0 aceptados), NO es el click de confirmar: es que la cuenta/RUT/banco del beneficiario no cuadran — dile al usuario que revise esos datos (ofrécele mandarle el Excel para chequear).
 
 📄 DESCARGAR COMPROBANTES de pago (sistema "tek", herramienta **tek_comprobantes**) — cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", etc. Va en 2 pasos: (a) tek_comprobantes accion:'listar' → trae la lista de transferencias/comprobantes; muéstrasela NUMERADA (fecha · beneficiario · monto) y pregúntale CUÁL quiere. (b) tek_comprobantes accion:'bajar' → baja y manda por WhatsApp: indice=<n> para uno, indices=[..] para varios, o **todos:true** si el usuario dice "mándame todos"/"todos los comprobantes". IMPORTANTE (contexto): después de mostrar la lista, RECUERDA los números en el próximo mensaje — si el usuario responde "todos" o "el 2 y el 4", mapea eso a la llamada correcta. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco primero.
+
+🏦 CONECTAR/VINCULAR UN BANCO (herramienta **vincular_banco**) — cuando el usuario diga "quiero agregar/conectar/vincular una cuenta de banco", "conectar mi banco", "dar las credenciales del banco", etc., llama vincular_banco y **mándale el LINK del widget seguro + el PIN** que devuelve. ⛔ JAMÁS le pidas el usuario/clave del banco por el chat (queda expuesto en WhatsApp): las credenciales se ingresan SOLO en esa página cifrada, que además —si el RUT tiene varias empresas— lo deja elegir cuál. NO le hables de "Rail" ni "login asistido": el camino es el link de vincular_banco.
 
 REGLA DE ORO (acciones sensibles):
 - Las acciones que muevan dinero o sean irreversibles (pagar, transferir, eliminar, enviar, confirmar, comprar, etc.) NO se ejecutan solas: requieren aprobación humana explícita de Ramón.
@@ -2690,6 +2692,12 @@ const HERRAMIENTAS = [
       required: ['accion'],
     },
   },
+  // ── tek · VINCULAR un banco: manda el LINK del widget seguro (NO pedir clave por chat) ──
+  {
+    name: 'vincular_banco',
+    description: 'Cuando el usuario quiera AGREGAR / CONECTAR / VINCULAR un banco o una cuenta bancaria, o dice que quiere dar/ingresar las credenciales del banco ("quiero agregar una cuenta de banco", "conectar mi banco", "vincular banco", "agregar banco nuevo"). ⛔ NUNCA le pidas la CLAVE del banco por el chat (queda expuesta): se ingresa en una PÁGINA SEGURA cifrada. Esta tool devuelve el LINK del widget + el PIN para que el usuario entre y conecte su banco ahí (el widget pide usuario/banco/RUT/clave y, si el RUT tiene varias empresas, lo deja elegir cuál). Úsala en vez de pedir datos del banco en la conversación.',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
   // ── Alertas a usuarios de Nexus, incluso FUERA de la ventana de 24h de WhatsApp ──
   {
     name: 'alertar_usuario',
@@ -3165,6 +3173,16 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de leer comprobantes.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer los comprobantes (${r.estado || 'desconocido'}).` })
       return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (nº · fecha · beneficiario · monto · estado). RECUERDA esta lista para el próximo mensaje: si el usuario responde "todos"/"mándamelos todos" llama tek_comprobantes accion:"bajar" con todos:true; si dice "el 3 y el 5" usa indices:[3,5]; si dice uno, indice:ese número. Los números son los que le mostraste.' })
+    }
+    // ── tek · VINCULAR banco: link del widget seguro + PIN (nunca pedir clave por chat) ──
+    if (nombre === 'vincular_banco') {
+      const url = process.env.TEK_CONECTAR_URL || 'http://100.91.97.70:7694'
+      let pin = process.env.TEK_CONECTAR_PIN || ''
+      if (!pin) {
+        try { pin = (readFileSync(join(process.env.HOME || '', 'Library/LaunchAgents/com.nexus.tek-conectar.plist'), 'utf8').match(/TEK_CONECTAR_PIN<\/key>\s*<string>([^<]+)/) || [])[1] || '' } catch { /* */ }
+      }
+      const texto = `Para conectar tu banco, entra a este link seguro (desde el teléfono/PC conectado a la red de la oficina o Tailscale):\n\n🔗 ${url}\n🔒 PIN: ${pin || '(pídeselo a Ramón)'}\n\nAhí ingresas usuario, banco, RUT y clave. 🔐 La clave se guarda CIFRADA y NO viaja por WhatsApp. Si tu RUT tiene varias empresas, te deja elegir cuál conectar.`
+      return JSON.stringify({ ok: true, url, pin, texto, instruccion: 'Mándale el LINK y el PIN tal cual. ⛔ NUNCA le pidas la clave del banco por el chat — se ingresa SOLO en esa página segura.' })
     }
     // ── SII · descargar el PDF de una boleta de honorarios recibida y mandarla por WhatsApp ──
     if (nombre === 'sii_boleta_honorarios') {
