@@ -1684,7 +1684,7 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 
 📄 DESCARGAR COMPROBANTES de pago (sistema "tek", herramienta **tek_comprobantes**) — cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", etc. Va en 2 pasos: (a) tek_comprobantes accion:'listar' → trae la lista de transferencias/comprobantes; muéstrasela NUMERADA (fecha · beneficiario · monto) y pregúntale CUÁL quiere. (b) tek_comprobantes accion:'bajar' → baja y manda por WhatsApp: indice=<n> para uno, indices=[..] para varios, o **todos:true** si el usuario dice "mándame todos"/"todos los comprobantes". IMPORTANTE (contexto): después de mostrar la lista, RECUERDA los números en el próximo mensaje — si el usuario responde "todos" o "el 2 y el 4", mapea eso a la llamada correcta. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco primero.
 
-🏦 "¿QUÉ BANCOS/EMPRESAS TENGO CONECTADAS?" (herramienta **mis_bancos_conectados**) — cuando el usuario pregunte qué bancos/empresas/cuentas tiene conectadas o vinculadas, usa SIEMPRE mis_bancos_conectados y dile las empresas de SU cuenta (las que ÉL vinculó por el widget). ⛔ NO respondas con el tool "banco" (Leo/Rail) ni con las conexiones de Ramón u otros — cada usuario ve LO SUYO. El tool "banco" (Leo) es solo para SALDOS/MOVIMIENTOS ("cuánta plata hay"), NO para "qué tengo conectado".
+🏦 "¿QUÉ BANCOS/EMPRESAS TENGO CONECTADAS?" (herramienta **mis_bancos_conectados**) — cuando el usuario pregunte qué bancos/empresas/cuentas tiene conectadas o vinculadas, usa SIEMPRE mis_bancos_conectados y dile las empresas de SU cuenta (las que ÉL vinculó por el widget). ⛔ NO respondas con el tool "banco" (Leo) ni con las conexiones de Ramón u otros — cada usuario ve LO SUYO. El tool "banco" (Leo) es solo para SALDOS/MOVIMIENTOS ("cuánta plata hay"), NO para "qué tengo conectado".
 
 🏦 CONECTAR/VINCULAR UN BANCO (herramienta **vincular_banco**) — cuando el usuario diga "quiero agregar/conectar/vincular una cuenta de banco", "conectar mi banco", "dar las credenciales del banco", etc., llama vincular_banco y **mándale el LINK del widget seguro + el PIN** que devuelve. ⛔ JAMÁS le pidas el usuario/clave del banco por el chat (queda expuesto en WhatsApp): las credenciales se ingresan SOLO en esa página cifrada, que además —si el RUT tiene varias empresas— lo deja elegir cuál. NO le hables de "Rail" ni "login asistido": el camino es el link de vincular_banco.
 
@@ -2235,11 +2235,12 @@ const HERRAMIENTAS = [
   },
   {
     name: 'banco',
-    description: 'BANCOS (agente "Leo"): consulta las cuentas bancarias REALES de las empresas (vía Rail). SOLO LECTURA: no transfiere, no mueve un peso, no toca conexiones. Úsala para "cuánta plata hay en el banco", "saldo", "movimientos", "qué entró/salió", "ingresos y egresos del mes", "transferencias", "está conectado el banco". Acciones: empresas (RUTs con banco conectado — empieza por aquí si no sabes cuál), saldos (cuentas con disponible/actual y cupos), movimientos (detalle filtrable, más recientes primero), resumen (ingresos/egresos/neto por mes), conexiones (SALUD de los links: cuáles están sanos y cuáles caídos por clave inválida o expirada). Identifica la empresa con "rut" (o "banco" para filtrar por banco). Los montos NEGATIVOS son EGRESOS; reporta los campos *_fmt tal cual. En tarjetas, "disponible" = cupo libre y "actual" = deuda; el total en caja NO cuenta cupos. NOTA: esto es el BANCO; el cruce banco↔SII lo hace SAI (sai_conciliacion) y las finanzas de Aliace son aliace_resumen.',
+    description: 'BANCOS (agente "Leo"): consulta las cuentas bancarias REALES vía NUESTRA API (tek/Santander Empresa, sin Rail). SOLO LECTURA: no transfiere, no mueve un peso, no toca conexiones. Úsala para "cuánta plata hay en el banco", "saldo", "movimientos", "qué entró/salió", "ingresos y egresos del mes", "transferencias", "está conectado el banco". Acciones: empresas (empresas con banco conectado por el usuario — empieza por aquí si no sabes cuál; cada una trae "lectura": disponible o pendiente), saldos (cuentas con disponible/actual), movimientos (detalle filtrable, más recientes primero), resumen (ingresos/egresos/neto por mes), conexiones (SALUD de los links). Identifica la empresa con "empresa" (nombre, ej "ANA CLARA SPA") o "rut". ⚠️ HOY la única empresa con lectura EN VIVO es ANA CLARA; las demás salen "lectura: pendiente" (están vinculadas pero su lectura por-empresa aún no está habilitada) — si el usuario pide saldos de una pendiente, dile con claridad que está conectada pero que su lectura aún no está lista, NO inventes cifras. Los montos NEGATIVOS son EGRESOS; reporta los campos *_fmt tal cual. NOTA: esto es el BANCO; el cruce banco↔SII lo hace SAI (sai_conciliacion) y las finanzas de Aliace son aliace_resumen.',
     input_schema: {
       type: 'object',
       properties: {
         accion: { type: 'string', enum: ['empresas', 'saldos', 'movimientos', 'resumen', 'conexiones'] },
+        empresa: { type: 'string', description: 'Nombre de la empresa (ej "ANA CLARA SPA"). Sale en accion:empresas.' },
         rut: { type: 'string', description: 'RUT del titular (ej "77271121-2"). Sale en accion:empresas.' },
         banco: { type: 'string', description: 'Filtra por banco (ej "santander", "bancoestado").' },
         anio: { type: 'string', description: 'resumen: acota a un año (ej "2026").' },
@@ -2703,7 +2704,7 @@ const HERRAMIENTAS = [
   // ── Qué bancos/empresas tiene conectadas ESTE usuario (sus vinculaciones en Nexus) ──
   {
     name: 'mis_bancos_conectados',
-    description: 'Cuando el usuario pregunte qué BANCOS/EMPRESAS/CUENTAS tiene CONECTADAS/VINCULADAS ("qué bancos tengo conectados", "qué empresas tengo vinculadas", "qué cuentas de banco tengo", "cuántos bancos tengo conectados"). Devuelve las empresas/bancos que ESE usuario (quien pregunta) conectó en Nexus vía el widget de vincular banco — SOLO de SU cuenta, no de otros. ⛔ NO uses el tool "banco" (Leo/Rail) para esto: ese muestra datos de otra vía y NO son las vinculaciones del usuario. Este es el correcto para "qué tengo conectado".',
+    description: 'Cuando el usuario pregunte qué BANCOS/EMPRESAS/CUENTAS tiene CONECTADAS/VINCULADAS ("qué bancos tengo conectados", "qué empresas tengo vinculadas", "qué cuentas de banco tengo", "cuántos bancos tengo conectados"). Devuelve las empresas/bancos que ESE usuario (quien pregunta) conectó en Nexus vía el widget de vincular banco — SOLO de SU cuenta, no de otros. ⛔ NO uses el tool "banco" (Leo) para esto: ese muestra datos de otra vía y NO son las vinculaciones del usuario. Este es el correcto para "qué tengo conectado".',
     input_schema: { type: 'object', properties: {}, required: [] },
   },
   // ── Alertas a usuarios de Nexus, incluso FUERA de la ventana de 24h de WhatsApp ──
@@ -4103,20 +4104,22 @@ async function ejecutar(nombre, input, ctx = {}) {
         // acotado debe ver otra empresa.
         const RUT_ANA_CLARA = '77271121-2'
         const soloAnaClara = !esAdmin(ctx.de)
+        const userId = (usuarioDe(ctx.de)?.nombre || '').toLowerCase()
         const esAna = (r) => String(r || '').replace(/[.\-\s]/g, '') === '772711212'
-        const opts = { rut: soloAnaClara ? RUT_ANA_CLARA : input.rut, banco: soloAnaClara ? undefined : input.banco,
+        const opts = { userId, rut: soloAnaClara ? RUT_ANA_CLARA : input.rut, banco: soloAnaClara ? undefined : input.banco,
+                       empresa: soloAnaClara ? undefined : input.empresa,
                        anio: input.anio, buscar: input.buscar,
                        desde: input.desde, hasta: input.hasta, limite: input.limite }
         let r
         if (input.accion === 'empresas') {
-          r = await b.empresas()
+          r = await b.empresas({ userId })
           if (soloAnaClara && r && Array.isArray(r.empresas)) r = { ...r, empresas: r.empresas.filter((e) => esAna(e.rut)) }
         }
         else if (input.accion === 'saldos') r = await b.saldos(opts)
         else if (input.accion === 'movimientos') r = await b.movimientos(opts)
         else if (input.accion === 'resumen') r = await b.resumen(opts)
         else if (input.accion === 'conexiones') {
-          const cx = await b.links()
+          const cx = await b.links({ userId })
           r = { conexiones: soloAnaClara && Array.isArray(cx) ? cx.filter((l) => esAna(l.rut)) : cx }
         }
         else return 'Acción de banco desconocida (usa: empresas | saldos | movimientos | resumen | conexiones).'

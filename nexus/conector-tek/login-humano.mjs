@@ -1512,6 +1512,57 @@ async function cartolaHistorica(page, log) {
   return { estado: 'cartola_hist_bajada', usada, meses_resumen: resumenMeses.map((r) => ({ mes: r.mes, cartola: r.n_cartola, cargos: r.cargos, abonos: r.abonos })), url: page.url() }
 }
 
+// ── LECTURA DE SALDOS POR EMPRESA (TEK_LEER_SALDOS=1) ──────────────────────
+// En UN solo login (varias empresas cuelgan del mismo RUT/clave), recorre el
+// selector de empresas, entra a cada una y captura su saldo (account_summary →
+// listCustAccount). NO escribe en los data/*.json de ANA CLARA: solo devuelve el
+// resultado. Empresas objetivo en TEK_EMPRESAS_JSON (array de nombres).
+async function irAlSelectorEmpresas(page, log) {
+  const txt0 = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
+  if (/selector de empresas|seleccion-empresa|selecciona.*empresa|listado de empresas/i.test(page.url() + ' ' + txt0)) return true
+  const btn = page.getByText(/Empresa\s*\/\s*Rol/i).first()
+  if (await btn.count().catch(() => 0)) { await clickHumano(page, btn); await sleep(rnd(2000, 3000)) }
+  const volver = page.getByText(/volver al?\s*selector de empresas/i).first()
+  if (await volver.count().catch(() => 0)) { await clickHumano(page, volver); await sleep(rnd(4000, 5500)); return true }
+  const t2 = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
+  return /selector de empresas|seleccion-empresa|selecciona.*empresa|listado de empresas/i.test(page.url() + ' ' + t2)
+}
+
+async function leerSaldosTodas(ctx, page, log) {
+  let objetivos = []
+  try { objetivos = JSON.parse(process.env.TEK_EMPRESAS_JSON || '[]') } catch { /* */ }
+  // esperar a que termine el redirect post-login (igual criterio que listarEmpresasBanco)
+  for (let i = 0; i < 24; i++) {
+    await sleep(1500)
+    const u = page.url()
+    const t = await page.evaluate(() => (document.body?.innerText || '').slice(0, 400)).catch(() => '')
+    const enApp = /privado\.officebanking/i.test(u) && !/\/login|redireccionando|validate_user/i.test(u + ' ' + t)
+    if (enApp && /(empresa|saldo|selector|contrato|inicio|cuenta)/i.test(t + ' ' + u)) { log('lector: app cargada tras redirect'); break }
+    if (/error-seguridad/i.test(u)) { log('lector: muro antifraude en redirect'); break }
+  }
+  const resultados = []
+  for (const empresa of objetivos) {
+    let saldos = null
+    const onResp = async (r) => {
+      try { if (/account_summary/i.test(r.url())) { const b = JSON.parse(await r.text()); if (b?.listCustAccount) saldos = b.listCustAccount } } catch { /* */ }
+    }
+    ctx.on('response', onResp)
+    try {
+      await irAlSelectorEmpresas(page, log)
+      await entrarEmpresa(page, log, empresa)
+      // entrar a una empresa dispara account_summary; forzamos el dashboard si no cargó
+      if (!/portal-fob|dashboard/i.test(page.url())) { await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {}) }
+      for (let i = 0; i < 14 && !saldos; i++) await sleep(1500)
+      const cuentas = (saldos || []).map((c) => ({ tipo: c.accountType, numero: c.accountNumber, moneda: c.moneyType || 'CLP', saldo: Number(c.balance || 0) }))
+      const totalCLP = cuentas.filter((c) => (c.moneda || 'CLP') === 'CLP').reduce((s, c) => s + c.saldo, 0)
+      resultados.push({ empresa, conecta: !!saldos, cuentas, total_clp: totalCLP })
+      log(`lector: ${empresa} → ${saldos ? cuentas.length + ' cuentas, $' + totalCLP.toLocaleString('es-CL') : 'SIN saldo (no cargó)'}`)
+    } catch (e) { resultados.push({ empresa, conecta: false, error: e.message }); log(`lector: ${empresa} falló:`, e.message) }
+    ctx.off('response', onResp)
+  }
+  return { total: resultados.length, conectan: resultados.filter((r) => r.conecta).length, empresas: resultados }
+}
+
 async function main() {
   setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, 600_000).unref?.()
   // Credenciales: primero la BÓVEDA cifrada (por usuario+empresa), con fallback al
@@ -1544,9 +1595,13 @@ async function main() {
   // con el banco (cookies Incapsula/BioCatch, device token) → el antifraude NO lo trata como
   // dispositivo nuevo; pero AISLADO, sin pisar la sesión de ANA CLARA. Se borra al terminar.
   const vinculando = process.env.TEK_VINCULAR === 'empresas'
+  const leerSaldos = process.env.TEK_LEER_SALDOS === '1'
+  // "aislado" = flujos que entran con las creds de OTRO usuario (no ANA CLARA): clonan el
+  // perfil confiable (device-trust) a /tmp, hacen logout-first y NO guardan/pisan la sesión.
+  const aislado = vinculando || leerSaldos
   let profileDir
   if (perfilReal) profileDir = join(process.env.HOME, 'Library/Application Support/Google/Chrome')
-  else if (vinculando) {
+  else if (aislado) {
     profileDir = join('/tmp', 'tek-vinc-' + String(rut || 'x').replace(/[^0-9kK]/g, '') + '-' + process.pid)
     try { rmSync(profileDir, { recursive: true, force: true }) } catch { /* */ }
     // Copiamos SOLO lo que da la confianza del dispositivo (no los caches, que pesan GB).
@@ -1573,10 +1628,11 @@ async function main() {
   for (const p of ctx.pages().slice(1)) { try { await p.close() } catch {} }
   const page = ctx.pages()[0] || await ctx.newPage()
   const cerrar = async () => {
-    // En VINCULACIÓN no guardamos la sesión (no pisar la de ANA CLARA) y borramos el clon.
-    if (!vinculando) { try { await ctx.storageState({ path: SESSION_FILE }) } catch {} }
+    // En flujos AISLADOS (vinculación/lectura de otro usuario) no guardamos la sesión
+    // (no pisar la de ANA CLARA) y borramos el clon.
+    if (!aislado) { try { await ctx.storageState({ path: SESSION_FILE }) } catch {} }
     try { await ctx.close() } catch {}
-    if (vinculando && profileDir.startsWith('/tmp/tek-vinc-')) { try { rmSync(profileDir, { recursive: true, force: true }) } catch {} }
+    if (aislado && profileDir.startsWith('/tmp/tek-vinc-')) { try { rmSync(profileDir, { recursive: true, force: true }) } catch {} }
   }
   const shot = (n) => page.screenshot({ path: join(SHOTS, n) }).catch(() => {})
   const fin = async (estado, extra = {}) => { await shot(`fin-${estado}.png`); console.log('RESULTADO:', JSON.stringify({ estado, url: page.url(), ...extra })); await cerrar() }
@@ -1598,7 +1654,9 @@ async function main() {
     if (['map', 'listar', 'bajar'].includes(process.env.TEK_COMPROBANTES)) { try { comprob = await comprobantesConsulta(page, log) } catch (e) { log('comprobantes falló:', e.message) } }
     let vincular = null
     if (process.env.TEK_VINCULAR === 'empresas') { try { vincular = await listarEmpresasBanco(page, log) } catch (e) { log('vincular falló:', e.message) } }
-    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}) })
+    let lectura = null
+    if (leerSaldos) { try { lectura = await leerSaldosTodas(ctx, page, log) } catch (e) { log('lector falló:', e.message) } }
+    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}), ...(lectura ? { lectura } : {}) })
   }
 
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión
@@ -1622,10 +1680,10 @@ async function main() {
   // VINCULACIÓN: el clon hereda la sesión de ANA CLARA. La CERRAMOS (logout) para que el login
   // del usuario sea LIMPIO y no dispare la re-validación (login?reason=validate_user). El logout
   // NO borra la confianza del dispositivo (cookies Incapsula/BioCatch persisten en el perfil).
-  if (vinculando) {
+  if (aislado) {
     await page.goto('https://privado.officebanking.cl/logout', { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => {})
     await sleep(rnd(2500, 4000))
-    log('vincular: cerré la sesión heredada (device-trust intacto), voy al login limpio')
+    log('aislado: cerré la sesión heredada (device-trust intacto), voy al login limpio')
   }
 
   await page.goto(LANDING, { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch((e) => log('goto:', e.message))
