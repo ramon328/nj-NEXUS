@@ -201,6 +201,14 @@ export async function validarDeudaPension(persona, { confirmar = false } = {}) {
 //   'Informe Autored'          -> reportType 'CAV'
 //   'Informe Autored Completo' -> reportType 'NMP'
 export const TIPOS_INFORME = { CAV: 'CAV_RAW', INFORME: 'CAV', COMPLETO: 'NMP' };
+export const NOMBRE_INFORME = { CAV_RAW: 'CAV', CAV: 'Informe Autored', NMP: 'Informe Autored Completo' };
+
+// Precios (los informes se facturan a la cuenta, NO salen en la app). Configurables por
+// .env; si están vacíos se muestra "consultar" para que Nico los complete.
+export const precios = () => ({
+  CAV: process.env.AUTORED_PRECIO_CAV || 'consultar',
+  COMPLETO: process.env.AUTORED_PRECIO_COMPLETO || 'consultar',
+});
 
 // historial de informes comprados (lectura, gratis)
 export function listarInformes({ patente = '', tipo = '', pagina = 0, filas = 20 } = {}) {

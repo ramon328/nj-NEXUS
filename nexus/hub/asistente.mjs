@@ -2580,12 +2580,13 @@ const HERRAMIENTAS = [
   },
   {
     name: 'datos_auto_cav',
-    description: 'Para AGREGAR UN AUTO a MallorcAutos/GoAutos SOLO CON LA PATENTE (sin que manden documentos): trae los DATOS del vehículo desde su CAV de AutoRed — marca, modelo, año, tipo/carrocería, N° de motor, N° de chasis (VIN), color, combustible, propietario, y si tiene LIMITACIONES AL DOMINIO / PRENDA. FLUJO: (1) Si YA hay un CAV comprado de esa patente, lo baja GRATIS y devuelve los datos. (2) Si NO hay CAV (devuelve falta_cav:true), AVÍSALE a la persona que hay que GENERARLO y que TIENE COSTO, y ESPERA su confirmación; SOLO si confirma, vuelve a llamar con generar:true. Con los datos que devuelve: completa lo que el CAV NO trae y subir_auto necesita (kilometraje, precio de venta, adquisición compra/consignación + su precio, y vencimientos de revisión técnica / permiso de circulación / gases) — PREGÚNTASELO a la persona, NO inventes — si hay prenda/limitaciones avísale, muéstrale un resumen y recién ahí sube el auto con subir_auto tras su OK. Úsalo cuando digan "agrega/ingresa el auto patente XXXX".',
+    description: 'Para AGREGAR UN AUTO a MallorcAutos/GoAutos SOLO CON LA PATENTE (sin que manden documentos): trae los DATOS del vehículo desde un informe de AutoRed — marca, modelo, año, tipo/carrocería, N° de motor, N° de chasis (VIN), color, combustible, propietario, y si tiene LIMITACIONES AL DOMINIO / PRENDA. FLUJO: (1) Si YA hay un informe comprado de esa patente, lo baja GRATIS y devuelve los datos. (2) Si NO hay ninguno (devuelve elegir_tipo:true con precios), PREGÚNTALE a la persona CON CUÁL quiere que lo agregues, mostrándole las dos opciones y sus PRECIOS ENTRE PARÉNTESIS: "CAV (precio)" — rápido, datos del vehículo + prenda; o "Informe AutoRed Completo (precio)" — además trae dueños anteriores, multas/infracciones y permisos de circulación. ESPERA que elija; recién ahí vuelve a llamar con tipo:"CAV" o tipo:"COMPLETO" y generar:true (ese informe TIENE COSTO). Con los datos que devuelve: completa lo que el informe NO trae y subir_auto necesita (kilometraje, precio de venta, adquisición compra/consignación + su precio, y vencimientos de revisión técnica / permiso de circulación / gases) — PREGÚNTASELO, NO inventes — si hay prenda/limitaciones AVÍSALE, muéstrale un resumen y recién ahí sube el auto con subir_auto tras su OK. Úsalo cuando digan "agrega/ingresa el auto patente XXXX".',
     input_schema: {
       type: 'object',
       properties: {
         patente: { type: 'string', description: 'Patente del vehículo (ej. "SZPV13").' },
-        generar: { type: 'boolean', description: 'true = si NO hay CAV comprado, genéralo (TIENE COSTO). Úsalo SOLO tras el OK explícito de la persona.' },
+        tipo: { type: 'string', enum: ['CAV', 'COMPLETO'], description: 'Qué informe usar si hay que generarlo: "CAV" o "COMPLETO" (Informe AutoRed Completo). Ponlo SOLO después de que la persona eligió viendo los precios.' },
+        generar: { type: 'boolean', description: 'true = si no hay informe comprado, genera el del tipo elegido (TIENE COSTO). Úsalo SOLO tras el OK explícito de la persona.' },
       },
       required: ['patente'],
     },
@@ -3207,23 +3208,38 @@ async function ejecutar(nombre, input, ctx = {}) {
     if (nombre === 'datos_auto_cav') {
       const patente = String(input.patente || '').trim().toUpperCase().replace(/\s+/g, '')
       if (!patente) return 'Necesito la PATENTE para traer los datos del auto desde el CAV.'
+      const tipo = input.tipo ? String(input.tipo).toUpperCase() : ''
       try {
         const l = await autored.listarInformes({ patente, filas: 30 })
         const rows = (l.rows || l || []).filter((r) => r && r.ready && (r.url || r.publicUrl))
-        const pref = ['CAV_RAW', 'CAV', 'NMP']
+        const pref = ['CAV_RAW', 'CAV', 'NMP']   // preferir el más simple/barato ya comprado
         let row = rows.filter((r) => pref.includes(r.reportType)).sort((a, b) => pref.indexOf(a.reportType) - pref.indexOf(b.reportType))[0]
+        let gratis = true
         if (!row) {
-          if (!input.generar) {
+          const pr = autored.precios()
+          if (!tipo) {
+            // No hay informe: preguntar CON QUÉ agregarlo, con los precios entre paréntesis.
             return JSON.stringify({
-              falta_cav: true, patente, cobra: true,
-              mensaje: `No hay CAV comprado de ${patente}. Para traer los datos del auto hay que GENERAR el CAV y eso TIENE COSTO. Avísale a la persona y pídele confirmación; si dice que sí, vuelve a llamar datos_auto_cav con generar:true.`,
+              elegir_tipo: true, patente, cobra: true,
+              opciones: [
+                { tipo: 'CAV', nombre: 'CAV', precio: pr.CAV, incluye: 'datos del vehículo + prenda/limitaciones' },
+                { tipo: 'COMPLETO', nombre: 'Informe AutoRed Completo', precio: pr.COMPLETO, incluye: 'lo del CAV + dueños anteriores, multas/infracciones y permisos de circulación' },
+              ],
+              mensaje: `No hay ningún informe comprado de ${patente}. Pregúntale con cuál quiere que lo agregues, mostrando los precios entre paréntesis: "CAV (${pr.CAV})" o "Informe AutoRed Completo (${pr.COMPLETO})". Espera que elija; recién ahí vuelve a llamar con tipo:"CAV" o tipo:"COMPLETO" y generar:true.`,
             })
           }
-          const g = await autored.comprarInforme(patente, 'CAV', { confirmar: true, esperar: true, timeoutMs: 180000 })
-          if (g && g.dry_run) return `No pude generar el CAV de ${patente}: la compra está bloqueada (${g.motivo}).`
-          if (!g || !g.ready || !(g.url || g.publicUrl)) return `Pedí el CAV de ${patente} pero aún no queda listo. Reintenta en un rato.`
+          if (!input.generar) {
+            const pc = tipo === 'COMPLETO' ? pr.COMPLETO : pr.CAV
+            const nom = tipo === 'COMPLETO' ? 'Informe AutoRed Completo' : 'CAV'
+            return JSON.stringify({ confirmar_generar: true, patente, tipo, precio: pc, mensaje: `Vas a generar el ${nom} de ${patente} (${pc}), tiene costo. Confírmalo con la persona; si dice que sí, vuelve a llamar con tipo:"${tipo}" y generar:true.` })
+          }
+          const g = await autored.comprarInforme(patente, tipo, { confirmar: true, esperar: true, timeoutMs: 200000 })
+          if (g && g.dry_run) return `No pude generar el informe de ${patente}: la compra está bloqueada (${g.motivo}).`
+          if (!g || !g.ready || !(g.url || g.publicUrl)) return `Pedí el informe de ${patente} pero aún no queda listo. Reintenta en un rato.`
           row = { ...g, url: g.url || g.publicUrl }
+          gratis = false
         }
+        const etq = autored.NOMBRE_INFORME[row.reportType] || 'informe'
         const out = `/tmp/cavdatos-${patente}-${row.id}.pdf`
         await autored.descargarInforme(row.url || row.publicUrl, out)
         const py = '/usr/bin/python3'
@@ -3231,13 +3247,13 @@ async function ejecutar(nombre, input, ctx = {}) {
         const { stdout } = await ejecCmd(`${JSON.stringify(py)} ${JSON.stringify(script)} ${JSON.stringify(out)}`, { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })
         try { unlinkSync(out) } catch { /* */ }
         const parsed = JSON.parse((stdout.trim().split('\n').filter(Boolean).pop()) || '{}')
-        if (!parsed.ok) return `Bajé el CAV de ${patente} pero no pude leer sus datos: ${parsed.error || 'error'}.`
+        if (!parsed.ok) return `Bajé el ${etq} de ${patente} pero no pude leer sus datos: ${parsed.error || 'error'}.`
         return JSON.stringify({
-          ok: true, patente, fuente: `CAV id ${row.id}`, datos: parsed.campos,
-          instruccion: 'Estos son los datos de identificación del vehículo según el CAV. Para subir el auto con subir_auto falta lo que el CAV NO trae: kilometraje, precio de venta, adquisición (compra/consignación) y su precio, y vencimientos de revisión técnica / permiso de circulación / gases. PREGÚNTASELO a la persona, NO lo inventes. Si datos.limitaciones_al_dominio o datos.tiene_prenda son true, AVÍSALE. Muestra un resumen y sube con subir_auto SOLO tras su confirmación.',
-          texto_cav: parsed.texto,
+          ok: true, patente, fuente: `${etq} id ${row.id}`, gratis, datos: parsed.campos,
+          instruccion: `Datos de identificación del vehículo según el ${etq}. Para subir con subir_auto falta lo que el informe NO trae: kilometraje, precio de venta, adquisición (compra/consignación) y su precio, y vencimientos de revisión técnica / permiso de circulación / gases. PREGÚNTASELO, NO lo inventes. Si datos.limitaciones_al_dominio o datos.tiene_prenda son true, AVÍSALE claramente. Muestra un resumen y sube con subir_auto SOLO tras su confirmación.`,
+          texto_informe: parsed.texto,
         })
-      } catch (e) { return `No pude obtener los datos del CAV de ${patente}: ${e.message}` }
+      } catch (e) { return `No pude obtener los datos del informe de ${patente}: ${e.message}` }
     }
     // ── AUTORED · descargar un informe/CAV YA COMPRADO y enviarlo (gratis) ──────
     if (nombre === 'descargar_informe') {
