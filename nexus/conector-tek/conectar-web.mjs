@@ -127,9 +127,13 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
     <h1>Elige la empresa</h1>
     <p class="sub" id="empSub">Tu RUT tiene varias empresas. ¿Cuál conectas?</p>
     <div id="empLista"></div>
+    <div id="empManualWrap" class="hide">
+      <label for="empManual">Nombre de la empresa (como sale en el banco)</label>
+      <input id="empManual" autocomplete="off" placeholder="ej: ANA CLARA SPA">
+    </div>
     <button id="empBtn" type="button">Vincular empresa</button>
     <div id="empMsg" class="err"></div>
-    <button id="empVolver" type="button" style="background:#242736;margin-top:10px">← Volver</button>
+    <button id="empVolver" type="button" style="background:#242736;margin-top:10px">← Volver a revisar RUT/clave</button>
   </div>
 
   <!-- Confirmación -->
@@ -184,16 +188,21 @@ async function continuar(){
   $('#okBtn').disabled=false
   if(j.ok && Array.isArray(j.empresas) && j.empresas.length){
     EMPRESAS=j.empresas
-    if(j.empresas.length===1){ await guardar(j.empresas[0].empresa) }   // una sola → guarda directo
-    else { pintarEmpresas(j.empresas); show('empresas') }               // varias → elegir
+    if(j.empresas.length===1){ await guardar(j.empresas[0].empresa) }        // una sola → guarda directo
+    else { pintarEmpresas(j.empresas); manual(false); show('empresas') }      // varias → elegir de la lista
+  } else if(j.estado==='login_fallido' || j.estado==='error_credenciales'){
+    // El banco RECHAZÓ el ingreso → NO guardo nada; que corrija RUT/clave.
+    $('#formMsg').className='err'; $('#formMsg').textContent='El banco no aceptó el ingreso: revisa el RUT y la clave, e intenta de nuevo.'
   } else {
-    // Degradación: el banco no dejó leer las empresas (seguridad/antifraude) → guardo igual las
-    // creds; la empresa se puede elegir después. NO se pierde el trabajo del usuario.
-    EMPRESAS=[]
-    $('#formMsg').className='err'
-    $('#formMsg').textContent=(j.error||'No pude leer las empresas ahora')+'. Guardo tus datos igual…'
-    await guardar(undefined)
+    // No pude leer las empresas (banco ocupado/seguridad) → dejo ELEGIR/ESCRIBIR la empresa a mano.
+    EMPRESAS=[]; manual(true, j.error||'No pude leer tus empresas del banco ahora'); show('empresas')
   }
+}
+/* Alterna entre lista de empresas (auto) y campo manual (cuando el auto-listado falla). */
+function manual(on, msg){
+  $('#empLista').classList.toggle('hide', on)
+  $('#empManualWrap').classList.toggle('hide', !on)
+  if(on) $('#empSub').textContent=(msg||'')+'. Escribe el nombre de la empresa que quieres conectar (o toca «Volver» para revisar la clave):'
 }
 function pintarEmpresas(list){
   $('#empSub').textContent='Tu RUT tiene '+list.length+' empresas. Elige la que quieres conectar:'
@@ -205,7 +214,14 @@ function pintarEmpresas(list){
 }
 $('#okBtn').addEventListener('click',continuar)
 $('#clave').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();continuar()}})
-$('#empBtn').addEventListener('click',()=>{ const sel=document.querySelector('input[name=emp]:checked'); const e=EMPRESAS[sel?+sel.value:0]; guardar(e?e.empresa:undefined) })
+$('#empBtn').addEventListener('click',()=>{
+  let empresa
+  if(!$('#empManualWrap').classList.contains('hide')){                    // modo manual
+    empresa=$('#empManual').value.trim()
+    if(!empresa){$('#empMsg').className='err';$('#empMsg').textContent='Escribe el nombre de la empresa.';return}
+  } else { const sel=document.querySelector('input[name=emp]:checked'); const e=EMPRESAS[sel?+sel.value:0]; empresa=e?e.empresa:undefined }
+  guardar(empresa)
+})
 $('#empVolver').addEventListener('click',()=>show('form'))
 $('#otro').addEventListener('click',()=>{CREDS=null;EMPRESAS=[];$('#clave').value='';$('#formMsg').textContent='';show('form');$('#userId').focus()})
 /* Click-and-go: si el link trae ?pin= auto-loguea (no hay que teclear el PIN). */
