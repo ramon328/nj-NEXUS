@@ -21,6 +21,7 @@ import http from 'node:http'
 import crypto from 'node:crypto'
 import { guardar, listar } from './credenciales.mjs'
 import { listarEmpresas } from './vincular.mjs'
+import { validar as validarCodigo } from './vincular-codes.mjs'
 
 const PORT = Number(process.env.TEK_CONECTAR_PORT || 7694)
 const HOST = process.env.TEK_CONECTAR_HOST || '0.0.0.0' // alcanzable por Tailscale (con PIN); el teléfono entra a http://100.91.97.70:7694
@@ -190,12 +191,16 @@ async function continuar(){
     EMPRESAS=j.empresas
     if(j.empresas.length===1){ await guardar(j.empresas[0].empresa) }        // una sola → guarda directo
     else { pintarEmpresas(j.empresas); manual(false); show('empresas') }      // varias → elegir de la lista
-  } else if(j.estado==='login_fallido' || j.estado==='error_credenciales'){
-    // El banco RECHAZÓ el ingreso → NO guardo nada; que corrija RUT/clave.
-    $('#formMsg').className='err'; $('#formMsg').textContent='El banco no aceptó el ingreso: revisa el RUT y la clave, e intenta de nuevo.'
   } else {
-    // No pude leer las empresas (banco ocupado/seguridad) → dejo ELEGIR/ESCRIBIR la empresa a mano.
-    EMPRESAS=[]; manual(true, j.error||'No pude leer tus empresas del banco ahora'); show('empresas')
+    // No pude leer las empresas (clave rechazada, banco ocupado o seguridad). Muestro el paso de
+    // empresa con campo MANUAL + aviso → el usuario decide (Volver a revisar la clave, o escribir
+    // la empresa y guardar igual). Así NUNCA queda trabado.
+    EMPRESAS=[]
+    const rechazo = (j.estado==='login_fallido' || j.estado==='error_credenciales')
+    const msg = rechazo
+      ? 'El banco rechazó el ingreso — revisa el RUT y la clave (toca «Volver»). Si estás 100% seguro de que están bien, puede ser que el banco esté ocupado: escribe la empresa y guarda'
+      : (j.error || 'No pude leer tus empresas del banco ahora')
+    manual(true, msg); show('empresas')
   }
 }
 /* Alterna entre lista de empresas (auto) y campo manual (cuando el auto-listado falla). */
@@ -246,14 +251,15 @@ const server = http.createServer(async (req, res) => {
     const body = await leerBody(req, 1000)
     let pin = ''
     try { pin = String(JSON.parse(body).pin || '') } catch { /* */ }
-    if (pin && pin === PIN) {
+    // Acepta el PIN fijo (maestro) O un CÓDIGO de un solo uso vigente (los que genera Nexus).
+    if (pin && (pin === PIN || validarCodigo(pin))) {
       exito(ip)
       res.writeHead(200, { 'content-type': 'application/json', 'set-cookie': `sid=${sign('ok')}; HttpOnly; SameSite=Lax; Path=/; Max-Age=43200` })
       return res.end('{"ok":true}')
     }
     fallo(ip)
     res.writeHead(401, { 'content-type': 'application/json' })
-    return res.end('{"error":"PIN incorrecto"}')
+    return res.end('{"error":"Código incorrecto o vencido"}')
   }
 
   // Empresas del RUT: loguea con las creds y devuelve las empresas asociadas (para elegir).

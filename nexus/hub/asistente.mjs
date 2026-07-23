@@ -3176,14 +3176,13 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     // ── tek · VINCULAR banco: link del widget seguro + PIN (nunca pedir clave por chat) ──
     if (nombre === 'vincular_banco') {
-      const base = process.env.TEK_CONECTAR_URL || 'https://mac-mini-de-nicolas.tailee0068.ts.net/banco'
-      let pin = process.env.TEK_CONECTAR_PIN || ''
-      if (!pin) {
-        try { pin = (readFileSync(join(process.env.HOME || '', 'Library/LaunchAgents/com.nexus.tek-conectar.plist'), 'utf8').match(/TEK_CONECTAR_PIN<\/key>\s*<string>([^<]+)/) || [])[1] || '' } catch { /* */ }
-      }
-      const url = pin ? `${base}?pin=${pin}` : base   // el PIN va en el link → se abre solo, sin teclearlo
-      const texto = `Para conectar tu banco, toca este link 👇 (se abre solo, no tienes que copiar nada):\n\n🔗 ${url}\n\nAhí pones usuario, banco, RUT y clave. 🔐 La clave se guarda CIFRADA y NO pasa por WhatsApp. Si tu RUT tiene varias empresas, te deja elegir cuál conectar.`
-      return JSON.stringify({ ok: true, url, texto, instruccion: 'Mándale el LINK tal cual, en su propia línea (ya lleva el acceso, es de un toque). ⛔ NUNCA le pidas la clave del banco por el chat — se ingresa SOLO en esa página segura.' })
+      const url = process.env.TEK_CONECTAR_URL || 'https://mac-mini-de-nicolas.tailee0068.ts.net/banco'
+      // Código de UN SOLO USO, NUEVO cada vez que se pide el link (vence a los 30 min). Va en
+      // el MENSAJE (no en la URL) → el usuario abre el link y lo escribe.
+      let codigo = ''
+      try { const vc = await import('../conector-tek/vincular-codes.mjs'); codigo = vc.generar() } catch { /* */ }
+      const texto = `Para conectar tu banco, toca este link 👇\n\n🔗 ${url}\n\n🔒 Código: *${codigo}* (válido 30 min)\n\nAbre el link, escribe ese código, y ahí pones usuario, banco, RUT y clave. 🔐 La clave se guarda CIFRADA y NO pasa por WhatsApp. Si tu RUT tiene varias empresas, te deja elegir cuál conectar.`
+      return JSON.stringify({ ok: true, url, codigo, texto, instruccion: 'Mándale el LINK (en su propia línea) y el CÓDIGO tal cual. El código es de un solo uso y NUEVO cada vez. ⛔ NUNCA le pidas la clave del banco por el chat — se ingresa SOLO en esa página segura.' })
     }
     // ── SII · descargar el PDF de una boleta de honorarios recibida y mandarla por WhatsApp ──
     if (nombre === 'sii_boleta_honorarios') {
