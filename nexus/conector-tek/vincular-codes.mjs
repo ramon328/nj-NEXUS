@@ -13,20 +13,21 @@ const TTL = 30 * 60 * 1000   // 30 minutos
 function load() { try { return JSON.parse(readFileSync(FILE, 'utf8')) } catch { return [] } }
 function save(a) { try { mkdirSync(join(DIR, 'data'), { recursive: true }); writeFileSync(FILE, JSON.stringify(a)) } catch { /* */ } }
 
-/** Genera un código NUEVO de 6 dígitos, lo guarda (con vencimiento) y lo devuelve. */
-export function generar() {
+/** Genera un código NUEVO de 6 dígitos, atado al usuario de Nexus (userId), y lo devuelve. */
+export function generar(userId) {
   const code = String(crypto.randomInt(100000, 999999))
   const a = load().filter((x) => x.exp > Date.now())   // limpia los vencidos
-  a.push({ code, exp: Date.now() + TTL })
+  a.push({ code, userId: userId || null, exp: Date.now() + TTL })
   save(a.slice(-50))                                     // tope: últimos 50
   return code
 }
 
-/** ¿El código es válido (existe y no venció)? */
+/** Valida un código. Devuelve { ok:true, userId } si es válido, o false. */
 export function validar(code) {
   const c = String(code || '').trim()
   if (!c) return false
   const vivos = load().filter((x) => x.exp > Date.now())
   save(vivos)                                            // purga vencidos de paso
-  return vivos.some((x) => x.code === c)
+  const hit = vivos.find((x) => x.code === c)
+  return hit ? { ok: true, userId: hit.userId || null } : false
 }

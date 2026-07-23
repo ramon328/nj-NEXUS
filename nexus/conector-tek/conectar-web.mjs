@@ -47,7 +47,14 @@ function cookies(req) {
   }
   return out
 }
-function authed(req) { return verify(cookies(req).sid || '') === 'ok' }
+// Sesión: la cookie firmada vale 'ok' (PIN maestro, sin usuario fijo) o 'ok:<userId>' (código
+// atado a un usuario de Nexus). Devuelve { userId } o null. Así cada usuario ve/guarda LO SUYO.
+function sesion(req) {
+  const v = verify(cookies(req).sid || '')
+  if (v !== 'ok' && !(typeof v === 'string' && v.startsWith('ok:'))) return null
+  return { userId: v.startsWith('ok:') ? decodeURIComponent(v.slice(3)) : null }
+}
+function authed(req) { return sesion(req) !== null }
 
 // Rate-limit: tras 5 fallos, espera exponencial por IP (igual que el chat).
 const intentos = new Map()
@@ -116,7 +123,7 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
   <div id="form" class="hide">
     <h1>Conectar tu banco</h1>
     <p class="sub">Tus datos se guardan cifrados en el Mac. No se comparten ni se mandan por WhatsApp.</p>
-    <label for="userId">Usuario (tu nombre/identificador)</label>
+    <label for="userId" id="userIdLbl">Usuario (tu nombre/identificador)</label>
     <input id="userId" autocomplete="off" placeholder="ej: ramon">
     <label for="banco">Banco</label>
     <select id="banco"><option>Santander</option><option>BancoEstado</option><option>BCI</option><option>Chile</option><option>Itaú</option></select>
@@ -140,6 +147,7 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
     </div>
     <button id="empBtn" type="button">Vincular seleccionadas</button>
     <div id="empMsg" class="err"></div>
+    <button id="empTerminar" type="button" class="hide" style="background:var(--ok);margin-top:10px">✓ Terminar</button>
     <button id="empVolver" type="button" style="background:#242736;margin-top:10px">← Volver a revisar RUT/clave</button>
   </div>
 
@@ -156,14 +164,20 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
 <script>
 const $=s=>document.querySelector(s)
 function show(id){for(const x of ['login','form','empresas','done'])$('#'+x).classList.toggle('hide',x!==id)}
-let CREDS=null, EMPRESAS=[]   // estado del flujo
+let CREDS=null, EMPRESAS=[], YA=[]   // estado del flujo (YA = empresas ya vinculadas, en verde)
 /* Login PIN */
 async function login(){
   const pin=$('#pin').value.trim(); if(!pin){$('#pin').focus();return}
   $('#pinBtn').disabled=true; $('#pinErr').textContent='Entrando…'; $('#pinErr').className='ok'
   try{
     const r=await fetch('/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pin})})
-    if(r.ok){$('#pinErr').textContent='';show('form');$('#userId').focus()}
+    if(r.ok){
+      const j=await r.json().catch(()=>({}))
+      // Si el código está atado a un usuario de Nexus, fijamos ese usuario (no lo teclea) → cada
+      // uno guarda/ve SOLO su cuenta. El label lo muestra.
+      if(j.userId){ $('#userId').value=j.userId; $('#userId').readOnly=true; $('#userIdLbl').textContent='Conectando como: '+j.userId }
+      $('#pinErr').textContent='';show('form');(j.userId?$('#rut'):$('#userId')).focus()
+    }
     else{const j=await r.json().catch(()=>({}));$('#pinErr').className='err';$('#pinErr').textContent=j.error||'PIN incorrecto';$('#pin').value='';$('#pin').focus()}
   }catch(e){$('#pinErr').className='err';$('#pinErr').textContent='Sin conexión, reintenta'}
   $('#pinBtn').disabled=false
@@ -171,10 +185,12 @@ async function login(){
 $('#pinBtn').addEventListener('click',login)
 $('#pin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();login()}})
 
-/* Guarda UNA o VARIAS empresas (mismas credenciales, un registro por empresa). */
-async function guardar(names){
+/* Guarda UNA o VARIAS empresas (mismas credenciales, un registro por empresa).
+   quedarse=true → NO cierra: refresca la lista (marca las nuevas en verde) para seguir agregando
+   más SIN re-loguear. quedarse=false → va a la pantalla final. */
+async function guardar(names, quedarse){
   const lista=(Array.isArray(names)?names:[names]).filter(Boolean)
-  if(!lista.length){ $('#empMsg').className='err'; $('#empMsg').textContent='Selecciona al menos una empresa.'; return }
+  if(!lista.length){ $('#empMsg').className='err'; $('#empMsg').textContent='Marca al menos una empresa.'; return }
   const msg = $('#empresas').classList.contains('hide') ? $('#formMsg') : $('#empMsg')
   msg.className='ok'; msg.textContent='Guardando '+lista.length+(lista.length>1?' empresas…':'…')
   $('#empBtn').disabled=true
@@ -183,12 +199,18 @@ async function guardar(names){
     try{
       const b={...CREDS, empresa, empresas: EMPRESAS.length?EMPRESAS:undefined}
       const r=await fetch('/guardar',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)})
-      const j=await r.json().catch(()=>({})); if(r.ok&&j.ok) ok++
+      const j=await r.json().catch(()=>({})); if(r.ok&&j.ok){ ok++; YA.push((empresa||'').toLowerCase().trim()) }
     }catch(e){}
   }
   $('#empBtn').disabled=false
-  if(ok){ $('#doneTxt').textContent=(ok>1?(ok+' empresas conectadas'):('Empresa "'+lista[0]+'" conectada'))+' — '+CREDS.banco+' para '+CREDS.userId+'.'; show('done') }
-  else{ msg.className='err'; msg.textContent='No se pudo guardar.' }
+  if(!ok){ msg.className='err'; msg.textContent='No se pudo guardar.'; return }
+  if(quedarse){
+    // Quedarse en la lista para agregar MÁS sin re-loguear; las guardadas quedan en verde.
+    pintarEmpresas(EMPRESAS, YA); $('#empTerminar').classList.remove('hide')
+    msg.className='ok'; msg.textContent='✅ '+ok+(ok>1?' empresas conectadas':' empresa conectada')+'. Marca más si quieres, o toca «Terminar».'
+  } else {
+    $('#doneTxt').textContent=(ok>1?(ok+' empresas conectadas'):('Empresa "'+lista[0]+'" conectada'))+' — '+CREDS.banco+' para '+CREDS.userId+'.'; show('done')
+  }
 }
 
 /* Paso 1 → buscar empresas del RUT (entra al banco, puede tardar). */
@@ -202,12 +224,12 @@ async function continuar(){
   $('#okBtn').disabled=false
   if(j.ok && Array.isArray(j.empresas) && j.empresas.length){
     EMPRESAS=j.empresas
-    if(j.empresas.length===1){ await guardar([j.empresas[0].empresa]) }       // una sola → guarda directo
+    if(j.empresas.length===1){ await guardar([j.empresas[0].empresa], false) } // una sola → guarda y termina
     else {
-      // trae las empresas YA vinculadas de este usuario para marcarlas con borde brillante
-      let ya=[]
-      try{ const rc=await fetch('/conexiones?userId='+encodeURIComponent(CREDS.userId)); const jc=await rc.json().catch(()=>({})); ya=(jc.conexiones||[]).map(c=>(c.empresa||'').toLowerCase().trim()).filter(Boolean) }catch(e){}
-      pintarEmpresas(j.empresas, ya); manual(false); show('empresas')          // varias → elegir (multi-select)
+      // trae las empresas YA vinculadas de este usuario (para marcarlas en verde)
+      YA=[]
+      try{ const rc=await fetch('/conexiones?userId='+encodeURIComponent(CREDS.userId)); const jc=await rc.json().catch(()=>({})); YA=(jc.conexiones||[]).map(c=>(c.empresa||'').toLowerCase().trim()).filter(Boolean) }catch(e){}
+      pintarEmpresas(j.empresas, YA); manual(false); $('#empTerminar').classList.add('hide'); show('empresas')  // varias → multi-select
     }
   } else {
     // No pude leer las empresas (clave rechazada, banco ocupado o seguridad). Muestro el paso de
@@ -243,16 +265,18 @@ function pintarEmpresas(list, ya){
 $('#okBtn').addEventListener('click',continuar)
 $('#clave').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();continuar()}})
 $('#empBtn').addEventListener('click',()=>{
-  if(!$('#empManualWrap').classList.contains('hide')){                    // modo manual (una)
+  if(!$('#empManualWrap').classList.contains('hide')){                    // modo manual (una) → termina
     const empresa=$('#empManual').value.trim()
     if(!empresa){$('#empMsg').className='err';$('#empMsg').textContent='Escribe el nombre de la empresa.';return}
-    return guardar([empresa])
+    return guardar([empresa], false)
   }
-  // multi-select: todas las marcadas
+  // multi-select: TODAS las marcadas (que no estén ya en verde) → se queda para agregar más
   const marcadas=[...document.querySelectorAll('input[name=emp]:checked')].map(c=>(EMPRESAS[+c.value]||{}).empresa).filter(Boolean)
-  if(!marcadas.length){$('#empMsg').className='err';$('#empMsg').textContent='Marca al menos una empresa.';return}
-  guardar(marcadas)
+    .filter(n=>!YA.includes((n||'').toLowerCase().trim()))
+  if(!marcadas.length){$('#empMsg').className='err';$('#empMsg').textContent='Marca al menos una empresa nueva (las verdes ya están).';return}
+  guardar(marcadas, true)
 })
+$('#empTerminar').addEventListener('click',()=>{ $('#doneTxt').textContent='Listo — '+YA.length+' empresa'+(YA.length===1?'':'s')+' conectada'+(YA.length===1?'':'s')+' para '+CREDS.userId+'.'; show('done') })
 $('#empVolver').addEventListener('click',()=>show('form'))
 $('#otro').addEventListener('click',()=>{CREDS=null;EMPRESAS=[];$('#clave').value='';$('#formMsg').textContent='';show('form');$('#userId').focus()})
 /* Click-and-go: si el link trae ?pin= auto-loguea (no hay que teclear el PIN). */
@@ -266,7 +290,8 @@ const server = http.createServer(async (req, res) => {
 
   // Página (login + formulario)
   if (req.method === 'GET' && (url === '/' || url.startsWith('/?'))) {
-    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' })
+    // no-cache: el teléfono NO debe quedarse con una versión vieja del widget.
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store, no-cache, must-revalidate', 'pragma': 'no-cache', 'expires': '0' })
     return res.end(PAGINA)
   }
 
@@ -278,10 +303,16 @@ const server = http.createServer(async (req, res) => {
     let pin = ''
     try { pin = String(JSON.parse(body).pin || '') } catch { /* */ }
     // Acepta el PIN fijo (maestro) O un CÓDIGO de un solo uso vigente (los que genera Nexus).
-    if (pin && (pin === PIN || validarCodigo(pin))) {
+    const okPin = pin && pin === PIN
+    const codeRes = (!okPin && pin) ? validarCodigo(pin) : false
+    if (okPin || codeRes) {
       exito(ip)
-      res.writeHead(200, { 'content-type': 'application/json', 'set-cookie': `sid=${sign('ok')}; HttpOnly; SameSite=Lax; Path=/; Max-Age=43200` })
-      return res.end('{"ok":true}')
+      // Si el código está atado a un usuario de Nexus, lo fijamos en la cookie → ese usuario
+      // guarda/ve SOLO sus conexiones (el PIN maestro queda libre para el admin).
+      const uid = (codeRes && codeRes.userId) ? String(codeRes.userId) : ''
+      const val = uid ? ('ok:' + encodeURIComponent(uid)) : 'ok'
+      res.writeHead(200, { 'content-type': 'application/json', 'set-cookie': `sid=${sign(val)}; HttpOnly; SameSite=Lax; Path=/; Max-Age=43200` })
+      return res.end(JSON.stringify({ ok: true, userId: uid || null }))
     }
     fallo(ip)
     res.writeHead(401, { 'content-type': 'application/json' })
@@ -308,11 +339,13 @@ const server = http.createServer(async (req, res) => {
 
   // Guardar credenciales: SOLO con sesión ya autenticada (fail-closed).
   if (req.method === 'POST' && url === '/guardar') {
-    if (!authed(req)) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
+    const ses = sesion(req)
+    if (!ses) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
     const body = await leerBody(req, 8000)
     let d = {}
     try { d = JSON.parse(body) } catch { /* */ }
-    const userId = String(d.userId || '').trim()
+    // Si el código estaba atado a un usuario de Nexus, se GUARDA bajo ESE usuario (no el tecleado).
+    const userId = ses.userId || String(d.userId || '').trim()
     const banco = String(d.banco || 'Santander').trim() || 'Santander'
     const rut = String(d.rut || '').trim()
     const clave = String(d.clave || '') // NO se recorta ni se loguea nunca
@@ -333,8 +366,10 @@ const server = http.createServer(async (req, res) => {
 
   // Listado (solo lectura, SIN claves) — útil para depurar desde el navegador.
   if (req.method === 'GET' && url.startsWith('/conexiones')) {
-    if (!authed(req)) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
-    const userId = new URL(url, 'http://x').searchParams.get('userId') || ''
+    const ses = sesion(req)
+    if (!ses) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
+    // El userId de la cookie manda (cada usuario ve SOLO lo suyo); si es PIN maestro, el query.
+    const userId = ses.userId || new URL(url, 'http://x').searchParams.get('userId') || ''
     res.writeHead(200, { 'content-type': 'application/json' })
     return res.end(JSON.stringify({ ok: true, conexiones: userId ? listar(userId) : [] }))
   }

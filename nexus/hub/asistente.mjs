@@ -3179,9 +3179,11 @@ async function ejecutar(nombre, input, ctx = {}) {
       const url = process.env.TEK_CONECTAR_URL || 'https://mac-mini-de-nicolas.tailee0068.ts.net/banco'
       // Código de UN SOLO USO, NUEVO cada vez que se pide el link (vence a los 30 min). Va en
       // el MENSAJE (no en la URL) → el usuario abre el link y lo escribe.
+      // Se ata al USUARIO de Nexus (nombre) → cada uno conecta/ve SOLO su banco.
+      const uidNexus = (usuarioDe(ctx.de)?.nombre || '').toLowerCase().trim() || undefined
       let codigo = ''
-      try { const vc = await import('../conector-tek/vincular-codes.mjs'); codigo = vc.generar() } catch { /* */ }
-      const texto = `Para conectar tu banco, toca este link 👇\n\n🔗 ${url}\n\n🔒 Código: *${codigo}* (válido 30 min)\n\nAbre el link, escribe ese código, y ahí pones usuario, banco, RUT y clave. 🔐 La clave se guarda CIFRADA y NO pasa por WhatsApp. Si tu RUT tiene varias empresas, te deja elegir cuál conectar.`
+      try { const vc = await import('../conector-tek/vincular-codes.mjs'); codigo = vc.generar(uidNexus) } catch { /* */ }
+      const texto = `Para conectar tu banco, toca este link 👇\n\n🔗 ${url}\n\n🔒 Código: *${codigo}* (válido 30 min)\n\nAbre el link, escribe ese código, y ahí pones el banco, RUT y clave. 🔐 La clave se guarda CIFRADA y NO pasa por WhatsApp. Si tu RUT tiene varias empresas, te deja elegir cuál(es) conectar.`
       return JSON.stringify({ ok: true, url, codigo, texto, instruccion: 'Mándale el LINK (en su propia línea) y el CÓDIGO tal cual. El código es de un solo uso y NUEVO cada vez. ⛔ NUNCA le pidas la clave del banco por el chat — se ingresa SOLO en esa página segura.' })
     }
     // ── SII · descargar el PDF de una boleta de honorarios recibida y mandarla por WhatsApp ──
