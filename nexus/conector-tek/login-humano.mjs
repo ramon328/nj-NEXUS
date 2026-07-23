@@ -1262,31 +1262,40 @@ async function listarEmpresasBanco(page, log) {
   mkdirSync(DATA, { recursive: true })
   await sleep(2500)
   await page.screenshot({ path: join(DATA, 'vincular-00-post-login.png') }).catch(() => {})
-  // 1) Si el login cayó en la pantalla de SELECCIÓN de empresa, las filas ya son las empresas.
-  // 2) Si cayó en el dashboard, abrimos el selector "Empresa / Rol" del header.
-  const enSeleccion = /seleccion-empresa|listado de empresas|selecciona.*empresa/i.test(page.url() + ' ' + (await page.evaluate(() => document.body?.innerText || '').catch(() => '')))
+  // Un login con VARIAS empresas cae directo en el "selector de empresas". Si no (sesión en
+  // dashboard), abrimos "Empresa / Rol" → "Volver a selector de empresas" para ver la lista.
+  const txt0 = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
+  let enSeleccion = /selector de empresas|seleccion-empresa|selecciona.*empresa|listado de empresas/i.test(page.url() + ' ' + txt0)
   if (!enSeleccion) {
     const btn = page.getByText(/Empresa\s*\/\s*Rol/i).first()
-    if (await btn.count().catch(() => 0)) { await btn.click({ timeout: 4000 }).catch(() => {}); await sleep(2800) }
+    if (await btn.count().catch(() => 0)) { await btn.click({ timeout: 4000 }).catch(() => {}); await sleep(2200) }
+    const volver = page.getByText(/volver al?\s*selector de empresas/i).first()
+    if (await volver.count().catch(() => 0)) { await volver.click({ timeout: 4000 }).catch(() => {}); await sleep(4500); enSeleccion = true }
   }
   await page.screenshot({ path: join(DATA, 'vincular-01-empresas.png') }).catch(() => {})
-  // Volcar candidatos a "empresa" (filas/opciones que contengan un RUT).
-  const dump = []
+  // Extrae las EMPRESAS: filas/tarjetas con nombre de empresa (SPA/SA/LTDA), "Contrato:" o RUT.
+  const empresas = []
   for (const fr of page.frames()) {
     const arr = await fr.evaluate(() => {
       const out = []
-      for (const el of document.querySelectorAll('tr, li, [role="option"], [role="row"], [class*="empresa" i], [class*="rol" i], [class*="item" i], td, button, a')) {
+      for (const el of document.querySelectorAll('tr, [role="row"], li, [class*="empresa" i], [class*="card" i], [class*="item" i], [role="option"]')) {
         const t = (el.innerText || '').replace(/\s+/g, ' ').trim()
-        if (t && t.length >= 4 && t.length < 90 && /\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]/.test(t)) out.push(t)
+        if (t && t.length >= 6 && t.length < 140 && /(s\.?p\.?a|s\.?a\.?\b|ltda|limitada|e\.?i\.?r\.?l|contrato\s*:?\s*\d|\d{1,2}\.?\d{3}\.?\d{3}-[\dkK])/i.test(t)) out.push(t)
       }
       return out
     }).catch(() => [])
-    dump.push(...arr)
+    empresas.push(...arr)
   }
-  const empresas = [...new Set(dump)].slice(0, 30)
-  writeFileSync(join(DATA, 'vincular-empresas.json'), JSON.stringify({ url: page.url(), enSeleccion, empresas, dump: await volcarFrames(page) }, null, 2))
-  log('vincular: empresas detectadas:', empresas.length)
-  return { estado: 'empresas', empresas, enSeleccion, url: page.url() }
+  const uniq = [...new Set(empresas)]
+  // Parseo cada fila "Contrato RUT Empresa Rol Entrar" → estructura. Descarta el encabezado.
+  const parsed = uniq.map((t) => {
+    const m = t.match(/^(\d{10,})\s+([\d.]+-[\dkK])\s+(.+?)\s+(Usuario|Administrador|Admin|Aprobador|Consulta|Firmante|[A-Za-zÁÉÍÓÚÑñ]+)\s+Entrar\s*$/i)
+    if (m) return { contrato: m[1], rut: m[2], empresa: m[3].trim(), rol: m[4] }
+    return null
+  }).filter(Boolean)
+  writeFileSync(join(DATA, 'vincular-empresas.json'), JSON.stringify({ url: page.url(), enSeleccion, empresas: parsed, crudo: uniq, dump: await volcarFrames(page) }, null, 2))
+  log('vincular: empresas parseadas:', parsed.length)
+  return { estado: 'empresas', empresas: parsed, enSeleccion, url: page.url() }
 }
 
 // ── CARTOLA HISTÓRICA (Cuentas Corrientes → Cartola/Histórico) ──────────────────
@@ -1519,7 +1528,12 @@ async function main() {
   const headless = process.env.TEK_HEADLESS === '1'
   const assist = process.env.TEK_ASSIST === '1'
   const perfilReal = process.env.TEK_PROFILE_REAL === '1'
-  const profileDir = perfilReal ? join(process.env.HOME, 'Library/Application Support/Google/Chrome') : PROFILE_TEK
+  // VINCULACIÓN (probar creds de OTRO usuario): perfil EFÍMERO por RUT, así NO pisa ni reusa
+  // la sesión del perfil compartido (ANA CLARA). Se descarta al terminar.
+  const vinculando = process.env.TEK_VINCULAR === 'empresas'
+  const profileDir = perfilReal
+    ? join(process.env.HOME, 'Library/Application Support/Google/Chrome')
+    : (vinculando ? join('/tmp', 'tek-vinc-' + String(rut || 'x').replace(/[^0-9kK]/g, '')) : PROFILE_TEK)
   // Patchright recomienda mínimos args (nada de --no-sandbox/UA: son señales de bot).
   const ctx = await chromium.launchPersistentContext(profileDir, {
     headless, channel: 'chrome',

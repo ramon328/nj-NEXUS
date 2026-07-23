@@ -20,6 +20,7 @@
 import http from 'node:http'
 import crypto from 'node:crypto'
 import { guardar, listar } from './credenciales.mjs'
+import { listarEmpresas } from './vincular.mjs'
 
 const PORT = Number(process.env.TEK_CONECTAR_PORT || 7694)
 const HOST = process.env.TEK_CONECTAR_HOST || '0.0.0.0' // alcanzable por Tailscale (con PIN); el teléfono entra a http://100.91.97.70:7694
@@ -104,7 +105,7 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
     <div id="pinErr" class="err"></div>
   </div>
 
-  <!-- Formulario de conexión -->
+  <!-- Paso 1: credenciales -->
   <div id="form" class="hide">
     <h1>Conectar tu banco</h1>
     <p class="sub">Tus datos se guardan cifrados en el Mac. No se comparten ni se mandan por WhatsApp.</p>
@@ -116,11 +117,19 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
     <input id="rut" autocomplete="off" inputmode="text" placeholder="12.345.678-9">
     <label for="clave">Clave del banco</label>
     <input id="clave" type="password" autocomplete="off" placeholder="••••••••">
-    <label for="empresa">Empresa (opcional)</label>
-    <input id="empresa" autocomplete="off" placeholder="ej: ANA CLARA SPA">
-    <button id="okBtn" type="button">Conectar banco</button>
+    <button id="okBtn" type="button">Continuar →</button>
     <div id="formMsg" class="err"></div>
     <p class="lock">🔐 La clave se cifra (AES-256-GCM) al guardarla y nunca se muestra ni se registra en ningún log.</p>
+  </div>
+
+  <!-- Paso 2: elegir empresa -->
+  <div id="empresas" class="hide">
+    <h1>Elige la empresa</h1>
+    <p class="sub" id="empSub">Tu RUT tiene varias empresas. ¿Cuál conectas?</p>
+    <div id="empLista"></div>
+    <button id="empBtn" type="button">Vincular empresa</button>
+    <div id="empMsg" class="err"></div>
+    <button id="empVolver" type="button" style="background:#242736;margin-top:10px">← Volver</button>
   </div>
 
   <!-- Confirmación -->
@@ -129,14 +138,15 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
       <div class="big">✅</div>
       <h2>Banco conectado</h2>
       <p id="doneTxt">Ya puedes pedirle a Nexus lo del banco.</p>
-      <button id="otro" type="button">Conectar otra empresa</button>
+      <button id="otro" type="button">Conectar otra</button>
     </div>
   </div>
 </div>
 <script>
 const $=s=>document.querySelector(s)
-function show(id){for(const x of ['login','form','done'])$('#'+x).classList.toggle('hide',x!==id)}
-/* Login */
+function show(id){for(const x of ['login','form','empresas','done'])$('#'+x).classList.toggle('hide',x!==id)}
+let CREDS=null, EMPRESAS=[]   // estado del flujo
+/* Login PIN */
 async function login(){
   const pin=$('#pin').value.trim(); if(!pin){$('#pin').focus();return}
   $('#pinBtn').disabled=true; $('#pinErr').textContent='Entrando…'; $('#pinErr').className='ok'
@@ -149,23 +159,55 @@ async function login(){
 }
 $('#pinBtn').addEventListener('click',login)
 $('#pin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();login()}})
-/* Guardar conexión */
-async function guardar(){
-  const b={userId:$('#userId').value.trim(),banco:$('#banco').value,rut:$('#rut').value.trim(),clave:$('#clave').value,empresa:$('#empresa').value.trim()}
-  if(!b.userId||!b.rut||!b.clave){$('#formMsg').className='err';$('#formMsg').textContent='Faltan usuario, RUT o clave.';return}
-  $('#okBtn').disabled=true; $('#formMsg').className='ok'; $('#formMsg').textContent='Guardando…'
+
+/* Guarda la conexión (con la empresa elegida y la lista completa). */
+async function guardar(empresa){
+  const b={...CREDS, empresa: empresa||undefined, empresas: EMPRESAS.length?EMPRESAS:undefined}
+  const msg = $('#empresas').classList.contains('hide') ? $('#formMsg') : $('#empMsg')
+  msg.className='ok'; msg.textContent='Guardando…'
   try{
     const r=await fetch('/guardar',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify(b)})
     const j=await r.json().catch(()=>({}))
-    if(r.ok&&j.ok){$('#doneTxt').textContent=(j.empresa?('Empresa '+j.empresa+' — ') :'')+b.banco+' conectado para '+b.userId+'.';
-      $('#clave').value='';show('done')}
-    else{$('#formMsg').className='err';$('#formMsg').textContent=j.error||'No se pudo guardar.'}
-  }catch(e){$('#formMsg').className='err';$('#formMsg').textContent='Sin conexión, reintenta'}
-  $('#okBtn').disabled=false
+    if(r.ok&&j.ok){ $('#doneTxt').textContent=(j.empresa?('Empresa '+j.empresa+' — '):'')+CREDS.banco+' conectado para '+CREDS.userId+'.'; show('done') }
+    else{ msg.className='err'; msg.textContent=j.error||'No se pudo guardar.' }
+  }catch(e){ msg.className='err'; msg.textContent='Sin conexión, reintenta' }
 }
-$('#okBtn').addEventListener('click',guardar)
-$('#clave').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();guardar()}})
-$('#otro').addEventListener('click',()=>{$('#empresa').value='';$('#clave').value='';$('#formMsg').textContent='';show('form');$('#empresa').focus()})
+
+/* Paso 1 → buscar empresas del RUT (entra al banco, puede tardar). */
+async function continuar(){
+  CREDS={userId:$('#userId').value.trim(),banco:$('#banco').value,rut:$('#rut').value.trim(),clave:$('#clave').value}
+  if(!CREDS.userId||!CREDS.rut||!CREDS.clave){$('#formMsg').className='err';$('#formMsg').textContent='Faltan usuario, RUT o clave.';return}
+  $('#okBtn').disabled=true; $('#formMsg').className='ok'; $('#formMsg').textContent='Buscando tus empresas… entro al banco, puede tardar ~2 min ⏳'
+  let j={}
+  try{ const r=await fetch('/empresas',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({rut:CREDS.rut,clave:CREDS.clave,banco:CREDS.banco})}); j=await r.json().catch(()=>({})) }
+  catch(e){ j={ok:false,error:'Sin conexión'} }
+  $('#okBtn').disabled=false
+  if(j.ok && Array.isArray(j.empresas) && j.empresas.length){
+    EMPRESAS=j.empresas
+    if(j.empresas.length===1){ await guardar(j.empresas[0].empresa) }   // una sola → guarda directo
+    else { pintarEmpresas(j.empresas); show('empresas') }               // varias → elegir
+  } else {
+    // Degradación: el banco no dejó leer las empresas (seguridad/antifraude) → guardo igual las
+    // creds; la empresa se puede elegir después. NO se pierde el trabajo del usuario.
+    EMPRESAS=[]
+    $('#formMsg').className='err'
+    $('#formMsg').textContent=(j.error||'No pude leer las empresas ahora')+'. Guardo tus datos igual…'
+    await guardar(undefined)
+  }
+}
+function pintarEmpresas(list){
+  $('#empSub').textContent='Tu RUT tiene '+list.length+' empresas. Elige la que quieres conectar:'
+  $('#empLista').innerHTML=list.map((e,i)=>
+    '<label style="display:flex;gap:10px;align-items:flex-start;padding:11px 12px;border:1px solid var(--line);border-radius:12px;margin-top:8px;cursor:pointer">'+
+    '<input type="radio" name="emp" value="'+i+'" '+(i===0?'checked':'')+' style="width:auto;margin-top:3px">'+
+    '<span><b>'+(e.empresa||'').replace(/</g,'')+'</b><br><span style="color:var(--mut);font-size:12.5px">RUT '+(e.rut||'')+(e.rol?' · '+e.rol:'')+'</span></span></label>'
+  ).join('')
+}
+$('#okBtn').addEventListener('click',continuar)
+$('#clave').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();continuar()}})
+$('#empBtn').addEventListener('click',()=>{ const sel=document.querySelector('input[name=emp]:checked'); const e=EMPRESAS[sel?+sel.value:0]; guardar(e?e.empresa:undefined) })
+$('#empVolver').addEventListener('click',()=>show('form'))
+$('#otro').addEventListener('click',()=>{CREDS=null;EMPRESAS=[];$('#clave').value='';$('#formMsg').textContent='';show('form');$('#userId').focus()})
 </script></body></html>`
 
 // ── Servidor HTTP ─────────────────────────────────────────────────────────────
@@ -196,6 +238,24 @@ const server = http.createServer(async (req, res) => {
     return res.end('{"error":"PIN incorrecto"}')
   }
 
+  // Empresas del RUT: loguea con las creds y devuelve las empresas asociadas (para elegir).
+  // Puede tardar ~2 min (entra al banco). SOLO autenticado. NO guarda nada.
+  if (req.method === 'POST' && url === '/empresas') {
+    if (!authed(req)) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
+    const body = await leerBody(req, 8000)
+    let d = {}
+    try { d = JSON.parse(body) } catch { /* */ }
+    const rut = String(d.rut || '').trim()
+    const clave = String(d.clave || '')
+    const banco = String(d.banco || 'Santander').trim() || 'Santander'
+    if (!rut || !clave) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"error":"Faltan RUT o clave."}') }
+    let r
+    try { r = await listarEmpresas({ rut, clave, banco }) } catch (e) { r = { ok: false, error: e.message } }
+    console.log('[tek-conectar] empresas', r.ok ? `OK (${(r.empresas || []).length})` : 'ERROR ' + (r.estado || ''), '· banco=' + banco)  // sin rut ni clave
+    res.writeHead(r.ok ? 200 : 200, { 'content-type': 'application/json' })
+    return res.end(JSON.stringify(r.ok ? { ok: true, empresas: r.empresas } : { ok: false, error: r.error || 'No pude leer las empresas.', estado: r.estado }))
+  }
+
   // Guardar credenciales: SOLO con sesión ya autenticada (fail-closed).
   if (req.method === 'POST' && url === '/guardar') {
     if (!authed(req)) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
@@ -207,12 +267,13 @@ const server = http.createServer(async (req, res) => {
     const rut = String(d.rut || '').trim()
     const clave = String(d.clave || '') // NO se recorta ni se loguea nunca
     const empresa = String(d.empresa || '').trim() || undefined
+    const empresas = Array.isArray(d.empresas) ? d.empresas.slice(0, 40) : undefined  // lista para el selector
     if (!userId || !rut || !clave) {
       res.writeHead(400, { 'content-type': 'application/json' })
       return res.end('{"error":"Faltan usuario, RUT o clave."}')
     }
     // La clave va DIRECTO a la bóveda, que la cifra. Acá no toca disco en claro.
-    const r = guardar(userId, { banco, empresa, rut, clave })
+    const r = guardar(userId, { banco, empresa, rut, clave, empresas })
     // Log de auditoría SIN datos sensibles (jamás rut ni clave).
     console.log('[tek-conectar] guardar', r.ok ? 'OK' : 'ERROR', '· userId=' + userId, '· banco=' + banco, '· empresa=' + (empresa || '-'))
     if (!r.ok) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ error: r.error || 'No se pudo guardar.' })) }
