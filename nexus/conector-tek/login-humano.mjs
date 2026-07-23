@@ -1614,9 +1614,22 @@ async function main() {
       log('vincular: perfil confiable clonado (device-trust heredado)')
     } catch (e) { log('vincular: clon de perfil falló:', e.message) }
   } else profileDir = PROFILE_TEK
+  // PROXY RESIDENCIAL CL (como Rail): si están las creds en el env, salimos por una IP
+  // residencial chilena limpia en vez de la del mini (que se quema al re-loguear seguido
+  // → Akamai/Incapsula al muro "reinicia tu wifi" = device_trust). Sesión STICKY por
+  // usuario (TEK_PROXY_SESSION) → el mismo usuario cae siempre en la misma IP (cookies
+  // anti-bot _abck/bm_sv sobreviven). BrightData usa separador '-session-', SmartProxy '_session-'.
+  let proxy
+  if (process.env.TEK_PROXY_URL && process.env.TEK_PROXY_USER && process.env.TEK_PROXY_PASS) {
+    const sep = process.env.TEK_PROXY_SEP || '-session-'   // '-session-' brightdata | '_session-' smartproxy
+    const sess = (process.env.TEK_PROXY_SESSION || String(rut || '').replace(/[^0-9kK]/g, '') || 'tek').slice(0, 24)
+    proxy = { server: process.env.TEK_PROXY_URL, username: process.env.TEK_PROXY_USER + sep + sess, password: process.env.TEK_PROXY_PASS }
+    log(`proxy residencial ON (${process.env.TEK_PROXY_URL}, sticky=${sess})`)
+  }
   // Patchright recomienda mínimos args (nada de --no-sandbox/UA: son señales de bot).
   const ctx = await chromium.launchPersistentContext(profileDir, {
     headless, channel: 'chrome',
+    ...(proxy ? { proxy } : {}),
     args: perfilReal ? ['--profile-directory=Default', '--disable-background-networking', '--disable-sync', '--no-first-run'] : [],
     viewport: { width: 1360, height: 860 }, locale: 'es-CL', timezoneId: 'America/Santiago',
     acceptDownloads: true,   // para bajar los PDF de la cartola histórica
