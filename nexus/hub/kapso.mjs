@@ -43,7 +43,7 @@ export async function enviarKapso(to, texto) {
     const r = await fetch(`${META_BASE}/${PHONE_ID}/messages`, {
       method: 'POST',
       headers: { 'X-API-Key': API_KEY, 'Content-Type': 'application/json' },
-      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: dest, type: 'text', text: { body: parte, preview_url: false } }),
+      body: JSON.stringify({ messaging_product: 'whatsapp', recipient_type: 'individual', to: dest, type: 'text', text: { body: parte, preview_url: /https?:\/\//i.test(parte) } }),
     })
     const txt = await r.text()
     let data; try { data = JSON.parse(txt) } catch { data = txt }

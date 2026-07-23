@@ -208,6 +208,8 @@ $('#clave').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault(
 $('#empBtn').addEventListener('click',()=>{ const sel=document.querySelector('input[name=emp]:checked'); const e=EMPRESAS[sel?+sel.value:0]; guardar(e?e.empresa:undefined) })
 $('#empVolver').addEventListener('click',()=>show('form'))
 $('#otro').addEventListener('click',()=>{CREDS=null;EMPRESAS=[];$('#clave').value='';$('#formMsg').textContent='';show('form');$('#userId').focus()})
+/* Click-and-go: si el link trae ?pin= auto-loguea (no hay que teclear el PIN). */
+(function(){ try{ const p=new URLSearchParams(location.search).get('pin'); if(p&&/^[0-9]{4,8}$/.test(p)){ $('#pin').value=p; login(); } }catch(e){} })()
 </script></body></html>`
 
 // ── Servidor HTTP ─────────────────────────────────────────────────────────────

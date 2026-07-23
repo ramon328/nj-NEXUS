@@ -3176,13 +3176,14 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     // ── tek · VINCULAR banco: link del widget seguro + PIN (nunca pedir clave por chat) ──
     if (nombre === 'vincular_banco') {
-      const url = process.env.TEK_CONECTAR_URL || 'http://100.91.97.70:7694'
+      const base = process.env.TEK_CONECTAR_URL || 'https://mac-mini-de-nicolas.tailee0068.ts.net/banco'
       let pin = process.env.TEK_CONECTAR_PIN || ''
       if (!pin) {
         try { pin = (readFileSync(join(process.env.HOME || '', 'Library/LaunchAgents/com.nexus.tek-conectar.plist'), 'utf8').match(/TEK_CONECTAR_PIN<\/key>\s*<string>([^<]+)/) || [])[1] || '' } catch { /* */ }
       }
-      const texto = `Para conectar tu banco, entra a este link seguro (desde el teléfono/PC conectado a la red de la oficina o Tailscale):\n\n🔗 ${url}\n🔒 PIN: ${pin || '(pídeselo a Ramón)'}\n\nAhí ingresas usuario, banco, RUT y clave. 🔐 La clave se guarda CIFRADA y NO viaja por WhatsApp. Si tu RUT tiene varias empresas, te deja elegir cuál conectar.`
-      return JSON.stringify({ ok: true, url, pin, texto, instruccion: 'Mándale el LINK y el PIN tal cual. ⛔ NUNCA le pidas la clave del banco por el chat — se ingresa SOLO en esa página segura.' })
+      const url = pin ? `${base}?pin=${pin}` : base   // el PIN va en el link → se abre solo, sin teclearlo
+      const texto = `Para conectar tu banco, toca este link 👇 (se abre solo, no tienes que copiar nada):\n\n🔗 ${url}\n\nAhí pones usuario, banco, RUT y clave. 🔐 La clave se guarda CIFRADA y NO pasa por WhatsApp. Si tu RUT tiene varias empresas, te deja elegir cuál conectar.`
+      return JSON.stringify({ ok: true, url, texto, instruccion: 'Mándale el LINK tal cual, en su propia línea (ya lleva el acceso, es de un toque). ⛔ NUNCA le pidas la clave del banco por el chat — se ingresa SOLO en esa página segura.' })
     }
     // ── SII · descargar el PDF de una boleta de honorarios recibida y mandarla por WhatsApp ──
     if (nombre === 'sii_boleta_honorarios') {
@@ -3229,10 +3230,25 @@ async function ejecutar(nombre, input, ctx = {}) {
       const tipo = input.tipo ? String(input.tipo).toUpperCase() : ''
       try {
         const l = await autored.listarInformes({ patente, filas: 30 })
-        const rows = (l.rows || l || []).filter((r) => r && r.ready && (r.url || r.publicUrl))
+        const all = (l.rows || l || [])
+        const rows = all.filter((r) => r && r.ready && (r.url || r.publicUrl))
         const pref = ['CAV_RAW', 'CAV', 'NMP']   // preferir el más simple/barato ya comprado
         let row = rows.filter((r) => pref.includes(r.reportType)).sort((a, b) => pref.indexOf(a.reportType) - pref.indexOf(b.reportType))[0]
         let gratis = true
+        // LEY: si ya hay un informe de esa patente (listo O generándose), NO se compra otro.
+        // Blindaje contra doble cobro: si uno está EN CURSO (ready:false), se espera, no se compra.
+        if (!row) {
+          const enCurso = all.filter((r) => r && !r.ready && pref.includes(r.reportType)).sort((a, b) => (b.id || 0) - (a.id || 0))[0]
+          if (enCurso) {
+            const t0 = Date.now()
+            while (Date.now() - t0 < 90000 && !row) {
+              await new Promise((res) => setTimeout(res, 8000))
+              const l2 = await autored.listarInformes({ patente, filas: 30 })
+              row = (l2.rows || l2 || []).find((r) => r.id === enCurso.id && r.ready && (r.url || r.publicUrl)) || undefined
+            }
+            if (!row) return `${patente} ya tiene un informe generándose (id ${enCurso.id}) — NO hace falta comprar otro. Dame un par de minutos y reintento.`
+          }
+        }
         if (!row) {
           const pr = autored.precios()
           if (!tipo) {
