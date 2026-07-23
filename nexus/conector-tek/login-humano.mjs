@@ -1675,11 +1675,26 @@ async function main() {
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión
   // guardada sigue viva yendo directo al dashboard. Si carga logueado → capturamos SIN
   // login (evita ingresos de más que flagean a Santander). Solo si nos bota, logueamos.
+  const keepAlive = process.env.TEK_KEEPALIVE === '1'
   if (!assist && process.env.TEK_FORZAR_LOGIN !== '1') {
     await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
     await sleep(rnd(4000, 6000))
     const u = page.url()
     const viva = u.includes(PRIVADO) && !/\/login|error-seguridad|logout/i.test(u) && !(await textoVisible(page, DEVICE_RE))
+    // ── LATIDO (keep-alive): mantiene VIVA la sesión sin re-loguear (la 3ª pata de Rail:
+    //    refrescar cookies antes de que expire, no re-loguearse). Navegación suave que
+    //    resetea el timer de inactividad (~10-15 min) + reguarda storageState. Si NO hay
+    //    sesión viva, NO loguea (eso lo hace un login normal, no el latido).
+    if (keepAlive) {
+      if (viva) {
+        await moveTo(page, rnd(400, 950), rnd(240, 560)); await idle(page, rnd(800, 1600))
+        await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+        await sleep(rnd(2500, 4500))
+        try { await ctx.storageState({ path: SESSION_FILE }) } catch { /* */ }
+        return fin('keepalive_ok', { nota: 'sesión mantenida viva (sin login)' })
+      }
+      return fin('sesion_muerta', { nota: 'no hay sesión viva que mantener; el latido NUNCA loguea' })
+    }
     if (viva) {
       log('✓ sesión viva REUTILIZADA (sin login)')
       // calentamiento humano: mover el mouse y "leer" antes de operar
@@ -1688,6 +1703,8 @@ async function main() {
       return acciones('reuso')
     }
     log('sesión no reutilizable → hago login')
+  } else if (keepAlive) {
+    return fin('keepalive_omitido', { nota: 'assist/forzar-login activo; el latido no aplica' })
   }
 
   // VINCULACIÓN: el clon hereda la sesión de ANA CLARA. La CERRAMOS (logout) para que el login
