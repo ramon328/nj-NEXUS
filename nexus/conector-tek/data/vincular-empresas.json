@@ -1,64 +1,7 @@
 {
-  "url": "https://privado.officebanking.cl/seleccion-empresa",
-  "enSeleccion": true,
-  "empresas": [
-    "Contrato RUT Empresa Rol",
-    "000690022343160 76.106.636-6 IMP JURI Y FONTENA ASOCIADOS LIMITADA Usuario Entrar",
-    "000690023084710 76.867.554-6 IMPORTACIONES MINERAS SPA Usuario Entrar",
-    "000690024634580 76.188.898-6 IMPORTADORA JURI Y JURI LIMITADA Usuario Entrar",
-    "000690026173520 77.271.121-2 ANA CLARA SPA Usuario Entrar"
-  ],
-  "dump": [
-    {
-      "url": "https://privado.officebanking.cl/seleccion-empresa",
-      "inputs": [
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "buscador",
-          "name": "",
-          "placeholder": "Buscar",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "paginaActual",
-          "placeholder": "",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "select",
-          "type": "select-one",
-          "id": "sel-show",
-          "name": "",
-          "placeholder": "",
-          "maxlength": "",
-          "label": "Mostrar",
-          "opciones": [
-            "4"
-          ]
-        }
-      ],
-      "botones": [
-        "Accesibilidad",
-        "Empresa / Rol",
-        "logout",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar"
-      ],
-      "titulos": [
-        "Listado de Empresas"
-      ]
-    }
-  ]
+  "url": "https://privado.officebanking.cl/login?reason=validate_user",
+  "enSeleccion": false,
+  "empresas": [],
+  "crudo": [],
+  "dump": []
 }

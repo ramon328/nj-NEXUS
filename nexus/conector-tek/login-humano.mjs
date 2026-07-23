@@ -1260,7 +1260,18 @@ async function comprobantesConsulta(page, log) {
 // VUELCA las empresas disponibles, para que el usuario elija en el widget. SOLO LECTURA.
 async function listarEmpresasBanco(page, log) {
   mkdirSync(DATA, { recursive: true })
-  await sleep(2500)
+  // Esperar a que TERMINE el redireccionamiento post-login (la pantalla "Redireccionando…"
+  // aparece un rato; leer antes daba 0 empresas). Esperamos hasta ver la app real.
+  for (let i = 0; i < 24; i++) {
+    await sleep(1500)
+    const u = page.url()
+    const t = await page.evaluate(() => (document.body?.innerText || '').slice(0, 400)).catch(() => '')
+    const enApp = /privado\.officebanking/i.test(u) && !/\/login|redireccionando|validate_user/i.test(u + ' ' + t)
+    const listo = enApp && /(empresa|saldo|transferenc|selector|contrato|inicio|tus datos|cuenta)/i.test(t + ' ' + u)
+    if (listo) { log('vincular: app cargada tras redirect (' + ((i + 1) * 1.5) + 's)'); break }
+    if (/error-seguridad/i.test(u)) { log('vincular: muro antifraude'); break }
+  }
+  await sleep(1500)
   await page.screenshot({ path: join(DATA, 'vincular-00-post-login.png') }).catch(() => {})
   // Un login con VARIAS empresas cae directo en el "selector de empresas". Si no (sesión en
   // dashboard), abrimos "Empresa / Rol" → "Volver a selector de empresas" para ver la lista.
