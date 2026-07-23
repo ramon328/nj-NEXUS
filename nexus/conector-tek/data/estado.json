@@ -1,5 +1,5 @@
 {
-  "estado": "ok",
+  "estado": "error",
   "actualizado": "2026-07-22T15:05:38.247Z",
   "empresa": "ANA CLARA SPA",
   "desde": "2026-04-25",
@@ -8,5 +8,8 @@
   "saldos": 2,
   "movimientos": 0,
   "movimientos_anual": null,
-  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCNA_SDOCTACTE&ts=1784732726957"
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCNA_SDOCTACTE&ts=1784732726957",
+  "arranque": "2026-07-23T12:20:00.493Z",
+  "intento": "2026-07-23T12:25:20.508Z",
+  "detalle": "sin_resultado"
 }
