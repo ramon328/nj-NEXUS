@@ -1185,56 +1185,70 @@ async function comprobantesConsulta(page, log) {
     log('popover fila capturado:', Boolean(popover))
   }
 
-  // BAJAR: descarga el comprobante (PDF) de la fila pedida (TEK_COMPROB_IDX, 1-based).
+  // BAJAR: descarga el/los comprobante(s) PDF. TEK_COMPROB_IDX = "3" (una) | "1,3,5" (varias)
+  // | "todos". Descarga TODAS las pedidas en la MISMA sesión (mucho más rápido que 1 login c/u).
   if (process.env.TEK_COMPROBANTES === 'bajar') {
-    // Flujo real: en la columna "Impresos" cada fila tiene un ícono "⋮" (a.btn-inner-table) que
-    // abre un popover con "Comprobante Transferencia" / "Certificado Transferencia".
-    const idx = Math.max(1, parseInt(process.env.TEK_COMPROB_IDX || '1', 10))   // 1-based
-    const dest = join(DATA, `comprobante-${idx}.pdf`)
-    try { if (existsSync(dest)) unlinkSync(dest) } catch { /* */ }
-    let pdfPath = null, detalle = ''
+    // Frame con la columna "Impresos" (ícono "⋮" por fila).
+    let impFr = null, nIconos = 0
     for (const fr of page.frames()) {
-      const iconos = fr.locator('td[data-th="Impresos"] a.btn-inner-table, td.td-btn-inner-table a.btn-popover')
-      const n = await iconos.count().catch(() => 0)
-      if (n < idx) continue
+      const c = await fr.locator('td[data-th="Impresos"] a.btn-inner-table, td.td-btn-inner-table a.btn-popover').count().catch(() => 0)
+      if (c > 0) { impFr = fr; nIconos = c; break }
+    }
+    if (!impFr) return { estado: 'sin_tabla', comprobantes: [], total_filas: filas.length, url: page.url() }
+    const spec = String(process.env.TEK_COMPROB_IDX || '1').toLowerCase().trim()
+    let indices
+    if (spec === 'todos' || spec === 'all' || spec === '*') indices = Array.from({ length: nIconos }, (_, i) => i + 1)
+    else indices = [...new Set(spec.split(/[,\s]+/).map((s) => parseInt(s, 10)).filter((n) => n >= 1 && n <= nIconos))]
+    log('comprobantes a bajar:', indices.join(',') || '(ninguno válido)')
+
+    // Descarga el comprobante de UNA fila (1-based). Devuelve la ruta del PDF o null.
+    const bajarUno = async (idx) => {
+      const dest = join(DATA, `comprobante-${idx}.pdf`)
+      try { if (existsSync(dest)) unlinkSync(dest) } catch { /* */ }
+      const iconos = impFr.locator('td[data-th="Impresos"] a.btn-inner-table, td.td-btn-inner-table a.btn-popover')
+      if ((await iconos.count().catch(() => 0)) < idx) return null
       const icon = iconos.nth(idx - 1)
       await icon.scrollIntoViewIfNeeded().catch(() => {})
       await icon.click({ timeout: 4000 }).catch(async () => { await clickHumano(page, icon) })
-      await sleep(1800)
-      await page.screenshot({ path: join(DATA, 'comprob-05-popover-fila.png') }).catch(() => {})
-      // "Comprobante Transferencia" en el popover. OJO: existe un template OCULTO (#list-popover)
-      // con el mismo texto + el popover VISIBLE clonado → hay que elegir el VISIBLE (no .first()).
+      await sleep(1500)
+      // "Comprobante Transferencia" VISIBLE (hay un template oculto con el mismo texto).
       let opt = null
       for (const f2 of page.frames()) {
         const cands = await f2.getByText(/comprobante\s*transferencia/i).all().catch(() => [])
         for (const c of cands) { if (await c.isVisible().catch(() => false)) { opt = c; break } }
         if (opt) break
       }
-      if (!opt) { detalle = 'no apareció "Comprobante Transferencia" en el popover'; break }
-      // Al hacer clic: puede DISPARAR una descarga o ABRIR una pestaña con el PDF.
+      if (!opt) { await page.keyboard.press('Escape').catch(() => {}); return null }
       const [dl, pop] = await Promise.all([
         page.waitForEvent('download', { timeout: 14000 }).catch(() => null),
         page.context().waitForEvent('page', { timeout: 14000 }).catch(() => null),
         opt.click({ timeout: 4000 }).catch(() => {}),
       ])
-      if (dl) { await dl.saveAs(dest).catch(() => {}); if (existsSync(dest)) pdfPath = dest }
-      if (!pdfPath && pop) {
+      let pdf = null
+      if (dl) { await dl.saveAs(dest).catch(() => {}); if (existsSync(dest)) pdf = dest }
+      if (!pdf && pop) {
         await pop.waitForLoadState('domcontentloaded').catch(() => {})
         const u = pop.url()
         try {
-          if (/\.pdf|comprobante|blob:/i.test(u)) {
-            const resp = await pop.context().request.get(u).catch(() => null)
-            if (resp && resp.ok()) { writeFileSync(dest, await resp.body()); pdfPath = existsSync(dest) ? dest : null }
-          }
-          if (!pdfPath) { await pop.pdf({ path: dest }).catch(() => {}); if (existsSync(dest)) pdfPath = dest }
-        } catch (e) { detalle = 'pestaña PDF: ' + e.message }
+          if (/\.pdf|comprobante|blob:/i.test(u)) { const resp = await pop.context().request.get(u).catch(() => null); if (resp && resp.ok()) { writeFileSync(dest, await resp.body()); pdf = existsSync(dest) ? dest : null } }
+          if (!pdf) { await pop.pdf({ path: dest }).catch(() => {}); if (existsSync(dest)) pdf = dest }
+        } catch { /* */ }
         await pop.close().catch(() => {})
       }
-      if (!pdfPath && !detalle) detalle = 'clic en Comprobante pero no capturé la descarga'
-      break
+      await page.keyboard.press('Escape').catch(() => {})
+      return pdf
+    }
+
+    const comprobantes = []
+    for (const idx of indices) {
+      let pdf = null
+      try { pdf = await bajarUno(idx) } catch (e) { log(`comprobante ${idx} falló:`, e.message) }
+      comprobantes.push(pdf ? { idx, pdf } : { idx, pdf: null, error: 'no se pudo bajar' })
+      await sleep(rnd(1200, 2000))
     }
     await page.screenshot({ path: join(DATA, 'comprob-03-bajado.png') }).catch(() => {})
-    return { estado: pdfPath ? 'descargado' : 'sin_pdf', pdf: pdfPath, idx, detalle, total_filas: filas.length, url: page.url() }
+    const okN = comprobantes.filter((c) => c.pdf).length
+    return { estado: okN ? 'descargados' : 'sin_pdf', comprobantes, ok_count: okN, pedidos: indices.length, total_filas: filas.length, url: page.url() }
   }
 
   return { estado: 'listado', filas: filas.slice(0, 40), total_filas: filas.length, url: page.url() }

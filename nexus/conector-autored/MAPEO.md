@@ -65,6 +65,26 @@ Cuenta mapeada: **Joaquin Elias** / empresa **Mallorcautos — ANA CLARA SPA** (
 6. `GET /{id}/vehicle-taxation` (lee monto) → `POST /{id}/new-payment` → **paga impuestos**.
 7. `POST /buy-cav {id, subType:"CAV_INITIAL"}` si corresponde CAV.
 
+## Informes / CAV — `/api/v2/reports` (PROBADO ✓)
+Sección **Informes** (`/plataforma/reports`, "Compra de informes"). Base API `/api/v2`.
+- `GET /reports/?license_plate=&reportType=&order=id&direction=desc&page=0&rowsPerPage=20` → `{count, rows:[{id, ticket, licensePlate, reportType, ready, url, publicUrl, createdAt, ...}]}`.
+- `GET /reports/check-repeated?licensePlate=XXX` → `[{reportType, createdAt}]` (avisa duplicados).
+- **`POST /reports/buy {license_plate, reportType}`** → **COBRA**. Devuelve `[{id, ticket, ready:false, url:null}]`.
+- Descarga cuando `ready:true`: `GET {row.url}` (= `/api/v2/download/<hash>`, con cookie auth) → PDF.
+
+**reportType (radio UI → valor enviado):**
+- radio **"CAV"** → `CAV_RAW` (CAV rápido; en la prueba quedó `ready` al instante).
+- radio "Informe Autored" → `CAV`.
+- radio "Informe Autored Completo" → `NMP`.
+
+**DESCARGAR (gratis, informe ya comprado):** el botón "DESCARGAR" del historial hace `window.open(row.url)` — abre el link `/api/v2/download/<hash>` de esa fila (deshabilitado si `ready!='true'`). NO cobra: solo baja el PDF ya generado. En el conector: `descargarInforme(url, destino)` tras ubicar la fila con `listarInformes`. Verificado: CAV (CAV_RAW, 2 págs) y Completo (NMP, 6 págs) bajan bien.
+
+**Flujo UI real:** patente + radio → "Comprar" → modal *"¿seguro que quiere comprar el certificado?"* (Aceptar) → si hay compras previas, 2º modal de **duplicado** listándolas (Cancelar/Comprar) → dispara el POST.
+
+**Prueba 23-07-2026:** compra CAV de **SZPV13** → informe **id 324499** (`CAV_RAW`), PDF 2 págs, enviado por WhatsApp a +56 9 3294 5240. Nota: SZPV13 ya tenía CAV el 08-07 y 15-07 (fue compra duplicada, autorizada por Ramón).
+
+Funciones en `autored.mjs`: `listarInformes`, `informesRepetidos`, `descargarInforme`, `comprarInforme(patente, tipo, {confirmar})` (bajo doble candado). CLI: `informes [patente]`, `repetidos <patente>`.
+
 ## Cómo usar el conector
 ```
 node autored.mjs quien|creditos|resumen|rc|lista [patente]|estado <id>|impuestos <id>|vehiculo <patente>|login

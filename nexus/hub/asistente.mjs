@@ -35,6 +35,8 @@ import { recordarHecho, textoMemoria } from './memoria-usuarios.mjs'
 // TAG — solicitud/traspaso de TAG (envía desde el correo de Mallorca) + conteo de autos con TAG.
 import { enviarSolicitudTag, documentosRequeridos, validar as validarTag, TIPOS as TAG_TIPOS } from '../tag-web/tag.mjs'
 import { conteo as tagConteo, conteoExcel as tagConteoExcel, leerSnapshot as tagSnapshot, esAutoMallorca as tagEsAutoMallorca } from '../tag-web/autos-tag.mjs'
+// AutoRed — generar CAV/informes de un vehículo (carga su propio .env; compra bajo confirmación).
+import * as autored from '../conector-autored/autored.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -1270,7 +1272,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -2548,6 +2550,34 @@ const HERRAMIENTAS = [
       required: [],
     },
   },
+  // ── AUTORED · generar CAV/informe de un vehículo y enviarlo por WhatsApp ──────
+  {
+    name: 'generar_cav',
+    description: 'GENERA el CAV (Certificado de Anotaciones Vigentes) u otro informe de un vehículo en AutoRed y lo ENVÍA por WhatsApp como PDF. ⚠️ CADA INFORME CUESTA PLATA. FLUJO OBLIGATORIO DE 2 PASOS: (1) SIN confirmar (confirmar ausente/false) → NO compra: revisa si esa patente ya tiene informes comprados antes y te devuelve un resumen con el tipo, el aviso de que se cobrará y los duplicados previos. Muéstraselo a la persona y PÍDELE que confirme. (2) confirmar:true → SOLO tras el OK explícito de la persona: compra el informe, espera a que se genere (segundos) y lo manda por WhatsApp. Tipo por defecto "CAV". Por defecto se envía al WhatsApp de quien lo pide; si dan otro número, usa "numero".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patente: { type: 'string', description: 'Patente del vehículo (ej. "SZPV13").' },
+        tipo: { type: 'string', enum: ['CAV', 'INFORME', 'COMPLETO'], description: 'CAV (por defecto) = Certificado de Anotaciones Vigentes; INFORME = Informe Autored; COMPLETO = Informe Autored Completo.' },
+        confirmar: { type: 'boolean', description: 'true = comprar y enviar DE VERDAD (solo tras el OK de la persona). Ausente/false = solo previsualiza y avisa que cobra.' },
+        numero: { type: 'string', description: 'Opcional: número de WhatsApp destino (ej "+56932945240"). Por defecto, quien pide.' },
+      },
+      required: ['patente'],
+    },
+  },
+  {
+    name: 'descargar_informe',
+    description: 'DESCARGA un informe/CAV de un vehículo que YA FUE COMPRADO antes en AutoRed y lo ENVÍA por WhatsApp como PDF. ES GRATIS (no compra nada, solo baja el que ya existe). ÚSALO SIEMPRE PRIMERO cuando pidan "mándame/bájame/descárgame el CAV o el Informe de [patente]" — solo si NO existe uno comprado, recién ahí ofrece generar_cav (que sí cobra). Si dan un tipo, lo filtra; si no, manda el más reciente de esa patente. Por defecto lo manda a quien lo pide; si dan otro número, usa "numero".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patente: { type: 'string', description: 'Patente del vehículo (ej. "SZPV13").' },
+        tipo: { type: 'string', enum: ['CAV', 'INFORME', 'COMPLETO'], description: 'Opcional. CAV = Certificado de Anotaciones Vigentes; INFORME = Informe Autored; COMPLETO = Informe Autored Completo. Sin tipo = el más reciente de la patente.' },
+        numero: { type: 'string', description: 'Opcional: número de WhatsApp destino. Por defecto, quien pide.' },
+      },
+      required: ['patente'],
+    },
+  },
   // ── NOVEDADES · qué cambios/mejoras se le hicieron a Nexus (changelog propio) ──
   {
     name: 'novedades_nexus',
@@ -2639,8 +2669,10 @@ const HERRAMIENTAS = [
     input_schema: {
       type: 'object',
       properties: {
-        accion: { type: 'string', enum: ['listar', 'bajar'], description: 'listar = trae la lista para elegir. bajar = descarga y manda el comprobante elegido.' },
-        indice: { type: 'integer', description: 'Número (1-based) del comprobante a bajar, de la lista que mostraste al usuario. Solo para accion:bajar.' },
+        accion: { type: 'string', enum: ['listar', 'bajar'], description: 'listar = trae la lista para elegir. bajar = descarga y manda el/los comprobante(s) elegido(s).' },
+        indice: { type: 'integer', description: 'Número (1-based) de UN comprobante a bajar (de la lista que mostraste). Solo accion:bajar.' },
+        indices: { type: 'array', items: { type: 'integer' }, description: 'Varios números para bajar VARIOS comprobantes de una (ej. [1,3,5]).' },
+        todos: { type: 'boolean', description: 'true = baja y manda TODOS los comprobantes de la lista (cuando el usuario dice "mándame todos"). Se descargan en una sola sesión.' },
       },
       required: ['accion'],
     },
@@ -3148,6 +3180,69 @@ async function ejecutar(nombre, input, ctx = {}) {
         }
         return `Boleta encontrada: ${cap}. Pero no pude identificar a quién enviársela por WhatsApp.`
       } catch (e) { return `No pude bajar la boleta del SII: ${e.message}` }
+    }
+    // ── AUTORED · descargar un informe/CAV YA COMPRADO y enviarlo (gratis) ──────
+    if (nombre === 'descargar_informe') {
+      const patente = String(input.patente || '').trim().toUpperCase().replace(/\s+/g, '')
+      if (!patente) return 'Para descargar el informe necesito la PATENTE.'
+      const tipo = input.tipo ? String(input.tipo).toUpperCase() : ''
+      const RT = { CAV: 'CAV_RAW', INFORME: 'CAV', COMPLETO: 'NMP' }
+      const rtBuscado = tipo ? RT[tipo] : ''
+      const nombreTipo = { CAV_RAW: 'CAV', CAV: 'Informe Autored', NMP: 'Informe Autored Completo' }
+      try {
+        const l = await autored.listarInformes({ patente, filas: 30 })
+        const rows = (l.rows || l || []).filter((r) => r && r.ready && (r.url || r.publicUrl))
+        const cand = rows.filter((r) => (rtBuscado ? r.reportType === rtBuscado : true))
+        if (!cand.length) {
+          const hayOtros = rows.length ? ` Sí hay de otro tipo: ${[...new Set(rows.map((r) => nombreTipo[r.reportType] || r.reportType))].join(', ')}.` : ''
+          return `No hay ${tipo ? (nombreTipo[rtBuscado] || tipo) + ' ' : 'informe '}comprado para ${patente}.${hayOtros} Si quieres GENERAR uno nuevo (tiene costo), usa generar_cav.`
+        }
+        const r = cand[0] // el más reciente (lista viene id desc)
+        const etq = nombreTipo[r.reportType] || r.reportType
+        const out = `/tmp/informe-${patente}-${r.id}.pdf`
+        await autored.descargarInforme(r.url || r.publicUrl, out)
+        const cap = `📄 ${etq} — ${patente} (AutoRed)`
+        const target = destinoValido(input.numero ? normNum(input.numero) : ctx.de) || (input.numero ? normNum(input.numero) : '')
+        if (!target) return `Tengo el ${etq} de ${patente} pero no sé a quién enviárselo. Pide el número.`
+        enviarMediaWhatsApp(target, out, cap, { forceDocument: true })
+          .then(() => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] OK descarga ${patente} ${r.reportType} -> ${target}\n`) } catch { /* */ } })
+          .catch((e) => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] FALLO descarga: ${String(e.message).slice(0, 120)}\n`) } catch { /* */ } })
+        return `${etq} de ${patente} (id ${r.id}, ya comprado el ${String(r.createdAt || '').slice(0, 10)}) ENVIADO por WhatsApp${input.numero ? ` a ${target}` : ''}. No tuvo costo (ya estaba comprado). Confírmale corto.`
+      } catch (e) { return `No pude descargar el informe de ${patente}: ${e.message}` }
+    }
+    // ── AUTORED · generar CAV/informe y enviarlo por WhatsApp (2 pasos, cobra) ──
+    if (nombre === 'generar_cav') {
+      const patente = String(input.patente || '').trim().toUpperCase().replace(/\s+/g, '')
+      const tipo = String(input.tipo || 'CAV').toUpperCase()
+      const nombreTipo = { CAV: 'CAV', INFORME: 'Informe Autored', COMPLETO: 'Informe Autored Completo' }[tipo] || 'CAV'
+      if (!patente) return 'Para generar el CAV necesito la PATENTE del vehículo. Pídesela a la persona.'
+      // Paso 1: previsualizar (no cobra) — avisa duplicados y que se cobrará.
+      if (!input.confirmar) {
+        let previos = []
+        try { previos = await autored.informesRepetidos(patente) } catch { /* si falla, seguimos sin duplicados */ }
+        const dup = (Array.isArray(previos) ? previos : []).map((p) => `• ${p.reportType} — ${String(p.createdAt || '').slice(0, 10)}`)
+        return JSON.stringify({
+          preview: true, patente, tipo: nombreTipo, cobra: true,
+          aviso: `Generar el ${nombreTipo} de ${patente} TIENE COSTO. Pídele a la persona que confirme antes de generarlo.`,
+          ya_comprados_antes: dup.length ? dup : 'ninguno registrado',
+          instruccion: 'Muéstrale el aviso (que cobra) y los informes previos si los hay, y pide confirmación. Si dice que sí, vuelve a llamar generar_cav con confirmar:true.',
+        })
+      }
+      // Paso 2: comprar + enviar (solo con confirmar:true).
+      try {
+        const r = await autored.comprarInforme(patente, tipo, { confirmar: true, esperar: true, timeoutMs: 180000 })
+        if (r && r.dry_run) return `No pude generar el ${nombreTipo}: la compra está bloqueada (${r.motivo}). Avísale a Ramón para habilitar AUTORED_PERMITIR_INFORMES.`
+        if (!r || !r.ready || !(r.url || r.publicUrl)) return `Pedí el ${nombreTipo} de ${patente} (id ${r?.id || '—'}) pero aún no queda listo. Puede demorar unos minutos; reintenta en un rato.`
+        const out = `/tmp/cav-${patente}-${r.id}.pdf`
+        await autored.descargarInforme(r.url || r.publicUrl, out)
+        const cap = `📄 ${nombreTipo} — ${patente} (AutoRed)`
+        const target = destinoValido(input.numero ? normNum(input.numero) : ctx.de) || (input.numero ? normNum(input.numero) : '')
+        if (!target) return `Generé el ${nombreTipo} de ${patente} pero no pude identificar a quién enviárselo. Pídele el número.`
+        enviarMediaWhatsApp(target, out, cap, { forceDocument: true })
+          .then(() => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] OK cav ${patente} -> ${target}\n`) } catch { /* */ } })
+          .catch((e) => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] FALLO cav: ${String(e.message).slice(0, 120)}\n`) } catch { /* */ } })
+        return `${nombreTipo} de ${patente} generado (id ${r.id}) y ENVIADO como PDF por WhatsApp${input.numero ? ` a ${target}` : ' a la persona'}. Confírmale corto que ya se lo mandaste.`
+      } catch (e) { return `No pude generar el ${nombreTipo} de ${patente}: ${e.message}` }
     }
     // ── SAI · conciliación (todas leen del motor en ../conector-sai; degradan solas) ──
     if (nombre === 'sai_conciliacion') {

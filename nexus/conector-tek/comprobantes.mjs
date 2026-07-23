@@ -62,8 +62,20 @@ export async function listarComprobantes() {
   return { ...r, filas: r.comprob?.filas || [], total: r.comprob?.total_filas || 0 }
 }
 
-/** Baja el PDF del comprobante de la fila `idx` (1-based). Devuelve { ok, pdf }. */
+/**
+ * Baja el/los PDF de comprobantes. `spec` = número (1), array [1,3,5], o 'todos'.
+ * Descarga TODOS en una sola sesión de banco. Devuelve { ok, comprobantes: [{idx, pdf}], ok_count }.
+ */
+export async function bajarComprobantes(spec = '1') {
+  const idxStr = Array.isArray(spec) ? spec.join(',') : String(spec)
+  const r = await correr('bajar', { TEK_COMPROB_IDX: idxStr })
+  const comprobantes = r.comprob?.comprobantes || []
+  return { ...r, comprobantes, ok_count: r.comprob?.ok_count ?? comprobantes.filter((c) => c.pdf).length, total: r.comprob?.total_filas || 0 }
+}
+
+/** Compat: baja UN comprobante (fila 1-based). Devuelve { ok, pdf }. */
 export async function bajarComprobante(idx = 1) {
-  const r = await correr('bajar', { TEK_COMPROB_IDX: String(Math.max(1, parseInt(idx, 10) || 1)) })
-  return { ...r, pdf: r.comprob?.pdf || null }
+  const r = await bajarComprobantes(String(Math.max(1, parseInt(idx, 10) || 1)))
+  const c = (r.comprobantes || [])[0]
+  return { ...r, pdf: c?.pdf || null }
 }

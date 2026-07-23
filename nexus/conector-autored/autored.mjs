@@ -37,7 +37,8 @@ cargarEnv();
 
 const EMAIL = process.env.AUTORED_EMAIL || '';
 const PASSWORD = process.env.AUTORED_PASSWORD || '';
-const PERMITIR_ESCRITURA = process.env.AUTORED_PERMITIR_ESCRITURA === '1';
+const PERMITIR_ESCRITURA = process.env.AUTORED_PERMITIR_ESCRITURA === '1'; // transferencias (initialize/pago)
+const PERMITIR_INFORMES = process.env.AUTORED_PERMITIR_INFORMES === '1';   // solo compra de informes/CAV
 
 // ---------- sesión ----------
 function leerSesion() {
@@ -223,8 +224,15 @@ export async function descargarInforme(url, destino) {
 // COMPRA un informe/CAV (COBRA) -> doble candado. tipo: clave de TIPOS_INFORME o reportType directo.
 export async function comprarInforme(patente, tipo = 'CAV', { confirmar = false, esperar = true, timeoutMs = 180000 } = {}) {
   const reportType = TIPOS_INFORME[tipo] || tipo;
-  const g = guardia('buyCav', { license_plate: patente, reportType }, confirmar);
-  if (g) return { ...g, descripcion: `Compra informe ${reportType} de ${patente} (COBRA).` };
+  // Candado propio de informes (independiente del de transferencias/pagos).
+  if (!PERMITIR_INFORMES || !confirmar) {
+    return {
+      dry_run: true, bloqueado: true, accion: 'comprarInforme',
+      descripcion: `Compra informe ${reportType} de ${patente} (COBRA).`,
+      motivo: !PERMITIR_INFORMES ? 'AUTORED_PERMITIR_INFORMES no está en 1' : 'falta { confirmar: true }',
+      payload_que_se_enviaria: { license_plate: patente, reportType },
+    };
+  }
   const previos = await informesRepetidos(patente).catch(() => []);
   const res = await api(`${API_AUTH}/reports/buy`, { method: 'POST', body: { license_plate: patente, reportType } });
   const rep = Array.isArray(res) ? res[0] : res;
