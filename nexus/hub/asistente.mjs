@@ -1272,7 +1272,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -2578,6 +2578,18 @@ const HERRAMIENTAS = [
       required: ['patente'],
     },
   },
+  {
+    name: 'datos_auto_cav',
+    description: 'Para AGREGAR UN AUTO a MallorcAutos/GoAutos SOLO CON LA PATENTE (sin que manden documentos): trae los DATOS del vehículo desde su CAV de AutoRed — marca, modelo, año, tipo/carrocería, N° de motor, N° de chasis (VIN), color, combustible, propietario, y si tiene LIMITACIONES AL DOMINIO / PRENDA. FLUJO: (1) Si YA hay un CAV comprado de esa patente, lo baja GRATIS y devuelve los datos. (2) Si NO hay CAV (devuelve falta_cav:true), AVÍSALE a la persona que hay que GENERARLO y que TIENE COSTO, y ESPERA su confirmación; SOLO si confirma, vuelve a llamar con generar:true. Con los datos que devuelve: completa lo que el CAV NO trae y subir_auto necesita (kilometraje, precio de venta, adquisición compra/consignación + su precio, y vencimientos de revisión técnica / permiso de circulación / gases) — PREGÚNTASELO a la persona, NO inventes — si hay prenda/limitaciones avísale, muéstrale un resumen y recién ahí sube el auto con subir_auto tras su OK. Úsalo cuando digan "agrega/ingresa el auto patente XXXX".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        patente: { type: 'string', description: 'Patente del vehículo (ej. "SZPV13").' },
+        generar: { type: 'boolean', description: 'true = si NO hay CAV comprado, genéralo (TIENE COSTO). Úsalo SOLO tras el OK explícito de la persona.' },
+      },
+      required: ['patente'],
+    },
+  },
   // ── NOVEDADES · qué cambios/mejoras se le hicieron a Nexus (changelog propio) ──
   {
     name: 'novedades_nexus',
@@ -3190,6 +3202,42 @@ async function ejecutar(nombre, input, ctx = {}) {
         }
         return `Boleta encontrada: ${cap}. Pero no pude identificar a quién enviársela por WhatsApp.`
       } catch (e) { return `No pude bajar la boleta del SII: ${e.message}` }
+    }
+    // ── AUTORED · datos del auto desde el CAV (para agregar auto por patente) ────
+    if (nombre === 'datos_auto_cav') {
+      const patente = String(input.patente || '').trim().toUpperCase().replace(/\s+/g, '')
+      if (!patente) return 'Necesito la PATENTE para traer los datos del auto desde el CAV.'
+      try {
+        const l = await autored.listarInformes({ patente, filas: 30 })
+        const rows = (l.rows || l || []).filter((r) => r && r.ready && (r.url || r.publicUrl))
+        const pref = ['CAV_RAW', 'CAV', 'NMP']
+        let row = rows.filter((r) => pref.includes(r.reportType)).sort((a, b) => pref.indexOf(a.reportType) - pref.indexOf(b.reportType))[0]
+        if (!row) {
+          if (!input.generar) {
+            return JSON.stringify({
+              falta_cav: true, patente, cobra: true,
+              mensaje: `No hay CAV comprado de ${patente}. Para traer los datos del auto hay que GENERAR el CAV y eso TIENE COSTO. Avísale a la persona y pídele confirmación; si dice que sí, vuelve a llamar datos_auto_cav con generar:true.`,
+            })
+          }
+          const g = await autored.comprarInforme(patente, 'CAV', { confirmar: true, esperar: true, timeoutMs: 180000 })
+          if (g && g.dry_run) return `No pude generar el CAV de ${patente}: la compra está bloqueada (${g.motivo}).`
+          if (!g || !g.ready || !(g.url || g.publicUrl)) return `Pedí el CAV de ${patente} pero aún no queda listo. Reintenta en un rato.`
+          row = { ...g, url: g.url || g.publicUrl }
+        }
+        const out = `/tmp/cavdatos-${patente}-${row.id}.pdf`
+        await autored.descargarInforme(row.url || row.publicUrl, out)
+        const py = '/usr/bin/python3'
+        const script = join(__dirname, '..', 'conector-autored', 'leer_cav.py')
+        const { stdout } = await ejecCmd(`${JSON.stringify(py)} ${JSON.stringify(script)} ${JSON.stringify(out)}`, { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })
+        try { unlinkSync(out) } catch { /* */ }
+        const parsed = JSON.parse((stdout.trim().split('\n').filter(Boolean).pop()) || '{}')
+        if (!parsed.ok) return `Bajé el CAV de ${patente} pero no pude leer sus datos: ${parsed.error || 'error'}.`
+        return JSON.stringify({
+          ok: true, patente, fuente: `CAV id ${row.id}`, datos: parsed.campos,
+          instruccion: 'Estos son los datos de identificación del vehículo según el CAV. Para subir el auto con subir_auto falta lo que el CAV NO trae: kilometraje, precio de venta, adquisición (compra/consignación) y su precio, y vencimientos de revisión técnica / permiso de circulación / gases. PREGÚNTASELO a la persona, NO lo inventes. Si datos.limitaciones_al_dominio o datos.tiene_prenda son true, AVÍSALE. Muestra un resumen y sube con subir_auto SOLO tras su confirmación.',
+          texto_cav: parsed.texto,
+        })
+      } catch (e) { return `No pude obtener los datos del CAV de ${patente}: ${e.message}` }
     }
     // ── AUTORED · descargar un informe/CAV YA COMPRADO y enviarlo (gratis) ──────
     if (nombre === 'descargar_informe') {

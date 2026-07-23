@@ -470,7 +470,7 @@ app.post('/api/chat', async (req, res) => {
       if (size && seenSizes.has(size)) continue   // mismo archivo reenviado → no duplicar
       seenSizes.add(size); items.push({ p, size })
     }
-    if (media.length || prevItems.length) mem.media = { items: items.slice(-12), ts: Date.now() }
+    if (media.length || prevItems.length) mem.media = { items: items.slice(-24), ts: Date.now() }
     const mediaReciente = (mem.media && Date.now() - mem.media.ts < TTL_MEDIA) ? (mem.media.items || []).map((it) => it.p) : []
 
     mem.ts = Date.now(); _memoria.set(key, mem)   // persiste el mensaje del usuario ya
@@ -601,6 +601,68 @@ function yaVisto(id) {
   if (_waVistos.has(id)) return true
   _waVistos.set(id, now); return false
 }
+// ── Coalescing de entrantes ────────────────────────────────────────────────
+// WhatsApp entrega CADA foto como un mensaje aparte. Si llegan varias en ráfaga,
+// antes se disparaba una respuesta por cada una: el modelo respondía a cada foto
+// suelta y varias respuestas se pisaban → "Nexus se marea y pierde fotos". Ahora
+// juntamos los mensajes de un mismo remitente que llegan seguidos en UN SOLO turno
+// (con todas las fotos juntas) antes de responder. Un texto suelto (sin fotos y sin
+// buffer abierto) se responde al toque, sin agregar latencia.
+const _bufWA = new Map()              // de → { medias:[], textos:[], voz, esVideo, timer }
+const WA_ESPERA_MEDIA = 5000          // ventana de espera cuando hay fotos/archivos (ráfaga)
+const WA_ESPERA_TEXTO = 1200          // ventana corta si ya hay buffer abierto y llega texto
+const WA_MAX_MEDIA = 24               // tope de adjuntos por turno (protege visión/memoria)
+
+function encolarEntrante(de, msg) {
+  const soloTexto = !(msg.medias && msg.medias.length)
+  const b0 = _bufWA.get(de)
+  if (!b0 && soloTexto) {             // texto suelto sin ráfaga → responde ya (sin latencia)
+    procesarEntrante(de, { medias: [], textos: msg.texto ? [msg.texto] : [], voz: msg.voz, esVideo: false })
+      .catch((e) => console.error('[wa/kapso] proceso:', e.message))
+    return
+  }
+  const b = b0 || { medias: [], textos: [], voz: false, esVideo: false, timer: null }
+  if (msg.medias && msg.medias.length) b.medias.push(...msg.medias)
+  if (msg.texto) b.textos.push(msg.texto)
+  b.voz = b.voz || Boolean(msg.voz)
+  b.esVideo = b.esVideo || Boolean(msg.esVideo)
+  if (b.timer) clearTimeout(b.timer)
+  b.timer = setTimeout(() => {
+    _bufWA.delete(de)
+    procesarEntrante(de, b).catch((e) => console.error('[wa/kapso] proceso:', e.message))
+  }, b.medias.length ? WA_ESPERA_MEDIA : WA_ESPERA_TEXTO)
+  _bufWA.set(de, b)
+}
+
+async function procesarEntrante(de, b) {
+  const medias = (b.medias || []).slice(0, WA_MAX_MEDIA)
+  const perdidas = (b.medias || []).length - medias.length
+  const caption = (b.textos || []).filter(Boolean).join('\n').trim()
+  let texto = caption
+  if (medias.length) {
+    const n = medias.length
+    const desc = b.esVideo
+      ? `${n} fotograma(s) de un video (en orden)`
+      : `${n} ${n === 1 ? 'archivo' : 'archivos'} (fotos y/o PDF)`
+    texto = (caption ? caption + '\n\n' : '')
+      + `[Te mando ${desc} por WhatsApp. Míralos TODOS juntos antes de responder; no contestes hasta verlos todos.`
+      + (perdidas > 0 ? ` Llegaron ${(b.medias || []).length}, proceso los primeros ${n}.` : '') + ']'
+  }
+  if (!texto && !medias.length) return
+  const voz = Boolean(b.voz)
+  const r = await fetch(`http://127.0.0.1:${PORT}/api/chat`, {
+    method: 'POST', headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ de, voz, media: medias, historial: [{ role: 'user', content: texto }] }),
+  })
+  const out = await r.json().catch(() => null)
+  if (out?.reply) {
+    try {
+      if (voz && !out.acuse) { const ev = await getEnviarVoz(); await ev(de, out.reply) }
+      else await kapso.enviarKapso(de, out.reply)
+    } catch (e) { console.error('[wa/kapso] envío falló:', e.message) }
+  }
+}
+
 app.post('/wa/kapso', async (req, res) => {
   // 1) Firma: sin firma válida NO confiamos en el entrante (fail-closed).
   const firma = req.get('X-Webhook-Signature') || req.get('x-webhook-signature') || ''
@@ -661,24 +723,9 @@ app.post('/wa/kapso', async (req, res) => {
     }
     kapso.marcarEscribiendo(info.wamid).catch(() => {}) // muestra "escribiendo…" ya mismo
     const voz = Boolean(info.esAudio)                   // respondemos por audio SOLO si nos hablaron por audio
-    const textoTurno = info.texto || (esVideo
-      ? `Te mando un VIDEO por WhatsApp. Te paso ${mediaPaths.length} fotograma(s) del video (en orden). Míralos y dime qué muestra el video.`
-      : (mediaPaths.length ? 'Te mando un archivo adjunto (foto o PDF). Léelo y dime qué contiene.' : ''))
-    // Pasa por el cerebro completo vía el endpoint interno (mismo ruteo que la app).
-    const r = await fetch(`http://127.0.0.1:${PORT}/api/chat`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ de: info.de, voz, media: mediaPaths, historial: [{ role: 'user', content: textoTurno }] }),
-    })
-    const out = await r.json().catch(() => null)
-    // /api/chat responde EN EL CUERPO la respuesta (rápida) o un acuse (si tarda, la
-    // completa la empuja solo por Kapso). Entregamos lo del cuerpo por WhatsApp:
-    // por VOZ si nos escribieron por voz, si no en texto.
-    if (out?.reply) {
-      try {
-        if (voz && !out.acuse) { const ev = await getEnviarVoz(); await ev(info.de, out.reply) }
-        else await kapso.enviarKapso(info.de, out.reply)
-      } catch (e) { console.error('[wa/kapso] envío falló:', e.message) }
-    }
+    // Encola: si llegan varias fotos/mensajes en ráfaga, se juntan en UN solo turno
+    // (con todas las fotos) antes de pasar por el cerebro. Evita que "se maree y pierda".
+    encolarEntrante(info.de, { medias: mediaPaths, texto: info.texto || '', voz, esVideo })
   } catch (e) { console.error('[wa/kapso] error:', e.message) }
 })
 

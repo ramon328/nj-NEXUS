@@ -1619,6 +1619,15 @@ async function main() {
     log('sesión no reutilizable → hago login')
   }
 
+  // VINCULACIÓN: el clon hereda la sesión de ANA CLARA. La CERRAMOS (logout) para que el login
+  // del usuario sea LIMPIO y no dispare la re-validación (login?reason=validate_user). El logout
+  // NO borra la confianza del dispositivo (cookies Incapsula/BioCatch persisten en el perfil).
+  if (vinculando) {
+    await page.goto('https://privado.officebanking.cl/logout', { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => {})
+    await sleep(rnd(2500, 4000))
+    log('vincular: cerré la sesión heredada (device-trust intacto), voy al login limpio')
+  }
+
   await page.goto(LANDING, { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch((e) => log('goto:', e.message))
   await sleep(rnd(3500, 5500))
   // WARMUP humano: leer, mover el mouse por la página, scrollear, hover en el menú.
