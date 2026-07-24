@@ -181,10 +181,15 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
       // antes se daba por bueno con solo apretar "Crear" → falso positivo (no llegaba nada).
       const crear = resultado.crear || null
       const estado = crear?.estado || resultado.estado
-      const ok = estado === 'creada'
+      // 'creada' = se creó (por autorizar). 'ya_pendiente' = YA existía una a este beneficiario,
+      // NO se duplicó (también es un resultado OK: la transferencia ya está en el banco).
+      const yaPendiente = estado === 'ya_pendiente'
+      const ok = estado === 'creada' || yaPendiente
       resolve({
         ok, estado, resultado,
-        pendiente: estado === 'creada',
+        pendiente: estado === 'creada' || yaPendiente,
+        ya_pendiente: yaPendiente,
+        nota: crear?.nota || null,
         motivo: crear?.pista || crear?.motivo || (crear?.faltan ? `faltan campos: ${crear.faltan.join(', ')}` : null),
       })
     }

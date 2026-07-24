@@ -3054,9 +3054,11 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (res.pendiente && bo.nuevo) {
           try { tr.guardarBeneficiario({ nombre: bo.beneficiario.nombre, rut: bo.beneficiario.rut, banco: bo.beneficiario.banco, tipo_cuenta: bo.beneficiario.tipo_cuenta, cuenta: bo.beneficiario.cuenta, email: bo.beneficiario.email || undefined }) } catch { /* */ }
         }
-        const okTxt = res.pendiente
-          ? `✅ Transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} desde *${empresa}* CREADA — queda pendiente por liberar (falta autorizarla con Superclave para que salga).`
-          : `⚠️ No pude confirmar la creación (${res.estado || 'desconocido'}). Suele ser el antifraude del banco; conviene reintentar más tarde, mejor asistido.`
+        const okTxt = res.ya_pendiente
+          ? `⚠️ YA hay una transferencia pendiente a ${bo.beneficiario.nombre} desde *${empresa}* por ese monto — NO creé otra para no duplicar. Revísala/autorízala en el banco (queda "Por Autorizar").`
+          : res.pendiente
+            ? `✅ Transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} desde *${empresa}* CREADA — queda pendiente por liberar (falta autorizarla con Superclave para que salga).`
+            : `⚠️ No pude confirmar la creación (${res.estado || 'desconocido'}). Suele ser el antifraude del banco; conviene reintentar más tarde, mejor asistido.`
         return JSON.stringify({ ...res, empresa_origen: empresa, texto: okTxt })
       }
       return JSON.stringify({

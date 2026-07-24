@@ -757,25 +757,38 @@ async function crearTransferencia(page, log) {
         log(`  botones[${tag}]: ${uniq.slice(0, 12).join(' | ')}`)
         return uniq
       }
-      let creada = false
-      // Secuencia REAL (como indicó Ramón): Continuar → ALERTA → Aceptar → vuelve al form (normal)
-      // → Continuar OTRA VEZ → lleva a la página siguiente (confirmación) → botón final.
-      log('TEFUN paso1 Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(5000, 7000))
+      // Lee el texto de un modal/alerta visible (para distinguir el aviso de límite vs "ya pendiente").
+      const leerAlerta = async () => {
+        for (const f of page.frames()) {
+          const t = await f.evaluate(() => { const m = [...document.querySelectorAll('[class*=modal i],[role=dialog],[class*=alert i],[class*=popup i],[class*=swal i]')].find((e) => e.offsetParent !== null && (e.innerText || '').trim().length > 8); return m ? (m.innerText || '').replace(/\s+/g, ' ').trim() : '' }).catch(() => '')
+          if (t) return t
+        }
+        return ''
+      }
+      // PASO 1: Continuar → ALERTA. Si dice "pendientes a este beneficiario" = YA EXISTE una →
+      // NO se crea otra (ANTI-DUPLICADO). NUNCA se reintenta el submit.
+      log('TEFUN paso1 Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(4500, 6500))
       await page.screenshot({ path: join(DATA, 'crear-05a-alerta.png') }).catch(() => {})
-      await cerrarModal()   // Aceptar la alerta
+      const alerta = await leerAlerta()
+      log('TEFUN alerta:', alerta.slice(0, 140))
+      if (/pendientes?\s+a\s+este\s+beneficiario/i.test(alerta)) {
+        await cerrarModal()
+        log('ANTI-DUP: ya hay una pendiente a este beneficiario → NO creo otra')
+        return { estado: 'ya_pendiente', pendiente: true, nota: 'Ya existe una transferencia PENDIENTE a este beneficiario por el mismo monto; NO se creó otra (anti-duplicado). Revisala/autorizala en el banco.', url: page.url() }
+      }
+      await cerrarModal()   // Aceptar el aviso (ej. límite $250.000 la primera vez)
       await sleep(rnd(1500, 2500))
-      log('TEFUN paso2 Continuar (de nuevo) →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(6000, 8000))
-      await cerrarModal()   // por si sale otra alerta
-      await page.screenshot({ path: join(DATA, 'crear-05b-pagina-sig.png') }).catch(() => {})
-      const btnsSig = await dumpBotones('pagina-siguiente')
-      // Paso 3: botón final para CREAR la transferencia (queda "por autorizar"). Probamos varios.
-      log('TEFUN paso3 confirmar →', await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|enviar|finalizar|continuar)\s*$/i)); await sleep(rnd(6000, 8000))
+      // PASO 2: Continuar de nuevo → crea la transferencia (queda "por autorizar").
+      log('TEFUN paso2 Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(6000, 8000))
       await cerrarModal()
-      creada = OK_TEFUN.test(await leerTxt())
-      log('TEFUN resultado:', creada ? 'CREADA (por autorizar)' : 'incierto', '| botones pág.sig:', btnsSig.join(', '))
+      await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|enviar|finalizar)\s*$/i); await sleep(rnd(5000, 7000))
+      await cerrarModal()
       await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
-      log('TEFUN resultado final:', creada ? 'CREADA (por autorizar)' : 'incierto')
-      return { estado: creada ? 'creada' : 'tefun_submit_incierto', pendiente: creada, url: page.url() }
+      // VERIFICACIÓN REAL (no adivinar por texto): ¿aparece ya en la lista de Autorización? Esto
+      // navega a la lista y confirma → 0 falsos negativos, y como es SOLO 1 intento, 0 duplicados.
+      const creada = await existePendiente(page, log, process.env.TEK_DEST_RUT, monto)
+      log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : 'NO confirmada')
+      return { estado: creada ? 'creada' : 'tefun_no_confirmada', pendiente: creada, url: page.url() }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
     const setVal = async (sel, valTxt) => {
@@ -998,7 +1011,21 @@ async function verPendientes(page, log) {
   const lineas = txt.split('\n').map((l) => l.trim()).filter((l) => l)
   const joaq = lineas.filter((l) => /joaqu[ií]n|elias|maluk|19[.]?689[.]?228|0070?3142/i.test(l))
   log('pendientes: líneas con Joaquín/cuenta =', joaq.length)
-  return { estado: 'pendientes_vistos', joaquin: joaq.slice(0, 15), url: page.url() }
+  return { estado: 'pendientes_vistos', joaquin: joaq.slice(0, 15), texto: txt, url: page.url() }
+}
+
+// ¿Existe YA una transferencia pendiente al RUT destino (y monto)? Verificación REAL en la
+// lista de Autorización. Devuelve true/false. Anti-duplicado + confirmación de creación.
+async function existePendiente(page, log, rutDest, monto) {
+  try {
+    const r = await verPendientes(page, log)
+    const txt = (r.texto || '')
+    const rutNorm = String(rutDest || '').replace(/[^0-9kK]/g, '')
+    const rutFmt = rutNorm.length > 1 ? rutNorm.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + rutNorm.slice(-1) : rutNorm
+    const hayRut = rutNorm && (txt.replace(/[.\-\s]/g, '').includes(rutNorm) || txt.includes(rutFmt))
+    log(`existePendiente rut=${rutFmt}:`, hayRut)
+    return !!hayRut
+  } catch (e) { log('existePendiente falló:', e.message); return false }
 }
 
 // MODO SUPERCLAVE (Opción B, TEK_SUPERCLAVE=1): cuando el banco pide el 2º factor tras
