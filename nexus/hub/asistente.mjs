@@ -2635,11 +2635,12 @@ const HERRAMIENTAS = [
   // ── tek · TRANSFERIR plata a una PERSONA guardada (Santander Empresa) ─────────
   {
     name: 'tek_transferir',
-    description: 'TRANSFERIR plata desde la cuenta de ANA CLARA a un beneficiario (sistema "tek", Santander Empresa). Crea la transferencia y la deja PENDIENTE "por liberar" (NO mueve la plata hasta que alguien la libere/autorice con Superclave). Sirve para DOS casos: (A) persona/empresa YA guardada en la libreta → pasa solo "nombre" y "monto". (B) beneficiario NUEVO (no guardado): el banco NO exige tenerlo pre-inscrito, así que si el usuario te da los datos de la cuenta, transfieres DIRECTO — pasa "nombre" (razón social o nombre), "rut", "banco", "cuenta" (y "tipo_cuenta" si lo sabes) junto con "monto". ⛔ NUNCA le digas al usuario que "Ramón/Nico deben cargar el beneficiario en el banco primero": si te faltan datos para un beneficiario nuevo, PÍDESELOS (RUT, banco, número de cuenta, razón social) y transfiere. Flujo de 2 pasos con confirmación OBLIGATORIA: (1) accion:"preparar" → devuelve el BORRADOR (a quién, cuánto, banco, cuenta). Si el nombre calza con VARIOS guardados, devuelve lista para que ELIJA. Muéstrale el borrador y pregúntale claro: "¿creo la transferencia de $X a [beneficiario]?". (2) SOLO cuando confirme, accion:"enviar" con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó; si era nuevo, lo guarda en la libreta para la próxima. NUNCA pongas accion:"enviar" sin una confirmación explícita del usuario. Úsalo cuando pidan "envíale $X a [nombre]", "transfiérele a [nombre]", "mándale plata a [nombre/empresa]".',
+    description: 'TRANSFERIR plata desde una de las empresas conectadas a un beneficiario (sistema "tek", Santander Empresa). 🏢 ANTES de preparar, si el usuario NO dijo de qué empresa transferir, PREGÚNTALE de cuál empresa quiere que salga la plata (usa mis_bancos_conectados para listarle sus empresas conectadas) y pásala en "empresa"; si no la especifica, se usa ANA CLARA. La transferencia sale de la cuenta de ESA empresa, usando su sesión de banco. Crea la transferencia y la deja PENDIENTE "por liberar" (NO mueve la plata hasta que alguien la libere/autorice con Superclave). Sirve para DOS casos: (A) persona/empresa YA guardada en la libreta → pasa solo "nombre" y "monto". (B) beneficiario NUEVO (no guardado): el banco NO exige tenerlo pre-inscrito, así que si el usuario te da los datos de la cuenta, transfieres DIRECTO — pasa "nombre" (razón social o nombre), "rut", "banco", "cuenta" (y "tipo_cuenta" si lo sabes) junto con "monto". ⛔ NUNCA le digas al usuario que "Ramón/Nico deben cargar el beneficiario en el banco primero": si te faltan datos para un beneficiario nuevo, PÍDESELOS (RUT, banco, número de cuenta, razón social) y transfiere. Flujo de 2 pasos con confirmación OBLIGATORIA: (1) accion:"preparar" → devuelve el BORRADOR (a quién, cuánto, banco, cuenta). Si el nombre calza con VARIOS guardados, devuelve lista para que ELIJA. Muéstrale el borrador y pregúntale claro: "¿creo la transferencia de $X a [beneficiario]?". (2) SOLO cuando confirme, accion:"enviar" con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó; si era nuevo, lo guarda en la libreta para la próxima. NUNCA pongas accion:"enviar" sin una confirmación explícita del usuario. Úsalo cuando pidan "envíale $X a [nombre]", "transfiérele a [nombre]", "mándale plata a [nombre/empresa]".',
     input_schema: {
       type: 'object',
       properties: {
         accion: { type: 'string', enum: ['preparar', 'enviar'], description: 'preparar = resuelve y muestra el borrador (no crea nada). enviar = crea la transferencia pendiente. Solo enviar tras el OK del usuario.' },
+        empresa: { type: 'string', description: 'Empresa de ORIGEN de la que sale la plata (ej. "ACE SPA", "FOOD EXPERT SPA", "ANA CLARA SPA"). Pregúntasela al usuario si no la dijo (mis_bancos_conectados lista las suyas). En "enviar" pasa la MISMA que en "preparar". Si se omite, ANA CLARA.' },
         nombre: { type: 'string', description: 'Nombre/alias del guardado, o la razón social/nombre del beneficiario nuevo (ej. "Asesorías Integrales Casal"). Si antes hubo ambigüedad, pasá el nombre exacto de la elegida.' },
         monto: { type: 'number', description: 'Monto a transferir en CLP (entero > 0).' },
         motivo: { type: 'string', description: 'Motivo/glosa de la transferencia (opcional; máx 100 chars).' },
@@ -3029,7 +3030,13 @@ async function ejecutar(nombre, input, ctx = {}) {
       let tr
       try { tr = await import('../conector-tek/transferir.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de transferencias (tek): ' + e.message }) }
-      const userId = 'ramon', empresa = 'ANA CLARA SPA'   // por ahora la única conexión; multiusuario cuando el widget sume gente
+      // Empresa de ORIGEN: la que el usuario ELIGIÓ (input.empresa). Un usuario NO admin
+      // queda acotado a ANA CLARA. El dueño (cuya sesión de banco opera esa empresa) se
+      // resuelve del vault → así la transferencia sale de la cuenta correcta.
+      let empresa = (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA'
+      if (!esAdmin(ctx.de)) empresa = 'ANA CLARA SPA'
+      let userId = 'ramon'
+      try { const cred = await import('../conector-tek/credenciales.mjs'); const d = cred.dueñoDeEmpresa(empresa); if (d) userId = d } catch { /* */ }
       const arm = tr.armarBorrador({ userId, nombre: input.nombre, monto: input.monto, motivo: input.motivo,
                                      rut: input.rut, banco: input.banco, cuenta: input.cuenta, tipo_cuenta: input.tipo_cuenta })
       if (!arm.ok) {
@@ -3046,13 +3053,13 @@ async function ejecutar(nombre, input, ctx = {}) {
           try { tr.guardarBeneficiario({ nombre: bo.beneficiario.nombre, rut: bo.beneficiario.rut, banco: bo.beneficiario.banco, tipo_cuenta: bo.beneficiario.tipo_cuenta, cuenta: bo.beneficiario.cuenta, email: bo.beneficiario.email || undefined }) } catch { /* */ }
         }
         const okTxt = res.pendiente
-          ? `✅ Transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} CREADA — queda pendiente por liberar (falta autorizarla con Superclave para que salga).`
+          ? `✅ Transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} desde *${empresa}* CREADA — queda pendiente por liberar (falta autorizarla con Superclave para que salga).`
           : `⚠️ No pude confirmar la creación (${res.estado || 'desconocido'}). Suele ser el antifraude del banco; conviene reintentar más tarde, mejor asistido.`
-        return JSON.stringify({ ...res, texto: okTxt })
+        return JSON.stringify({ ...res, empresa_origen: empresa, texto: okTxt })
       }
       return JSON.stringify({
-        ok: true, modo: 'borrador', ejecutado: false, borrador: bo, texto: tr.textoBorrador(bo),
-        instruccion: 'Mostrale este borrador y preguntale claro "¿creo la transferencia de $' + Number(bo.monto).toLocaleString('es-CL') + ' a ' + bo.beneficiario.nombre + '?". SOLO con su OK explícito, llamá tek_transferir con accion:"enviar".',
+        ok: true, modo: 'borrador', ejecutado: false, borrador: bo, empresa_origen: empresa, texto: tr.textoBorrador(bo),
+        instruccion: 'Mostrale este borrador y preguntale claro "¿creo la transferencia de $' + Number(bo.monto).toLocaleString('es-CL') + ' a ' + bo.beneficiario.nombre + ' desde ' + empresa + '?". SOLO con su OK explícito, llamá tek_transferir con accion:"enviar" Y el MISMO empresa:"' + empresa + '".',
       })
     }
     // ── tek · TRANSFERENCIA MASIVA (lote con varias transferencias) ─────────────
