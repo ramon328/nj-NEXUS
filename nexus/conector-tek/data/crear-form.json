@@ -1,19 +1,9 @@
 {
-  "url": "https://privado.officebanking.cl/dashboard",
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1784909345735",
   "forms": [
     {
-      "url": "https://privado.officebanking.cl/dashboard",
-      "inputs": [
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "buscar",
-          "placeholder": "Buscar",
-          "maxlength": "",
-          "label": ""
-        }
-      ],
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1784909345735",
+      "inputs": [],
       "botones": [
         "Accesibilidad",
         "Empresa / Rol",
@@ -22,15 +12,41 @@
       "titulos": []
     },
     {
-      "url": "https://www.officebanking.cl/campna/CAMPANAS_OB/TC_GESTION_CLAVES/Dash.aspx?HDRUTUS=016142580K&HDNOMUS=NICOLAS%20PATRICIO%20JURI%20CABALLERO&HDRUTEM=0767153929&HDNOMEM=ACE%20SPA&CONTRATO=000690035183400&HDROL=4&PERFIL=Transaccional&HDCODBT=1006&HDCODCM=1820&HDCMP01=&HDCMP02=&HDCMP03=&HDCMP04=&HDCMP05=&HDCMP06=&HDCMP07=&HDCMP08=&HDCMP09=&HDCMP10=&HDCMP11=&HDCMP12=&HDCMP13=&HDCMP14=&HDCMP15=&HDCMP16=&HDCMP17=&HDCMP18=&HDCMP19=&HDCMP20=",
-      "inputs": [],
+      "url": "https://eob.officebanking.cl/TEFUN.UI.Web/TransferenciaUnitaria/creacionTransferenciaUnitaria/?servicioId=TEF_UNIF_C",
+      "inputs": [
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "montoTEFinput",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "correoOrigenInput",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "60",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "motivoInputText",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "100",
+          "label": ""
+        }
+      ],
       "botones": [
-        "Cambiar Clave",
-        "Cambiar Clave"
+        "Seleccione cuenta"
       ],
       "titulos": [
-        "Actualiza tu Clave",
-        "Protege la seguridad de tu empresa"
+        "Transferencia Express"
       ]
     }
   ]

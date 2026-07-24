@@ -582,20 +582,37 @@ async function crearTransferencia(page, log) {
   await clickHumano(page, menu)
   await sleep(rnd(4000, 5500))
   await page.screenshot({ path: join(DATA, 'crear-00-menu.png') }).catch(() => {})
-  // COLUMNA del menú (shadow DOM cerrado → clic por PÍXEL). "A Tercero mismo Banco →
-  // Creación" está en (320,232); "A Tercero otros Bancos → Creación" (para transferir a
-  // OTRO banco, ej. Falabella) está una fila más abajo, en (320,320). TEK_TRANSFER_TIPO=otros
-  // selecciona esa columna (el form de otros bancos lleva un SELECTOR de banco destino).
   const tipoOtros = /otro/i.test(process.env.TEK_TRANSFER_TIPO || '')
-  const yCreacion = tipoOtros ? 320 : 232
-  await page.mouse.move(280, yCreacion - 30, { steps: 10 }); await sleep(rnd(150, 320))
-  await page.mouse.move(320, yCreacion, { steps: 8 }); await sleep(rnd(150, 300))
-  await page.mouse.down(); await sleep(60); await page.mouse.up()
-  log('clic pixel Creación (' + (tipoOtros ? 'A Tercero OTROS Bancos' : 'A Tercero mismo Banco') + ')')
+  const fr = () => page.frames().find((f) => /TEF\.UI\.Web/i.test(f.url()))
+  // GENÉRICO (sirve para CUALQUIER empresa, hoy y las futuras): el menú de Transferencias es
+  // un panel con TEXTO clickeable. Clickeamos "Creación" de la sección de transferencia a
+  // terceros — el layout/nombre de la sección varía por empresa ("Transferencias Express",
+  // "A Tercero mismo/otros Banco"), así que probamos por texto en ese orden y, si no, la 1ª.
+  const clicCreacion = async () => {
+    const secciones = tipoOtros
+      ? ['Transferencias Express', 'A Tercero otros Banco', 'otros Banco']
+      : ['Transferencias Express', 'A Tercero mismo Banco', 'A Tercero']
+    for (const sec of secciones) {
+      const loc = page.locator(`xpath=//*[contains(normalize-space(.),${JSON.stringify(sec)})]/following::*[normalize-space(text())="Creación"][1]`).first()
+      if ((await loc.count().catch(() => 0)) && (await loc.isVisible().catch(() => false))) { await clickHumano(page, loc); log('clic Creación (texto:', sec + ')'); return true }
+    }
+    const first = page.getByText(/^Creación$/i).first()
+    if (await first.isVisible().catch(() => false)) { await clickHumano(page, first); log('clic Creación (1ª del panel)'); return true }
+    return false
+  }
+  await clicCreacion()
   await sleep(9000)
   await page.screenshot({ path: join(DATA, 'crear-01-form.png') }).catch(() => {})
-  const fr = () => page.frames().find((f) => /TEF\.UI\.Web/i.test(f.url()))
-  const f1 = fr()
+  let f1 = fr()
+  // Fallback al clic por PÍXEL (layout conocido de ANA CLARA) si el texto no cargó el iframe.
+  if (!f1) {
+    const yCreacion = tipoOtros ? 320 : 232
+    await page.mouse.move(280, yCreacion - 30, { steps: 10 }); await sleep(rnd(150, 320))
+    await page.mouse.move(320, yCreacion, { steps: 8 }); await sleep(rnd(150, 300))
+    await page.mouse.down(); await sleep(60); await page.mouse.up()
+    log('fallback: clic pixel Creación (' + yCreacion + ')')
+    await sleep(9000); f1 = fr()
+  }
   if (!f1) { log('no cargó el iframe de creación'); writeFileSync(join(DATA, 'crear-form.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2)); return { estado: 'sin_form', url: page.url() } }
   writeFileSync(join(DATA, 'crear-form.json'), JSON.stringify({ paso: 1, url: page.url(), forms: await volcarFrames(page) }, null, 2))
   // PASO 1: monto + motivo
