@@ -406,7 +406,7 @@ async function d2_tratamientos() {
   ])
   const html = await rt.text()
   const precios = {}
-  if (rc) { const caja = await rc.text(); for (const p of caja.matchAll(/tratamientoprecio\['?(\d+)'?\]\s*=\s*'?([0-9.]+)/g)) precios[p[1]] = Math.round(Number(p[2])) }
+  if (rc) { const caja = await rc.text(); for (const p of caja.matchAll(/tratamientoprecio\['?(\d+)'?\]\s*=\s*'?([0-9.]+)/g)) precios[p[1]] = Math.round(Number(p[2])); log(`caja precios: status=${rc.status} bytes=${caja.length} parseados=${Object.keys(precios).length}`) }
   const m = html.match(/<select[^>]*id="id_tratamientos"[\s\S]*?<\/select>/)
   const list = []
   if (m) for (const mm of m[0].matchAll(/<option value="(\d+)"[^>]*>([^<]+)<\/option>/g)) { const id = Number(mm[1]); list.push({ id, nombre: mm[2].trim(), valor: (String(id) in precios) ? precios[String(id)] : null }) }
