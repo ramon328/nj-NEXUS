@@ -7,7 +7,7 @@
 //
 // Devuelve por stdout un JSON con { user, rut, empresas:[{empresa, conecta, cuentas, total_clp}] }.
 import { spawn } from 'node:child_process'
-import { readFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import * as cred from './credenciales.mjs'
@@ -47,6 +47,18 @@ h.on('exit', () => {
   const m = out.match(/RESULTADO:\s*(\{[\s\S]*\})\s*$/m)
   let r = {}; try { r = m ? JSON.parse(m[1]) : {} } catch { /* */ }
   const lect = r.lectura || null
+  // Persistir cada empresa leída como caché (data/emp-<slug>.json) → el banco tool sirve
+  // saldos de cualquier empresa al instante. Así toda lectura (on-demand o de la mañana)
+  // deja los datos frescos. ANA CLARA la sirve la tek-api, no la cacheamos acá.
+  try {
+    const slug = (e) => String(e).toLowerCase().replace(/[^a-z0-9]/g, '')
+    const now = Date.now()
+    for (const e of (lect?.empresas || [])) {
+      if (!e.conecta || /ana clara/i.test(e.empresa)) continue
+      const out = { empresa: e.empresa, cuentas: e.cuentas || [], total_clp: e.total_clp || 0, _ts: now, _fuente: 'vivo' }
+      try { writeFileSync(join(DIR, 'data', 'emp-' + slug(e.empresa) + '.json'), JSON.stringify(out, null, 2)) } catch { /* */ }
+    }
+  } catch { /* */ }
   const salida = {
     ok: !!lect,
     user: userId, rut: c0.rut, estado_login: r.estado || 'desconocido',

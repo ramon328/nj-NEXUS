@@ -1,0 +1,26 @@
+{
+  "empresa": "IMP JURI Y FONTENA ASOCIADOS LIMITADA",
+  "cuentas": [
+    {
+      "tipo": "CUENTA CORRIENTE",
+      "numero": "000072019474",
+      "moneda": "CLP",
+      "saldo": 24031132
+    },
+    {
+      "tipo": "CUENTA MONEDA EXTRANJERA",
+      "numero": "005100235147",
+      "moneda": "USD",
+      "saldo": 136.58
+    },
+    {
+      "tipo": "CUENTA MONEDA EXTRANJERA",
+      "numero": "005100395551",
+      "moneda": "EUR",
+      "saldo": 1249.41
+    }
+  ],
+  "total_clp": 24031132,
+  "_ts": 1784904101287,
+  "_fuente": "vivo"
+}

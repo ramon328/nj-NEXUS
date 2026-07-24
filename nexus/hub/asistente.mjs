@@ -2235,12 +2235,13 @@ const HERRAMIENTAS = [
   },
   {
     name: 'banco',
-    description: 'BANCOS (agente "Leo"): consulta las cuentas bancarias REALES vía NUESTRA API (tek/Santander Empresa, sin Rail). SOLO LECTURA: no transfiere, no mueve un peso, no toca conexiones. Úsala para "cuánta plata hay en el banco", "saldo", "movimientos", "qué entró/salió", "ingresos y egresos del mes", "transferencias", "está conectado el banco". Acciones: empresas (empresas con banco conectado por el usuario — empieza por aquí si no sabes cuál; cada una trae "lectura": disponible o pendiente), saldos (cuentas con disponible/actual), movimientos (detalle filtrable, más recientes primero), resumen (ingresos/egresos/neto por mes), conexiones (SALUD de los links). Identifica la empresa con "empresa" (nombre, ej "ANA CLARA SPA") o "rut". ⚠️ HOY la única empresa con lectura EN VIVO es ANA CLARA; las demás salen "lectura: pendiente" (están vinculadas pero su lectura por-empresa aún no está habilitada) — si el usuario pide saldos de una pendiente, dile con claridad que está conectada pero que su lectura aún no está lista, NO inventes cifras. Los montos NEGATIVOS son EGRESOS; reporta los campos *_fmt tal cual. NOTA: esto es el BANCO; el cruce banco↔SII lo hace SAI (sai_conciliacion) y las finanzas de Aliace son aliace_resumen.',
+    description: 'BANCOS (agente "Leo"): consulta las cuentas bancarias REALES vía NUESTRA API (tek/Santander Empresa, sin Rail). SOLO LECTURA: no transfiere, no mueve un peso, no toca conexiones. Úsala para "cuánta plata hay en el banco", "saldo", "movimientos", "qué entró/salió", "ingresos y egresos del mes", "transferencias", "está conectado el banco". Acciones: empresas (empresas con banco conectado por el usuario — empieza por aquí si no sabes cuál; cada una trae "lectura": disponible o pendiente), saldos (cuentas con disponible/actual), movimientos (detalle filtrable, más recientes primero), resumen (ingresos/egresos/neto por mes), conexiones (SALUD de los links). Identifica la empresa con "empresa" (nombre, ej "ACE SPA", "FOOD EXPERT SPA", "ANA CLARA SPA") o "rut". ✅ TODAS las empresas conectadas dan SALDOS ahora (no solo ANA CLARA): la lectura sale de la sesión de la empresa (que el corazón mantiene; si duerme, se activa sola) y se cachea, así siempre hay dato. Para los saldos de TODAS las empresas de una, pasa **todas:true** (o empresa:"todas"). ⚠️ Los MOVIMIENTOS y el RESUMEN por mes hoy solo están COMPLETOS para ANA CLARA; de las demás por ahora solo saldos (la tool te lo dice con solo_saldos:true). Si un saldo viene con "nota" de "último dato conocido", es que no pude refrescar en vivo justo ahora pero te doy el último real. Los montos NEGATIVOS son EGRESOS; reporta los campos *_fmt tal cual. NOTA: esto es el BANCO; el cruce banco↔SII lo hace SAI (sai_conciliacion) y las finanzas de Aliace son aliace_resumen.',
     input_schema: {
       type: 'object',
       properties: {
         accion: { type: 'string', enum: ['empresas', 'saldos', 'movimientos', 'resumen', 'conexiones'] },
-        empresa: { type: 'string', description: 'Nombre de la empresa (ej "ANA CLARA SPA"). Sale en accion:empresas.' },
+        empresa: { type: 'string', description: 'Nombre de la empresa (ej "ACE SPA", "ANA CLARA SPA"). Sale en accion:empresas. Para todas, usa todas:true.' },
+        todas: { type: 'boolean', description: 'saldos: true = saldos de TODAS las empresas conectadas del usuario, de una.' },
         rut: { type: 'string', description: 'RUT del titular (ej "77271121-2"). Sale en accion:empresas.' },
         banco: { type: 'string', description: 'Filtra por banco (ej "santander", "bancoestado").' },
         anio: { type: 'string', description: 'resumen: acota a un año (ej "2026").' },
@@ -4122,7 +4123,11 @@ async function ejecutar(nombre, input, ctx = {}) {
           r = await b.empresas({ userId })
           if (soloAnaClara && r && Array.isArray(r.empresas)) r = { ...r, empresas: r.empresas.filter((e) => esAna(e.rut)) }
         }
-        else if (input.accion === 'saldos') r = await b.saldos(opts)
+        else if (input.accion === 'saldos') {
+          // "todas" → saldos de TODAS las empresas conectadas del usuario, en una llamada.
+          const quiereTodas = !soloAnaClara && (input.todas === true || /^(todas|todos|cada|all)\b/i.test(String(input.empresa || '')))
+          r = quiereTodas ? await b.saldosTodas({ userId }) : await b.saldos(opts)
+        }
         else if (input.accion === 'movimientos') r = await b.movimientos(opts)
         else if (input.accion === 'resumen') r = await b.resumen(opts)
         else if (input.accion === 'conexiones') {

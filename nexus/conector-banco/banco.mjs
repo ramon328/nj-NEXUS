@@ -21,6 +21,8 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { writeFileSync } from 'node:fs'
+import { spawn } from 'node:child_process'
 import * as cred from '../conector-tek/credenciales.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -115,9 +117,58 @@ async function tekResumen({ anio } = {}) {
   return { empresa: 'ANA CLARA SPA', resumen_mensual: filas, fuente: 'tek' }
 }
 
-// Mensaje honesto para una empresa vinculada pero cuya lectura aún no está habilitada.
-function lecturaPendiente(empresa, rut) {
-  return { error: `La empresa ${empresa || rut || 'pedida'} está VINCULADA en Nexus, pero todavía no tengo habilitada la lectura de sus saldos/movimientos por nuestra API (eso requiere un login al banco por empresa, que se está construyendo). Hoy la única empresa con lectura en vivo es ANA CLARA.`, lectura: 'pendiente' }
+// ── LECTURA POR EMPRESA (CUALQUIERA vinculada, vía la sesión de su dueño) ──────────
+// Cache-first: sirve el último saldo al instante (data/emp-<slug>.json) y lo refresca en
+// vivo con la sesión del dueño (que el corazón mantiene; si está dormida, se activa on-
+// demand con 1 login). Así CUALQUIER empresa —incluidas las NUEVAS que se vinculen— da
+// datos sola, sin depender de nadie ni de config manual.
+const TEK_DIR = join(__dirname, '..', 'conector-tek')
+const EMP_FRESH_MS = (Number(envDe('TEK_EMP_FRESH_MIN')) || 240) * 60_000
+const empSlug = (e) => String(e || '').toLowerCase().replace(/[^a-z0-9]/g, '')
+const empCacheFile = (e) => join(TEK_DIR, 'data', `emp-${empSlug(e)}.json`)
+function leerEmpCache(e) { try { return JSON.parse(readFileSync(empCacheFile(e), 'utf8')) } catch { return null } }
+
+// Lanza leer-saldos.mjs para UNA empresa (reusa la sesión del dueño; on-demand login si duerme).
+function runLeerSaldos(user, empresa) {
+  return new Promise((resolve) => {
+    const h = spawn(process.execPath, [join(TEK_DIR, 'leer-saldos.mjs'), '--user', user, '--empresas', empresa], { cwd: TEK_DIR })
+    let out = ''
+    h.stdout.on('data', (d) => { out += d }); h.stderr.on('data', () => {})
+    const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, 180_000)
+    h.on('exit', () => { clearTimeout(kill); try { const j = JSON.parse(out); resolve({ ok: j.ok, empresa: (j.empresas || [])[0], estado_login: j.estado_login }) } catch { resolve({ ok: false }) } })
+  })
+}
+
+// Saldo de una empresa: cache si está fresco; si no, refresca en vivo y cachea; si el banco
+// no responde, sirve el último dato conocido (marcado). NUNCA queda sin dato si ya lo leyó una vez.
+async function saldoEmpresa(empresa) {
+  const cached = leerEmpCache(empresa)
+  if (cached && Date.now() - (cached._ts || 0) < EMP_FRESH_MS) return { ...cached, _fuente: 'cache' }
+  const owner = cred.dueñoDeEmpresa(empresa)
+  if (!owner) return cached ? { ...cached, _stale: true } : { error: `"${empresa}" no está conectada a ninguna sesión de banco.` }
+  const r = await runLeerSaldos(owner, empresa)
+  if (r.ok && r.empresa) {
+    const out = { empresa, cuentas: r.empresa.cuentas || [], total_clp: r.empresa.total_clp || 0, _ts: Date.now(), _fuente: 'vivo' }
+    try { writeFileSync(empCacheFile(empresa), JSON.stringify(out, null, 2)) } catch { /* */ }
+    return out
+  }
+  if (cached) return { ...cached, _stale: true, _nota: 'no pude refrescar ahora (banco); te muestro el último dato conocido' }
+  return { error: `No pude leer "${empresa}" ahora mismo (${r.estado_login || 'banco no disponible'}). Reintenta en un rato — su sesión se activa cuando la necesites.` }
+}
+
+// Da forma uniforme (*_fmt) a un saldo de empresa leído por sesión.
+function shapeSaldoEmpresa(empresa, r) {
+  const cuentas = (r.cuentas || []).map((c) => ({
+    banco: 'Santander', empresa, cuenta: c.tipo, numero: c.numero, moneda: c.moneda || 'CLP',
+    disponible: c.saldo, disponible_fmt: fmt(c.saldo, c.moneda), actual: c.saldo, actual_fmt: fmt(c.saldo, c.moneda),
+    ...(c.linea_credito != null ? { linea_credito: c.linea_credito, linea_credito_fmt: fmt(c.linea_credito, c.moneda) } : {}),
+  }))
+  const totalCLP = r.total_clp ?? cuentas.filter((c) => (c.moneda || 'CLP') === 'CLP').reduce((s, c) => s + Number(c.disponible || 0), 0)
+  return {
+    empresa, cuentas, total_disponible_clp: totalCLP, total_disponible_clp_fmt: fmt(totalCLP, 'CLP'),
+    fuente: r._fuente || 'sesion', actualizado: r._ts ? new Date(r._ts).toISOString() : undefined,
+    ...(r._stale ? { nota: r._nota || 'último dato conocido (no pude refrescar ahora)' } : {}),
+  }
 }
 
 // ── Conexiones (SALUD) — de NUESTRA bóveda, por usuario ────────────────
@@ -129,7 +180,8 @@ export async function links({ userId } = {}) {
   // Empresas que ESTE usuario vinculó por el widget (bóveda cifrada).
   for (const c of (userId ? cred.listar(userId) : [])) {
     if (anaViva && esAnaClara(null, c.empresa)) continue   // ANA CLARA ya está arriba (leíble)
-    out.push({ id: 'vault', banco: c.banco, empresa: c.empresa, rut: c.rut, estado: 'active', sana: true, lectura: 'pendiente', fuente: 'vault' })
+    // Toda empresa conectada da SALDOS (cache-first + refresco por su sesión).
+    out.push({ id: 'vault', banco: c.banco, empresa: c.empresa, rut: c.rut, estado: 'active', sana: true, lectura: 'disponible', fuente: 'vault' })
   }
   return out
 }
@@ -151,7 +203,27 @@ export async function saldos({ userId, rut, banco, empresa } = {}) {
       try { return await tekSaldos() } catch (e) { return { error: `No pude leer el banco (tek): ${e.message}` } }
     }
   }
-  return lecturaPendiente(empresa, rut)
+  // CUALQUIER otra empresa vinculada → lectura por su sesión (cache-first).
+  if (empresa) {
+    const r = await saldoEmpresa(empresa)
+    if (r.error) return { error: r.error }
+    return shapeSaldoEmpresa(empresa, r)
+  }
+  return { error: 'Dime de qué empresa quieres el saldo (usa accion:empresas para ver las conectadas).' }
+}
+
+// Saldos de TODAS las empresas conectadas por un usuario (cache-first cada una).
+export async function saldosTodas({ userId } = {}) {
+  const conns = userId ? cred.listar(userId) : []
+  const vistas = new Set(); const empresasOut = []
+  for (const c of conns) {
+    const key = empSlug(c.empresa); if (vistas.has(key)) continue; vistas.add(key)
+    if (esAnaClara(null, c.empresa)) { try { const t = await tekSaldos(); empresasOut.push(t) } catch { /* */ }; continue }
+    const r = await saldoEmpresa(c.empresa)
+    empresasOut.push(r.error ? { empresa: c.empresa, error: r.error } : shapeSaldoEmpresa(c.empresa, r))
+  }
+  const totalCLP = empresasOut.reduce((s, e) => s + Number(e.total_disponible_clp || 0), 0)
+  return { empresas: empresasOut, total_disponible_clp: totalCLP, total_disponible_clp_fmt: fmt(totalCLP, 'CLP') }
 }
 
 // ── Movimientos ───────────────────────────────────────────────────────
@@ -161,7 +233,7 @@ export async function movimientos({ userId, rut, banco, empresa, buscar, desde, 
       try { return await tekMovimientos({ buscar, desde, hasta, limite }) } catch (e) { return { error: `No pude leer movimientos (tek): ${e.message}` } }
     }
   }
-  return lecturaPendiente(empresa, rut)
+  return { error: `De ${empresa || 'esa empresa'} por ahora tengo SALDOS en vivo (pídemelos), pero el detalle de MOVIMIENTOS por empresa todavía se está construyendo. En ANA CLARA sí tengo movimientos completos.`, solo_saldos: true }
 }
 
 // ── Resumen por mes ───────────────────────────────────────────────────
@@ -171,7 +243,7 @@ export async function resumen({ userId, rut, banco, empresa, anio } = {}) {
       try { return await tekResumen({ anio }) } catch (e) { return { error: `No pude armar el resumen (tek): ${e.message}` } }
     }
   }
-  return lecturaPendiente(empresa, rut)
+  return { error: `El resumen de ingresos/egresos por mes necesita movimientos, que por empresa todavía se está construyendo. De ${empresa || 'esa empresa'} sí tengo SALDOS en vivo; en ANA CLARA tengo el resumen completo.`, solo_saldos: true }
 }
 
 // ── CLI ───────────────────────────────────────────────────────────────
