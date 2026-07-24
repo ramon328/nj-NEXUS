@@ -1591,27 +1591,54 @@ async function leerMovimientosActual(ctx, page, log, desde, cuentaNum = '') {
       if (await btn.isVisible().catch(() => false)) { await clickHumano(page, btn); return true }
       return false
     }
+    // SCRAPE de la tabla del iframe eob (robusto: no depende del nombre del endpoint de red,
+    // que varía por empresa). Columnas: FECHA · CARGO · ABONO · DESCRIPCIÓN · SALDO · N°DOC ·
+    // SUCURSAL · N°MOV. Acumulamos y deduplicamos por nroMov+fecha+saldo.
+    const scraped = []
+    const numCLP = (s) => { const n = String(s || '').replace(/[^\d]/g, ''); return n ? Number(n) : 0 }
+    const scrapeTabla = async (fr, cuenta) => {
+      if (!fr) return
+      const filas = await fr.evaluate(() => {
+        const out = []
+        for (const tr of document.querySelectorAll('tr')) {
+          const c = [...tr.querySelectorAll('td')].map((td) => (td.innerText || '').replace(/\s+/g, ' ').trim())
+          if (c.length >= 6 && /\d{2}[/-]\d{2}[/-]\d{2,4}/.test(c[0] || '')) out.push(c)
+        }
+        return out
+      }).catch(() => [])
+      for (const c of filas) scraped.push({ raw: c, cuenta })
+    }
+    const cuentaSel = async (fr) => (await fr?.locator('select').first().inputValue().catch(() => '')) || cuentaNum
     const meses = mesesRango(DESDE, hoy)
     let f = eob()
-    if (f) { for (const mm of meses) { await consultar(f, mm.d, mm.h).catch(() => {}); await sleep(rnd(6000, 8000)); f = eob() || f } }
+    if (f) { for (const mm of meses) { await consultar(f, mm.d, mm.h).catch(() => {}); await sleep(rnd(6000, 8000)); f = eob() || f; await scrapeTabla(f, await cuentaSel(f)) } }
     try {
       f = eob()
       if (f) {
         const sel = f.locator('select').first(); const nop = await sel.locator('option').count().catch(() => 0)
         for (let i = 1; i < Math.min(nop, 4); i++) {
           await sel.selectOption({ index: i }).catch(() => {}); await sleep(2000)
-          for (const mm of meses) { const f2 = eob(); if (f2) { await consultar(f2, mm.d, mm.h).catch(() => {}); await sleep(rnd(5000, 7000)) } }
+          for (const mm of meses) { const f2 = eob(); if (f2) { await consultar(f2, mm.d, mm.h).catch(() => {}); await sleep(rnd(5000, 7000)); await scrapeTabla(f2, await cuentaSel(f2)) } }
         }
       }
     } catch { /* */ }
-  } catch (e) { log('  movs: navegación falló:', e.message) }
-  ctx.off('response', onResp)
-  const vistos = new Set(); const movs = []
-  for (const det of lotesMov) for (const m of det.map((x) => _normMov(x, cuentaNum))) {
-    const k = m.nroMov + '|' + m.fecha + '|' + m.saldo; if (!vistos.has(k)) { vistos.add(k); movs.push(m) }
-  }
-  movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
-  return movs
+    // construir movimientos: primero lo scrapeado (robusto), luego la red (bonus, ANA CLARA)
+    const vistos = new Set(); const movs = []
+    for (const { raw: c, cuenta } of scraped) {
+      const fecha = _normFechaMov(c[0]); if (!fecha) continue
+      const cargo = numCLP(c[1]), abono = numCLP(c[2]), saldo = numCLP(c[4])
+      const m = { fecha, descripcion: (c[3] || '').trim(), cargo, abono, saldo, documento: (c[5] || '').trim(), sucursal: (c[6] || '').trim(), nroMov: (c[7] || c[6] || '').trim(), cuenta: cuenta || cuentaNum }
+      const k = m.nroMov + '|' + m.fecha + '|' + m.saldo + '|' + (cargo + abono)
+      if (!vistos.has(k)) { vistos.add(k); movs.push(m) }
+    }
+    for (const det of lotesMov) for (const m of det.map((x) => _normMov(x, cuentaNum))) {
+      const k = m.nroMov + '|' + m.fecha + '|' + m.saldo + '|' + (m.cargo + m.abono)
+      if (!vistos.has(k)) { vistos.add(k); movs.push(m) }
+    }
+    ctx.off('response', onResp)
+    movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+    return movs
+  } catch (e) { log('  movs: navegación falló:', e.message); ctx.off('response', onResp); return [] }
 }
 
 async function leerSaldosTodas(ctx, page, log) {
