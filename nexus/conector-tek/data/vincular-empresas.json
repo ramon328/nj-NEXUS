@@ -6,68 +6,33 @@
       "contrato": "000690022343160",
       "rut": "76.106.636-6",
       "empresa": "IMP JURI Y FONTENA ASOCIADOS LIMITADA",
-      "rol": "Transaccional"
-    },
-    {
-      "contrato": "000690022536470",
-      "rut": "76.580.812-K",
-      "empresa": "FOOD EXPERT SPA",
-      "rol": "Transaccional"
+      "rol": "Usuario"
     },
     {
       "contrato": "000690023084710",
       "rut": "76.867.554-6",
       "empresa": "IMPORTACIONES MINERAS SPA",
-      "rol": "Transaccional"
+      "rol": "Usuario"
     },
     {
       "contrato": "000690024634580",
       "rut": "76.188.898-6",
       "empresa": "IMPORTADORA JURI Y JURI LIMITADA",
-      "rol": "Transaccional"
+      "rol": "Usuario"
     },
     {
       "contrato": "000690026173520",
       "rut": "77.271.121-2",
       "empresa": "ANA CLARA SPA",
-      "rol": "Transaccional"
-    },
-    {
-      "contrato": "000690035166390",
-      "rut": "76.864.835-2",
-      "empresa": "INVERSIONES BALEARES SPA",
-      "rol": "Apoderado"
-    },
-    {
-      "contrato": "000690035183400",
-      "rut": "76.715.392-9",
-      "empresa": "ACE SPA",
-      "rol": "Transaccional"
-    },
-    {
-      "contrato": "000690035185210",
-      "rut": "76.715.394-5",
-      "empresa": "INVERSIONES MALLORCA HOLDING GROUP LTDA",
-      "rol": "Apoderado"
-    },
-    {
-      "contrato": "000690036045590",
-      "rut": "78.226.167-3",
-      "empresa": "PLATAFORMAS DIGITALES GOAUTO SPA",
-      "rol": "Transaccional"
+      "rol": "Usuario"
     }
   ],
   "crudo": [
     "Contrato RUT Empresa Rol",
-    "000690022343160 76.106.636-6 IMP JURI Y FONTENA ASOCIADOS LIMITADA Transaccional Entrar",
-    "000690022536470 76.580.812-K FOOD EXPERT SPA Transaccional Entrar",
-    "000690023084710 76.867.554-6 IMPORTACIONES MINERAS SPA Transaccional Entrar",
-    "000690024634580 76.188.898-6 IMPORTADORA JURI Y JURI LIMITADA Transaccional Entrar",
-    "000690026173520 77.271.121-2 ANA CLARA SPA Transaccional Entrar",
-    "000690035166390 76.864.835-2 INVERSIONES BALEARES SPA Apoderado Entrar",
-    "000690035183400 76.715.392-9 ACE SPA Transaccional Entrar",
-    "000690035185210 76.715.394-5 INVERSIONES MALLORCA HOLDING GROUP LTDA Apoderado Entrar",
-    "000690036045590 78.226.167-3 PLATAFORMAS DIGITALES GOAUTO SPA Transaccional Entrar"
+    "000690022343160 76.106.636-6 IMP JURI Y FONTENA ASOCIADOS LIMITADA Usuario Entrar",
+    "000690023084710 76.867.554-6 IMPORTACIONES MINERAS SPA Usuario Entrar",
+    "000690024634580 76.188.898-6 IMPORTADORA JURI Y JURI LIMITADA Usuario Entrar",
+    "000690026173520 77.271.121-2 ANA CLARA SPA Usuario Entrar"
   ],
   "dump": [
     {
@@ -100,23 +65,13 @@
           "maxlength": "",
           "label": "Mostrar",
           "opciones": [
-            "9"
+            "4"
           ]
         }
       ],
       "botones": [
         "Accesibilidad",
         "logout",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
         "Entrar",
         "Entrar",
         "Entrar",
