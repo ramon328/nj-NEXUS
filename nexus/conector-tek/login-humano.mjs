@@ -1554,14 +1554,22 @@ async function leerMovimientosActual(ctx, page, log, desde, cuentaNum = '') {
     } catch { /* */ }
   }
   ctx.on('response', onResp)
+  const dbg = process.env.TEK_MOVS_DEBUG === '1'
+  const shotM = (n) => dbg ? page.screenshot({ path: join(DATA, `movs-${n}.png`) }).catch(() => {}) : Promise.resolve()
   try {
+    await shotM('00-inicio')
     const esVisible = async (re) => page.getByText(re).first().isVisible().catch(() => false)
     let itemRe = /Saldos y movimientos/i
     for (let i = 0; i < 4 && !(await esVisible(itemRe)); i++) { await clickHumano(page, page.getByText(/^Cuentas Corrientes$/i).first()); await sleep(rnd(2400, 3200)) }
+    if (dbg) log('  movs: "Saldos y movimientos" visible?', await esVisible(/Saldos y movimientos/i))
+    await shotM('01-menu')
     if (!(await esVisible(itemRe))) itemRe = /Cartola|Movimientos/i
-    if (await esVisible(itemRe)) await clickHumano(page, page.getByText(itemRe).first())
+    const clicCart = (await esVisible(itemRe)) ? await clickHumano(page, page.getByText(itemRe).first()) : false
+    if (dbg) log('  movs: clic cartola?', clicCart)
     await sleep(rnd(11000, 13_000))
+    await shotM('02-cartola')
     const eob = () => page.frames().find((f) => /eob\.officebanking\.cl\/CTA\.UI\.Web\/saldoctacte/i.test(f.url()))
+    if (dbg) log('  movs: iframe eob encontrado?', !!eob(), '| frames:', page.frames().map((f) => f.url()).filter((u) => /eob|saldo|cartola|CTA/i.test(u)).slice(0, 3))
     const mesesRango = (d0, h0) => {
       const out = []; let [y, m] = d0.split('-').map(Number); const [hy, hm] = h0.split('-').map(Number); let g = 0
       while ((y < hy || (y === hy && m <= hm)) && g++ < 24) {
