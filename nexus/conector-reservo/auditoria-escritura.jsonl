@@ -463,3 +463,4 @@
 {"ts":"2026-07-24T22:41:33.435Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":67301,"tratamiento_id":398201,"hora":"2026-07-25T09:00:00-04:00","cliente":{"nombre":"Prueba Sistema","rut":"11111111-1","telefono":"+56911111111"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"378591784932893d2178524_87b0_11f1_b818_0242ac150002","error":null}
 {"ts":"2026-07-24T22:41:36.302Z","accion":"anular","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_id":75229339,"simular":false},"simulado":false,"ok":true,"cita_uuid":null}
 {"ts":"2026-07-24T22:51:23.831Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-24T23:06:27.465Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
