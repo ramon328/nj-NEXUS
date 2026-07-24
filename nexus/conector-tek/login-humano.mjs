@@ -651,6 +651,7 @@ async function crearTransferencia(page, log) {
     try { writeFileSync(join(DATA, 'terceros-debug.json'), JSON.stringify(marcado, null, 2)) } catch { /* */ }
     await sleep(rnd(900, 1500))
     await page.screenshot({ path: join(DATA, 'crear-01c-terceros.png') }).catch(() => {})
+    // El destino del form TEFUN se llena en el PASO 2 (tras "Continuar"), abajo.
   } else {
     await f1.locator('#txtMonto').click().catch(() => {}); await sleep(rnd(300, 600))
     await f1.locator('#txtMonto').type(monto, { delay: rnd(90, 170) }).catch(() => {})
@@ -675,6 +676,32 @@ async function crearTransferencia(page, log) {
   const modo = process.env.TEK_CREAR   // 'mapear' | 'llenar' | 'crear'
   if (modo === 'llenar' || modo === 'crear') {
     const f2 = page.frames().find((f) => /TEF(UN)?\.UI\.Web/i.test(f.url())) || f1
+    // ── DESTINO del form NUEVO (TEFUN, paso 2): campos con placeholder VACÍO → llenar por ID.
+    //    Banco destino = SELECT; rut/nombre/cuenta/mail/mensaje = inputs. Uno a uno (foco limpio).
+    if (esTEFUN) {
+      const setId = async (id, valTxt) => {
+        if (valTxt == null || valTxt === '') return
+        const loc = f2.locator('#' + id).first()
+        if (!(await loc.count().catch(() => 0))) { log('destino TEFUN: no vi #' + id); return }
+        await loc.click().catch(() => {}); await sleep(rnd(300, 550))
+        await loc.fill('').catch(() => {}); await loc.type(String(valTxt), { delay: rnd(70, 140) }).catch(() => {})
+        await sleep(rnd(350, 650))
+      }
+      // Banco destino: seleccionar (el del beneficiario, o Santander por defecto).
+      try {
+        const bancoTxt = process.env.TEK_DEST_BANCO || 'Santander'
+        for (const s of await f2.locator('select').all()) {
+          const opt0 = await s.locator('option').first().innerText().catch(() => '')
+          if (/banco/i.test(opt0)) { await s.selectOption({ label: new RegExp(bancoTxt, 'i') }).catch(async () => { await s.selectOption({ index: 1 }).catch(() => {}) }); log('banco destino seleccionado'); await sleep(rnd(800, 1400)); break }
+        }
+      } catch { /* */ }
+      await setId('rutDestinatario', process.env.TEK_DEST_RUT)
+      await setId('nombreDestinatario', process.env.TEK_DEST_NOMBRE)
+      await setId('inputCuentaDestinoDigitada', process.env.TEK_DEST_CUENTA)
+      await setId('correoDestinatarioOB', process.env.TEK_DEST_EMAIL)
+      await setId('mensajeText1', process.env.TEK_DEST_MSG)
+      await page.screenshot({ path: join(DATA, 'crear-02b-destino-tefun.png') }).catch(() => {})
+    }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
     const setVal = async (sel, valTxt) => {
       if (valTxt == null || valTxt === '') return
