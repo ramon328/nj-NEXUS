@@ -679,28 +679,46 @@ async function crearTransferencia(page, log) {
     // ── DESTINO del form NUEVO (TEFUN, paso 2): campos con placeholder VACÍO → llenar por ID.
     //    Banco destino = SELECT; rut/nombre/cuenta/mail/mensaje = inputs. Uno a uno (foco limpio).
     if (esTEFUN) {
-      const setId = async (id, valTxt) => {
+      // Llenado por JS por ID (setter nativo + eventos): robusto contra foco/máscara y evita
+      // que un campo se meta en otro. Cada campo por su ID exacto.
+      const setIdJS = async (id, valTxt) => {
         if (valTxt == null || valTxt === '') return
-        const loc = f2.locator('#' + id).first()
-        if (!(await loc.count().catch(() => 0))) { log('destino TEFUN: no vi #' + id); return }
-        await loc.click().catch(() => {}); await sleep(rnd(300, 550))
-        await loc.fill('').catch(() => {}); await loc.type(String(valTxt), { delay: rnd(70, 140) }).catch(() => {})
-        await sleep(rnd(350, 650))
+        const ok = await f2.evaluate(({ id, value }) => {
+          const el = document.getElementById(id); if (!el) return 'no-existe'
+          const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
+          const setter = Object.getOwnPropertyDescriptor(proto, 'value') && Object.getOwnPropertyDescriptor(proto, 'value').set
+          el.focus(); setter ? setter.call(el, '') : (el.value = '')
+          setter ? setter.call(el, value) : (el.value = value)
+          el.dispatchEvent(new Event('input', { bubbles: true }))
+          el.dispatchEvent(new Event('keyup', { bubbles: true }))
+          el.dispatchEvent(new Event('change', { bubbles: true }))
+          el.dispatchEvent(new Event('blur', { bubbles: true }))
+          return el.value === value ? 'ok' : 'val=' + el.value
+        }, { id, value: String(valTxt) }).catch((e) => 'err:' + String(e).slice(0, 60))
+        log('TEFUN #' + id + ' →', ok); await sleep(rnd(350, 650))
       }
-      // Banco destino: seleccionar (el del beneficiario, o Santander por defecto).
+      // Banco destino: es un DROPDOWN CUSTOM (no <select>). Abrir + elegir Santander (o el del
+      // beneficiario). RUT/Nombre suelen HABILITARSE recién al elegir el banco.
       try {
         const bancoTxt = process.env.TEK_DEST_BANCO || 'Santander'
-        for (const s of await f2.locator('select').all()) {
-          const opt0 = await s.locator('option').first().innerText().catch(() => '')
-          if (/banco/i.test(opt0)) { await s.selectOption({ label: new RegExp(bancoTxt, 'i') }).catch(async () => { await s.selectOption({ index: 1 }).catch(() => {}) }); log('banco destino seleccionado'); await sleep(rnd(800, 1400)); break }
-        }
-      } catch { /* */ }
-      await setId('rutDestinatario', process.env.TEK_DEST_RUT)
-      await setId('nombreDestinatario', process.env.TEK_DEST_NOMBRE)
-      await setId('inputCuentaDestinoDigitada', process.env.TEK_DEST_CUENTA)
-      await setId('correoDestinatarioOB', process.env.TEK_DEST_EMAIL)
-      await setId('mensajeText1', process.env.TEK_DEST_MSG)
+        const combo = f2.getByText(/Seleccione\s+Banco\s+Destino/i).first()
+        if (await combo.count().catch(() => 0)) { await clickHumano(page, combo); await sleep(rnd(1400, 2200)) }
+        await page.screenshot({ path: join(DATA, 'crear-02a-banco-abierto.png') }).catch(() => {})
+        // opción del banco en el dropdown desplegado
+        const reBanco = new RegExp('(banco\\s+)?' + bancoTxt.replace(/[^a-z]/gi, ''), 'i')
+        let opt = f2.getByText(reBanco).filter({ hasNotText: /Seleccione/i }).first()
+        if (!(await opt.count().catch(() => 0))) opt = f2.getByText(/santander/i).first()
+        if (await opt.count().catch(() => 0)) { await clickHumano(page, opt); log('banco destino: elegí', bancoTxt); await sleep(rnd(1400, 2200)) }
+        else log('banco destino: no vi la opción en el dropdown')
+      } catch (e) { log('banco destino falló:', e.message) }
+      await setIdJS('rutDestinatario', process.env.TEK_DEST_RUT)
+      await setIdJS('nombreDestinatario', process.env.TEK_DEST_NOMBRE)
+      await setIdJS('inputCuentaDestinoDigitada', process.env.TEK_DEST_CUENTA)
+      await setIdJS('correoDestinatarioOB', process.env.TEK_DEST_EMAIL)
+      await setIdJS('mensajeText1', process.env.TEK_DEST_MSG)
+      await sleep(rnd(600, 1000))
       await page.screenshot({ path: join(DATA, 'crear-02b-destino-tefun.png') }).catch(() => {})
+      try { writeFileSync(join(DATA, 'crear-tefun-fill.json'), JSON.stringify({ ts: new Date().toISOString() })) } catch { /* */ }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
     const setVal = async (sel, valTxt) => {
