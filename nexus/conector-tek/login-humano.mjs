@@ -1518,14 +1518,92 @@ async function cartolaHistorica(page, log) {
 // listCustAccount). NO escribe en los data/*.json de ANA CLARA: solo devuelve el
 // resultado. Empresas objetivo en TEK_EMPRESAS_JSON (array de nombres).
 async function irAlSelectorEmpresas(page, log) {
+  const enSel = (t) => /selector de empresas|seleccion-empresa|selecciona.*empresa|listado de empresas/i.test(page.url() + ' ' + t)
   const txt0 = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
-  if (/selector de empresas|seleccion-empresa|selecciona.*empresa|listado de empresas/i.test(page.url() + ' ' + txt0)) return true
+  if (enSel(txt0)) return true
+  // Desde una vista profunda (ej. la cartola con su iframe) el menú puede no estar a mano:
+  // volvemos al dashboard primero y desde ahí abrimos "Empresa/Rol → Volver a selector".
+  if (!/portal-fob|dashboard/i.test(page.url())) {
+    await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+    await sleep(rnd(3500, 5000))
+  }
   const btn = page.getByText(/Empresa\s*\/\s*Rol/i).first()
   if (await btn.count().catch(() => 0)) { await clickHumano(page, btn); await sleep(rnd(2000, 3000)) }
   const volver = page.getByText(/volver al?\s*selector de empresas/i).first()
   if (await volver.count().catch(() => 0)) { await clickHumano(page, volver); await sleep(rnd(4000, 5500)); return true }
   const t2 = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
-  return /selector de empresas|seleccion-empresa|selecciona.*empresa|listado de empresas/i.test(page.url() + ' ' + t2)
+  return enSel(t2)
+}
+
+// Lee los MOVIMIENTOS de la empresa YA seleccionada (cartola: Cuentas Corrientes → Saldos
+// y movimientos), mes a mes en la ventana de ~90 días. Reusa la lógica probada de
+// capturarData (ANA CLARA) SIN escribir archivos. Best-effort: si algo falla, devuelve lo
+// que haya. Solo se llama si TEK_LEER_MOVS=1 (para no arriesgar la lectura de saldos).
+async function leerMovimientosActual(ctx, page, log, desde, cuentaNum = '') {
+  const hoyD = new Date(), iso = (d) => d.toISOString().slice(0, 10)
+  const min90 = iso(new Date(hoyD.getTime() - 88 * 864e5))
+  const DESDE = (desde && desde > min90) ? desde : min90
+  const hoy = iso(hoyD)
+  const lotesMov = []
+  const onResp = async (r) => {
+    try {
+      if (/ObtenerMovimientos/i.test(r.url())) {
+        const b = JSON.parse(await r.text()); const det = b?.Result?.Detalle || b?.Detalle || []
+        if (Array.isArray(det) && det.length) lotesMov.push(det)
+      }
+    } catch { /* */ }
+  }
+  ctx.on('response', onResp)
+  try {
+    const esVisible = async (re) => page.getByText(re).first().isVisible().catch(() => false)
+    let itemRe = /Saldos y movimientos/i
+    for (let i = 0; i < 4 && !(await esVisible(itemRe)); i++) { await clickHumano(page, page.getByText(/^Cuentas Corrientes$/i).first()); await sleep(rnd(2400, 3200)) }
+    if (!(await esVisible(itemRe))) itemRe = /Cartola|Movimientos/i
+    if (await esVisible(itemRe)) await clickHumano(page, page.getByText(itemRe).first())
+    await sleep(rnd(11000, 13_000))
+    const eob = () => page.frames().find((f) => /eob\.officebanking\.cl\/CTA\.UI\.Web\/saldoctacte/i.test(f.url()))
+    const mesesRango = (d0, h0) => {
+      const out = []; let [y, m] = d0.split('-').map(Number); const [hy, hm] = h0.split('-').map(Number); let g = 0
+      while ((y < hy || (y === hy && m <= hm)) && g++ < 24) {
+        const pad = (n) => String(n).padStart(2, '0'); const d = `${y}-${pad(m)}-01`; const fin = new Date(y, m, 0).getDate(); const h = `${y}-${pad(m)}-${pad(fin)}`
+        out.push({ d: d < d0 ? d0 : d, h: h > h0 ? h0 : h }); m++; if (m > 12) { m = 1; y++ }
+      }
+      return out.reverse()
+    }
+    const consultar = async (f, d, h) => {
+      const fechas = f.locator('input[type="date"], input[type="text"], input[placeholder*="/" i], input[class*="fecha" i]')
+      if ((await fechas.count().catch(() => 0)) < 2) return false
+      for (const [idx, val] of [[0, d], [1, h]]) {
+        const el = fechas.nth(idx); const tipo = await el.getAttribute('type').catch(() => 'text')
+        const v = tipo === 'date' ? val : `${val.slice(8, 10)}/${val.slice(5, 7)}/${val.slice(0, 4)}`
+        await el.click().catch(() => {}); await el.fill('').catch(() => {}); await el.fill(v).catch(() => {})
+        await el.evaluate((e) => e.dispatchEvent(new Event('change', { bubbles: true }))).catch(() => {}); await sleep(400)
+      }
+      const btn = f.locator('button:has-text("Consultar"), a:has-text("Consultar"), input[value*="onsult" i]').first()
+      if (await btn.isVisible().catch(() => false)) { await clickHumano(page, btn); return true }
+      return false
+    }
+    const meses = mesesRango(DESDE, hoy)
+    let f = eob()
+    if (f) { for (const mm of meses) { await consultar(f, mm.d, mm.h).catch(() => {}); await sleep(rnd(6000, 8000)); f = eob() || f } }
+    try {
+      f = eob()
+      if (f) {
+        const sel = f.locator('select').first(); const nop = await sel.locator('option').count().catch(() => 0)
+        for (let i = 1; i < Math.min(nop, 4); i++) {
+          await sel.selectOption({ index: i }).catch(() => {}); await sleep(2000)
+          for (const mm of meses) { const f2 = eob(); if (f2) { await consultar(f2, mm.d, mm.h).catch(() => {}); await sleep(rnd(5000, 7000)) } }
+        }
+      }
+    } catch { /* */ }
+  } catch (e) { log('  movs: navegación falló:', e.message) }
+  ctx.off('response', onResp)
+  const vistos = new Set(); const movs = []
+  for (const det of lotesMov) for (const m of det.map((x) => _normMov(x, cuentaNum))) {
+    const k = m.nroMov + '|' + m.fecha + '|' + m.saldo; if (!vistos.has(k)) { vistos.add(k); movs.push(m) }
+  }
+  movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+  return movs
 }
 
 async function leerSaldosTodas(ctx, page, log) {
@@ -1555,7 +1633,13 @@ async function leerSaldosTodas(ctx, page, log) {
       for (let i = 0; i < 14 && !saldos; i++) await sleep(1500)
       const cuentas = (saldos || []).map((c) => ({ tipo: c.accountType, numero: c.accountNumber, moneda: c.moneyType || 'CLP', saldo: Number(c.balance || 0), ...(c.creditLine != null ? { linea_credito: Number(c.creditLine) } : {}) }))
       const totalCLP = cuentas.filter((c) => (c.moneda || 'CLP') === 'CLP').reduce((s, c) => s + c.saldo, 0)
-      resultados.push({ empresa, conecta: !!saldos, cuentas, total_clp: totalCLP })
+      // MOVIMIENTOS (solo si TEK_LEER_MOVS=1): best-effort, NO rompe la lectura de saldos.
+      let movimientos = null
+      if (process.env.TEK_LEER_MOVS === '1' && saldos) {
+        try { movimientos = await leerMovimientosActual(ctx, page, log, process.env.TEK_DESDE || '', saldos?.[0]?.accountNumber || ''); log(`lector: ${empresa} → ${movimientos.length} movimientos`) }
+        catch (e) { log(`lector: movs de ${empresa} falló:`, e.message) }
+      }
+      resultados.push({ empresa, conecta: !!saldos, cuentas, total_clp: totalCLP, ...(movimientos ? { movimientos } : {}) })
       log(`lector: ${empresa} → ${saldos ? cuentas.length + ' cuentas, $' + totalCLP.toLocaleString('es-CL') : 'SIN saldo (no cargó)'}`)
     } catch (e) { resultados.push({ empresa, conecta: false, error: e.message }); log(`lector: ${empresa} falló:`, e.message) }
     ctx.off('response', onResp)

@@ -15,7 +15,9 @@ const log = (...a) => console.log(new Date().toISOString(), ...a)
 function leerUsuario(user) {
   return new Promise((resolve) => {
     log(`[${user}] refrescando saldos…`)
-    const h = spawn(NODE, [join(DIR, 'leer-saldos.mjs'), '--user', user], { cwd: DIR })
+    // TEK_LEER_MOVS=1 → lee también movimientos (cartola) de cada empresa → caché de movs
+    // + resumen por mes. Es más lento (~1-2 min/empresa) pero corre 1 vez en la madrugada.
+    const h = spawn(NODE, [join(DIR, 'leer-saldos.mjs'), '--user', user], { cwd: DIR, env: { ...process.env, TEK_LEER_MOVS: '1' } })
     let out = ''
     h.stdout.on('data', (d) => { out += d }); h.stderr.on('data', () => {})
     const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, 400_000)

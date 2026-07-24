@@ -57,6 +57,11 @@ h.on('exit', () => {
       if (!e.conecta || /ana clara/i.test(e.empresa)) continue
       const out = { empresa: e.empresa, cuentas: e.cuentas || [], total_clp: e.total_clp || 0, _ts: now, _fuente: 'vivo' }
       try { writeFileSync(join(DIR, 'data', 'emp-' + slug(e.empresa) + '.json'), JSON.stringify(out, null, 2)) } catch { /* */ }
+      // movimientos por empresa (si se leyeron con TEK_LEER_MOVS)
+      if (Array.isArray(e.movimientos)) {
+        const mout = { empresa: e.empresa, movimientos: e.movimientos, total: e.movimientos.length, _ts: now, _fuente: 'vivo' }
+        try { writeFileSync(join(DIR, 'data', 'emp-' + slug(e.empresa) + '-movs.json'), JSON.stringify(mout, null, 2)) } catch { /* */ }
+      }
     }
   } catch { /* */ }
   const salida = {

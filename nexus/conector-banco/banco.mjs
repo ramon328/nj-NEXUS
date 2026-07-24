@@ -156,6 +156,41 @@ async function saldoEmpresa(empresa) {
   return { error: `No pude leer "${empresa}" ahora mismo (${r.estado_login || 'banco no disponible'}). Reintenta en un rato — su sesión se activa cuando la necesites.` }
 }
 
+// ── MOVIMIENTOS / RESUMEN por empresa (desde el caché emp-<slug>-movs.json, que refresca
+//    el lector cada mañana con TEK_LEER_MOVS). Mismo trato que la cartola de ANA CLARA. ──
+const movsCacheFile = (e) => join(TEK_DIR, 'data', `emp-${empSlug(e)}-movs.json`)
+function leerMovsCache(e) { try { return JSON.parse(readFileSync(movsCacheFile(e), 'utf8')) } catch { return null } }
+function mapMovEmpresa(m, empresa) {
+  const monto = Number(m.abono || 0) - Number(m.cargo || 0)   // ingreso +, egreso −
+  return { fecha: m.fecha, descripcion: m.descripcion, tipo: null, monto, monto_fmt: fmt(monto, 'CLP'), signo: monto < 0 ? 'egreso' : 'ingreso', estado: 'confirmado', banco: 'Santander', empresa, cuenta: m.cuenta, ...(m.documento ? { documento: m.documento } : {}) }
+}
+function movimientosEmpresa(empresa, { buscar, desde, hasta, limite = 30 } = {}) {
+  const c = leerMovsCache(empresa)
+  if (!c || !Array.isArray(c.movimientos)) return { error: `Todavía no tengo el detalle de MOVIMIENTOS de ${empresa} (se leen en el refresco de cada mañana). Saldos de esa empresa sí tengo. En ANA CLARA tengo movimientos completos.`, sin_cache: true }
+  let movs = c.movimientos.slice()
+  if (buscar) { const q = String(buscar).toLowerCase(); movs = movs.filter((m) => `${m.descripcion || ''}`.toLowerCase().includes(q)) }
+  if (desde) movs = movs.filter((m) => (m.fecha || '') >= desde)
+  if (hasta) movs = movs.filter((m) => (m.fecha || '') <= hasta)
+  movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
+  const total = movs.length
+  return { empresa, total_encontrados: total, mostrando: Math.min(total, Number(limite) || 30), movimientos: movs.slice(0, Number(limite) || 30).map((m) => mapMovEmpresa(m, empresa)), actualizado: c._ts ? new Date(c._ts).toISOString() : undefined, fuente: 'cache' }
+}
+function resumenEmpresa(empresa, { anio } = {}) {
+  const c = leerMovsCache(empresa)
+  if (!c || !Array.isArray(c.movimientos)) return { error: `Todavía no tengo movimientos de ${empresa} para el resumen por mes (se leen en el refresco de cada mañana). En ANA CLARA tengo el resumen completo.`, sin_cache: true }
+  const porMes = new Map()
+  for (const m of c.movimientos) {
+    const f = String(m.fecha || '').slice(0, 10); if (!f) continue
+    if (anio && !f.startsWith(String(anio))) continue
+    const mes = f.slice(0, 7)
+    const r = porMes.get(mes) || { mes, moneda: 'CLP', ingresos: 0, egresos: 0, n: 0 }
+    r.ingresos += Number(m.abono || 0); r.egresos += Number(m.cargo || 0); r.n++
+    porMes.set(mes, r)
+  }
+  const filas = [...porMes.values()].sort((a, b) => a.mes.localeCompare(b.mes)).map((r) => ({ ...r, neto: r.ingresos - r.egresos, ingresos_fmt: fmt(r.ingresos, 'CLP'), egresos_fmt: fmt(r.egresos, 'CLP'), neto_fmt: fmt(r.ingresos - r.egresos, 'CLP') }))
+  return { empresa, resumen_mensual: filas, fuente: 'cache' }
+}
+
 // Da forma uniforme (*_fmt) a un saldo de empresa leído por sesión.
 function shapeSaldoEmpresa(empresa, r) {
   const cuentas = (r.cuentas || []).map((c) => ({
@@ -233,7 +268,8 @@ export async function movimientos({ userId, rut, banco, empresa, buscar, desde, 
       try { return await tekMovimientos({ buscar, desde, hasta, limite }) } catch (e) { return { error: `No pude leer movimientos (tek): ${e.message}` } }
     }
   }
-  return { error: `De ${empresa || 'esa empresa'} por ahora tengo SALDOS en vivo (pídemelos), pero el detalle de MOVIMIENTOS por empresa todavía se está construyendo. En ANA CLARA sí tengo movimientos completos.`, solo_saldos: true }
+  if (empresa) return movimientosEmpresa(empresa, { buscar, desde, hasta, limite })
+  return { error: 'Dime de qué empresa quieres los movimientos.' }
 }
 
 // ── Resumen por mes ───────────────────────────────────────────────────
@@ -243,7 +279,8 @@ export async function resumen({ userId, rut, banco, empresa, anio } = {}) {
       try { return await tekResumen({ anio }) } catch (e) { return { error: `No pude armar el resumen (tek): ${e.message}` } }
     }
   }
-  return { error: `El resumen de ingresos/egresos por mes necesita movimientos, que por empresa todavía se está construyendo. De ${empresa || 'esa empresa'} sí tengo SALDOS en vivo; en ANA CLARA tengo el resumen completo.`, solo_saldos: true }
+  if (empresa) return resumenEmpresa(empresa, { anio })
+  return { error: 'Dime de qué empresa quieres el resumen.' }
 }
 
 // ── CLI ───────────────────────────────────────────────────────────────
