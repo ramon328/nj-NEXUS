@@ -583,7 +583,9 @@ async function crearTransferencia(page, log) {
   await sleep(rnd(4000, 5500))
   await page.screenshot({ path: join(DATA, 'crear-00-menu.png') }).catch(() => {})
   const tipoOtros = /otro/i.test(process.env.TEK_TRANSFER_TIPO || '')
-  const fr = () => page.frames().find((f) => /TEF\.UI\.Web/i.test(f.url()))
+  // GENÉRICO: reconoce los DOS formularios de transferencia del banco (hay tipos de cuenta
+  // distintos): TEF.UI.Web (clásico, ANA CLARA) y TEFUN.UI.Web (unificado "Express", Nico y ramas).
+  const fr = () => page.frames().find((f) => /TEF(UN)?\.UI\.Web/i.test(f.url()))
   // GENÉRICO (sirve para CUALQUIER empresa, hoy y las futuras): el menú de Transferencias es
   // un panel con TEXTO clickeable. Clickeamos "Creación" de la sección de transferencia a
   // terceros — el layout/nombre de la sección varía por empresa ("Transferencias Express",
@@ -615,14 +617,48 @@ async function crearTransferencia(page, log) {
   }
   if (!f1) { log('no cargó el iframe de creación'); writeFileSync(join(DATA, 'crear-form.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2)); return { estado: 'sin_form', url: page.url() } }
   writeFileSync(join(DATA, 'crear-form.json'), JSON.stringify({ paso: 1, url: page.url(), forms: await volcarFrames(page) }, null, 2))
-  // PASO 1: monto + motivo
+  // PASO 1: detectar el TIPO de formulario y llenar con los campos correctos (hay 2 tipos
+  // de cuenta → 2 formularios). TEF = clásico (ANA CLARA); TEFUN = unificado/Express (Nico).
+  const esTEFUN = /TEFUN\.UI\.Web/i.test(f1.url())
+  log('form de transferencia:', esTEFUN ? 'TEFUN (unificado/Express)' : 'TEF (clásico)')
   const monto = String(process.env.TEK_MONTO || '1000')
-  await f1.locator('#txtMonto').click().catch(() => {}); await sleep(rnd(300, 600))
-  await f1.locator('#txtMonto').type(monto, { delay: rnd(90, 170) }).catch(() => {})
-  await sleep(rnd(400, 900))
-  await f1.locator('#mensaje-100').click().catch(() => {}); await sleep(rnd(200, 500))
-  await f1.locator('#mensaje-100').type(process.env.TEK_MOTIVO || 'Prueba tek', { delay: rnd(60, 130) }).catch(() => {})
-  await sleep(rnd(400, 900))
+  const motivoTxt = process.env.TEK_MOTIVO || 'Prueba tek'
+  if (esTEFUN) {
+    // Cuenta origen: elegir la cuenta real del dropdown (la 1ª que no sea el placeholder).
+    try { const sel = f1.locator('select').first(); if (await sel.count().catch(() => 0)) { const nop = await sel.locator('option').count().catch(() => 0); if (nop > 1) await sel.selectOption({ index: 1 }).catch(() => {}); await sleep(rnd(700, 1300)) } } catch { /* */ }
+    await f1.locator('#montoTEFinput').click().catch(() => {}); await sleep(rnd(300, 600))
+    await f1.locator('#montoTEFinput').type(monto, { delay: rnd(90, 170) }).catch(() => {})
+    await sleep(rnd(400, 900))
+    await f1.locator('#motivoInputText').click().catch(() => {}); await sleep(rnd(200, 500))
+    await f1.locator('#motivoInputText').type(motivoTxt, { delay: rnd(60, 130) }).catch(() => {})
+    await sleep(rnd(400, 900))
+    // "A Terceros": radio CUSTOM (no <input radio>). Buscamos el control del radio dentro del
+    // contenedor del texto y lo clickeamos por JS; si no, click de texto+padres. Logueamos el
+    // HTML para ver la estructura si falla.
+    const marcado = await f1.evaluate(() => {
+      const hoja = [...document.querySelectorAll('*')].find((e) => e.childElementCount === 0 && /^\s*A\s*Terceros\s*$/i.test(e.textContent || ''))
+      if (!hoja) return { ok: false, motivo: 'sin-texto' }
+      let cont = hoja
+      for (let i = 0; i < 5 && cont; i++) {
+        const radio = cont.querySelector('input[type=radio], [role=radio], [class*=radio i] > input, [class*=radio i]')
+        if (radio) { radio.click(); return { ok: true, via: 'radio', html: cont.outerHTML.slice(0, 260) } }
+        cont = cont.parentElement
+      }
+      hoja.click(); hoja.parentElement && hoja.parentElement.click()
+      return { ok: true, via: 'texto', html: (hoja.parentElement && hoja.parentElement.outerHTML || '').slice(0, 260) }
+    }).catch((e) => ({ ok: false, err: String(e).slice(0, 120) }))
+    log('A Terceros →', JSON.stringify(marcado).slice(0, 240))
+    try { writeFileSync(join(DATA, 'terceros-debug.json'), JSON.stringify(marcado, null, 2)) } catch { /* */ }
+    await sleep(rnd(900, 1500))
+    await page.screenshot({ path: join(DATA, 'crear-01c-terceros.png') }).catch(() => {})
+  } else {
+    await f1.locator('#txtMonto').click().catch(() => {}); await sleep(rnd(300, 600))
+    await f1.locator('#txtMonto').type(monto, { delay: rnd(90, 170) }).catch(() => {})
+    await sleep(rnd(400, 900))
+    await f1.locator('#mensaje-100').click().catch(() => {}); await sleep(rnd(200, 500))
+    await f1.locator('#mensaje-100').type(motivoTxt, { delay: rnd(60, 130) }).catch(() => {})
+    await sleep(rnd(400, 900))
+  }
   await page.screenshot({ path: join(DATA, 'crear-01b-lleno.png') }).catch(() => {})
   // Continuar → PASO 2 (destino)
   const cont = f1.getByText(/^continuar$/i).first()
@@ -638,7 +674,7 @@ async function crearTransferencia(page, log) {
 
   const modo = process.env.TEK_CREAR   // 'mapear' | 'llenar' | 'crear'
   if (modo === 'llenar' || modo === 'crear') {
-    const f2 = page.frames().find((f) => /TEF\.UI\.Web/i.test(f.url())) || f1
+    const f2 = page.frames().find((f) => /TEF(UN)?\.UI\.Web/i.test(f.url())) || f1
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
     const setVal = async (sel, valTxt) => {
       if (valTxt == null || valTxt === '') return
