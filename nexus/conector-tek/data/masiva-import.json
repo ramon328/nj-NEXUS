@@ -1,109 +1,12 @@
 {
-  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1784823371763",
+  "url": "https://privado.officebanking.cl/seleccion-empresa",
   "dump": [
     {
-      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1784823371763",
-      "inputs": [],
-      "links": [
-        {
-          "text": "Inicio",
-          "href": "https://privado.officebanking.cl/dashboard"
-        },
-        {
-          "text": "Indicadores",
-          "href": ""
-        },
-        {
-          "text": "Cuentas Corrientes",
-          "href": ""
-        },
-        {
-          "text": "Linea de Crédito",
-          "href": ""
-        },
-        {
-          "text": "Resumen de Productos",
-          "href": ""
-        },
-        {
-          "text": "Tarjetas",
-          "href": ""
-        },
-        {
-          "text": "Transferencias",
-          "href": ""
-        },
-        {
-          "text": "Pago de Cuentas y Servicios",
-          "href": ""
-        },
-        {
-          "text": "Vales Vista en Línea",
-          "href": ""
-        },
-        {
-          "text": "PAC - Pago Automático de Cuentas",
-          "href": ""
-        },
-        {
-          "text": "Comercio Exterior",
-          "href": ""
-        },
-        {
-          "text": "Compra y Venta de Divisas",
-          "href": ""
-        },
-        {
-          "text": "Créditos",
-          "href": ""
-        },
-        {
-          "text": "Fondos Mutuos",
-          "href": ""
-        },
-        {
-          "text": "Depósito a Plazo",
-          "href": ""
-        },
-        {
-          "text": "Pagos Masivos",
-          "href": ""
-        },
-        {
-          "text": "Factoring",
-          "href": ""
-        },
-        {
-          "text": "Expandir Menú",
-          "href": ""
-        }
-      ],
-      "botones": [
-        "Accesibilidad",
-        "Empresa / Rol"
-      ],
-      "textos": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú"
-    },
-    {
-      "url": "https://eob.officebanking.cl/TEFM.UI.Web/Importacion/?servicioId=TRFCTA_MSV_C",
+      "url": "https://privado.officebanking.cl/seleccion-empresa",
       "inputs": [
         {
           "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
-        },
-        {
-          "type": "file",
-          "id": "archivo",
-          "name": "",
-          "accept": ".xls, .xlsx, .txt, .dat",
-          "vis": true
-        },
-        {
-          "type": "text",
-          "id": "",
+          "id": "buscador",
           "name": "",
           "accept": "",
           "vis": true
@@ -111,246 +14,24 @@
         {
           "type": "text",
           "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
-        },
-        {
-          "type": "text",
-          "id": "email",
-          "name": "email",
+          "name": "paginaActual",
           "accept": "",
           "vis": true
-        },
-        {
-          "type": "checkbox",
-          "id": "checkRecibirCorreo",
-          "name": "",
-          "accept": "",
-          "vis": false
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": true
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
         }
       ],
-      "links": [
-        {
-          "text": "Utilizar cuentas ingresadas en archivo",
-          "href": ""
-        },
-        {
-          "text": "0-000-8028093-9",
-          "href": ""
-        },
-        {
-          "text": "0-051-0260763-7",
-          "href": ""
-        },
-        {
-          "text": "Excel",
-          "href": ""
-        },
-        {
-          "text": "TXT",
-          "href": ""
-        },
-        {
-          "text": "En línea",
-          "href": ""
-        },
-        {
-          "text": "Diferida 24hrs",
-          "href": ""
-        },
-        {
-          "text": "Pago de Asignaciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Dividendos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Pensiones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Proveedores",
-          "href": ""
-        },
-        {
-          "text": "Pago de Reembolsos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Remuneraciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Subsidios",
-          "href": ""
-        },
-        {
-          "text": "Pago de Viáticos",
-          "href": ""
-        },
-        {
-          "text": "Pago Extraordinarios",
-          "href": ""
-        },
-        {
-          "text": "Transferencias Masivas",
-          "href": ""
-        },
-        {
-          "text": "+",
-          "href": ""
-        },
-        {
-          "text": "Liberada a pago",
-          "href": ""
-        },
-        {
-          "text": "Pendiente de liberación",
-          "href": ""
-        },
-        {
-          "text": "Transaccional",
-          "href": ""
-        },
-        {
-          "text": "Obtener desde archivo",
-          "href": ""
-        },
-        {
-          "text": "Fija",
-          "href": ""
-        },
-        {
-          "text": "Obtener desde archivo",
-          "href": ""
-        },
-        {
-          "text": "Fija",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "AQUI",
-          "href": "https://eob.officebanking.cl/TEFM.UI.Web/Content/Formato%20Importacion.pdf"
-        },
-        {
-          "text": "Imprimir",
-          "href": "https://eob.officebanking.cl/TEFM.UI.Web/Importacion/?servicioId=TRFCTA_MSV_C#"
-        },
-        {
-          "text": "www.sbif.cl",
-          "href": "http://www.sbif.cl/"
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "Pago de Remuneraciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Proveedores",
-          "href": ""
-        },
-        {
-          "text": "Pago de Dividendos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Pensiones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Subsidios",
-          "href": ""
-        },
-        {
-          "text": "Pago de Reembolsos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Viáticos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Asignaciones",
-          "href": ""
-        },
-        {
-          "text": "Pago Extraordinarios",
-          "href": ""
-        },
-        {
-          "text": "Transferencias Masivas",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "www.sbif.cl",
-          "href": "http://www.sbif.cl/"
-        }
-      ],
+      "links": [],
       "botones": [
-        "Utilizar cuentas ingresadas en archivo",
-        "Ver ejemplo",
-        "Examinar",
-        "Examinar",
-        "En línea\n \nEn línea\nDiferida 24hrs",
-        "En línea",
-        "Pago de Asignaciones",
-        "+",
-        "Liberada a pago",
-        "Transaccional\n \nTransaccional",
-        "Transaccional",
-        "Obtener desde archivo",
-        "Obtener desde archivo",
-        "Importar",
-        "Pago de Remuneraciones",
-        "Guardar",
-        "Aceptar",
-        "Aceptar",
-        "Aceptar"
+        "Accesibilidad",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar"
       ],
-      "textos": "Importación masiva de transferencia de fondos Sr. (a): Ramon Molina Fierro Empresa: ANA CLARA SPA RUT empresa: 77.271.121-2 Fecha: 23 de julio de 2026 Hora: 12:16 Características importación Cuenta origen Utilizar cuentas ingresadas en archivo Utilizar cuentas ingresadas en archivo 0-000-8028093-9 0-051-0260763-7 Seleccione archivo Ver ejemplo Examinar Tipo transferencia En línea En línea Diferida 24hrs Concepto asociado Pago de Asignaciones Pago de Asignaciones Pago de Dividendos Pago de Pensiones Pago de Proveedores Pago de Reembolsos Pago de Remuneraciones Pago de Subsidios Pago de Viáticos Pago Extraordinarios Transferencias Masivas + Estado post autorización Liberada a pago Liberada a pago Pendiente de liberación Tipo autorización Transaccional Transaccional Glosa cartola cliente Obtener desde archivo Obtener desde archivo Fija Glosa cartola beneficiario Obtener desde archivo Obtene"
+      "textos": "Accesibilidad Bienvenido a Office Banking Sr(a). Ramon Molina Fierro Listado de Empresas Contrato RUT Empresa Rol 000690022343160 76.106.636-6 IMP JURI Y FONTENA ASOCIADOS LIMITADA Usuario Entrar 000690023084710 76.867.554-6 IMPORTACIONES MINERAS SPA Usuario Entrar 000690024634580 76.188.898-6 IMPORTADORA JURI Y JURI LIMITADA Usuario Entrar 000690026173520 77.271.121-2 ANA CLARA SPA Usuario Entrar de 1 Mostrar 4 Recuerde que toda modificación de sus poderes bancarios debe ser informada de inmediato a Banco Santander. Contáctese para ello con su ejecutivo de cuentas."
     }
   ]
 }
