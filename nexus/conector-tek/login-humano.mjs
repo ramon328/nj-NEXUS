@@ -729,25 +729,25 @@ async function crearTransferencia(page, log) {
         }
         return false
       }
-      log('TEFUN Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(5000, 7000))
-      await page.screenshot({ path: join(DATA, 'crear-05-tefun-preview.png') }).catch(() => {})
-      // MODAL de seguridad (1ª transferencia a cuenta nueva ≤ $250.000): cerrarlo con "Aceptar".
-      for (let k = 0; k < 3; k++) {
-        const dism = await clickBtnTEFUN(/^\s*aceptar\s*$/i)
-        if (dism) { log('modal seguridad → Aceptar'); await sleep(rnd(2500, 4000)) } else break
+      if (modo !== 'crear') { await clickBtnTEFUN(/^\s*continuar\s*$/i); await sleep(rnd(4000, 6000)); return { estado: 'tefun_lleno_sin_crear', url: page.url() } }
+      // SUBMIT en BUCLE: el modal de seguridad ("1ª transferencia ≤ $250.000") REAPARECE, así que
+      // en cada vuelta: Continuar → cerrar modal (Aceptar) → intentar botón final → cerrar modal →
+      // detectar ÉXITO. Hasta 5 vueltas. CANDADO: NUNCA Superclave (queda "por autorizar").
+      const OK_TEFUN = /transferencia\s+(creada|generada|ingresada|registrada|realizada|enviada)|por\s+autoriz|por\s+liberar|pendiente\s+de\s+autoriz|comprobante\s+de\s+transfer|n[uú]mero\s+de\s+(la\s+)?transferencia|se\s+ha\s+creado|solicitud\s+(fue\s+)?creada|creada\s+con\s+[eé]xito|transferencia\s+n[°º]/i
+      const leerTxt = async () => { let t = ''; for (const f of page.frames()) t += (await f.locator('body').innerText().catch(() => '') || '') + ' '; return t }
+      const cerrarModal = async () => { for (let k = 0; k < 3; k++) { if (await clickBtnTEFUN(/^\s*aceptar\s*$/i)) { log('  modal → Aceptar'); await sleep(rnd(2500, 3800)) } else return } }
+      let creada = false
+      for (let intento = 0; intento < 5 && !creada; intento++) {
+        await clickBtnTEFUN(/^\s*continuar\s*$/i); await sleep(rnd(4500, 6500))
+        await page.screenshot({ path: join(DATA, `crear-05-submit-${intento}.png`) }).catch(() => {})
+        await cerrarModal()
+        await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|enviar|finalizar)\s*$/i); await sleep(rnd(4000, 6000))
+        await cerrarModal()
+        creada = OK_TEFUN.test(await leerTxt())
+        log(`TEFUN submit intento ${intento}:`, creada ? 'CREADA' : 'sigo')
       }
-      if (modo !== 'crear') return { estado: 'tefun_lleno_sin_crear', url: page.url() }
-      // SUBMIT REAL: Continuar (de nuevo) → botón final. CANDADO: si aparece Superclave, NO se pone.
-      await clickBtnTEFUN(/^\s*continuar\s*$/i); await sleep(rnd(6000, 8000))
-      await page.screenshot({ path: join(DATA, 'crear-05b-tefun-confirmar.png') }).catch(() => {})
-      await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|enviar)\s*$/i); await sleep(9000)
       await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
-      // Resultado: ÉXITO explícito. EXCLUYE el falso "Ver transferencias creadas" del menú.
-      let txtR = ''
-      for (const f of page.frames()) txtR += (await f.locator('body').innerText().catch(() => '') || '') + ' '
-      const OK_TEFUN = /transferencia\s+(creada|generada|ingresada|registrada|realizada)|por\s+autoriz|por\s+liberar|pendiente\s+de\s+autoriz|comprobante\s+de\s+transfer|n[uú]mero\s+de\s+transferencia|se\s+ha\s+creado|solicitud\s+(fue\s+)?creada|creada\s+con\s+[eé]xito/i
-      const creada = OK_TEFUN.test(txtR)
-      log('TEFUN resultado:', creada ? 'CREADA (por autorizar)' : 'incierto')
+      log('TEFUN resultado final:', creada ? 'CREADA (por autorizar)' : 'incierto')
       return { estado: creada ? 'creada' : 'tefun_submit_incierto', pendiente: creada, url: page.url() }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
