@@ -719,6 +719,29 @@ async function crearTransferencia(page, log) {
       await sleep(rnd(600, 1000))
       await page.screenshot({ path: join(DATA, 'crear-02b-destino-tefun.png') }).catch(() => {})
       try { writeFileSync(join(DATA, 'crear-tefun-fill.json'), JSON.stringify({ ts: new Date().toISOString() })) } catch { /* */ }
+      // ── SUBMIT del form NUEVO (TEFUN): Continuar → (preview) → botón final. Distinto al TEF
+      //    (que usa "Crear"). CANDADO: NUNCA ponemos Superclave → la transferencia queda "por autorizar".
+      const clickBtnTEFUN = async (re) => {
+        for (const fr of [f2, page]) {
+          const b = fr.getByText(re).first()
+          const bb = await b.boundingBox().catch(() => null)
+          if (bb) { await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 10 }); await sleep(rnd(250, 500)); await page.mouse.down(); await sleep(60); await page.mouse.up(); return true }
+        }
+        return false
+      }
+      log('TEFUN Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(9000)
+      await page.screenshot({ path: join(DATA, 'crear-05-tefun-preview.png') }).catch(() => {})
+      try { writeFileSync(join(DATA, 'crear-tefun-preview.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2)) } catch { /* */ }
+      if (modo !== 'crear') return { estado: 'tefun_lleno_sin_crear', url: page.url() }
+      // Si aparece Superclave/MFA, NO la ponemos (queda por autorizar). Botón final del preview:
+      log('TEFUN confirmar →', await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|aceptar|enviar)\s*$/i)); await sleep(9000)
+      await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
+      const OK_TEFUN = /pendiente|autoriz|por\s+liberar|comprobante|solicitud|se\s+(ha\s+)?cre[oó]|creada|exitos|realizada|registrada/i
+      let txtR = ''
+      for (const f of page.frames()) txtR += (await f.locator('body').innerText().catch(() => '') || '').slice(0, 800) + ' '
+      const creada = OK_TEFUN.test(txtR)
+      log('TEFUN resultado:', creada ? 'CREADA (por autorizar)' : 'incierto')
+      return { estado: creada ? 'creada' : 'tefun_submit_incierto', pendiente: creada, url: page.url() }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
     const setVal = async (sel, valTxt) => {

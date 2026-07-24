@@ -1,5 +1,4 @@
 {
-  "paso": 2,
   "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1784912036045",
   "forms": [
     {
@@ -63,12 +62,14 @@
       ],
       "botones": [
         "Buscar destinatario",
-        "Seleccione Banco Destino",
-        "Continuar"
+        "BANCO SANTANDER (CHILE)",
+        "Continuar",
+        "Aceptar"
       ],
       "titulos": [
         "Transferencia Express",
-        "Buscar destinatario"
+        "Buscar destinatario",
+        "Por su seguridad, le informamos que la primera transferencia a una nueva cuenta no podrá exceder $250.000. Podrá realizar la próxima transferencia a esta cuenta luego de 24 hrs., y con el monto máximo diario establecido para todas las transferencias."
       ]
     }
   ]
