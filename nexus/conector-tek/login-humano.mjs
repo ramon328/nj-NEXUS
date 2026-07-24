@@ -701,15 +701,17 @@ async function crearTransferencia(page, log) {
       // beneficiario). RUT/Nombre suelen HABILITARSE recién al elegir el banco.
       try {
         const bancoTxt = process.env.TEK_DEST_BANCO || 'Santander'
+        const key = bancoTxt.replace(/^\s*banco\s+/i, '').trim()   // "Banco Falabella" → "Falabella"; "Santander" → "Santander"
         const combo = f2.getByText(/Seleccione\s+Banco\s+Destino/i).first()
         if (await combo.count().catch(() => 0)) { await clickHumano(page, combo); await sleep(rnd(1400, 2200)) }
         await page.screenshot({ path: join(DATA, 'crear-02a-banco-abierto.png') }).catch(() => {})
-        // opción del banco en el dropdown desplegado
-        const reBanco = new RegExp('(banco\\s+)?' + bancoTxt.replace(/[^a-z]/gi, ''), 'i')
-        let opt = f2.getByText(reBanco).filter({ hasNotText: /Seleccione/i }).first()
-        if (!(await opt.count().catch(() => 0))) opt = f2.getByText(/santander/i).first()
+        // si el dropdown trae buscador, tipear el nombre del banco para filtrar
+        for (const f of page.frames()) { const s = f.locator('input[type="search"], input[placeholder*="banco" i], input[placeholder*="buscar" i]').first(); if (await s.isVisible().catch(() => false)) { await s.type(key, { delay: rnd(70, 140) }).catch(() => {}); await sleep(rnd(900, 1400)); break } }
+        // elegir la opción que contenga el nombre distintivo del banco (Falabella, Santander, BCI…)
+        const reBanco = new RegExp(key.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'i')
+        const opt = f2.getByText(reBanco).filter({ hasNotText: /Seleccione/i }).first()
         if (await opt.count().catch(() => 0)) { await clickHumano(page, opt); log('banco destino: elegí', bancoTxt); await sleep(rnd(1400, 2200)) }
-        else log('banco destino: no vi la opción en el dropdown')
+        else log('banco destino: no vi la opción', key)
       } catch (e) { log('banco destino falló:', e.message) }
       await setIdJS('rutDestinatario', process.env.TEK_DEST_RUT)
       await setIdJS('nombreDestinatario', process.env.TEK_DEST_NOMBRE)
