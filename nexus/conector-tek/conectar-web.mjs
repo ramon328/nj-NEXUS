@@ -19,9 +19,42 @@
 
 import http from 'node:http'
 import crypto from 'node:crypto'
+import { spawn } from 'node:child_process'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
+import { existsSync, statSync } from 'node:fs'
 import { guardar, listar } from './credenciales.mjs'
 import { listarEmpresas } from './vincular.mjs'
 import { validar as validarCodigo } from './vincular-codes.mjs'
+
+const DIR = dirname(fileURLToPath(import.meta.url))
+// WARMUP: al vincular, la lectura no quedaba lista hasta que el "corazón" reestablecía la
+// sesión (solo en la ventana fría de la mañana). Para que se pueda USAR AL TOQUE, tras guardar
+// lanzamos UNA vez el mismo login persistente (login-humano con TEK_USER) que deja la sesión
+// viva; después el corazón la mantiene. Dedupe por usuario (si se vinculan varias empresas
+// seguidas, un solo login: la sesión es por RUT, no por empresa).
+const _warmupTs = new Map()   // userId → ts del último warmup lanzado
+function calentarSesion(userId) {
+  if (!userId) return
+  const now = Date.now()
+  const prev = _warmupTs.get(userId) || 0
+  if (now - prev < 120_000) return   // ya se lanzó hace <2 min → no repetir
+  // Si ya hay sesión FRESCA de ese usuario, no re-logueamos (el corazón la mantiene; evita churn).
+  try {
+    const sf = join(DIR, userId === 'ramon' ? 'session.json' : `session-${userId}.json`)
+    if (existsSync(sf) && (now - statSync(sf).mtimeMs) < 12 * 60_000) {
+      console.log('[tek-conectar] warmup omitido · sesión fresca de ' + userId)
+      return
+    }
+  } catch { /* si no se puede chequear, seguimos con el warmup */ }
+  _warmupTs.set(userId, now)
+  try {
+    const env = { ...process.env, TEK_USER: String(userId), TEK_LOCK_WAIT_MS: '20000' }
+    const h = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env, detached: true, stdio: 'ignore' })
+    h.unref()
+    console.log('[tek-conectar] warmup sesión lanzado · userId=' + userId)
+  } catch (e) { console.error('[tek-conectar] warmup error:', e.message) }
+}
 
 const PORT = Number(process.env.TEK_CONECTAR_PORT || 7694)
 const HOST = process.env.TEK_CONECTAR_HOST || '0.0.0.0' // alcanzable por Tailscale (con PIN); el teléfono entra a http://100.91.97.70:7694
@@ -360,8 +393,10 @@ const server = http.createServer(async (req, res) => {
     // Log de auditoría SIN datos sensibles (jamás rut ni clave).
     console.log('[tek-conectar] guardar', r.ok ? 'OK' : 'ERROR', '· userId=' + userId, '· banco=' + banco, '· empresa=' + (empresa || '-'))
     if (!r.ok) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end(JSON.stringify({ error: r.error || 'No se pudo guardar.' })) }
+    // Deja la sesión lista para leer AL TOQUE (login persistente en segundo plano, 1 por usuario).
+    calentarSesion(userId)
     res.writeHead(200, { 'content-type': 'application/json' })
-    return res.end(JSON.stringify({ ok: true, userId, banco, empresa: r.empresa || null, total: r.total }))
+    return res.end(JSON.stringify({ ok: true, userId, banco, empresa: r.empresa || null, total: r.total, conectando: true }))
   }
 
   // Listado (solo lectura, SIN claves) — útil para depurar desde el navegador.
