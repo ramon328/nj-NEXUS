@@ -399,11 +399,17 @@ async function d2_link_pago(citaId) {
 let _tratCache = { ts: 0, list: [] }
 async function d2_tratamientos() {
   if (Date.now() - _tratCache.ts < 30 * 60 * 1000 && _tratCache.list.length) return _tratCache.list
-  const r = await fetchR(BASE + '/appointment/makeAppointment/', { headers: { 'User-Agent': UA, Cookie: cookieHeader() }, redirect: 'manual' })
-  const html = await r.text()
+  // makeAppointment → id+nombre de los 63; cajabase → mapa tratamientoprecio[id]=valor.
+  const [rt, rc] = await Promise.all([
+    fetchR(BASE + '/appointment/makeAppointment/', { headers: { 'User-Agent': UA, Cookie: cookieHeader() }, redirect: 'manual' }),
+    fetchR(BASE + '/ventamultiple/crearatencionlast/cajabase/', { headers: { 'User-Agent': UA, Cookie: cookieHeader(), 'X-Requested-With': 'XMLHttpRequest', Referer: BASE + '/appointment/viewAppt/' }, redirect: 'follow' }).catch((e) => { log('caja precios fetch falló: ' + e.message.slice(0, 80)); return null }),
+  ])
+  const html = await rt.text()
+  const precios = {}
+  if (rc) { const caja = await rc.text(); for (const p of caja.matchAll(/tratamientoprecio\['?(\d+)'?\]\s*=\s*'?([0-9.]+)/g)) precios[p[1]] = Math.round(Number(p[2])) }
   const m = html.match(/<select[^>]*id="id_tratamientos"[\s\S]*?<\/select>/)
   const list = []
-  if (m) for (const mm of m[0].matchAll(/<option value="(\d+)"[^>]*>([^<]+)<\/option>/g)) list.push({ id: Number(mm[1]), nombre: mm[2].trim() })
+  if (m) for (const mm of m[0].matchAll(/<option value="(\d+)"[^>]*>([^<]+)<\/option>/g)) { const id = Number(mm[1]); list.push({ id, nombre: mm[2].trim(), valor: (String(id) in precios) ? precios[String(id)] : null }) }
   if (list.length) _tratCache = { ts: Date.now(), list }
   return list
 }
