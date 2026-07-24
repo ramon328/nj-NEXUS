@@ -976,6 +976,31 @@ async function crearTransferencia(page, log) {
   return { estado: 'mapeado_destino', inputs_destino: nIn, url: page.url() }
 }
 
+// VER TRANSFERENCIAS PENDIENTES / CREADAS (TEK_VER_PENDIENTES=1) — SOLO LECTURA. Entra a la
+// empresa, abre Transferencias → Autorización (Transferencias Express) y vuelca la lista para
+// ver qué transferencias quedaron "por autorizar". NUNCA autoriza ni libera (no toca Superclave).
+async function verPendientes(page, log) {
+  await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+  await sleep(8000)
+  await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
+  await sleep(rnd(3500, 5000))
+  const menu = page.getByText(/^transferencias?$/i).first()
+  await clickHumano(page, menu); await sleep(rnd(4000, 5500))
+  await page.screenshot({ path: join(DATA, 'pend-00-menu.png') }).catch(() => {})
+  // clic "Autorización" (Transferencias Express) — la 1ª "Autorización" del panel.
+  let aut = page.locator('xpath=//*[contains(normalize-space(.),"Transferencias Express")]/following::*[normalize-space(text())="Autorización"][1]').first()
+  if (!(await aut.count().catch(() => 0))) aut = page.getByText(/^Autorizaci[oó]n$/i).first()
+  if (await aut.count().catch(() => 0)) { await clickHumano(page, aut); await sleep(rnd(9000, 12_000)) }
+  await page.screenshot({ path: join(DATA, 'pend-01-lista.png') }).catch(() => {})
+  let txt = ''
+  for (const f of page.frames()) txt += (await f.locator('body').innerText().catch(() => '') || '') + '\n'
+  try { writeFileSync(join(DATA, 'pendientes.txt'), txt) } catch { /* */ }
+  const lineas = txt.split('\n').map((l) => l.trim()).filter((l) => l)
+  const joaq = lineas.filter((l) => /joaqu[ií]n|elias|maluk|19[.]?689[.]?228|0070?3142/i.test(l))
+  log('pendientes: líneas con Joaquín/cuenta =', joaq.length)
+  return { estado: 'pendientes_vistos', joaquin: joaq.slice(0, 15), url: page.url() }
+}
+
 // MODO SUPERCLAVE (Opción B, TEK_SUPERCLAVE=1): cuando el banco pide el 2º factor tras
 // "Aceptar", volcamos el prompt (para ver qué pide), esperamos el/los código(s) en un
 // archivo (que escribe el asistente cuando el humano se los pasa), los tecleamos humano
@@ -1965,7 +1990,9 @@ async function main() {
     if (process.env.TEK_VINCULAR === 'empresas') { try { vincular = await listarEmpresasBanco(page, log) } catch (e) { log('vincular falló:', e.message) } }
     let lectura = null
     if (leerSaldos) { try { lectura = await leerSaldosTodas(ctx, page, log) } catch (e) { log('lector falló:', e.message) } }
-    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}), ...(lectura ? { lectura } : {}) })
+    let pendientes = null
+    if (process.env.TEK_VER_PENDIENTES === '1') { try { pendientes = await verPendientes(page, log) } catch (e) { log('ver pendientes falló:', e.message) } }
+    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}), ...(lectura ? { lectura } : {}), ...(pendientes ? { pendientes } : {}) })
   }
 
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión
