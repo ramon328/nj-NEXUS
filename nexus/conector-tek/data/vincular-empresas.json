@@ -1,61 +1,14 @@
 {
-  "url": "https://privado.officebanking.cl/seleccion-empresa",
-  "enSeleccion": true,
-  "empresas": [
-    {
-      "contrato": "000690022343160",
-      "rut": "76.106.636-6",
-      "empresa": "IMP JURI Y FONTENA ASOCIADOS LIMITADA",
-      "rol": "Usuario"
-    },
-    {
-      "contrato": "000690023084710",
-      "rut": "76.867.554-6",
-      "empresa": "IMPORTACIONES MINERAS SPA",
-      "rol": "Usuario"
-    },
-    {
-      "contrato": "000690024634580",
-      "rut": "76.188.898-6",
-      "empresa": "IMPORTADORA JURI Y JURI LIMITADA",
-      "rol": "Usuario"
-    },
-    {
-      "contrato": "000690026173520",
-      "rut": "77.271.121-2",
-      "empresa": "ANA CLARA SPA",
-      "rol": "Usuario"
-    }
-  ],
+  "url": "https://privado.officebanking.cl/dashboard",
+  "enSeleccion": false,
+  "empresas": [],
   "crudo": [
-    "Contrato RUT Empresa Rol",
-    "000690022343160 76.106.636-6 IMP JURI Y FONTENA ASOCIADOS LIMITADA Usuario Entrar",
-    "000690023084710 76.867.554-6 IMPORTACIONES MINERAS SPA Usuario Entrar",
-    "000690024634580 76.188.898-6 IMPORTADORA JURI Y JURI LIMITADA Usuario Entrar",
-    "000690026173520 77.271.121-2 ANA CLARA SPA Usuario Entrar"
+    "ANA CLARA SPA"
   ],
   "dump": [
     {
-      "url": "https://privado.officebanking.cl/seleccion-empresa",
+      "url": "https://privado.officebanking.cl/dashboard",
       "inputs": [
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "buscador",
-          "name": "",
-          "placeholder": "Buscar",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "paginaActual",
-          "placeholder": "",
-          "maxlength": "",
-          "label": ""
-        },
         {
           "tag": "select",
           "type": "select-one",
@@ -63,26 +16,30 @@
           "name": "",
           "placeholder": "",
           "maxlength": "",
-          "label": "Mostrar",
+          "label": "Roles",
           "opciones": [
-            "4"
+            "Usuario"
           ]
         }
       ],
       "botones": [
         "Accesibilidad",
-        "logout",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar"
+        "Empresa / Rol",
+        "Cambiar de Perfil",
+        "logout"
+      ],
+      "titulos": []
+    },
+    {
+      "url": "https://www.officebanking.cl/campna/CAMPANAS_OB/TC_GESTION_CLAVES/Dash.aspx?HDRUTUS=0196892281&HDNOMUS=joaquin%20elias%20maluk&HDRUTEM=0772711212&HDNOMEM=ANA%20CLARA%20SPA&CONTRATO=000690026173520&HDROL=1&PERFIL=Usuario&HDCODBT=1006&HDCODCM=1820&HDCMP01=&HDCMP02=&HDCMP03=&HDCMP04=&HDCMP05=&HDCMP06=&HDCMP07=&HDCMP08=&HDCMP09=&HDCMP10=&HDCMP11=&HDCMP12=&HDCMP13=&HDCMP14=&HDCMP15=&HDCMP16=&HDCMP17=&HDCMP18=&HDCMP19=&HDCMP20=",
+      "inputs": [],
+      "botones": [
+        "Cambiar Clave",
+        "Cambiar Clave"
       ],
       "titulos": [
-        "Listado de Empresas"
+        "Actualiza tu Clave",
+        "Protege la seguridad de tu empresa"
       ]
     }
   ]
