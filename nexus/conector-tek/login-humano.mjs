@@ -736,16 +736,43 @@ async function crearTransferencia(page, log) {
       const OK_TEFUN = /transferencia\s+(creada|generada|ingresada|registrada|realizada|enviada)|por\s+autoriz|por\s+liberar|pendiente\s+de\s+autoriz|comprobante\s+de\s+transfer|n[uú]mero\s+de\s+(la\s+)?transferencia|se\s+ha\s+creado|solicitud\s+(fue\s+)?creada|creada\s+con\s+[eé]xito|transferencia\s+n[°º]/i
       const leerTxt = async () => { let t = ''; for (const f of page.frames()) t += (await f.locator('body').innerText().catch(() => '') || '') + ' '; return t }
       const cerrarModal = async () => { for (let k = 0; k < 3; k++) { if (await clickBtnTEFUN(/^\s*aceptar\s*$/i)) { log('  modal → Aceptar'); await sleep(rnd(2500, 3800)) } else return } }
-      let creada = false
-      for (let intento = 0; intento < 5 && !creada; intento++) {
-        await clickBtnTEFUN(/^\s*continuar\s*$/i); await sleep(rnd(4500, 6500))
-        await page.screenshot({ path: join(DATA, `crear-05-submit-${intento}.png`) }).catch(() => {})
-        await cerrarModal()
-        await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|enviar|finalizar)\s*$/i); await sleep(rnd(4000, 6000))
-        await cerrarModal()
-        creada = OK_TEFUN.test(await leerTxt())
-        log(`TEFUN submit intento ${intento}:`, creada ? 'CREADA' : 'sigo')
+      // INSTRUMENTACIÓN: volcar TODOS los botones visibles (para ver la secuencia real del submit).
+      const dumpBotones = async (tag) => {
+        const b = []
+        for (const f of page.frames()) {
+          const arr = await f.evaluate(() => {
+            const words = /^(continuar|aceptar|confirmar|crear|transferir|enviar|finalizar|cancelar|volver|siguiente|s[ií]|no|ok)$/i
+            const out = []
+            for (const e of document.querySelectorAll('*')) {
+              if (e.childElementCount !== 0 || e.offsetParent === null) continue
+              const t = (e.textContent || '').replace(/\s+/g, ' ').trim()
+              if (words.test(t)) out.push(`${t} <${e.tagName.toLowerCase()}.${String(e.className || '').slice(0, 30)}>`)
+            }
+            return out
+          }).catch(() => [])
+          b.push(...arr)
+        }
+        const uniq = [...new Set(b)]
+        try { writeFileSync(join(DATA, `botones-${tag}.json`), JSON.stringify(uniq, null, 2)) } catch { /* */ }
+        log(`  botones[${tag}]: ${uniq.slice(0, 12).join(' | ')}`)
+        return uniq
       }
+      let creada = false
+      // Secuencia REAL (como indicó Ramón): Continuar → ALERTA → Aceptar → vuelve al form (normal)
+      // → Continuar OTRA VEZ → lleva a la página siguiente (confirmación) → botón final.
+      log('TEFUN paso1 Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(5000, 7000))
+      await page.screenshot({ path: join(DATA, 'crear-05a-alerta.png') }).catch(() => {})
+      await cerrarModal()   // Aceptar la alerta
+      await sleep(rnd(1500, 2500))
+      log('TEFUN paso2 Continuar (de nuevo) →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(6000, 8000))
+      await cerrarModal()   // por si sale otra alerta
+      await page.screenshot({ path: join(DATA, 'crear-05b-pagina-sig.png') }).catch(() => {})
+      const btnsSig = await dumpBotones('pagina-siguiente')
+      // Paso 3: botón final para CREAR la transferencia (queda "por autorizar"). Probamos varios.
+      log('TEFUN paso3 confirmar →', await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|enviar|finalizar|continuar)\s*$/i)); await sleep(rnd(6000, 8000))
+      await cerrarModal()
+      creada = OK_TEFUN.test(await leerTxt())
+      log('TEFUN resultado:', creada ? 'CREADA (por autorizar)' : 'incierto', '| botones pág.sig:', btnsSig.join(', '))
       await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
       log('TEFUN resultado final:', creada ? 'CREADA (por autorizar)' : 'incierto')
       return { estado: creada ? 'creada' : 'tefun_submit_incierto', pendiente: creada, url: page.url() }
