@@ -729,16 +729,23 @@ async function crearTransferencia(page, log) {
         }
         return false
       }
-      log('TEFUN Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(9000)
+      log('TEFUN Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(5000, 7000))
       await page.screenshot({ path: join(DATA, 'crear-05-tefun-preview.png') }).catch(() => {})
-      try { writeFileSync(join(DATA, 'crear-tefun-preview.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2)) } catch { /* */ }
+      // MODAL de seguridad (1ª transferencia a cuenta nueva ≤ $250.000): cerrarlo con "Aceptar".
+      for (let k = 0; k < 3; k++) {
+        const dism = await clickBtnTEFUN(/^\s*aceptar\s*$/i)
+        if (dism) { log('modal seguridad → Aceptar'); await sleep(rnd(2500, 4000)) } else break
+      }
       if (modo !== 'crear') return { estado: 'tefun_lleno_sin_crear', url: page.url() }
-      // Si aparece Superclave/MFA, NO la ponemos (queda por autorizar). Botón final del preview:
-      log('TEFUN confirmar →', await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|aceptar|enviar)\s*$/i)); await sleep(9000)
+      // SUBMIT REAL: Continuar (de nuevo) → botón final. CANDADO: si aparece Superclave, NO se pone.
+      await clickBtnTEFUN(/^\s*continuar\s*$/i); await sleep(rnd(6000, 8000))
+      await page.screenshot({ path: join(DATA, 'crear-05b-tefun-confirmar.png') }).catch(() => {})
+      await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|enviar)\s*$/i); await sleep(9000)
       await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
-      const OK_TEFUN = /pendiente|autoriz|por\s+liberar|comprobante|solicitud|se\s+(ha\s+)?cre[oó]|creada|exitos|realizada|registrada/i
+      // Resultado: ÉXITO explícito. EXCLUYE el falso "Ver transferencias creadas" del menú.
       let txtR = ''
-      for (const f of page.frames()) txtR += (await f.locator('body').innerText().catch(() => '') || '').slice(0, 800) + ' '
+      for (const f of page.frames()) txtR += (await f.locator('body').innerText().catch(() => '') || '') + ' '
+      const OK_TEFUN = /transferencia\s+(creada|generada|ingresada|registrada|realizada)|por\s+autoriz|por\s+liberar|pendiente\s+de\s+autoriz|comprobante\s+de\s+transfer|n[uú]mero\s+de\s+transferencia|se\s+ha\s+creado|solicitud\s+(fue\s+)?creada|creada\s+con\s+[eé]xito/i
       const creada = OK_TEFUN.test(txtR)
       log('TEFUN resultado:', creada ? 'CREADA (por autorizar)' : 'incierto')
       return { estado: creada ? 'creada' : 'tefun_submit_incierto', pendiente: creada, url: page.url() }
