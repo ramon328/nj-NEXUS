@@ -713,11 +713,24 @@ async function crearTransferencia(page, log) {
         if (await opt.count().catch(() => 0)) { await clickHumano(page, opt); log('banco destino: elegí', bancoTxt); await sleep(rnd(1400, 2200)) }
         else log('banco destino: no vi la opción', key)
       } catch (e) { log('banco destino falló:', e.message) }
-      await setIdJS('rutDestinatario', process.env.TEK_DEST_RUT)
-      await setIdJS('nombreDestinatario', process.env.TEK_DEST_NOMBRE)
+      // Cuenta/mail/mensaje PRIMERO; RUT y NOMBRE al FINAL: al elegir el banco destino el form
+      // RE-RENDERIZA y BORRA esos dos campos (bug visto con OTROS bancos, ej. Falabella dejaba
+      // RUT/Nombre en "CAMPO OBLIGATORIO"). Llenándolos último no se pisan con el re-render.
       await setIdJS('inputCuentaDestinoDigitada', process.env.TEK_DEST_CUENTA)
       await setIdJS('correoDestinatarioOB', process.env.TEK_DEST_EMAIL)
       await setIdJS('mensajeText1', process.env.TEK_DEST_MSG)
+      await setIdJS('rutDestinatario', process.env.TEK_DEST_RUT)
+      await setIdJS('nombreDestinatario', process.env.TEK_DEST_NOMBRE)
+      // VERIFICAR que RUT/Nombre quedaron (el re-render del banco los puede borrar) y REINTENTAR.
+      const leerIdJS = async (id) => f2.evaluate((x) => { const el = document.getElementById(x); return el ? el.value : null }, id).catch(() => null)
+      for (let intento = 0; intento < 3; intento++) {
+        const rv = await leerIdJS('rutDestinatario')
+        if (rv && String(rv).replace(/\D/g, '').length >= 7) break
+        log(`RUT vacío tras banco (intento ${intento + 1}) rut="${rv}" → re-lleno`)
+        await sleep(rnd(700, 1200))
+        await setIdJS('rutDestinatario', process.env.TEK_DEST_RUT)
+        await setIdJS('nombreDestinatario', process.env.TEK_DEST_NOMBRE)
+      }
       await sleep(rnd(600, 1000))
       await page.screenshot({ path: join(DATA, 'crear-02b-destino-tefun.png') }).catch(() => {})
       try { writeFileSync(join(DATA, 'crear-tefun-fill.json'), JSON.stringify({ ts: new Date().toISOString() })) } catch { /* */ }
@@ -767,6 +780,14 @@ async function crearTransferencia(page, log) {
         }
         return ''
       }
+      // GUARDA: si el RUT del destinatario quedó VACÍO no enviamos NADA. Sin RUT el banco no crea
+      // la transferencia, y existePendiente podría dar un FALSO positivo (matchear una pendiente
+      // vieja al mismo RUT). Abortar limpio → sin envío, sin heat desperdiciado, sin falso "creada".
+      const rutEnForm = await f2.evaluate(() => { const el = document.getElementById('rutDestinatario'); return el ? el.value : '' }).catch(() => '')
+      if (!rutEnForm || String(rutEnForm).replace(/\D/g, '').length < 7) {
+        log('ABORT TEFUN: RUT destinatario vacío → NO envío (evita falso positivo).')
+        return { estado: 'falta_rut', pendiente: false, nota: 'El RUT del destinatario no se cargó en el formulario del banco (re-render al elegir banco destino). NO se envió nada — reintentar.', url: page.url() }
+      }
       // PASO 1: Continuar → ALERTA. Si dice "pendientes a este beneficiario" = YA EXISTE una →
       // NO se crea otra (ANTI-DUPLICADO). NUNCA se reintenta el submit.
       log('TEFUN paso1 Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(4500, 6500))
@@ -788,7 +809,7 @@ async function crearTransferencia(page, log) {
       await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
       // VERIFICACIÓN REAL (no adivinar por texto): ¿aparece ya en la lista de Autorización? Esto
       // navega a la lista y confirma → 0 falsos negativos, y como es SOLO 1 intento, 0 duplicados.
-      const creada = await existePendiente(page, log, process.env.TEK_DEST_RUT, monto)
+      const creada = await existePendiente(page, log, process.env.TEK_DEST_RUT, monto, process.env.TEK_DEST_CUENTA)
       log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : 'NO confirmada')
       return { estado: creada ? 'creada' : 'tefun_no_confirmada', pendiente: creada, url: page.url() }
     }
@@ -1018,14 +1039,26 @@ async function verPendientes(page, log) {
 
 // ¿Existe YA una transferencia pendiente al RUT destino (y monto)? Verificación REAL en la
 // lista de Autorización. Devuelve true/false. Anti-duplicado + confirmación de creación.
-async function existePendiente(page, log, rutDest, monto) {
+async function existePendiente(page, log, rutDest, monto, cuentaDest) {
   try {
     const r = await verPendientes(page, log)
     const txt = (r.texto || '')
+    const txtDig = txt.replace(/\D/g, '')   // solo dígitos: casa cuentas con o sin guiones/puntos
+    const cuentaNorm = String(cuentaDest || '').replace(/\D/g, '')
+    // PREFERIR casar por CUENTA DESTINO: es única por transferencia. El RUT solo NO basta —
+    // puede haber otra pendiente al MISMO RUT en otra cuenta/banco → falso positivo (ej. $1 a
+    // Joaquín ya existía en Santander y matcheaba un intento a su cuenta Falabella).
+    if (cuentaNorm.length >= 6) {
+      const tail = cuentaNorm.slice(-7)   // cola larga: evita colisiones con rut/monto/fecha
+      const hay = txtDig.includes(cuentaNorm) || txtDig.includes(tail)
+      log(`existePendiente cuenta=${cuentaNorm} (tail ${tail}):`, hay)
+      return hay
+    }
+    // Fallback (sin cuenta): casar por RUT (comportamiento viejo).
     const rutNorm = String(rutDest || '').replace(/[^0-9kK]/g, '')
     const rutFmt = rutNorm.length > 1 ? rutNorm.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + rutNorm.slice(-1) : rutNorm
     const hayRut = rutNorm && (txt.replace(/[.\-\s]/g, '').includes(rutNorm) || txt.includes(rutFmt))
-    log(`existePendiente rut=${rutFmt}:`, hayRut)
+    log(`existePendiente rut=${rutFmt} (sin cuenta):`, hayRut)
     return !!hayRut
   } catch (e) { log('existePendiente falló:', e.message); return false }
 }
