@@ -1596,23 +1596,45 @@ async function main() {
   // dispositivo nuevo; pero AISLADO, sin pisar la sesión de ANA CLARA. Se borra al terminar.
   const vinculando = process.env.TEK_VINCULAR === 'empresas'
   const leerSaldos = process.env.TEK_LEER_SALDOS === '1'
-  // "aislado" = flujos que entran con las creds de OTRO usuario (no ANA CLARA): clonan el
-  // perfil confiable (device-trust) a /tmp, hacen logout-first y NO guardan/pisan la sesión.
-  const aislado = vinculando || leerSaldos
+  // ── SESIONES POR USUARIO ────────────────────────────────────────────────
+  // TEK_USER elige el usuario. 'ramon' = perfil legacy (chrome-profile / session.json,
+  // NO se toca → ANA CLARA sigue igual). Otro usuario = PERFIL PERSISTENTE PROPIO
+  // (chrome-profile-<user>) con su device-trust y su session-<user>.json → así su
+  // sesión se mantiene con el latido y se puede operar (transferir) desde sus empresas.
+  const USER = (process.env.TEK_USER || 'ramon').toLowerCase()
+  const esRamon = USER === 'ramon' || USER === ''
+  const userSlug = (USER.replace(/[^a-z0-9]/g, '') || 'ramon')
+  // AISLADO (perfil efímero en /tmp) = SOLO vinculación (probar creds ANTES de guardarlas).
+  const aislado = vinculando
+  // SESIÓN-USUARIO (perfil persistente por usuario ≠ ramon).
+  const sesionUsuario = !esRamon && !vinculando
+  const PROFILE_USER = join(DIR, 'chrome-profile-' + userSlug)
+  const SESSION_TARGET = esRamon ? SESSION_FILE : join(DIR, 'session-' + userSlug + '.json')
+  // Solo lo que da la confianza del dispositivo (no los caches de GB).
+  const TRUST_ITEMS = ['Local State', 'First Run', 'Default/Cookies', 'Default/Cookies-journal', 'Default/Network', 'Default/Local Storage', 'Default/Session Storage', 'Default/WebStorage', 'Default/Preferences', 'Default/Trust Tokens', 'Default/Shared Dictionary']
+  let recienSembrado = false
   let profileDir
   if (perfilReal) profileDir = join(process.env.HOME, 'Library/Application Support/Google/Chrome')
   else if (aislado) {
     profileDir = join('/tmp', 'tek-vinc-' + String(rut || 'x').replace(/[^0-9kK]/g, '') + '-' + process.pid)
     try { rmSync(profileDir, { recursive: true, force: true }) } catch { /* */ }
-    // Copiamos SOLO lo que da la confianza del dispositivo (no los caches, que pesan GB).
     try {
       mkdirSync(join(profileDir, 'Default'), { recursive: true })
-      for (const it of ['Local State', 'First Run', 'Default/Cookies', 'Default/Cookies-journal', 'Default/Network', 'Default/Local Storage', 'Default/Session Storage', 'Default/WebStorage', 'Default/Preferences', 'Default/Trust Tokens', 'Default/Shared Dictionary', 'Default/Local State']) {
-        const s = join(PROFILE_TEK, it)
-        if (existsSync(s)) { try { cpSync(s, join(profileDir, it), { recursive: true }) } catch { /* */ } }
-      }
+      for (const it of TRUST_ITEMS) { const s = join(PROFILE_TEK, it); if (existsSync(s)) { try { cpSync(s, join(profileDir, it), { recursive: true }) } catch { /* */ } } }
       log('vincular: perfil confiable clonado (device-trust heredado)')
     } catch (e) { log('vincular: clon de perfil falló:', e.message) }
+  } else if (sesionUsuario) {
+    profileDir = PROFILE_USER
+    // Primera vez para este usuario → SEMBRAR device-trust desde el perfil confiable
+    // (persistente, una sola vez). Después el perfil acumula su propia confianza.
+    if (!existsSync(join(PROFILE_USER, 'Default', 'Cookies'))) {
+      try {
+        mkdirSync(join(PROFILE_USER, 'Default'), { recursive: true })
+        for (const it of TRUST_ITEMS) { const s = join(PROFILE_TEK, it); if (existsSync(s)) { try { cpSync(s, join(PROFILE_USER, it), { recursive: true }) } catch { /* */ } } }
+        recienSembrado = true
+        log(`sesión-usuario ${USER}: perfil nuevo sembrado con device-trust`)
+      } catch (e) { log('sesión-usuario: siembra falló:', e.message) }
+    } else log(`sesión-usuario ${USER}: perfil propio existente`)
   } else profileDir = PROFILE_TEK
   // PROXY RESIDENCIAL CL (como Rail): si están las creds en el env, salimos por una IP
   // residencial chilena limpia en vez de la del mini (que se quema al re-loguear seguido
@@ -1641,9 +1663,9 @@ async function main() {
   for (const p of ctx.pages().slice(1)) { try { await p.close() } catch {} }
   const page = ctx.pages()[0] || await ctx.newPage()
   const cerrar = async () => {
-    // En flujos AISLADOS (vinculación/lectura de otro usuario) no guardamos la sesión
-    // (no pisar la de ANA CLARA) y borramos el clon.
-    if (!aislado) { try { await ctx.storageState({ path: SESSION_FILE }) } catch {} }
+    // Guardamos la sesión en el archivo del USUARIO (ramon → session.json; otro →
+    // session-<user>.json). En VINCULACIÓN (aislado) no guardamos y borramos el clon /tmp.
+    if (!aislado) { try { await ctx.storageState({ path: SESSION_TARGET }) } catch {} }
     try { await ctx.close() } catch {}
     if (aislado && profileDir.startsWith('/tmp/tek-vinc-')) { try { rmSync(profileDir, { recursive: true, force: true }) } catch {} }
   }
@@ -1676,7 +1698,9 @@ async function main() {
   // guardada sigue viva yendo directo al dashboard. Si carga logueado → capturamos SIN
   // login (evita ingresos de más que flagean a Santander). Solo si nos bota, logueamos.
   const keepAlive = process.env.TEK_KEEPALIVE === '1'
-  if (!assist && process.env.TEK_FORZAR_LOGIN !== '1') {
+  // recienSembrado = perfil nuevo que HEREDÓ la sesión de ANA CLARA → NO reusar (sería la
+  // sesión equivocada); hay que logout-first + login como el usuario real.
+  if (!assist && process.env.TEK_FORZAR_LOGIN !== '1' && !recienSembrado) {
     await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
     await sleep(rnd(4000, 6000))
     const u = page.url()
@@ -1690,8 +1714,8 @@ async function main() {
         await moveTo(page, rnd(400, 950), rnd(240, 560)); await idle(page, rnd(800, 1600))
         await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
         await sleep(rnd(2500, 4500))
-        try { await ctx.storageState({ path: SESSION_FILE }) } catch { /* */ }
-        return fin('keepalive_ok', { nota: 'sesión mantenida viva (sin login)' })
+        try { await ctx.storageState({ path: SESSION_TARGET }) } catch { /* */ }
+        return fin('keepalive_ok', { nota: 'sesión mantenida viva (sin login)', user: USER })
       }
       return fin('sesion_muerta', { nota: 'no hay sesión viva que mantener; el latido NUNCA loguea' })
     }
@@ -1710,10 +1734,10 @@ async function main() {
   // VINCULACIÓN: el clon hereda la sesión de ANA CLARA. La CERRAMOS (logout) para que el login
   // del usuario sea LIMPIO y no dispare la re-validación (login?reason=validate_user). El logout
   // NO borra la confianza del dispositivo (cookies Incapsula/BioCatch persisten en el perfil).
-  if (aislado) {
+  if (aislado || recienSembrado) {
     await page.goto('https://privado.officebanking.cl/logout', { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => {})
     await sleep(rnd(2500, 4000))
-    log('aislado: cerré la sesión heredada (device-trust intacto), voy al login limpio')
+    log('aislado/sembrado: cerré la sesión heredada (device-trust intacto), voy al login limpio')
   }
 
   await page.goto(LANDING, { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch((e) => log('goto:', e.message))

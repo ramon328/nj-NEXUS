@@ -1,60 +1,69 @@
-// keepalive.mjs — LATIDO de la sesión del banco (la 3ª pata de Rail: mantener viva la
-// sesión y refrescar cookies antes de que expire, en vez de re-loguear). Corre cada
-// ~7 min por LaunchAgent. NUNCA loguea: si hay sesión viva la mantiene (navegación
-// suave que resetea el timer de inactividad ~10-15 min); si está muerta, se abstiene
-// (no lanza Chrome al pedo). Así una sola entrada dura horas y casi no re-logueamos
-// → la IP residencial no se calienta → no hay muro antifraude.
+// keepalive.mjs — LATIDO de TODAS las sesiones de banco (la 3ª pata de Rail: mantener
+// vivas las sesiones y refrescar cookies antes de que expiren, en vez de re-loguear).
+// Corre cada ~7 min por LaunchAgent. Recorre cada usuario con sesión persistida
+// (ramon → session.json; otros → session-<user>.json) y le da un "toque" suave que
+// resetea el timer de inactividad (~10-15 min). NUNCA loguea: si una sesión está muerta,
+// se abstiene (back-off) — reabrirla es tarea de un login normal (en frío). Así una sola
+// entrada por usuario dura horas y casi no re-logueamos → la IP no se calienta.
+import { readFileSync, writeFileSync, existsSync, statSync, unlinkSync, readdirSync } from 'node:fs'
 import { spawn } from 'node:child_process'
-import { readFileSync, writeFileSync, existsSync, statSync, unlinkSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 const DATA = join(DIR, 'data')
 const NODE = '/usr/local/bin/node'
-const OFF = join(DATA, '.keepalive-off')        // marca de "sesión muerta, no insistir"
-const OFF_TTL = 20 * 60 * 1000                  // tras muerte, no relanzar por 20 min
+const OFF_TTL = 20 * 60 * 1000     // tras marcar muerta, no reintentar por 20 min
 const log = (...a) => console.log(new Date().toISOString(), ...a)
-
 const leer = (f) => { try { return JSON.parse(readFileSync(join(DATA, f), 'utf8')) } catch { return null } }
 
-// 1) ¿alguna vez logueamos? sin session.json no hay nada que mantener.
-if (!existsSync(join(DIR, 'session.json'))) { log('sin session.json → nunca se logueó, nada que latir'); process.exit(0) }
-
-// 2) ¿la sesión parece viva? (estado.json = último snapshot). Si el banco nos botó
-//    (error-seguridad/logout) o no está 'ok', no lanzamos Chrome.
-const est = leer('estado.json') || {}
-const urlViva = !/error-seguridad|\/logout|\/login/i.test(String(est.url || ''))
-const pareceViva = est.estado === 'ok' && urlViva
-
-// 3) back-off: si marcamos muerte hace poco, esperamos (salvo que el estado sea MÁS
-//    nuevo que la marca → alguien re-logueó, reactivamos).
-if (existsSync(OFF)) {
-  const offTs = statSync(OFF).mtimeMs
-  const estTs = est.actualizado ? Date.parse(est.actualizado) : 0
-  const reactivar = pareceViva && estTs > offTs
-  if (!reactivar && Date.now() - offTs < OFF_TTL) { log('back-off activo (sesión marcada muerta hace poco), salto'); process.exit(0) }
+// Usuarios con sesión persistida (perfil + session-*.json).
+function usuarios() {
+  const out = []
+  if (existsSync(join(DIR, 'session.json'))) out.push({ user: 'ramon', sess: join(DIR, 'session.json'), slug: 'ramon' })
+  try {
+    for (const f of readdirSync(DIR)) {
+      const m = f.match(/^session-(.+)\.json$/)
+      if (m) out.push({ user: m[1], sess: join(DIR, f), slug: m[1] })
+    }
+  } catch { /* */ }
+  return out
 }
 
-if (!pareceViva) { writeFileSync(OFF, String(Date.now())); log('estado no-vivo (', est.estado, ') → marco muerta, no lanzo'); process.exit(0) }
+function poke({ user, sess, slug }) {
+  return new Promise((resolve) => {
+    const off = join(DATA, '.keepalive-off-' + slug)
+    // back-off: si marcamos muerta hace poco y la sesión NO se refrescó desde entonces, saltar.
+    if (existsSync(off)) {
+      const offTs = statSync(off).mtimeMs
+      const sessTs = existsSync(sess) ? statSync(sess).mtimeMs : 0
+      if (sessTs <= offTs && Date.now() - offTs < OFF_TTL) { log(`[${user}] back-off, salto`); return resolve() }
+    }
+    // señal barata extra para ramon: si el último snapshot está muerto, no lanzo Chrome.
+    if (user === 'ramon') {
+      const est = leer('estado.json') || {}
+      const urlDead = /error-seguridad|\/logout|\/login/i.test(String(est.url || ''))
+      if ((est.estado && est.estado !== 'ok') || urlDead) { try { writeFileSync(off, String(Date.now())) } catch { /* */ }; log('[ramon] estado no-vivo → marco, salto'); return resolve() }
+    }
+    log(`[${user}] latido…`)
+    const h = spawn(NODE, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env: { ...process.env, TEK_KEEPALIVE: '1', TEK_USER: user, TEK_LOCK_WAIT_MS: '6000' } })
+    let out = ''
+    h.stdout.on('data', (d) => { out += d }); h.stderr.on('data', (d) => { out += d })
+    const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, 90_000)
+    h.on('exit', () => {
+      clearTimeout(kill)
+      const m = out.match(/RESULTADO:\s*(\{.*\})\s*$/m); let r = {}; try { r = m ? JSON.parse(m[1]) : {} } catch { /* */ }
+      if (r.estado === 'keepalive_ok') { try { if (existsSync(off)) unlinkSync(off) } catch { /* */ }; log(`[${user}] ✓ sesión mantenida viva`) }
+      else if (r.estado === 'sesion_muerta') { try { writeFileSync(off, String(Date.now())) } catch { /* */ }; log(`[${user}] ✗ sesión muerta → back-off (no re-logueo)`) }
+      else if (r.estado === 'ocupado') { log(`[${user}] banco ocupado por otra operación, ok`) }
+      else log(`[${user}] · resultado:`, r.estado || 'desconocido')
+      resolve()
+    })
+  })
+}
 
-// 4) Latido real: login-humano en modo keep-alive (reusa la sesión, NO loguea). Lock
-//    corto: si hay una operación real en curso, cedemos rápido (no encolamos 8 min).
-log('sesión parece viva → lanzo latido…')
-const h = spawn(NODE, [join(DIR, 'login-humano.mjs')], {
-  cwd: DIR,
-  env: { ...process.env, TEK_KEEPALIVE: '1', TEK_LOCK_WAIT_MS: '6000' },
-})
-let out = ''
-h.stdout.on('data', (d) => { out += d })
-h.stderr.on('data', (d) => { out += d })
-const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, 90_000)
-h.on('exit', () => {
-  clearTimeout(kill)
-  const m = out.match(/RESULTADO:\s*(\{.*\})\s*$/m)
-  let r = {}; try { r = m ? JSON.parse(m[1]) : {} } catch { /* */ }
-  if (r.estado === 'keepalive_ok') { try { if (existsSync(OFF)) unlinkSync(OFF) } catch { /* */ } ; log('✓ latido OK — sesión mantenida viva') }
-  else if (r.estado === 'sesion_muerta') { writeFileSync(OFF, String(Date.now())); log('✗ sesión muerta → back-off (no re-logueo, eso es tarea del login normal)') }
-  else if (r.estado === 'ocupado') { log('· banco ocupado por otra operación, no importa (la actividad la mantiene igual)') }
-  else log('· latido resultado:', r.estado || 'desconocido')
-})
+const us = usuarios()
+if (!us.length) { log('sin sesiones persistidas que mantener'); process.exit(0) }
+log(`latido de ${us.length} sesión(es): ${us.map((u) => u.user).join(', ')}`)
+// Secuencial (una sesión de banco a la vez; el lock de login-humano lo garantiza igual).
+for (const u of us) { await poke(u) }

@@ -27,12 +27,13 @@ let objetivos = arg('empresas') ? arg('empresas').split(',').map((s) => s.trim()
 const c0 = cred.obtener(userId, objetivos[0])
 if (!c0.ok) { console.log(JSON.stringify({ ok: false, error: c0.error })); process.exit(0) }
 
+// Usa la SESIÓN PERSISTENTE del usuario (perfil chrome-profile-<user> + session-<user>.json):
+// si el latido la tiene viva, REUSA sin login; solo loguea si está muerta. Las creds salen
+// de la bóveda (TEK_USER), no las pasamos por ENV.
 const env = {
   ...process.env,
   TEK_LEER_SALDOS: '1',
-  TEK_FORZAR_LOGIN: '1',
-  TEK_RUT: c0.rut,
-  TEK_CLAVE: c0.clave,
+  TEK_USER: userId,
   TEK_EMPRESAS_JSON: JSON.stringify(objetivos),
 }
 
