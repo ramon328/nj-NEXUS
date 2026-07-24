@@ -1,5 +1,5 @@
 {
-  "estado": "ok",
+  "estado": "error",
   "actualizado": "2026-07-24T14:46:28.870Z",
   "empresa": "ANA CLARA SPA",
   "desde": "2026-04-27",
@@ -8,5 +8,8 @@
   "saldos": 0,
   "movimientos": 0,
   "movimientos_anual": null,
-  "url": "https://privado.officebanking.cl/logout/error-seguridad"
+  "url": "https://privado.officebanking.cl/logout/error-seguridad",
+  "arranque": "2026-07-24T15:45:26.316Z",
+  "intento": "2026-07-24T15:50:46.363Z",
+  "detalle": "sin_resultado"
 }
