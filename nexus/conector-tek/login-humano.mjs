@@ -1553,7 +1553,7 @@ async function leerSaldosTodas(ctx, page, log) {
       // entrar a una empresa dispara account_summary; forzamos el dashboard si no cargó
       if (!/portal-fob|dashboard/i.test(page.url())) { await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {}) }
       for (let i = 0; i < 14 && !saldos; i++) await sleep(1500)
-      const cuentas = (saldos || []).map((c) => ({ tipo: c.accountType, numero: c.accountNumber, moneda: c.moneyType || 'CLP', saldo: Number(c.balance || 0) }))
+      const cuentas = (saldos || []).map((c) => ({ tipo: c.accountType, numero: c.accountNumber, moneda: c.moneyType || 'CLP', saldo: Number(c.balance || 0), ...(c.creditLine != null ? { linea_credito: Number(c.creditLine) } : {}) }))
       const totalCLP = cuentas.filter((c) => (c.moneda || 'CLP') === 'CLP').reduce((s, c) => s + c.saldo, 0)
       resultados.push({ empresa, conecta: !!saldos, cuentas, total_clp: totalCLP })
       log(`lector: ${empresa} → ${saldos ? cuentas.length + ' cuentas, $' + totalCLP.toLocaleString('es-CL') : 'SIN saldo (no cargó)'}`)
