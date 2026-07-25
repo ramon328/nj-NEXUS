@@ -559,3 +559,6 @@
 {"ts":"2026-07-25T22:27:39.689Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-25T22:42:43.351Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-25T22:57:46.597Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-25T23:09:17.827Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":79288,"tratamiento_id":398214,"hora":"2026-07-27T13:30:00-04:00","cliente":{"nombre":"Prueba Final Sistema","rut":"11111111-1","telefono":"+56911111111","mail":"prueba@test.cl","fecha_nacimiento":"1990-01-01"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"378591785020957dc965eda_887d_11f1_9259_0242ac1c0002","error":null}
+{"ts":"2026-07-25T23:09:20.095Z","accion":"anular","quien":"127.0.0.1","ip":"127.0.0.1","body":{"cita_id":75258492,"simular":false},"simulado":false,"ok":true,"cita_uuid":null}
+{"ts":"2026-07-25T23:12:50.121Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
