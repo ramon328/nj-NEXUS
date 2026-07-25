@@ -1183,21 +1183,39 @@ const SCOPE_INFO = {
   bd: '🗄️ *Base de datos* del negocio (competencia, precios, catálogo)',
   cerebro: '🧠 *Segundo Cerebro* — notas y conocimiento',
 }
+// ── ROLES POR EMPRESA ─────────────────────────────────────────────────────────
+// En vez de dar scopes sueltos, se le asigna a un usuario una o varias EMPRESAS del
+// grupo; cada empresa trae su paquete de scopes (y su acotamiento por empresa, ej. el
+// SII solo de ESA razón social). Así "meter a Joaquín a MallorcAutos" le da autos +
+// SII + banco, todo de Ana Clara (que es la razón social de MallorcAutos). El acceso
+// a banco/facturas de un NO-admin ya está clavado a ANA CLARA en el resto del código.
+const EMPRESAS = {
+  mallorcautos: { nombre: 'MallorcAutos / Ana Clara', scopes: ['mallorca', 'sii', 'banco'], sii_empresa_id: 3 },
+  aliace: { nombre: 'Aliace', scopes: ['aliace', 'correo'] },
+}
+function scopesDeEmpresas(empresas) {
+  const out = new Set()
+  for (const e of (empresas || [])) for (const s of (EMPRESAS[e]?.scopes || [])) out.add(s)
+  return [...out]
+}
 const FUNDADORES = {
-  '+56932945240': { nombre: 'Ramon', admin: true, accesos: SCOPES },
-  '+56975481858': { nombre: 'Nico', admin: true, accesos: SCOPES },
+  '+56932945240': { nombre: 'Ramon', admin: true, accesos: SCOPES, empresas: Object.keys(EMPRESAS) },
+  '+56975481858': { nombre: 'Nico', admin: true, accesos: SCOPES, empresas: Object.keys(EMPRESAS) },
 }
 // Lee el store (tolerante a archivo ausente/corrupto). Los fundadores SIEMPRE
-// mandan: no se pueden pisar ni borrar desde el store.
+// mandan: no se pueden pisar ni borrar desde el store. `accesos` efectivo = scopes de
+// sus EMPRESAS ∪ scopes sueltos (compat hacia atrás con altas viejas por scope).
 function cargarUsuarios() {
   let extra = {}
   try { extra = JSON.parse(readFileSync(RUTA_USUARIOS, 'utf8')) || {} } catch { extra = {} }
   const out = {}
   for (const [num, u] of Object.entries(extra)) {
     const n = normNum(num); if (!n || FUNDADORES[n]) continue
+    const empresas = Array.isArray(u?.empresas) ? u.empresas.filter((e) => EMPRESAS[e]) : []
+    const sueltos = Array.isArray(u?.accesos) ? u.accesos.filter((s) => SCOPES.includes(s)) : []
     out[n] = {
-      nombre: u?.nombre || 'Usuario', admin: false,
-      accesos: Array.isArray(u?.accesos) ? u.accesos.filter((s) => SCOPES.includes(s)) : [],
+      nombre: u?.nombre || 'Usuario', admin: false, empresas,
+      accesos: [...new Set([...scopesDeEmpresas(empresas), ...sueltos])],
       creado: u?.creado, creado_por: u?.creado_por,
     }
   }
@@ -1210,6 +1228,15 @@ function esAdmin(de) { return Boolean(usuarioDe(de)?.admin) }
 // un número que NO es usuario nunca llega al Nexus completo (ver contactos-externos.mjs).
 export function esUsuarioNexus(de) { return Boolean(usuarioDe(de)) }
 function accesosDe(de) { const u = usuarioDe(de); return u ? (u.admin ? SCOPES : u.accesos) : [] }
+function empresasDe(de) { const u = usuarioDe(de); return u ? (u.empresas || []) : [] }
+// IDs de empresa del SII a los que el usuario puede acceder. null = todas (admin).
+// Un NO-admin queda clavado a las razones sociales de SUS empresas (ej. Ana Clara=3).
+function siiEmpresasIdsDe(de) {
+  if (esAdmin(de)) return null
+  const ids = new Set()
+  for (const e of empresasDe(de)) { const id = EMPRESAS[e]?.sii_empresa_id; if (id != null) ids.add(String(id)) }
+  return [...ids]
+}
 // Solo los números dados de alta (fundadores + store) pueden hablarle a Nexus.
 function destinoValido(de) {
   const n = normNum(de)
@@ -1286,13 +1313,21 @@ function scopeDeTool(nombre) {
   return null
 }
 const GESTION_USUARIOS = ['agregar_usuario', 'listar_usuarios', 'quitar_usuario']
-// Arma el mensaje de bienvenida con la lista de lo que el usuario puede hacer.
-function mensajeBienvenida(nombre, accesos) {
+// Arma el mensaje de bienvenida: qué EMPRESA(s) maneja + las áreas que eso le habilita.
+function mensajeBienvenida(nombre, accesos, empresas) {
+  const emp = (empresas || []).filter((e) => EMPRESAS[e]).map((e) => '🏢 *' + EMPRESAS[e].nombre + '*')
   const lineas = (accesos || []).filter((s) => SCOPE_INFO[s]).map((s) => '• ' + SCOPE_INFO[s])
-  return `¡Hola ${nombre}! 👋 Bienvenido/a a *Nexus*, el asistente del negocio.\n\n`
-    + (lineas.length
-      ? `Tienes acceso a:\n${lineas.join('\n')}\n\nEscríbeme por aquí y pídeme lo que necesites de esas áreas. 🚀`
-      : `Por ahora no tienes áreas habilitadas; Ramón o Nico te las activarán. 🙌`)
+  let cuerpo
+  if (emp.length) {
+    cuerpo = `Manejas ${emp.length > 1 ? 'las empresas' : 'la empresa'}:\n${emp.join('\n')}\n\n`
+      + (lineas.length ? `Eso te habilita:\n${lineas.join('\n')}\n\n` : '')
+      + `Escríbeme por aquí y pídeme lo que necesites. 🚀`
+  } else if (lineas.length) {
+    cuerpo = `Tienes acceso a:\n${lineas.join('\n')}\n\nEscríbeme por aquí y pídeme lo que necesites de esas áreas. 🚀`
+  } else {
+    cuerpo = `Por ahora no tienes empresas/áreas habilitadas; Ramón o Nico te las activarán. 🙌`
+  }
+  return `¡Hola ${nombre}! 👋 Bienvenido/a a *Nexus*, el asistente del negocio.\n\n${cuerpo}`
 }
 
 // ── Perfil por persona (segundo cerebro Obsidian) ─────────────────────────────
@@ -1641,14 +1676,10 @@ GOAUTOS = SOLO MallorcAutos. Nunca des datos de otras automotoras.
 
 👥 GESTIÓN DE USUARIOS (alta/baja — SOLO Ramón y Nico, los fundadores):
 - Solo los FUNDADORES (Ramón y Nico) pueden crear, listar o quitar usuarios. Si lo pide otra persona, dile con amabilidad que no tiene permiso para eso.
-- ALTA — cuando un fundador diga "agrega/crea un usuario", "da de alta a alguien", etc., PÍDELE (en uno o dos mensajes, claro): (1) el NOMBRE, (2) el NÚMERO de WhatsApp con +56, y (3) a qué ÁREAS le das acceso. Áreas (scopes) válidas:
-  · *aliace* — facturación, ventas, pagos, cobranzas, deudas, metas y clientes.
-  · *sii* — información tributaria (F29, compras/ventas).
-  · *mallorca* — autos de GoAutos (ver/publicar/editar) + Excel del negocio.
-  · *correo* — revisar y buscar correos.
-  · *bd* — base del negocio (competencia, precios, catálogo).
-  · *cerebro* — notas del Segundo Cerebro.
-  Puede ser una o varias áreas. Muéstrale un RESUMEN (nombre · número · áreas) y pide OK; SOLO cuando confirme, llama agregar_usuario. La herramienta YA registra al usuario, lo habilita para escribirle a Nexus y le manda el WhatsApp de bienvenida con su lista de accesos — NO escribas tú esa bienvenida.
+- ALTA — los ROLES se dan POR EMPRESA (estructura ordenada), no por scopes sueltos. Cuando un fundador diga "agrega/crea un usuario", "da de alta a alguien", "mete a X a MallorcAutos", etc., PÍDELE (claro): (1) el NOMBRE, (2) el NÚMERO de WhatsApp con +56, y (3) a qué EMPRESA(s) lo mete. Empresas válidas:
+  · *MallorcAutos / Ana Clara* (clave "mallorcautos") — le da los AUTOS (GoAutos: ver/publicar/editar/vender/gastos + Excel) + el SII y el BANCO de **Ana Clara** (la razón social de MallorcAutos). Ej.: "mete a Joaquín a MallorcAutos" → empresas:['mallorcautos'].
+  · *Aliace* (clave "aliace") — le da la facturación/ventas/pagos/cobranzas/deudas/metas de Aliace + los correos.
+  Un usuario puede manejar UNA o VARIAS empresas. Al asignar una empresa, su SII/banco/facturas quedan CLAVADOS a esa razón social (un usuario de MallorcAutos NO ve el SII ni el banco de otras empresas). Si un caso MUY puntual necesita un área suelta que no es de ninguna empresa (ej. solo "cerebro" o "bd"), pásala en el campo accesos. Muéstrale un RESUMEN (nombre · número · empresa) y pide OK; SOLO cuando confirme, llama agregar_usuario. La herramienta YA registra al usuario, lo habilita para escribirle a Nexus y le manda el WhatsApp de bienvenida — NO escribas tú esa bienvenida.
 - BAJA — "quita / elimina / da de baja a X": confirma el número y llama quitar_usuario (no se puede quitar a un fundador).
 - VER — "qué usuarios hay / lista de usuarios": llama listar_usuarios.
 - ACCESOS: cada usuario solo puede usar SUS áreas. Si alguien te pide algo de un área que no tiene, dile que no tiene acceso a eso y que se lo pida a Ramón o Nico (la herramienta igual lo bloquea por seguridad). Ramón y Nico tienen acceso a todo.
@@ -2397,15 +2428,16 @@ const HERRAMIENTAS = [
   },
   {
     name: 'agregar_usuario',
-    description: 'DA DE ALTA un usuario nuevo de Nexus. SOLO Ramón o Nico (fundadores/admin) pueden usarla; si la pide otro, el sistema la rechaza. Registra al usuario (nombre + número de WhatsApp) con los ACCESOS que le correspondan, lo habilita para escribirle a Nexus y le manda un WhatsApp de bienvenida con la lista de lo que puede hacer. FLUJO: pregunta y CONFIRMA el nombre, el número (con +56) y qué accesos antes de llamarla. Accesos válidos: aliace, sii, mallorca, correo, bd, cerebro.',
+    description: 'DA DE ALTA un usuario nuevo de Nexus. SOLO Ramón o Nico (fundadores/admin) pueden usarla; si la pide otro, el sistema la rechaza. Lo normal y ORDENADO es asignarlo por EMPRESA: le pasas la(s) empresa(s) del grupo que va a manejar y automáticamente queda con las áreas de esa empresa (y acotado a esa razón social: SII, banco y facturas de ESA empresa). Empresas válidas: "mallorcautos" (= MallorcAutos / Ana Clara → autos GoAutos + SII + banco de Ana Clara) y "aliace" (= Aliace → facturación/ventas/cobranza + correos). Si un caso puntual necesita un área suelta (ej. solo "cerebro" o "bd"), puedes pasar también `accesos`. Registra al usuario, lo habilita para escribirle a Nexus y le manda el WhatsApp de bienvenida. FLUJO: pregunta y CONFIRMA nombre, número (+56) y a qué EMPRESA(s) lo metes, antes de llamarla.',
     input_schema: {
       type: 'object',
       properties: {
         nombre: { type: 'string', description: 'Nombre del usuario, ej "Juan Pérez"' },
         numero: { type: 'string', description: 'Número de WhatsApp en formato +56 9 XXXX XXXX (ej "+56912345678")' },
-        accesos: { type: 'array', items: { type: 'string', enum: ['aliace', 'sii', 'mallorca', 'correo', 'bd', 'cerebro', 'banco'] }, description: 'Áreas a las que tendrá acceso. aliace=facturación/ventas/cobranza; sii=tributario; mallorca=autos GoAutos+Excel; correo=correos; bd=base del negocio; cerebro=notas; banco=cuentas y movimientos bancarios.' },
+        empresas: { type: 'array', items: { type: 'string', enum: ['mallorcautos', 'aliace'] }, description: 'Empresa(s) del grupo que manejará. mallorcautos = MallorcAutos/Ana Clara (autos + SII + banco de Ana Clara); aliace = Aliace (facturación/ventas/cobranza + correos). Esta es la forma recomendada de dar de alta.' },
+        accesos: { type: 'array', items: { type: 'string', enum: ['aliace', 'sii', 'mallorca', 'correo', 'bd', 'cerebro', 'banco'] }, description: 'OPCIONAL: áreas sueltas extra, solo para casos puntuales que no calzan con una empresa (ej. dar solo "cerebro" o "bd"). Normalmente usa `empresas`, no esto.' },
       },
-      required: ['nombre', 'numero', 'accesos'],
+      required: ['nombre', 'numero'],
     },
   },
   {
@@ -4066,14 +4098,20 @@ async function ejecutar(nombre, input, ctx = {}) {
         try { token = (readFileSync(join(__dirname, '..', 'sii-web', '.env'), 'utf8').match(/^API_TOKEN=(.+)$/m) || [])[1] || '' } catch { token = '' }
       }
       const H = { 'X-API-Token': token, 'Content-Type': 'application/json' }
+      // ACOTAMIENTO POR EMPRESA: un NO-admin solo ve/baja SII de las razones sociales de
+      // SUS empresas (ej. MallorcAutos → Ana Clara, id 3). null = admin (todas).
+      const siiPermitidas = siiEmpresasIdsDe(ctx.de)
+      const empresaBloqueada = (id) => siiPermitidas && !siiPermitidas.includes(String(id))
       try {
         if (input.accion === 'estado') {
-          const empresas = await (await fetch(`${base}/api/empresas`, { headers: H })).json()
+          let empresas = await (await fetch(`${base}/api/empresas`, { headers: H })).json()
+          if (siiPermitidas) empresas = (Array.isArray(empresas) ? empresas : []).filter((e) => siiPermitidas.includes(String(e?.id ?? e?.empresa_id)))
           const tipos = await (await fetch(`${base}/api/tipos-documento`, { headers: H })).json()
           return JSON.stringify({ empresas, tipos_descargables: tipos })
         }
         if (input.accion === 'descargar') {
           if (!input.empresa_id) return 'Falta empresa_id (consíguelo con accion:estado).'
+          if (empresaBloqueada(input.empresa_id)) return '🔒 No tienes acceso al SII de esa empresa; solo el de tu(s) empresa(s).'
           const body = { desde: input.desde, hasta: input.hasta || input.desde, docs: input.docs || [] }
           const r = await fetch(`${base}/api/empresas/${input.empresa_id}/descargar`, { method: 'POST', headers: H, body: JSON.stringify(body) })
           return JSON.stringify(await r.json())
@@ -4083,10 +4121,12 @@ async function ejecutar(nombre, input, ctx = {}) {
           return JSON.stringify(await r.json())
         }
         if (input.accion === 'documentos') {
+          if (empresaBloqueada(input.empresa_id)) return '🔒 No tienes acceso al SII de esa empresa; solo el de tu(s) empresa(s).'
           const r = await fetch(`${base}/api/empresas/${input.empresa_id}/documentos`, { headers: H })
           return JSON.stringify(await r.json())
         }
         if (input.accion === 'enviar') {
+          if (empresaBloqueada(input.empresa_id)) return '🔒 No tienes acceso al SII de esa empresa; solo el de tu(s) empresa(s).'
           // Manda el ARCHIVO real (PDF/Excel) al WhatsApp del que pregunta.
           // Los documentos viven en el backend (Render = efímeros), así que se
           // DESCARGAN del backend a un temporal local y de ahí van por WhatsApp.
@@ -4384,15 +4424,19 @@ async function ejecutar(nombre, input, ctx = {}) {
     if (nombre === 'agregar_usuario') {
       const nombreU = String(input.nombre || '').trim()
       const numero = normNum(input.numero)
-      const accesos = Array.isArray(input.accesos) ? [...new Set(input.accesos.filter((s) => SCOPES.includes(s)))] : []
+      const empresas = Array.isArray(input.empresas) ? [...new Set(input.empresas.filter((e) => EMPRESAS[e]))] : []
+      const sueltos = Array.isArray(input.accesos) ? [...new Set(input.accesos.filter((s) => SCOPES.includes(s)))] : []
       if (!nombreU) return 'Falta el NOMBRE del usuario.'
       if (!numero || numero.replace(/\D/g, '').length < 10) return `Número inválido: "${input.numero}". Pásalo con +56, ej +56912345678.`
       if (FUNDADORES[numero]) return `Ese número es de un fundador (${FUNDADORES[numero].nombre}): ya tiene acceso total.`
+      if (!empresas.length && !sueltos.length) return 'Dime a qué EMPRESA lo metes (mallorcautos = MallorcAutos/Ana Clara, o aliace = Aliace). Si es un caso puntual, un área suelta.'
+      const accesos = [...new Set([...scopesDeEmpresas(empresas), ...sueltos])]  // scopes efectivos
       const yaExistia = Boolean(cargarUsuarios()[numero])
       const hoy = new Date().toLocaleDateString('es-CL', { timeZone: 'America/Santiago' })
-      guardarUsuarioStore(numero, { nombre: nombreU, accesos, creado: hoy, creado_por: usuarioDe(ctx.de)?.nombre || 'admin' })
+      // Guarda EMPRESAS (fuente de verdad) + accesos sueltos si los hubo; el efectivo se recompone al leer.
+      guardarUsuarioStore(numero, { nombre: nombreU, empresas, accesos: sueltos, creado: hoy, creado_por: usuarioDe(ctx.de)?.nombre || 'admin' })
       const okOC = permitirEnOpenclaw(numero)   // escribe el número en el allowlist de OpenClaw
-      const bienvenida = mensajeBienvenida(nombreU, accesos)
+      const bienvenida = mensajeBienvenida(nombreU, accesos, empresas)
       // Intento directo: si OpenClaw ya tiene el número en memoria (p.ej. re-alta de
       // alguien ya habilitado), la bienvenida sale al toque y no hace falta recargar.
       let enviado = false
@@ -4401,11 +4445,12 @@ async function ejecutar(nombre, input, ctx = {}) {
       // SEGUNDO PLANO (no corta esta respuesta al fundador).
       if (!enviado) await programarRecargaOpenclaw(numero, bienvenida)
       const accTxt = accesos.length ? accesos.join(', ') : 'ninguno aún'
+      const empTxt = empresas.length ? empresas.map((e) => EMPRESAS[e].nombre).join(' + ') : (sueltos.length ? 'áreas sueltas' : 'ninguna')
       return JSON.stringify({
         ok: true,
         accion: yaExistia ? 'usuario actualizado' : 'usuario creado',
-        usuario: nombreU, numero, accesos: accTxt, whatsapp_habilitado: okOC,
-        nota: `${yaExistia ? 'Actualicé a' : 'Di de alta a'} ${nombreU} (${numero}) con acceso a: ${accTxt}. `
+        usuario: nombreU, numero, empresa: empTxt, accesos: accTxt, whatsapp_habilitado: okOC,
+        nota: `${yaExistia ? 'Actualicé a' : 'Di de alta a'} ${nombreU} (${numero}) en ${empTxt} (áreas: ${accTxt}). `
           + (enviado
             ? 'Ya le mandé el WhatsApp de bienvenida ✅.'
             : 'En ~1 minuto OpenClaw se recarga solo para activar su número y le llega la bienvenida automáticamente — no tienes que hacer nada.')
@@ -4416,6 +4461,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       const todos = cargarUsuarios()
       const filas = Object.entries(todos).map(([num, u]) => ({
         nombre: u.nombre, numero: num, admin: Boolean(u.admin),
+        empresas: u.admin ? 'TODAS' : ((u.empresas || []).length ? u.empresas.map((e) => EMPRESAS[e]?.nombre || e).join(' + ') : 'sin empresa'),
         accesos: u.admin ? 'TODO (admin/fundador)' : (u.accesos.length ? u.accesos.join(', ') : 'sin accesos'),
       }))
       return JSON.stringify({ total: filas.length, usuarios: filas }, null, 2)
