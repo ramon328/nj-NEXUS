@@ -35,7 +35,7 @@
       "value": "1784396808246-DF3F6397-063B-4B82-9FD1-DB201B6EEE6A",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1816492790,
+      "expires": 1816493615,
       "httpOnly": false,
       "secure": true,
       "sameSite": "None"
@@ -255,7 +255,7 @@
       "value": "17",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1816492789,
+      "expires": 1816493615,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -265,7 +265,7 @@
       "value": "1784897871688%3Bexp-session",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1784958589,
+      "expires": 1784959415,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -275,7 +275,7 @@
       "value": "0%3Bexp-session",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1784958589,
+      "expires": 1784959415,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -405,7 +405,7 @@
       "value": "GA1.1.1085456801.1784586393",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1819516789.990696,
+      "expires": 1819517615.596459,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
@@ -451,64 +451,74 @@
       "sameSite": "Lax"
     },
     {
-      "name": "cdSNum",
-      "value": "1784956175502-sjt0000367-f7674911-8712-4a8a-9c5a-11c04b3b4fae",
-      "domain": ".officebanking.cl",
-      "path": "/",
-      "expires": 1784960390,
-      "httpOnly": false,
-      "secure": false,
-      "sameSite": "Lax"
-    },
-    {
       "name": "utag_main__pn",
-      "value": "308%3Bexp-session",
+      "value": "309%3Bexp-session",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1784958589,
+      "expires": 1784959415,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "utag_main__se",
-      "value": "463%3Bexp-session",
+      "value": "464%3Bexp-session",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1784958589,
+      "expires": 1784959415,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "utag_main__st",
-      "value": "1784958589760%3Bexp-session",
+      "value": "1784959415368%3Bexp-session",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1784958589,
+      "expires": 1784959415,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "_ga_4Q7P1YGRZB",
-      "value": "GS2.1.s1784897871$o8$g1$t1784956789$j60$l0$h0",
+      "value": "GS2.1.s1784897871$o8$g1$t1784957615$j60$l0$h0",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": 1819516789.997817,
+      "expires": 1819517615.601853,
       "httpOnly": false,
       "secure": false,
       "sameSite": "Lax"
     },
     {
       "name": "cdContextId",
-      "value": "2583",
+      "value": "2585",
       "domain": ".officebanking.cl",
       "path": "/",
       "expires": -1,
       "httpOnly": false,
       "secure": true,
       "sameSite": "None"
+    },
+    {
+      "name": "rxvt",
+      "value": "1784959416039|1784957615642",
+      "domain": ".officebanking.cl",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
+    },
+    {
+      "name": "dtPC",
+      "value": "-21395$556789649_617h6p-21395$557615265_756h6vMPVHHDFGFQERAQMPHVKMLCHTQRPGAOFG-0e0",
+      "domain": ".officebanking.cl",
+      "path": "/",
+      "expires": -1,
+      "httpOnly": false,
+      "secure": true,
+      "sameSite": "Lax"
     },
     {
       "name": "dtCookie",
@@ -521,24 +531,14 @@
       "sameSite": "Lax"
     },
     {
-      "name": "rxvt",
-      "value": "1784958595080|1784956790030",
+      "name": "cdSNum",
+      "value": "1784957616201-sjt0000502-d9c846fa-a8c4-42c4-94b7-5c2f5bcd0a12",
       "domain": ".officebanking.cl",
       "path": "/",
-      "expires": -1,
+      "expires": 1784961216,
       "httpOnly": false,
       "secure": true,
-      "sameSite": "Lax"
-    },
-    {
-      "name": "dtPC",
-      "value": "14$556174507_575h6p14$556789649_617h6vDDVEQVDMIBCHDRBHLGKHGPWUPSHAIFOM-0e0",
-      "domain": ".officebanking.cl",
-      "path": "/",
-      "expires": -1,
-      "httpOnly": false,
-      "secure": true,
-      "sameSite": "Lax"
+      "sameSite": "None"
     }
   ],
   "origins": [
@@ -547,15 +547,19 @@
       "localStorage": [
         {
           "name": "cdSNum",
-          "value": "{\"val\":\"1784956175502-sjt0000367-f7674911-8712-4a8a-9c5a-11c04b3b4fae\",\"exp\":3600000,\"time\":1784956790648}"
+          "value": "{\"val\":\"1784957616201-sjt0000502-d9c846fa-a8c4-42c4-94b7-5c2f5bcd0a12\",\"exp\":3600000,\"time\":1784957616282}"
+        },
+        {
+          "name": "detectedFonts_2.1.5",
+          "value": "{\"val\":\"american typewriter,baskerville,cochin,georgia,hoefler text,palatino,arial unicode ms,avenir,futura,geneva,gill sans,helvetica neue,impact,optima,pt sans,andale mono,courier new,monaco,papyrus,apple chancery,zapfino,chalkboard,apple symbols,symbol,wingdings,webdings,arial black,arial narrow,arial rounded mt bold,brush script mt,comic sans ms,microsoft sans serif,plantagenet cherokee\"}"
         },
         {
           "name": "cdTabList",
-          "value": "{\"val\":[[\"b7de53c3-91b7-47e2-b184-f6fb9751f77d\",1784956790070]]}"
+          "value": "{\"val\":[[\"f8407b6f-d300-41e6-bde1-b64dc561c10c\",1784957615684]]}"
         },
         {
           "name": "cdSrvrState",
-          "value": "{\"val\":{\"requestId\":0,\"sid\":\"1784956175502-sjt0000367-f7674911-8712-4a8a-9c5a-11c04b3b4fae\",\"sts\":\"gAAAAABqZEd2v-w4yMaVxHC_4KpK3iRuuesQ9-HPWmySP8N4_yCtJMMgzXTD-vJbxxIqLwAyP_WxmHyZED9D8KbPlOo5CfDetnveq8G9wniM6kNLeXeMwSm4G0Ar3b_TtCNbI-jSTZNREsHo8muc8T-HXAxzOqlbvvttqmAX7LUKVJ-4uEo-cDUm66iMLz2sJqEEAzEt5W43ADYpSjOImq8jI-QTVIl9D3mBlD8Japi6ajvn3eMJTrTpNO3ZfTEW_WfP8K1E0iVLW1uM7-ktx8r3h3s1-YwClTFl65ArxccbNjZpZgBwKhgobbfzx87jWr7x7AXyXU5g6p230z4bcfPanYS6buDVTKceEarj9zasD8N4ROWuXHbx81Bt7jmATwOHTEM6z7ED\",\"std\":\"gAAAAABqZEd2PVeTMOjG4oL0PjWk-YYu40z6SAQ2n5fjA0R-iJaVT72QEppQUiHU2Rl5KMnU-ANa4lX4SPFm_FbgPve7YMdSFznLiyF0yPlgneU7WiyC26vBV66GAl12fdxe4aW3fWjaYrXXmAftQ9ODZ1-pKhFx7E21ZYIqPwqoQwTy3FllzmqMvdPr5pWBnKhjQfpVORrqG_dTCni7x3IW6Rb1DMoaSA==\",\"ott\":null}}"
+          "value": "{\"val\":{\"requestId\":0,\"sid\":\"1784957616201-sjt0000502-d9c846fa-a8c4-42c4-94b7-5c2f5bcd0a12\",\"sts\":\"gAAAAABqZEqwOt3-WRnxfPR7y7hvqPekANkn_H7-ZrV4PCB4t0IEC0lvei63BXV_N_-mXyfJCb-ai8xIgbUUb_gO-OXQLe08qVgjImj1g4jGkDffLoH1FZMZdUpwNs7R1VPf_0U_7YVxYRWKD-UsTo2i58Hu3TK-Ji6dQLUR0VzAhH-RwKfh3TtWP10ma7jj8Rud5VdP3Cy7rvI0pW5GH1fk8wIILsHup2chUJTDa6eHzXiR2VPUey4mNlTsBnerMWRJT6LBiaLz5TUdidSTIUl_-IQTIIkf-_OHmbGw_9EGqoxZKlWeNpRPL2CBGTPotmhEXqzLCVivk3fFDeNfQpYuRI0Lqx5GMh6_Ah8jM-Id9mFLP9wOSfD2yPrtQMxq3MWwCM7Kyal0\",\"std\":\"gAAAAABqZEqw3-95GZTzHqrdGhsvQK_gx73737zwphEpAf91iBXaj-lWg21BUURgynwVgivKMuZ4_KthhugQ6WLbx77hoTgaLx3ufnCLtyzdqFZYA5qOlKTbiScvOsdEPnw52SkMGUC6EwuubFdOuY-UXhbk59KmKOmbz2Z8DZIdBZPJluycA-VPpE4UVoU8pW-PysetrPhFncQ-Uv3M_F7zACRXTRqAvA==\",\"ott\":null}}"
         },
         {
           "name": "bmuid",
@@ -563,7 +567,7 @@
         },
         {
           "name": "cdContextId",
-          "value": "{\"val\":2583}"
+          "value": "{\"val\":2585}"
         }
       ]
     },

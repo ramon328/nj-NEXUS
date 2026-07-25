@@ -1189,9 +1189,16 @@ const SCOPE_INFO = {
 // SII solo de ESA razón social). Así "meter a Joaquín a MallorcAutos" le da autos +
 // SII + banco, todo de Ana Clara (que es la razón social de MallorcAutos). El acceso
 // a banco/facturas de un NO-admin ya está clavado a ANA CLARA en el resto del código.
+// `sii_empresa_id` clava el SII a esa razón social; `banco_empresa` clava el banco/tek.
+// Si están en null, esa parte queda DORMIDA (fail-closed) hasta cargar las credenciales.
+// `pendiente:true` = empresa creada como rol pero aún sin backend/credenciales (dormida).
 const EMPRESAS = {
-  mallorcautos: { nombre: 'MallorcAutos / Ana Clara', scopes: ['mallorca', 'sii', 'banco'], sii_empresa_id: 3 },
-  aliace: { nombre: 'Aliace', scopes: ['aliace', 'correo'] },
+  mallorcautos: { nombre: 'MallorcAutos / Ana Clara', scopes: ['mallorca', 'sii', 'banco'], sii_empresa_id: 3, banco_empresa: 'ANA CLARA SPA' },
+  aliace: { nombre: 'Aliace', scopes: ['aliace'] },
+  impomin: { nombre: 'IMPOMIN', scopes: ['sii', 'banco'], sii_empresa_id: null, banco_empresa: null, pendiente: true },
+  hn: { nombre: 'HN', scopes: ['sii', 'banco'], sii_empresa_id: null, banco_empresa: null, pendiente: true },
+  ace: { nombre: 'ACE', scopes: ['sii', 'banco'], sii_empresa_id: null, banco_empresa: null, pendiente: true },
+  foodexpert: { nombre: 'Food Expert', scopes: ['sii', 'banco'], sii_empresa_id: null, banco_empresa: null, pendiente: true },
 }
 function scopesDeEmpresas(empresas) {
   const out = new Set()
@@ -1237,6 +1244,17 @@ function siiEmpresasIdsDe(de) {
   for (const e of empresasDe(de)) { const id = EMPRESAS[e]?.sii_empresa_id; if (id != null) ids.add(String(id)) }
   return [...ids]
 }
+// Razón social bancaria a la que un NO-admin queda clavado (null = admin, libre). Fail-closed:
+// si su empresa no tiene banco_empresa cargado todavía, devuelve '' (sin banco habilitado).
+function bancoEmpresaDe(de) {
+  if (esAdmin(de)) return null
+  for (const e of empresasDe(de)) { const b = EMPRESAS[e]?.banco_empresa; if (b) return b }
+  return ''
+}
+// ¿Este no-admin tiene BLOQUEADO el banco/tek? Hoy el stack de banco (lectura y tek) solo
+// opera ANA CLARA; cualquier otra empresa (o sin banco_empresa cargado) queda dormida.
+function bancoBloqueado(de) { return !esAdmin(de) && bancoEmpresaDe(de) !== 'ANA CLARA SPA' }
+const MSG_BANCO_DORMIDO = JSON.stringify({ ok: false, error: '🔒 Tu empresa todavía no tiene el banco habilitado en Nexus; se activa cuando se carguen sus credenciales.' })
 // Solo los números dados de alta (fundadores + store) pueden hablarle a Nexus.
 function destinoValido(de) {
   const n = normNum(de)
@@ -1315,7 +1333,7 @@ function scopeDeTool(nombre) {
 const GESTION_USUARIOS = ['agregar_usuario', 'listar_usuarios', 'quitar_usuario']
 // Arma el mensaje de bienvenida: qué EMPRESA(s) maneja + las áreas que eso le habilita.
 function mensajeBienvenida(nombre, accesos, empresas) {
-  const emp = (empresas || []).filter((e) => EMPRESAS[e]).map((e) => '🏢 *' + EMPRESAS[e].nombre + '*')
+  const emp = (empresas || []).filter((e) => EMPRESAS[e]).map((e) => '🏢 *' + EMPRESAS[e].nombre + '*' + (EMPRESAS[e].pendiente ? ' _(activación pendiente)_' : ''))
   const lineas = (accesos || []).filter((s) => SCOPE_INFO[s]).map((s) => '• ' + SCOPE_INFO[s])
   let cuerpo
   if (emp.length) {
@@ -1677,8 +1695,9 @@ GOAUTOS = SOLO MallorcAutos. Nunca des datos de otras automotoras.
 👥 GESTIÓN DE USUARIOS (alta/baja — SOLO Ramón y Nico, los fundadores):
 - Solo los FUNDADORES (Ramón y Nico) pueden crear, listar o quitar usuarios. Si lo pide otra persona, dile con amabilidad que no tiene permiso para eso.
 - ALTA — los ROLES se dan POR EMPRESA (estructura ordenada), no por scopes sueltos. Cuando un fundador diga "agrega/crea un usuario", "da de alta a alguien", "mete a X a MallorcAutos", etc., PÍDELE (claro): (1) el NOMBRE, (2) el NÚMERO de WhatsApp con +56, y (3) a qué EMPRESA(s) lo mete. Empresas válidas:
-  · *MallorcAutos / Ana Clara* (clave "mallorcautos") — le da los AUTOS (GoAutos: ver/publicar/editar/vender/gastos + Excel) + el SII y el BANCO de **Ana Clara** (la razón social de MallorcAutos). Ej.: "mete a Joaquín a MallorcAutos" → empresas:['mallorcautos'].
-  · *Aliace* (clave "aliace") — le da la facturación/ventas/pagos/cobranzas/deudas/metas de Aliace + los correos.
+  · *MallorcAutos / Ana Clara* (clave "mallorcautos", ACTIVA) — le da los AUTOS (GoAutos: ver/publicar/editar/vender/gastos + Excel) + el SII y el BANCO de **Ana Clara** (la razón social de MallorcAutos). Ej.: "mete a Joaquín a MallorcAutos" → empresas:['mallorcautos'].
+  · *Aliace* (clave "aliace", ACTIVA) — le da la facturación/ventas/pagos/cobranzas/deudas/metas de Aliace.
+  · *IMPOMIN* / *HN* / *ACE* / *Food Expert* (claves "impomin", "hn", "ace", "foodexpert") — rol creado para futuros usuarios, con SII + banco de cada empresa, pero HOY están PENDIENTES/DORMIDOS: se pueden asignar, pero el usuario no podrá sacar datos hasta que se carguen las credenciales de esa empresa. Si un fundador mete a alguien a una de estas, AVÍSALE que la empresa está pendiente de credenciales (queda dormida por ahora).
   Un usuario puede manejar UNA o VARIAS empresas. Al asignar una empresa, su SII/banco/facturas quedan CLAVADOS a esa razón social (un usuario de MallorcAutos NO ve el SII ni el banco de otras empresas). Si un caso MUY puntual necesita un área suelta que no es de ninguna empresa (ej. solo "cerebro" o "bd"), pásala en el campo accesos. Muéstrale un RESUMEN (nombre · número · empresa) y pide OK; SOLO cuando confirme, llama agregar_usuario. La herramienta YA registra al usuario, lo habilita para escribirle a Nexus y le manda el WhatsApp de bienvenida — NO escribas tú esa bienvenida.
 - BAJA — "quita / elimina / da de baja a X": confirma el número y llama quitar_usuario (no se puede quitar a un fundador).
 - VER — "qué usuarios hay / lista de usuarios": llama listar_usuarios.
@@ -2434,7 +2453,7 @@ const HERRAMIENTAS = [
       properties: {
         nombre: { type: 'string', description: 'Nombre del usuario, ej "Juan Pérez"' },
         numero: { type: 'string', description: 'Número de WhatsApp en formato +56 9 XXXX XXXX (ej "+56912345678")' },
-        empresas: { type: 'array', items: { type: 'string', enum: ['mallorcautos', 'aliace'] }, description: 'Empresa(s) del grupo que manejará. mallorcautos = MallorcAutos/Ana Clara (autos + SII + banco de Ana Clara); aliace = Aliace (facturación/ventas/cobranza + correos). Esta es la forma recomendada de dar de alta.' },
+        empresas: { type: 'array', items: { type: 'string', enum: ['mallorcautos', 'aliace', 'impomin', 'hn', 'ace', 'foodexpert'] }, description: 'Empresa(s) del grupo que manejará. mallorcautos = MallorcAutos/Ana Clara (autos + SII + banco de Ana Clara, ACTIVA); aliace = Aliace (facturación/ventas/cobranza, ACTIVA); impomin/hn/ace/foodexpert = IMPOMIN/HN/ACE/Food Expert (SII + banco de cada una, PENDIENTES: rol creado pero DORMIDO hasta cargar sus credenciales). Esta es la forma recomendada de dar de alta.' },
         accesos: { type: 'array', items: { type: 'string', enum: ['aliace', 'sii', 'mallorca', 'correo', 'bd', 'cerebro', 'banco'] }, description: 'OPCIONAL: áreas sueltas extra, solo para casos puntuales que no calzan con una empresa (ej. dar solo "cerebro" o "bd"). Normalmente usa `empresas`, no esto.' },
       },
       required: ['nombre', 'numero'],
@@ -3138,6 +3157,7 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     // ── tek · PAGO de factura de compra (SIMULACIÓN — no mueve plata todavía) ──
     if (nombre === 'tek_pago') {
+      if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
       let pago
       try { pago = await import('../conector-tek/pago.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de pagos (tek): ' + e.message }) }
@@ -3156,6 +3176,7 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     // ── tek · TRANSFERIR a una persona guardada (crea PENDIENTE por liberar, no mueve plata) ──
     if (nombre === 'tek_transferir') {
+      if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
       let tr
       try { tr = await import('../conector-tek/transferir.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de transferencias (tek): ' + e.message }) }
@@ -3206,6 +3227,7 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     // ── tek · TRANSFERENCIA MASIVA (lote con varias transferencias) ─────────────
     if (nombre === 'tek_masiva') {
+      if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
       let mm
       try { mm = await import('../conector-tek/masiva.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de masivas (tek): ' + e.message }) }
@@ -3304,6 +3326,7 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     // ── tek · DESCARGAR COMPROBANTES de pago/transferencia (Consultas Histórica) ────
     if (nombre === 'tek_comprobantes') {
+      if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
       let cm
       try { cm = await import('../conector-tek/comprobantes.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de comprobantes (tek): ' + e.message }) }
@@ -4146,6 +4169,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         }
         if (input.accion === 'emitir') {
           const empresaId = input.empresa_id || 3 // ANA CLARA SPA
+          if (empresaBloqueada(empresaId)) return '🔒 No puedes emitir facturas de esa empresa; solo de la(s) tuya(s).'
           const body = {
             tipo_dte: input.tipo_dte || 33,
             receptor: (input.receptor && typeof input.receptor === 'object') ? input.receptor : {},
@@ -4257,6 +4281,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       } catch (e) { return `Error con el sistema SII (Martes): ${e.message}` }
     }
     if (nombre === 'banco') {
+      if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
       try {
         const b = await import('../conector-banco/banco.mjs')
         // ACCESO ACOTADO: un usuario NO admin (ej. Joaquín) con scope 'banco' SOLO ve
@@ -4445,7 +4470,8 @@ async function ejecutar(nombre, input, ctx = {}) {
       // SEGUNDO PLANO (no corta esta respuesta al fundador).
       if (!enviado) await programarRecargaOpenclaw(numero, bienvenida)
       const accTxt = accesos.length ? accesos.join(', ') : 'ninguno aún'
-      const empTxt = empresas.length ? empresas.map((e) => EMPRESAS[e].nombre).join(' + ') : (sueltos.length ? 'áreas sueltas' : 'ninguna')
+      const empTxt = empresas.length ? empresas.map((e) => EMPRESAS[e].nombre + (EMPRESAS[e].pendiente ? ' (pendiente de credenciales)' : '')).join(' + ') : (sueltos.length ? 'áreas sueltas' : 'ninguna')
+      const hayPendiente = empresas.some((e) => EMPRESAS[e]?.pendiente)
       return JSON.stringify({
         ok: true,
         accion: yaExistia ? 'usuario actualizado' : 'usuario creado',
@@ -4454,7 +4480,8 @@ async function ejecutar(nombre, input, ctx = {}) {
           + (enviado
             ? 'Ya le mandé el WhatsApp de bienvenida ✅.'
             : 'En ~1 minuto OpenClaw se recarga solo para activar su número y le llega la bienvenida automáticamente — no tienes que hacer nada.')
-          + (okOC ? '' : ' ⚠️ No pude actualizar el allowlist de OpenClaw; revísalo.'),
+          + (okOC ? '' : ' ⚠️ No pude actualizar el allowlist de OpenClaw; revísalo.')
+          + (hayPendiente ? ' ⏳ OJO: esa empresa está PENDIENTE de credenciales, así que su SII/banco quedan dormidos hasta que las cargues — el usuario ya queda listo para cuando se activen.' : ''),
       })
     }
     if (nombre === 'listar_usuarios') {
