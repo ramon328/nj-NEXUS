@@ -39,7 +39,12 @@ const chance = (p) => Math.random() < p
 // ── CANDADO de sesión (safeguard): evita DOS navegadores sobre el MISMO perfil
 //    (lo corrompe) y evita re-loguear en paralelo (gatilla el antifraude). Si ya hay
 //    una sesión de banco activa, ESPERAMOS a que termine en vez de abrir otra.
-const LOCK = join(DIR, 'session.lock')
+// Lock POR PERSONA: la sesión es por persona (session-<user>.json), así que el lock también.
+// Antes era global (session.lock) → una operación de Nico bloqueaba una de Ramón aunque usan
+// sesiones/navegadores distintos ("banco ocupado" / sesión activa no usada). Ahora cada persona
+// tiene su propio lock y corren en paralelo. TEK_USER ya está seteado por quien nos invoca.
+const LOCK_USER = (process.env.TEK_USER || 'ramon').toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'
+const LOCK = join(DIR, LOCK_USER === 'ramon' ? 'session.lock' : `session-${LOCK_USER}.lock`)
 function lockVivo() {
   try {
     const j = JSON.parse(readFileSync(LOCK, 'utf8'))

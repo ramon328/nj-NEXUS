@@ -3330,13 +3330,18 @@ async function ejecutar(nombre, input, ctx = {}) {
       let cm
       try { cm = await import('../conector-tek/comprobantes.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de comprobantes (tek): ' + e.message }) }
+      // Corre como la PERSONA que pregunta (sesión por persona), con SU empresa — antes iba
+      // hardcodeado a ramon/ANA CLARA y por eso ignoraba la sesión de Nico y decía "solo ANA CLARA".
+      const uidComp = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
+      let empComp = input.empresa
+      if (!empComp) { try { const cr = await import('../conector-tek/credenciales.mjs'); empComp = (cr.listar(uidComp) || [])[0]?.empresa } catch { /* */ } }
       if (input.accion === 'bajar') {
         // Qué bajar: todos | varios (indices) | uno (indice).
         let spec = '1'
         if (input.todos === true) spec = 'todos'
         else if (Array.isArray(input.indices) && input.indices.length) spec = input.indices.map((n) => parseInt(n, 10)).filter((n) => n >= 1).join(',')
         else if (input.indice != null) spec = String(Math.max(1, parseInt(input.indice, 10) || 1))
-        const r = await cm.bajarComprobantes(spec)
+        const r = await cm.bajarComprobantes(spec, { userId: uidComp, empresa: empComp })
         if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de bajar comprobantes.' })
         const oks = (r.comprobantes || []).filter((c) => c.pdf)
         if (!oks.length) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude bajar ${spec === 'todos' ? 'los comprobantes' : 'ese comprobante'} (${r.estado || 'desconocido'}). Puede que esas filas no tengan PDF o el banco no los entregó.` })
@@ -3355,7 +3360,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         return JSON.stringify({ ok: true, enviados, descargados: oks.length, fallidos, pdfs: oks.map((c) => c.idx), texto })
       }
       // listar
-      const r = await cm.listarComprobantes()
+      const r = await cm.listarComprobantes({ userId: uidComp, empresa: empComp })
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de leer comprobantes.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer los comprobantes (${r.estado || 'desconocido'}).` })
       return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (nº · fecha · beneficiario · monto · estado). RECUERDA esta lista para el próximo mensaje: si el usuario responde "todos"/"mándamelos todos" llama tek_comprobantes accion:"bajar" con todos:true; si dice "el 3 y el 5" usa indices:[3,5]; si dice uno, indice:ese número. Los números son los que le mostraste.' })

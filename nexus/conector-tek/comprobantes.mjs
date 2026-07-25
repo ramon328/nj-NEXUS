@@ -9,28 +9,35 @@ import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from '
 import * as credenciales from './credenciales.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
-const LOCK_FILE = join(DIR, 'data', '.masiva.lock')   // mismo lock que masiva: única sesión de banco
-
-function bancoOcupado() {
+// Lock POR PERSONA (igual que login-humano): la operación de una persona NO bloquea a otra —
+// usan sesiones distintas. Antes el lock era global (.masiva.lock) → una op de Nico marcaba
+// "banco ocupado" a una de Ramón aunque su sesión estuviera libre.
+function lockFile(userId) {
+  const slug = String(userId || 'ramon').toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'
+  return join(DIR, 'data', slug === 'ramon' ? '.masiva.lock' : `.lock-${slug}`)
+}
+function bancoOcupado(lf) {
   try {
-    if (!existsSync(LOCK_FILE)) return false
-    const ts = Number(readFileSync(LOCK_FILE, 'utf8')) || 0
-    if (Date.now() - ts > 12 * 60_000) { try { unlinkSync(LOCK_FILE) } catch { /* */ } return false }
+    if (!existsSync(lf)) return false
+    const ts = Number(readFileSync(lf, 'utf8')) || 0
+    if (Date.now() - ts > 12 * 60_000) { try { unlinkSync(lf) } catch { /* */ } return false }
     return true
   } catch { return false }
 }
-function tomarLock() { try { mkdirSync(join(DIR, 'data'), { recursive: true }); writeFileSync(LOCK_FILE, String(Date.now())) } catch { /* */ } }
-function soltarLock() { try { unlinkSync(LOCK_FILE) } catch { /* */ } }
+function tomarLock(lf) { try { mkdirSync(join(DIR, 'data'), { recursive: true }); writeFileSync(lf, String(Date.now())) } catch { /* */ } }
+function soltarLock(lf) { try { unlinkSync(lf) } catch { /* */ } }
 
 // Corre login-humano con TEK_COMPROBANTES=<modo> y devuelve el objeto `comprob` del RESULTADO.
 function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA') {
+  userId = (userId || 'ramon').toLowerCase()
   if (!credenciales.tieneConexion(userId, empresa)) {
     return Promise.resolve({ ok: false, estado: 'sin_conexion', error: `"${userId}" no tiene banco conectado para "${empresa}".` })
   }
-  if (bancoOcupado()) {
-    return Promise.resolve({ ok: false, estado: 'ocupado', error: 'Hay una operación bancaria en curso. Espera ~2 min y reintenta.' })
+  const lf = lockFile(userId)
+  if (bancoOcupado(lf)) {
+    return Promise.resolve({ ok: false, estado: 'ocupado', error: 'Hay una operación bancaria en curso para esta persona. Espera ~2 min y reintenta.' })
   }
-  tomarLock()
+  tomarLock(lf)
   return new Promise((resolve) => {
     const env = { ...process.env, TEK_COMPROBANTES: modo, TEK_EMPRESA: empresa.replace(/ SPA$/i, '').trim() || 'ANA CLARA', TEK_USER: userId, ...extraEnv }
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
@@ -39,7 +46,7 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
     hijo.stderr.on('data', (d) => { err += d.toString() })
     const to = setTimeout(() => { try { hijo.kill('SIGKILL') } catch {} }, 11 * 60_000)
     const fin = () => {
-      clearTimeout(to); soltarLock()
+      clearTimeout(to); soltarLock(lf)
       let resultado = null
       const lineas = out.split('\n')
       for (let i = lineas.length - 1; i >= 0; i--) {
@@ -52,13 +59,13 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
       resolve({ ok: Boolean(comprob) && !seguridad, estado: seguridad ? 'sesion_caida' : (comprob?.estado || resultado?.estado || 'sin_resultado'), comprob, stderr: err.slice(-300) })
     }
     hijo.on('close', fin)
-    hijo.on('error', (e) => { clearTimeout(to); soltarLock(); resolve({ ok: false, estado: 'spawn_error', error: e.message }) })
+    hijo.on('error', (e) => { clearTimeout(to); soltarLock(lf); resolve({ ok: false, estado: 'spawn_error', error: e.message }) })
   })
 }
 
 /** Lista las transferencias/comprobantes del histórico (para que el usuario elija cuál). */
-export async function listarComprobantes() {
-  const r = await correr('listar')
+export async function listarComprobantes({ userId, empresa } = {}) {
+  const r = await correr('listar', {}, userId, empresa)
   return { ...r, filas: r.comprob?.filas || [], total: r.comprob?.total_filas || 0 }
 }
 
@@ -66,9 +73,9 @@ export async function listarComprobantes() {
  * Baja el/los PDF de comprobantes. `spec` = número (1), array [1,3,5], o 'todos'.
  * Descarga TODOS en una sola sesión de banco. Devuelve { ok, comprobantes: [{idx, pdf}], ok_count }.
  */
-export async function bajarComprobantes(spec = '1') {
+export async function bajarComprobantes(spec = '1', { userId, empresa } = {}) {
   const idxStr = Array.isArray(spec) ? spec.join(',') : String(spec)
-  const r = await correr('bajar', { TEK_COMPROB_IDX: idxStr })
+  const r = await correr('bajar', { TEK_COMPROB_IDX: idxStr }, userId, empresa)
   const comprobantes = r.comprob?.comprobantes || []
   return { ...r, comprobantes, ok_count: r.comprob?.ok_count ?? comprobantes.filter((c) => c.pdf).length, total: r.comprob?.total_filas || 0 }
 }

@@ -19,17 +19,22 @@ const OUT_DIR = join(DIR, 'data', 'masivas')
 // Lock de operación bancaria: el banco tiene UNA sola sesión de navegador. Si se lanzan
 // dos subidas a la vez (p.ej. el modelo reintenta, o dos usuarios), chocan. Con esto la
 // 2ª falla RÁPIDO ("ocupado") en vez de encimarse. Lock viejo (>12 min) = huérfano, se ignora.
-const LOCK_FILE = join(DIR, 'data', '.masiva.lock')
-function masivaOcupada() {
+// Lock POR PERSONA (igual que login-humano y comprobantes): la masiva de una persona NO bloquea
+// operaciones de otra (usan sesiones distintas). ramon → .masiva.lock; otros → .lock-<user>.
+function lockFile(userId) {
+  const slug = String(userId || 'ramon').toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'
+  return join(DIR, 'data', slug === 'ramon' ? '.masiva.lock' : `.lock-${slug}`)
+}
+function masivaOcupada(lf) {
   try {
-    if (!existsSync(LOCK_FILE)) return false
-    const ts = Number(readFileSync(LOCK_FILE, 'utf8')) || 0
-    if (Date.now() - ts > 12 * 60_000) { try { unlinkSync(LOCK_FILE) } catch { /* */ } return false }
+    if (!existsSync(lf)) return false
+    const ts = Number(readFileSync(lf, 'utf8')) || 0
+    if (Date.now() - ts > 12 * 60_000) { try { unlinkSync(lf) } catch { /* */ } return false }
     return true
   } catch { return false }
 }
-function tomarLock() { try { mkdirSync(join(DIR, 'data'), { recursive: true }); writeFileSync(LOCK_FILE, String(Date.now())) } catch { /* */ } }
-function soltarLock() { try { unlinkSync(LOCK_FILE) } catch { /* */ } }
+function tomarLock(lf) { try { mkdirSync(join(DIR, 'data'), { recursive: true }); writeFileSync(lf, String(Date.now())) } catch { /* */ } }
+function soltarLock(lf) { try { unlinkSync(lf) } catch { /* */ } }
 
 // Cuenta origen por defecto (ANA CLARA SPA, CLP) — dígitos, como en el archivo real.
 export const CUENTA_ORIGEN_ANACLARA = '80280939'   // = 0-000-8028093-9
@@ -191,19 +196,21 @@ export async function generarMasivo(transfers, opts = {}) {
  * `concepto` = una de CONCEPTOS (lo elige el usuario). Devuelve { ok, estado, archivo, ... }.
  */
 export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp, userId = 'ramon', empresa = 'ANA CLARA SPA' } = {}) {
+  userId = (userId || 'ramon').toLowerCase()
   if (!credenciales.tieneConexion(userId, empresa)) {
     return { ok: false, estado: 'sin_conexion', error: `"${userId}" no tiene banco conectado para "${empresa}".` }
   }
+  const lf = lockFile(userId)   // lock POR PERSONA
   // 1) Genera el archivo (valida cada fila; si hay problemas, los reporta y NO sube).
   const gen = await generarMasivo(transfers, { cuentaOrigen, stamp })
   if (gen.problemas && gen.problemas.length) {
     return { ok: false, estado: 'archivo_con_problemas', archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total, problemas: gen.problemas }
   }
-  // 2) Lock: una sola subida al banco a la vez (evita colisiones por reintentos / 2 usuarios).
-  if (masivaOcupada()) {
-    return { ok: false, estado: 'ocupado', error: 'Ya hay una transferencia bancaria en curso. Espera ~2 min a que termine y reintenta UNA sola vez.' }
+  // 2) Lock POR PERSONA: una sola subida al banco a la vez para ESA persona (no bloquea a otras).
+  if (masivaOcupada(lf)) {
+    return { ok: false, estado: 'ocupado', error: 'Ya hay una transferencia bancaria en curso para esta persona. Espera ~2 min a que termine y reintenta UNA sola vez.' }
   }
-  tomarLock()
+  tomarLock(lf)
   try {
   return await new Promise((resolve) => {
     const env = {
@@ -239,7 +246,7 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
     })
     hijo.on('error', (e) => { clearTimeout(to); resolve({ ok: false, estado: 'spawn_error', error: e.message }) })
   })
-  } finally { soltarLock() }
+  } finally { soltarLock(lf) }
 }
 
 // ── CLI de prueba ────────────────────────────────────────────────────────────
