@@ -1057,25 +1057,73 @@ async function crearTransferencia(page, log) {
 // empresa, abre Transferencias → Autorización (Transferencias Express) y vuelca la lista para
 // ver qué transferencias quedaron "por autorizar". NUNCA autoriza ni libera (no toca Superclave).
 async function verPendientes(page, log) {
+  const filas = []
+  // Parsea CUALQUIER tabla visible con montos ($) en filas → {rut,nombre,banco,monto,estado,fecha}.
+  const parseTabla = async (tipo) => {
+    for (const f of page.frames()) {
+      const rows = await f.evaluate(() => {
+        const out = []
+        for (const tr of document.querySelectorAll('tr')) {
+          const cells = [...tr.querySelectorAll('td')].map((td) => (td.innerText || '').replace(/\s+/g, ' ').trim()).filter((c) => c !== '')
+          if (cells.length >= 2 && /\$\s?[\d.]+/.test(cells.join(' '))) out.push(cells)
+        }
+        return out
+      }).catch(() => [])
+      for (const cells of rows) {
+        const j = cells.join(' | ')
+        const monto = (j.match(/\$\s?[\d.]+/) || [])[0] || ''
+        if (!monto) continue
+        const rut = (j.match(/\b\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]\b/) || [])[0] || ''
+        const fecha = (j.match(/\d{4}\/\d{2}\/\d{2}(?:\s+\d{2}:\d{2}:\d{2})?/) || [])[0] || ''
+        const estado = (j.match(/por autorizar|por confirmar|por liberar|autorizada|liberada|rechazada|eliminada|pendiente[a-zñ ]*/i) || [''])[0].trim()
+        const banco = (j.match(/banco [^|]+/i) || [''])[0].trim()
+        const nombre = cells.find((c) => /[a-zñáéíóú]/i.test(c) && !/banco|santander|\$|autoriz|pendiente|liberar|confirmar|rechaz|cuenta corriente|moneda extranjera|l[ií]nea de cr[eé]dito/i.test(c) && !/\d{4}\/\d{2}/.test(c) && c.replace(/[^a-záéíóúñ]/gi, '').length >= 5) || ''
+        // Solo filas que parezcan una TRANSFERENCIA (RUT, fecha o estado pendiente) — descarta saldos.
+        if (!rut && !fecha && !/autoriz|confirmar|liberar|pendiente|rechaz/i.test(estado)) continue
+        filas.push({ tipo, rut, nombre, banco, monto, estado, fecha })
+      }
+    }
+  }
   await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
   await sleep(8000)
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
-  await sleep(rnd(3500, 5000))
-  const menu = page.getByText(/^transferencias?$/i).first()
-  await clickHumano(page, menu); await sleep(rnd(4000, 5500))
-  await page.screenshot({ path: join(DATA, 'pend-00-menu.png') }).catch(() => {})
-  // clic "Autorización" (Transferencias Express) — la 1ª "Autorización" del panel.
-  let aut = page.locator('xpath=//*[contains(normalize-space(.),"Transferencias Express")]/following::*[normalize-space(text())="Autorización"][1]').first()
-  if (!(await aut.count().catch(() => 0))) aut = page.getByText(/^Autorizaci[oó]n$/i).first()
-  if (await aut.count().catch(() => 0)) { await clickHumano(page, aut); await sleep(rnd(9000, 12_000)) }
+  await sleep(rnd(3000, 4500))
+  try { await cerrarPopups(page, log) } catch { /* */ }   // saca el modal "Actualiza tu Clave"
+  await sleep(rnd(1200, 2200))
+  // Abre el menú Transferencias y clickea el 1er item de la lista que matchee.
+  const irA = async (labels) => {
+    const menu = page.getByText(/^transferencias?$/i).first()
+    await clickHumano(page, menu); await sleep(rnd(3500, 5000))
+    for (const lab of labels) {
+      const it = page.getByText(new RegExp('^' + lab + '$', 'i')).filter({ visible: true }).first()
+      if (await it.count().catch(() => 0)) {
+        await it.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {})
+        await it.click({ timeout: 5000 }).catch(() => {})   // clic NATIVO (dispara el router del SPA)
+        await sleep(rnd(8000, 11_000)); return lab
+      }
+    }
+    return null
+  }
+  // 1) INDIVIDUAL: la lista de pendientes está en "Autorización" o "Liberación" según el rol/menú.
+  const it1 = await irA(['Autorizaci[oó]n', 'Liberaci[oó]n'])
+  log('pendientes individual → item:', it1 || '(no encontrado)')
   await page.screenshot({ path: join(DATA, 'pend-01-lista.png') }).catch(() => {})
+  try { await parseTabla('transferencia') } catch (e) { log('parse individual falló:', e.message) }
   let txt = ''
   for (const f of page.frames()) txt += (await f.locator('body').innerText().catch(() => '') || '') + '\n'
   try { writeFileSync(join(DATA, 'pendientes.txt'), txt) } catch { /* */ }
-  const lineas = txt.split('\n').map((l) => l.trim()).filter((l) => l)
-  const joaq = lineas.filter((l) => /joaqu[ií]n|elias|maluk|19[.]?689[.]?228|0070?3142/i.test(l))
-  log('pendientes: líneas con Joaquín/cuenta =', joaq.length)
-  return { estado: 'pendientes_vistos', joaquin: joaq.slice(0, 15), texto: txt, url: page.url() }
+  // 2) MASIVA (best-effort): "Consulta" (Transferencias Masivas) muestra los lotes y su estado.
+  try {
+    const it2 = await irA(['Consulta'])
+    log('pendientes masiva → item:', it2 || '(no encontrado)')
+    if (it2) await parseTabla('masiva')
+    await page.screenshot({ path: join(DATA, 'pend-02-masiva.png') }).catch(() => {})
+  } catch (e) { log('masiva consulta (best-effort) falló:', e.message) }
+  // Nos quedamos con las PENDIENTES (por autorizar/confirmar/liberar) — o todas si no traen estado.
+  const pend = filas.filter((f) => !f.estado || /autoriz|confirmar|liberar|pendiente/i.test(f.estado))
+  const out = pend.length ? pend : filas
+  log(`pendientes: ${filas.length} filas totales, ${pend.length} pendientes`)
+  return { estado: 'pendientes_vistos', filas: out, total: out.length, texto: txt.slice(0, 3500), url: page.url() }
 }
 
 // ¿Existe YA una transferencia pendiente al RUT destino (y monto)? Verificación REAL en la

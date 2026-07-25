@@ -1324,7 +1324,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'vincular_banco', 'mis_bancos_conectados'],
+  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'vincular_banco', 'mis_bancos_conectados'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -2754,6 +2754,17 @@ const HERRAMIENTAS = [
       required: ['accion'],
     },
   },
+  // ── tek · PENDIENTES DE APROBACIÓN (transferencias/masivas "Por Autorizar") ──
+  {
+    name: 'tek_pendientes',
+    description: 'LISTAR las transferencias y masivas PENDIENTES DE APROBACIÓN ("Por Autorizar" / "Por Confirmar" / "Por Liberar") en Santander Empresa (sistema "tek"). SOLO LECTURA: NO autoriza, NO libera, NO mueve plata. Úsalo cuando el usuario pregunte "¿qué transferencias tengo pendientes de aprobar/autorizar?", "las masivas por autorizar", "qué está pendiente de aprobación", "qué quedó por liberar". Corre como la PERSONA que pregunta, usando SU sesión de banco (si está viva la reusa; si está dormida, la abre). Devuelve las filas (beneficiario · RUT · banco · monto · estado · fecha) — muéstralas NUMERADAS. Por defecto mira la empresa principal de la persona; si pide otra, pásala en "empresa". Tarda ~1-2 min si tiene que entrar al banco. Si responde sesion_caida, dile que hay que reintentar en un momento (el banco cerró la sesión por seguridad). ⛔ NUNCA ofrezcas autorizar/liberar tú — eso lo hace la persona en el banco con su Superclave.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        empresa: { type: 'string', description: 'Opcional: de qué empresa mirar las pendientes (ej "ANA CLARA SPA"). Si no se da, usa la 1ª empresa conectada de la persona.' },
+      },
+    },
+  },
   // ── tek · VINCULAR un banco: manda el LINK del widget seguro (NO pedir clave por chat) ──
   {
     name: 'vincular_banco',
@@ -3364,6 +3375,23 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de leer comprobantes.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer los comprobantes (${r.estado || 'desconocido'}).` })
       return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (nº · fecha · beneficiario · monto · estado). RECUERDA esta lista para el próximo mensaje: si el usuario responde "todos"/"mándamelos todos" llama tek_comprobantes accion:"bajar" con todos:true; si dice "el 3 y el 5" usa indices:[3,5]; si dice uno, indice:ese número. Los números son los que le mostraste.' })
+    }
+    // ── tek · PENDIENTES DE APROBACIÓN ("Por Autorizar") — SOLO LECTURA, por persona ──
+    if (nombre === 'tek_pendientes') {
+      if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
+      let pm
+      try { pm = await import('../conector-tek/pendientes.mjs') }
+      catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de pendientes (tek): ' + e.message }) }
+      // Corre como la PERSONA que pregunta, con SU empresa (sesión por persona).
+      const uidP = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
+      let empP = input.empresa
+      if (!empP) { try { const cr = await import('../conector-tek/credenciales.mjs'); empP = (cr.listar(uidP) || [])[0]?.empresa } catch { /* */ } }
+      const r = await pm.listarPendientes({ userId: uidP, empresa: empP })
+      if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Reintentá en un momento y la reabro.' })
+      if (r.estado === 'ocupado') return JSON.stringify({ ok: false, estado: 'ocupado', texto: 'Hay una operación bancaria en curso para esta persona. Espera ~2 min y reintenta UNA vez.' })
+      if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer las pendientes (${r.estado || 'desconocido'}).` })
+      if (!r.total) return JSON.stringify({ ok: true, total: 0, filas: [], texto: `No hay transferencias ni masivas pendientes de aprobación en ${empP || 'tu empresa'} ahora mismo. ✅` })
+      return JSON.stringify({ ok: true, total: r.total, filas: r.filas, empresa: empP, instruccion: 'Muéstrale la lista NUMERADA de pendientes de aprobación (nº · beneficiario · banco · monto · estado · fecha; si una fila no tiene nombre, muestra el RUT). Aclarale que están "Por Autorizar" y que para que la plata salga las tiene que autorizar ÉL en el banco con su Superclave — vos NUNCA las autorizas ni liberas.' })
     }
     // ── tek · VINCULAR banco: link del widget seguro + PIN (nunca pedir clave por chat) ──
     if (nombre === 'vincular_banco') {
