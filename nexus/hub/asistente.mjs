@@ -1206,6 +1206,9 @@ function cargarUsuarios() {
 }
 function usuarioDe(de) { return cargarUsuarios()[normNum(de)] || null }
 function esAdmin(de) { return Boolean(usuarioDe(de)?.admin) }
+// ¿El número está dado de alta como usuario de Nexus? Lo usa el GUARDIÁN del server:
+// un número que NO es usuario nunca llega al Nexus completo (ver contactos-externos.mjs).
+export function esUsuarioNexus(de) { return Boolean(usuarioDe(de)) }
 function accesosDe(de) { const u = usuarioDe(de); return u ? (u.admin ? SCOPES : u.accesos) : [] }
 // Solo los números dados de alta (fundadores + store) pueden hablarle a Nexus.
 function destinoValido(de) {
@@ -1687,6 +1690,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 🏦 "¿QUÉ BANCOS/EMPRESAS TENGO CONECTADAS?" (herramienta **mis_bancos_conectados**) — cuando el usuario pregunte qué bancos/empresas/cuentas tiene conectadas o vinculadas, usa SIEMPRE mis_bancos_conectados y dile las empresas de SU cuenta (las que ÉL vinculó por el widget). ⛔ NO respondas con el tool "banco" (Leo) ni con las conexiones de Ramón u otros — cada usuario ve LO SUYO. El tool "banco" (Leo) es solo para SALDOS/MOVIMIENTOS ("cuánta plata hay"), NO para "qué tengo conectado".
 
 🏦 CONECTAR/VINCULAR UN BANCO (herramienta **vincular_banco**) — cuando el usuario diga "quiero agregar/conectar/vincular una cuenta de banco", "conectar mi banco", "dar las credenciales del banco", etc., llama vincular_banco y **mándale el LINK del widget seguro + el PIN** que devuelve. ⛔ JAMÁS le pidas el usuario/clave del banco por el chat (queda expuesto en WhatsApp): las credenciales se ingresan SOLO en esa página cifrada, que además —si el RUT tiene varias empresas— lo deja elegir cuál. NO le hables de "Rail" ni "login asistido": el camino es el link de vincular_banco.
+
+📨 ESCRIBIRLE A UN NÚMERO EXTERNO (que NO es usuario de Nexus: un lead, un cliente, un tercero) — herramientas **enviar_mensaje_externo**, **ver_respuestas_externo**, **listar_externos**. Cuando un usuario diga "mándale a +569… que…", "escríbele a este número…", "avísale a <número> que…" y ese número NO es un usuario dado de alta, usa enviar_mensaje_externo (numero, mensaje, y nombre si lo sabes). Le llega SOLO ese texto (con la plantilla oficial si está fuera de las 24h). ⚠️ IMPORTANTE: Nexus NO conversa con ese externo ni le da datos del negocio — solo GUARDA lo que responda. Cuando el usuario pregunte "¿qué respondió el +569…?" usa ver_respuestas_externo; para ver a qué externos se ha escrito, listar_externos. Nunca inventes la respuesta del externo: sácala de la herramienta.
 
 REGLA DE ORO (acciones sensibles):
 - Las acciones que muevan dinero o sean irreversibles (pagar, transferir, eliminar, enviar, confirmar, comprar, etc.) NO se ejecutan solas: requieren aprobación humana explícita de Ramón.
@@ -2724,6 +2729,34 @@ const HERRAMIENTAS = [
       required: ['mensaje'],
     },
   },
+  // ── Contactos EXTERNOS (números que NO son usuarios de Nexus: leads, terceros) ──
+  {
+    name: 'enviar_mensaje_externo',
+    description: 'Envía por WhatsApp un mensaje de parte del usuario a un número que NO es usuario de Nexus (un lead, un cliente, un tercero que nunca ha hablado con Nexus). Úsalo cuando un usuario diga "mándale a +569… que…", "escríbele a este número…", "avísale a <número> que…". El externo recibe SOLO ese texto (si nunca escribió o pasaron +24h, llega con la plantilla oficial de Meta). Importante: Nexus NO va a conversar con ese externo ni le dará datos del negocio; solo GUARDA lo que responda para que el usuario lo revise después con ver_respuestas_externo. `numero` = destino +569…; `mensaje` = lo que se le quiere decir; `nombre` (opcional) = cómo se llama el externo. Cualquier usuario de Nexus dado de alta puede usarlo.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        numero: { type: 'string', description: 'Número de destino en formato +569… (o 569…).' },
+        mensaje: { type: 'string', description: 'El texto a enviarle al externo, tal como lo quiere el usuario.' },
+        nombre: { type: 'string', description: 'Opcional: nombre del externo (para el saludo de la plantilla y para etiquetarlo).' },
+      },
+      required: ['numero', 'mensaje'],
+    },
+  },
+  {
+    name: 'ver_respuestas_externo',
+    description: 'Muestra la conversación (lo que se le envió y lo que respondió) con un número EXTERNO que no es usuario de Nexus. Úsalo cuando un usuario pregunte "¿qué respondió el +569…?", "¿me contestó ese número?", "¿qué dijo <nombre> al que le escribí?". `numero` = el número externo +569….',
+    input_schema: {
+      type: 'object',
+      properties: { numero: { type: 'string', description: 'Número externo +569… a consultar.' } },
+      required: ['numero'],
+    },
+  },
+  {
+    name: 'listar_externos',
+    description: 'Lista los contactos EXTERNOS (números que no son usuarios de Nexus) a los que se les ha escrito, con su último mensaje. Úsalo cuando el usuario pregunte "¿a qué números externos les he escrito?", "¿qué contactos externos tengo?", "muéstrame los leads a los que escribí".',
+    input_schema: { type: 'object', properties: {}, required: [] },
+  },
 ]
 
 // Changelog propio de Nexus. Se lee UNA vez y se cachea (archivo local diminuto):
@@ -2751,6 +2784,11 @@ async function ejecutar(nombre, input, ctx = {}) {
     // Alertas a usuarios (pueden ir a cualquier número, fuera de 24h) → solo fundadores.
     if (nombre === 'alertar_usuario' && !esAdmin(ctx.de)) {
       return '🔒 Solo Ramón o Nico pueden mandar alertas a los usuarios de Nexus.'
+    }
+    // Contactos externos: solo un usuario de Nexus dado de alta (no anónimos web, no
+    // externos) puede escribirle a un número externo o leer lo que respondió.
+    if (['enviar_mensaje_externo', 'ver_respuestas_externo', 'listar_externos'].includes(nombre) && !usuarioDe(ctx.de)) {
+      return '🔒 Solo un usuario de Nexus dado de alta puede escribir a números externos o ver sus respuestas.'
     }
     // Resto: si la herramienta pertenece a un área (scope), el usuario debe tenerla
     // habilitada (los admin pasan todo). Las tools sin scope quedan libres.
@@ -3008,6 +3046,63 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (noAprobada(m)) return JSON.stringify({ ok: false, error: 'La plantilla "alerta_nexus" todavía no está APROBADA por Meta (o no existe). Espera la aprobación y reintenta.', detalle: m })
         return JSON.stringify({ ok: false, error: 'No pude enviar la alerta: ' + m })
       }
+    }
+    // ── Contactos EXTERNOS: relayar un mensaje a un número que no es usuario ──
+    if (nombre === 'enviar_mensaje_externo') {
+      const numero = normNum(input.numero)
+      const mensaje = String(input.mensaje || '').trim()
+      const nombreExt = String(input.nombre || '').trim()
+      if (!numero) return JSON.stringify({ ok: false, error: 'Dame el número de destino en formato +569…' })
+      if (!mensaje) return JSON.stringify({ ok: false, error: 'Dime qué mensaje enviarle.' })
+      if (esUsuarioNexus(numero)) return JSON.stringify({ ok: false, error: `Ese número ya es un usuario de Nexus (${usuarioDe(numero)?.nombre || ''}); no es un contacto externo. Escríbele normal o usa alertar_usuario.` })
+      let ce, kap
+      try { ce = await import('./contactos-externos.mjs'); kap = await import('./kapso.mjs') }
+      catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de contactos externos: ' + e.message }) }
+      const quien = usuarioDe(ctx.de)
+      ce.registrarContactoExterno(numero, { por: ctx.de, porNombre: quien?.nombre, nota: nombreExt })
+      const waDest = '+' + numero
+      try {
+        let via
+        if (ce.ventana24hAbierta(numero)) {
+          // El externo escribió hace <24h → ventana abierta, se puede texto libre.
+          await kap.enviarKapso(numero, mensaje); via = 'texto'
+        } else {
+          // Nunca escribió / fuera de 24h → hay que usar la plantilla oficial de Meta.
+          const saludo = nombreExt || ce.infoContactoExterno(numero)?.nota || 'Hola'
+          await kap.enviarPlantillaKapso(numero, process.env.KAPSO_PLANTILLA_ALERTA || 'alerta_nexus', { nombre: saludo, mensaje }, { idioma: process.env.KAPSO_PLANTILLA_ALERTA_IDIOMA || 'es' })
+          via = 'plantilla'
+        }
+        try { historial.registrar({ canal: 'whatsapp', direccion: 'saliente', contraparte: waDest, texto: mensaje, origen: `externo:${quien?.nombre || ctx.de}`, estado: 'enviado' }) } catch { /* */ }
+        return JSON.stringify({ ok: true, numero: waDest, via, nota: `Mensaje enviado a ${nombreExt || waDest}${via === 'plantilla' ? ' (con la plantilla oficial, porque está fuera de la ventana de 24h)' : ''}. Cuando responda, te guardo lo que diga: pídeme "¿qué respondió ${nombreExt || waDest}?".` })
+      } catch (e) {
+        const m = e.message || String(e)
+        if (/132001|does not exist|not.*approv|PENDING/i.test(m)) return JSON.stringify({ ok: false, error: 'No pude enviar por plantilla: "alerta_nexus" no está aprobada. Espera la aprobación.', detalle: m })
+        return JSON.stringify({ ok: false, error: 'No pude enviar el mensaje al externo: ' + m })
+      }
+    }
+    if (nombre === 'ver_respuestas_externo') {
+      const numero = normNum(input.numero)
+      if (!numero) return JSON.stringify({ ok: false, error: 'Dame el número externo +569… a consultar.' })
+      let ce
+      try { ce = await import('./contactos-externos.mjs') } catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar contactos externos: ' + e.message }) }
+      const info = ce.infoContactoExterno(numero)
+      const conv = ce.conversacionExterno(numero)
+      const respuestas = conv.filter((m) => m.direccion === 'entrante')
+      return JSON.stringify({
+        ok: true, numero: '+' + numero, nombre: info?.nota || null, iniciado_por: info?.creado_por_nombre || null,
+        total_respuestas: respuestas.length,
+        conversacion: conv.map((m) => ({ quien: m.direccion === 'entrante' ? 'externo' : 'nosotros', texto: m.texto })),
+        nota: respuestas.length ? 'Muestra al usuario lo que respondió el externo, tal cual.' : 'Todavía no ha respondido nada.',
+      })
+    }
+    if (nombre === 'listar_externos') {
+      let ce
+      try { ce = await import('./contactos-externos.mjs') } catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar contactos externos: ' + e.message }) }
+      const lista = ce.listarContactosExternos()
+      return JSON.stringify({
+        ok: true, total: lista.length,
+        externos: lista.map((c) => ({ numero: '+' + c.num, nombre: c.nota || null, iniciado_por: c.creado_por_nombre || null, ultimo: c.ultimo ? { quien: c.ultimo.direccion === 'entrante' ? 'externo' : 'nosotros', texto: c.ultimo.texto } : null })),
+      })
     }
     // ── tek · PAGO de factura de compra (SIMULACIÓN — no mueve plata todavía) ──
     if (nombre === 'tek_pago') {

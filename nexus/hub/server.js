@@ -439,6 +439,23 @@ app.post('/api/chat', async (req, res) => {
       }
     }
 
+    // GUARDIÁN DE EXTERNOS: un número que NO es usuario de Nexus (no dado de alta) NUNCA
+    // llega al Nexus completo — nada de datos de empresa ni funciones. Guardamos lo que
+    // escribe (para que un usuario de Nexus lo revise con "¿qué respondió X?") y NO le
+    // auto-respondemos: SILENCIO. Esto evita el bucle de mensajes / baneo de WhatsApp.
+    // Va DESPUÉS de cobranza y SII (que atienden a sus propios acotados) y ANTES del Nexus
+    // admin. Si el chequeo falla, sigue el flujo normal (mismo criterio que cobranza/SII).
+    if (de && !esWeb) {
+      try {
+        const mod = await import('./asistente.mjs')
+        if (typeof mod.esUsuarioNexus === 'function' && !mod.esUsuarioNexus(de)) {
+          if (actual) { try { histDB.registrar({ canal: 'whatsapp', direccion: 'entrante', contraparte: de, texto: actual, origen: 'externo', estado: 'recibido' }) } catch { /* */ } }
+          try { const ce = await import('./contactos-externos.mjs'); if (!ce.esContactoExterno(de)) ce.registrarContactoExterno(de, {}) } catch { /* */ }
+          return res.json({ reply: '' })   // SILENCIO: sin reply el webhook no envía nada
+        }
+      } catch (e) { console.error('[wa/kapso] guardián externos:', e.message) }
+    }
+
     // Nexus admin CON memoria por remitente.
     const key = de || '_anon'
     let mem = _memoria.get(key)
