@@ -794,11 +794,19 @@ async function crearTransferencia(page, log) {
       await page.screenshot({ path: join(DATA, 'crear-05a-alerta.png') }).catch(() => {})
       const alerta = await leerAlerta()
       log('TEFUN alerta:', alerta.slice(0, 140))
-      if (/pendientes?\s+a\s+este\s+beneficiario/i.test(alerta)) {
+      const clase = clasificarAlerta(alerta)
+      if (clase === 'ya_pendiente') {
         await cerrarModal()
         log('ANTI-DUP: ya hay una pendiente a este beneficiario → NO creo otra')
         return { estado: 'ya_pendiente', pendiente: true, nota: 'Ya existe una transferencia PENDIENTE a este beneficiario por el mismo monto; NO se creó otra (anti-duplicado). Revisala/autorizala en el banco.', url: page.url() }
       }
+      // ANTIFRAUDE POR MONTO: el banco tope la 1ª transferencia a una cuenta NUEVA en $250.000 por 24h
+      // (después sube a $5.000.000/día). NO es un bloqueo de la cuenta ni un bug: es su protección.
+      // Igual cerramos el modal e intentamos continuar por si el banco permite CREARLA "por autorizar";
+      // si al final NO quedó creada y el aviso era ese tope, devolvemos 'limite_primera_vez' con el
+      // texto real — NUNCA reintentamos a ciegas (eso confundía y parecía que "se envió").
+      const eraLimite = clase === 'limite_primera_vez'
+      if (eraLimite) log('TEFUN: aviso de TOPE 1ª transferencia (antifraude monto) →', alerta.slice(0, 120))
       await cerrarModal()   // Aceptar el aviso (ej. límite $250.000 la primera vez)
       await sleep(rnd(1500, 2500))
       // PASO 2: Continuar de nuevo → crea la transferencia (queda "por autorizar").
@@ -810,8 +818,10 @@ async function crearTransferencia(page, log) {
       // VERIFICACIÓN REAL (no adivinar por texto): ¿aparece ya en la lista de Autorización? Esto
       // navega a la lista y confirma → 0 falsos negativos, y como es SOLO 1 intento, 0 duplicados.
       const creada = await existePendiente(page, log, process.env.TEK_DEST_RUT, monto, process.env.TEK_DEST_CUENTA)
-      log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : 'NO confirmada')
-      return { estado: creada ? 'creada' : 'tefun_no_confirmada', pendiente: creada, url: page.url() }
+      log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : (eraLimite ? 'TOPE 1ª transferencia' : 'NO confirmada'))
+      if (creada) return { estado: 'creada', pendiente: true, url: page.url() }
+      if (eraLimite) return { estado: 'limite_primera_vez', pendiente: false, alerta_banco: alerta.slice(0, 240), nota: 'El banco NO deja la 1ª transferencia a esta cuenta NUEVA sobre $250.000 (protección antifraude, primeras 24h). La cuenta NO está bloqueada. Opciones: enviar $250.000 o menos ahora, o esperar 24h desde el primer envío para mandar el monto completo (hasta $5.000.000/día).', url: page.url() }
+      return { estado: 'tefun_no_confirmada', pendiente: false, url: page.url() }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
     const setVal = async (sel, valTxt) => {
@@ -985,6 +995,22 @@ async function crearTransferencia(page, log) {
     if (bb) { await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 12 }); await sleep(rnd(250, 550)); await page.mouse.down(); await sleep(60); await page.mouse.up(); log('CREAR clickeado') }
     else { log('no vi el botón Crear'); return { estado: 'sin_boton_crear', url: page.url() } }
 
+    // 5b) Si sale un MODAL de aviso (antifraude por monto: 1ª transferencia a cuenta nueva, tope
+    //     $250.000/24h; u otro), leerlo y apretarle "Aceptar" para que —si el banco lo permite— la
+    //     creación continúe. Guardamos el texto para clasificar el resultado.
+    let alertaBanco = ''
+    for (let k = 0; k < 3; k++) {
+      let m = ''
+      for (const f of page.frames()) { const t = await f.evaluate(() => { const el = [...document.querySelectorAll('[class*=modal i],[role=dialog],[class*=alert i],[class*=popup i],[class*=swal i]')].find((e) => e.offsetParent !== null && (e.innerText || '').trim().length > 8); return el ? (el.innerText || '').replace(/\s+/g, ' ').trim() : '' }).catch(() => ''); if (t) { m = t; break } }
+      if (!m) break
+      alertaBanco = m
+      let cerrado = false
+      for (const f of [f2, page]) { const b = f.getByText(/^\s*aceptar\s*$/i).first(); const cb = await b.boundingBox().catch(() => null); if (cb) { await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2, { steps: 8 }); await sleep(rnd(200, 420)); await page.mouse.down(); await sleep(50); await page.mouse.up(); cerrado = true; break } }
+      log('TEF modal →', alertaBanco.slice(0, 100), cerrado ? '(Aceptar)' : '(sin botón)')
+      if (!cerrado) break
+      await sleep(rnd(2000, 3200))
+    }
+
     // 6) DETECTAR EL RESULTADO REAL — NO dar por creada solo por haber apretado el botón.
     const OK_RE = /pendiente|autoriz|por\s+liberar|comprobante|solicitud\s+(de\s+)?transfer|se\s+(ha\s+)?cre[oó]|creada|exitos|realizada con [eé]xito|registrada/i
     const ERRC_RE = /obligatori|requerid|debe\s+ingresar|ingrese\s+un|inv[aá]lid|no\s+coincide|insuficient|excede|no\s+se\s+pudo|rechaz|super[oó]\s+el\s+monto|fuera\s+de\s+horario|monto\s+m[ií]nimo/i
@@ -1039,6 +1065,24 @@ async function verPendientes(page, log) {
 
 // ¿Existe YA una transferencia pendiente al RUT destino (y monto)? Verificación REAL en la
 // lista de Autorización. Devuelve true/false. Anti-duplicado + confirmación de creación.
+// Clasifica el texto de un modal/alerta que muestra el banco tras dar Crear/Continuar en una
+// transferencia. Distingue el AVISO DE ANTIFRAUDE POR MONTO (1ª transferencia a una cuenta NUEVA:
+// tope $250.000 acumulado por 24h; después sube a $5.000.000/día) de "ya hay una pendiente" y de
+// errores de datos. Devuelve: 'ya_pendiente' | 'limite_primera_vez' | 'error' | 'ok' | null.
+function clasificarAlerta(texto) {
+  const t = String(texto || '').toLowerCase().replace(/\s+/g, ' ')
+  if (!t) return null
+  if (/pendientes?\s+a\s+este\s+beneficiario/.test(t)) return 'ya_pendiente'
+  const habla250 = /\$?\s*250[.\s]?000/.test(t)
+  const primeraVez = /(primera|1[ªa.]?)\s+transferencia|nuevo\s+(destinatario|beneficiario)|reci[eé]n\s+(agregad|inscrit|cread)/.test(t)
+  const topeMonto = /monto\s+m[aá]xim|excede|supera|no\s+puede\s+(ser\s+)?superior|l[ií]mite\s+de\s+monto|permitido/.test(t)
+  const veinticuatro = /24\s*h|24\s*hor|primeras?\s+24/.test(t)
+  if (habla250 || (primeraVez && (topeMonto || veinticuatro))) return 'limite_primera_vez'
+  if (/pendiente|por\s+autoriz|por\s+liberar|se\s+(ha\s+)?cre[oó]|creada|exitos|realizada/.test(t)) return 'ok'
+  if (/obligatori|requerid|inv[aá]lid|no\s+coincide|rechaz|no\s+se\s+pudo|error/.test(t)) return 'error'
+  return null
+}
+
 async function existePendiente(page, log, rutDest, monto, cuentaDest) {
   try {
     const r = await verPendientes(page, log)
