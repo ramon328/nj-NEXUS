@@ -1095,12 +1095,19 @@ async function verPendientes(page, log) {
     const menu = page.getByText(/^transferencias?$/i).first()
     await clickHumano(page, menu); await sleep(rnd(3500, 5000))
     for (const lab of labels) {
-      const it = page.getByText(new RegExp('^' + lab + '$', 'i')).filter({ visible: true }).first()
-      if (await it.count().catch(() => 0)) {
-        await it.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {})
-        await it.click({ timeout: 5000 }).catch(() => {})   // clic NATIVO (dispara el router del SPA)
-        await sleep(rnd(8000, 11_000)); return lab
-      }
+      // El item del menú es un TEXTO dentro de un <a> (o li con handler): clickear el texto NO
+      // dispara el router del SPA. Buscamos el ANCESTRO clickable real y lo clickeamos de verdad.
+      const clicked = await page.evaluate((rx) => {
+        const re = new RegExp('^\\s*' + rx + '\\s*$', 'i')
+        const hit = [...document.querySelectorAll('a,[role="menuitem"],li,span,div,button')]
+          .find((e) => re.test((e.textContent || '').replace(/\s+/g, ' ').trim()) && e.offsetParent !== null)
+        if (!hit) return false
+        const target = hit.closest('a,[href],[role="menuitem"],button') || hit
+        target.scrollIntoView({ block: 'center' })
+        target.click()
+        return true
+      }, lab).catch(() => false)
+      if (clicked) { await sleep(rnd(8000, 11_000)); return lab }
     }
     return null
   }
