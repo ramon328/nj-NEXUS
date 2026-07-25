@@ -29,6 +29,7 @@ const log = (...a) => console.log(new Date().toISOString(), ...a)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 
 const lastPoke = {}     // user → ts del último toque
+const pokeDue = {}      // user → cada cuánto toca el PRÓXIMO latido (con jitter, no exacto)
 const deadUntil = {}    // user → ts hasta el cual NO tocamos (sesión muerta conocida)
 const lastLogin = {}    // user → ts del último intento de RE-LOGIN
 
@@ -81,8 +82,10 @@ async function atender(user) {
 log(`❤️  corazón (ÚNICO guardián) encendido. poke=${POKE_MS / 1000}s, self-heal=${AUTO_RELOGIN} (solo ventana fría 05-10h)`)
 for (;;) {
   for (const user of usuarios()) {
-    if (Date.now() - (lastPoke[user] || 0) >= POKE_MS) {
+    if (Date.now() - (lastPoke[user] || 0) >= (pokeDue[user] || POKE_MS)) {
       lastPoke[user] = Date.now()
+      // Próximo latido con JITTER ±30% → no tocamos en un intervalo EXACTO (eso es patrón de bot).
+      pokeDue[user] = Math.round(POKE_MS * (0.7 + Math.random() * 0.6))
       try { await atender(user) } catch (e) { log(`[${user}] error:`, e.message) }
     }
   }

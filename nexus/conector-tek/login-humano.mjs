@@ -2190,11 +2190,30 @@ async function main() {
     //    sesión viva, NO loguea (eso lo hace un login normal, no el latido).
     if (keepAlive) {
       if (viva) {
-        await moveTo(page, rnd(400, 950), rnd(240, 560)); await idle(page, rnd(800, 1600))
-        await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
-        await sleep(rnd(2500, 4500))
+        // LATIDO HUMANO: variamos el comportamiento (nunca el MISMO patrón exacto = huella de bot)
+        // y generamos ACTIVIDAD REAL (no solo recargar la SPA) para resetear el timer del banco.
+        await moveTo(page, rnd(300, 1000), rnd(200, 600)); await idle(page, rnd(700, 1500))
+        if (chance(0.55)) { try { await scrollHumano(page, rnd(120, 340)) } catch { /* */ } }
+        const modo = ri(1, 3)
+        if (modo === 1) {
+          // "ojear la cuenta": hover un ítem del menú que trae datos (fetch autenticado real)
+          try {
+            const it = page.getByText(/^(Cuentas Corrientes|Resumen de Productos|Tarjetas)$/i).first()
+            if (await it.count().catch(() => 0)) { await moveToLoc(page, it).catch(() => {}); await sleep(rnd(700, 1400)) }
+          } catch { /* */ }
+          await sleep(rnd(1600, 3000))
+        } else if (modo === 2) {
+          // recargar el dashboard (refresca cookies + datos), como quien vuelve a la portada
+          await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+          await sleep(rnd(2500, 4500))
+        } else {
+          // presencia mínima: deriva de mouse + micro-scroll (poca huella, algún latido "tranquilo")
+          await idle(page, rnd(1500, 3200))
+          try { await scrollHumano(page, rnd(-140, 160)) } catch { /* */ }
+        }
+        await moveTo(page, rnd(300, 1000), rnd(200, 600)); await idle(page, rnd(500, 1200))
         try { await ctx.storageState({ path: SESSION_TARGET }) } catch { /* */ }
-        return fin('keepalive_ok', { nota: 'sesión mantenida viva (sin login)', user: USER })
+        return fin('keepalive_ok', { nota: 'sesión mantenida viva (latido humano)', user: USER })
       }
       return fin('sesion_muerta', { nota: 'no hay sesión viva que mantener; el latido NUNCA loguea' })
     }
