@@ -359,6 +359,36 @@ async function d2_agendas() {
 function _isoWD(dstr) { const g = new Date(dstr + 'T12:00:00Z').getUTCDay(); return g === 0 ? 7 : g }   // Lun=1..Dom=7
 function _addDays(dstr, n) { const d = new Date(dstr + 'T12:00:00Z'); d.setUTCDate(d.getUTCDate() + n); return d.toISOString().slice(0, 10) }
 function _lunesDe(dstr) { return _addDays(dstr, -(_isoWD(dstr) - 1)) }
+// ── Agenda REAL del admin (citas + bloqueos) para cupos ocupados/libres ──────
+const BOXES = [37857, 37858, 37859, 37860, 37861, 37862, 37863]
+const _agSemCache = new Map()   // lunes → {ts, map(profId→[{fecha,inicio,fin}])}
+async function viewTicketBox(box, lunes) {
+  const [y, m, d] = lunes.split('-').map(Number)
+  const info = { vistaagenda: 'servicio', servicio_id: box, year: y, mes: m - 1, dia: d, today: new Date().toISOString().slice(0, 10), tipo: 'Fecha', vista: 'agendaWeek' }
+  const body = new URLSearchParams(); for (const k in info) body.append('info[' + k + ']', info[k])
+  const j = await internalJson('/appointment/viewTicket/', 'POST', body.toString())
+  return (j && j.tickets) || []   // eliminadas NO vienen en viewTicket → todas cuentan como ocupadas
+}
+async function agendaSemana(lunes) {
+  const c = _agSemCache.get(lunes); if (c && Date.now() - c.ts < 5 * 60 * 1000) return c.map
+  const res = await Promise.all(BOXES.map((b) => viewTicketBox(b, lunes).catch(() => [])))
+  const map = new Map()
+  for (const tks of res) for (const t of tks) {
+    if (!t.start || !t.end) continue
+    const pid = String(t.profesionales); const arr = map.get(pid) || []
+    arr.push({ fecha: t.start.slice(0, 10), inicio: t.start.slice(11, 16), fin: t.end.slice(11, 16) }); map.set(pid, arr)
+  }
+  _agSemCache.set(lunes, { ts: Date.now(), map }); return map
+}
+const _bloqDiaCache = new Map()
+async function bloqueosDia(fecha) {
+  const c = _bloqDiaCache.get(fecha); if (c && Date.now() - c.ts < 5 * 60 * 1000) return c.j
+  const j = (await internalJson('/bloqueosHorario/obtenerBloqueoProfesional/', 'POST', new URLSearchParams({ fecha }).toString())) || {}
+  _bloqDiaCache.set(fecha, { ts: Date.now(), j }); return j
+}
+const _hm = (t) => { const [h, m] = String(t).split(':').map(Number); return h * 60 + (m || 0) }
+const _mh = (m) => String(Math.floor(m / 60)).padStart(2, '0') + ':' + String(m % 60).padStart(2, '0')
+
 async function d2_disponibilidad(agendaId, fecha, dias) {
   if (!agendaId) { const e = new Error('falta agenda_id (id numérico del profesional)'); e.noEncontrado = false; throw e }
   const n = Math.min(Math.max(1, Number(dias) || 7), 62)
@@ -379,6 +409,21 @@ async function d2_disponibilidad(agendaId, fecha, dias) {
     const wd = _isoWD(f); const h = patronSem.get(_lunesDe(f))?.get(wd)
     return { fecha: f, dia_semana: DIAS[wd], atiende: !!(h && h.horaInicio), horaInicio: h?.horaInicio || null, horaFin: h?.horaFin || null }
   })
+  // Agenda real: citas (viewTicket por box, 1 fetch por semana) + bloqueos (por día).
+  const agPorSemana = new Map(); await Promise.all(semanas.map(async (l) => agPorSemana.set(l, await agendaSemana(l).catch(() => new Map()))))
+  const diasAtiende = out.filter((o) => o.atiende).map((o) => o.fecha)
+  const bloqPorDia = new Map(); await Promise.all(diasAtiende.map(async (f) => bloqPorDia.set(f, await bloqueosDia(f).catch(() => ({})))))
+  for (const o of out) {
+    if (!o.atiende) { o.ocupados = []; o.horas_libres = []; continue }
+    const ag = agPorSemana.get(_lunesDe(o.fecha)) || new Map()
+    const citas = (ag.get(String(agendaId)) || []).filter((c) => c.fecha === o.fecha).map((c) => ({ inicio: c.inicio, fin: c.fin }))
+    const bloqs = ((bloqPorDia.get(o.fecha) || {})[String(agendaId)] || []).map((b) => ({ inicio: String(b.start || '').slice(11, 16), fin: String(b.end || '').slice(11, 16), motivo: b.title || 'bloqueo' }))
+    const vistos = new Set()
+    const ocupados = [...citas, ...bloqs].filter((x) => x.inicio && x.fin).filter((x) => { const k = x.inicio + '-' + x.fin; if (vistos.has(k)) return false; vistos.add(k); return true }).sort((a, b) => a.inicio.localeCompare(b.inicio))
+    const ini = _hm(o.horaInicio), fin = _hm(o.horaFin), libres = []
+    for (let s = ini; s + 30 <= fin; s += 30) { const e = s + 30; if (!ocupados.some((oc) => s < _hm(oc.fin) && e > _hm(oc.inicio))) libres.push(_mh(s)) }
+    o.ocupados = ocupados; o.horas_libres = libres
+  }
   return { agenda_id: Number(agendaId), profesional: nombre, desde: fecha, dias: out }
 }
 // Link de pago (Webpay/Mercado Pago) de una cita — CERTIFICADO 2026-07-23.
@@ -777,7 +822,7 @@ const server = http.createServer(async (req, res) => {
     const ck = 'D2:' + clave
     const ce = cacheData.get(ck)
     // mes actual = TTL corto (cambia durante el día); meses cerrados = caché largo.
-    const ttl = /link_pago/.test(sub) ? 0 : /bloqueos|caja|comisiones|deuda|ventas|ocupacion|nuevos_pacientes|atenciones|citas_por_estado|gastos/.test(sub) ? ttlFor(mes) : CACHE_TTL
+    const ttl = /link_pago/.test(sub) ? 0 : /disponibilidad/.test(sub) ? 120000 : /bloqueos|caja|comisiones|deuda|ventas|ocupacion|nuevos_pacientes|atenciones|citas_por_estado|gastos/.test(sub) ? ttlFor(mes) : CACHE_TTL
     if (ce && Date.now() - ce.ts < ttl) return sendGz(req, res, 200, 'application/json', 'HIT', ce.body, ce)
     try {
       let data, esLista = true
