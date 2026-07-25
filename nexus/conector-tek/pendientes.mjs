@@ -68,7 +68,7 @@ export function listarPendientes({ userId, empresa } = {}) {
       const seguridad = /logout\/error-seguridad|device|error-seguridad|sesion_muerta/i.test((resultado?.url || '') + ' ' + (resultado?.estado || ''))
       if (!p && seguridad) return resolve({ ok: false, estado: 'sesion_caida', error: 'La sesión del banco se cayó/expiró. Reintentar en un momento.' })
       if (!p) return resolve({ ok: false, estado: resultado?.estado || 'sin_resultado', error: 'No pude leer las pendientes.', stderr: err.slice(-300) })
-      resolve({ ok: true, estado: 'ok', filas: p.filas || [], total: p.total ?? (p.filas || []).length, texto: p.texto || '' })
+      resolve({ ok: true, estado: 'ok', filas: p.filas || [], total: p.total ?? (p.filas || []).length, llego: p.llego !== false, texto: p.texto || '' })
     }
     hijo.on('close', fin)
     hijo.on('error', (e) => { clearTimeout(to); soltarLock(lf); resolve({ ok: false, estado: 'spawn_error', error: e.message }) })

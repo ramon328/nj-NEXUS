@@ -3390,6 +3390,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Reintentá en un momento y la reabro.' })
       if (r.estado === 'ocupado') return JSON.stringify({ ok: false, estado: 'ocupado', texto: 'Hay una operación bancaria en curso para esta persona. Espera ~2 min y reintenta UNA vez.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer las pendientes (${r.estado || 'desconocido'}).` })
+      if (!r.total && r.llego === false) return JSON.stringify({ ok: false, estado: 'no_lista', texto: 'No pude abrir la lista de pendientes de aprobación (el banco cerró la sesión o no cargó la página). Reintentá en un momento — NO significa que no haya pendientes.' })
       if (!r.total) return JSON.stringify({ ok: true, total: 0, filas: [], texto: `No hay transferencias ni masivas pendientes de aprobación en ${empP || 'tu empresa'} ahora mismo. ✅` })
       return JSON.stringify({ ok: true, total: r.total, filas: r.filas, empresa: empP, instruccion: 'Muéstrale la lista NUMERADA de pendientes de aprobación (nº · beneficiario · banco · monto · estado · fecha; si una fila no tiene nombre, muestra el RUT). Aclarale que están "Por Autorizar" y que para que la plata salga las tiene que autorizar ÉL en el banco con su Superclave — vos NUNCA las autorizas ni liberas.' })
     }

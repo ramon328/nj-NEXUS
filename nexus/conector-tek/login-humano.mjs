@@ -1122,8 +1122,11 @@ async function verPendientes(page, log) {
   // Nos quedamos con las PENDIENTES (por autorizar/confirmar/liberar) — o todas si no traen estado.
   const pend = filas.filter((f) => !f.estado || /autoriz|confirmar|liberar|pendiente/i.test(f.estado))
   const out = pend.length ? pend : filas
-  log(`pendientes: ${filas.length} filas totales, ${pend.length} pendientes`)
-  return { estado: 'pendientes_vistos', filas: out, total: out.length, texto: txt.slice(0, 3500), url: page.url() }
+  // ¿Llegamos DE VERDAD a una lista de pendientes? (para NO decir "no hay" cuando la nav falló o
+  // la sesión se cayó — que devolvería filas vacías sin haber abierto la lista).
+  const llego = out.length > 0 || /autorizaci[oó]n transferencias|rut destinatario|por autorizar|por liberar|registros por autorizar|seleccione los registros|no hay registros|no existen registros/i.test(txt)
+  log(`pendientes: ${filas.length} filas, ${pend.length} pendientes, llego_a_lista=${llego}`)
+  return { estado: 'pendientes_vistos', filas: out, total: out.length, llego, texto: txt.slice(0, 3500), url: page.url() }
 }
 
 // ¿Existe YA una transferencia pendiente al RUT destino (y monto)? Verificación REAL en la
