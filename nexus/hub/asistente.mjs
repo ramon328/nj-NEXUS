@@ -3054,16 +3054,27 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (res.pendiente && bo.nuevo) {
           try { tr.guardarBeneficiario({ nombre: bo.beneficiario.nombre, rut: bo.beneficiario.rut, banco: bo.beneficiario.banco, tipo_cuenta: bo.beneficiario.tipo_cuenta, cuenta: bo.beneficiario.cuenta, email: bo.beneficiario.email || undefined }) } catch { /* */ }
         }
-        const okTxt = res.ya_pendiente
-          ? `⚠️ YA hay una transferencia pendiente a ${bo.beneficiario.nombre} desde *${empresa}* por ese monto — NO creé otra para no duplicar. Revísala/autorízala en el banco (queda "Por Autorizar").`
-          : res.pendiente
-            ? `✅ Transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} desde *${empresa}* CREADA — queda pendiente por liberar (falta autorizarla con Superclave para que salga).`
-            : `⚠️ No pude confirmar la creación (${res.estado || 'desconocido'}). Suele ser el antifraude del banco; conviene reintentar más tarde, mejor asistido.`
-        return JSON.stringify({ ...res, empresa_origen: empresa, texto: okTxt })
+        const montoTxt = '$' + Number(bo.monto).toLocaleString('es-CL')
+        let okTxt, instr
+        if (res.ya_pendiente) {
+          okTxt = `⚠️ YA hay una transferencia pendiente a ${bo.beneficiario.nombre} desde *${empresa}* por ese monto — NO creé otra para no duplicar. Revísala/autorízala en el banco (queda "Por Autorizar").`
+        } else if (res.pendiente) {
+          okTxt = `✅ Transferencia de ${montoTxt} a ${bo.beneficiario.nombre} desde *${empresa}* CREADA — queda pendiente por liberar (falta autorizarla con Superclave para que salga).`
+        } else if (res.limite_primera_vez) {
+          okTxt = `🛡️ El banco NO dejó la transferencia: es la *1ª vez* a esa cuenta, con tope de $250.000 en las primeras 24h (protección antifraude, NO es bloqueo de la cuenta). Opciones: mandar $250.000 o menos ahora, o esperar 24h y ahí el monto completo. NO lo reintento solo.`
+          instr = 'NO reintentes. Explicá que es el tope de PRIMERA transferencia a cuenta nueva ($250.000/24h), no un bloqueo. Ofrecé mandar ≤$250.000 ahora o esperar 24h.'
+        } else if (res.limite_diario) {
+          okTxt = `🛡️ El banco frenó por *exceso de límite/monto diario* (el giro supera el cupo del día, típico $5.000.000). La cuenta NO está bloqueada ni el destinatario es nuevo. Para ${montoTxt} conviene *transferencia masiva* (parte el monto en líneas) o partirlo en varios días. NO lo reintento solo.`
+          instr = 'NO reintentes la transferencia individual. Ofrecele al usuario hacerla por TRANSFERENCIA MASIVA (tek_masiva, misma empresa) o partir el monto en varios días; aclarale que es límite diario del banco, no un bloqueo ni cuenta nueva.'
+        } else {
+          okTxt = `⚠️ No pude confirmar la creación (${res.estado || 'desconocido'}). Suele ser el antifraude del banco; conviene reintentar más tarde, mejor asistido.`
+        }
+        return JSON.stringify({ ...res, empresa_origen: empresa, texto: okTxt, instruccion: instr })
       }
       return JSON.stringify({
         ok: true, modo: 'borrador', ejecutado: false, borrador: bo, empresa_origen: empresa, texto: tr.textoBorrador(bo),
-        instruccion: 'Mostrale este borrador y preguntale claro "¿creo la transferencia de $' + Number(bo.monto).toLocaleString('es-CL') + ' a ' + bo.beneficiario.nombre + ' desde ' + empresa + '?". SOLO con su OK explícito, llamá tek_transferir con accion:"enviar" Y el MISMO empresa:"' + empresa + '".',
+        instruccion: 'Mostrale este borrador y preguntale claro "¿creo la transferencia de $' + Number(bo.monto).toLocaleString('es-CL') + ' a ' + bo.beneficiario.nombre + ' desde ' + empresa + '?". SOLO con su OK explícito, llamá tek_transferir con accion:"enviar" Y el MISMO empresa:"' + empresa + '".'
+          + (bo.sugerir_masiva ? ' 💡 OJO: es un monto grande (> $' + Number(bo.umbral_masiva).toLocaleString('es-CL') + '). A montos altos el banco suele topear la transferencia INDIVIDUAL por límite diario (~$5.000.000). Avisale al usuario y ofrecele hacerla mejor por TRANSFERENCIA MASIVA (tek_masiva), que parte el monto en líneas y esquiva ese tope.' : ''),
       })
     }
     // ── tek · TRANSFERENCIA MASIVA (lote con varias transferencias) ─────────────

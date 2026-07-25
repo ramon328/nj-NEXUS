@@ -18,6 +18,10 @@ const DIR = dirname(fileURLToPath(import.meta.url))
 // Nexus confirme con más cuidado (no bloquea, solo avisa). Igual estilo que TOPE_PAGO_CLP.
 export const TOPE_TRANSFER_CLP = Number(process.env.TEK_TOPE_TRANSFER || 1_000_000)
 
+// Sobre este monto conviene SUGERIR transferencia masiva (parte el monto en líneas y esquiva topes
+// diarios por transferencia). Nexus lo propone al usuario; no obliga.
+export const UMBRAL_SUGERIR_MASIVA_CLP = Number(process.env.TEK_UMBRAL_MASIVA || 3_000_000)
+
 const clp = (n) => '$' + Number(n || 0).toLocaleString('es-CL')
 // Deja la cuenta con puros dígitos (el form del banco no quiere guiones ni espacios).
 const soloDigitos = (s) => String(s || '').replace(/\D/g, '')
@@ -98,6 +102,8 @@ export function armarBorrador({ userId, nombre, monto, motivo, rut, banco, cuent
     nuevo,                       // true = beneficiario no guardado (datos dados a mano)
     supera_tope: m > TOPE_TRANSFER_CLP,
     tope: TOPE_TRANSFER_CLP,
+    sugerir_masiva: m > UMBRAL_SUGERIR_MASIVA_CLP,   // monto grande → mejor por masiva
+    umbral_masiva: UMBRAL_SUGERIR_MASIVA_CLP,
   }
   return { ok: true, borrador }
 }
@@ -185,10 +191,17 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
       // NO se duplicó (también es un resultado OK: la transferencia ya está en el banco).
       const yaPendiente = estado === 'ya_pendiente'
       const ok = estado === 'creada' || yaPendiente
+      // Motivos de antifraude por monto: se distinguen para que Nexus explique CLARO y no reintente.
+      const limitePV = estado === 'limite_primera_vez'   // cuenta NUEVA: tope $250.000/24h
+      const limiteDia = estado === 'limite_diario'        // EXCESO de límite/monto diario
       resolve({
         ok, estado, resultado,
         pendiente: estado === 'creada' || yaPendiente,
         ya_pendiente: yaPendiente,
+        limite_primera_vez: limitePV,
+        limite_diario: limiteDia,
+        limite_monto: limitePV || limiteDia,
+        alerta_banco: crear?.alerta_banco || null,
         nota: crear?.nota || null,
         motivo: crear?.pista || crear?.motivo || (crear?.faltan ? `faltan campos: ${crear.faltan.join(', ')}` : null),
       })

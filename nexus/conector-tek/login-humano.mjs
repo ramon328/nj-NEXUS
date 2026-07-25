@@ -805,8 +805,10 @@ async function crearTransferencia(page, log) {
       // Igual cerramos el modal e intentamos continuar por si el banco permite CREARLA "por autorizar";
       // si al final NO quedó creada y el aviso era ese tope, devolvemos 'limite_primera_vez' con el
       // texto real — NUNCA reintentamos a ciegas (eso confundía y parecía que "se envió").
-      const eraLimite = clase === 'limite_primera_vez'
-      if (eraLimite) log('TEFUN: aviso de TOPE 1ª transferencia (antifraude monto) →', alerta.slice(0, 120))
+      const eraLimitePV = clase === 'limite_primera_vez'
+      const eraLimiteDia = clase === 'limite_diario'
+      if (eraLimitePV) log('TEFUN: TOPE 1ª transferencia a cuenta nueva ($250.000/24h) →', alerta.slice(0, 120))
+      if (eraLimiteDia) log('TEFUN: EXCESO de límite/monto diario →', alerta.slice(0, 120))
       await cerrarModal()   // Aceptar el aviso (ej. límite $250.000 la primera vez)
       await sleep(rnd(1500, 2500))
       // PASO 2: Continuar de nuevo → crea la transferencia (queda "por autorizar").
@@ -818,9 +820,10 @@ async function crearTransferencia(page, log) {
       // VERIFICACIÓN REAL (no adivinar por texto): ¿aparece ya en la lista de Autorización? Esto
       // navega a la lista y confirma → 0 falsos negativos, y como es SOLO 1 intento, 0 duplicados.
       const creada = await existePendiente(page, log, process.env.TEK_DEST_RUT, monto, process.env.TEK_DEST_CUENTA)
-      log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : (eraLimite ? 'TOPE 1ª transferencia' : 'NO confirmada'))
+      log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : (eraLimitePV ? 'TOPE 1ª vez' : eraLimiteDia ? 'EXCESO límite diario' : 'NO confirmada'))
       if (creada) return { estado: 'creada', pendiente: true, url: page.url() }
-      if (eraLimite) return { estado: 'limite_primera_vez', pendiente: false, alerta_banco: alerta.slice(0, 240), nota: 'El banco NO deja la 1ª transferencia a esta cuenta NUEVA sobre $250.000 (protección antifraude, primeras 24h). La cuenta NO está bloqueada. Opciones: enviar $250.000 o menos ahora, o esperar 24h desde el primer envío para mandar el monto completo (hasta $5.000.000/día).', url: page.url() }
+      if (eraLimitePV) return { estado: 'limite_primera_vez', pendiente: false, alerta_banco: alerta.slice(0, 240), nota: 'El banco NO deja la 1ª transferencia a esta cuenta NUEVA sobre $250.000 (protección antifraude, primeras 24h). La cuenta NO está bloqueada. Opciones: enviar $250.000 o menos ahora, o esperar 24h desde el primer envío para el monto completo.', url: page.url() }
+      if (eraLimiteDia) return { estado: 'limite_diario', pendiente: false, alerta_banco: alerta.slice(0, 240), nota: 'El banco frenó por EXCESO de límite/monto diario (el giro supera el cupo del día, típico $5.000.000). La cuenta NO está bloqueada ni el destinatario es nuevo. Opciones: bajar el monto, partirlo en varios días, o usar TRANSFERENCIA MASIVA (que parte el monto en líneas).', url: page.url() }
       return { estado: 'tefun_no_confirmada', pendiente: false, url: page.url() }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
@@ -1032,6 +1035,13 @@ async function crearTransferencia(page, log) {
       veredicto = sigueForm ? 'no_creada' : 'creada'
       pista = sigueForm ? 'el formulario no avanzó (sigue el botón Crear)' : 'avanzó, sin texto reconocible'
     }
+    // Si NO se creó y el banco había mostrado un aviso de LÍMITE, reportar el MOTIVO EXACTO
+    // (cuenta nueva $250k vs. exceso de límite/monto diario) → Nexus no reintenta a ciegas.
+    if (veredicto === 'no_creada') {
+      const claseTEF = clasificarAlerta(alertaBanco)
+      if (claseTEF === 'limite_primera_vez') { log('TEF: TOPE 1ª vez'); return { estado: 'limite_primera_vez', pendiente: false, alerta_banco: alertaBanco.slice(0, 240), nota: 'El banco NO deja la 1ª transferencia a esta cuenta NUEVA sobre $250.000 (protección antifraude, primeras 24h). La cuenta NO está bloqueada. Opciones: enviar $250.000 o menos ahora, o esperar 24h para el monto completo.', url: page.url() } }
+      if (claseTEF === 'limite_diario') { log('TEF: EXCESO límite diario'); return { estado: 'limite_diario', pendiente: false, alerta_banco: alertaBanco.slice(0, 240), nota: 'El banco frenó por EXCESO de límite/monto diario (el giro supera el cupo del día, típico $5.000.000). La cuenta NO está bloqueada ni el destinatario es nuevo. Opciones: bajar el monto, partirlo en varios días, o usar TRANSFERENCIA MASIVA.', url: page.url() } }
+    }
     log(`resultado creación: ${veredicto} — ${pista}`)
     return { estado: veredicto, pista, url: page.url() }
   }
@@ -1066,18 +1076,24 @@ async function verPendientes(page, log) {
 // ¿Existe YA una transferencia pendiente al RUT destino (y monto)? Verificación REAL en la
 // lista de Autorización. Devuelve true/false. Anti-duplicado + confirmación de creación.
 // Clasifica el texto de un modal/alerta que muestra el banco tras dar Crear/Continuar en una
-// transferencia. Distingue el AVISO DE ANTIFRAUDE POR MONTO (1ª transferencia a una cuenta NUEVA:
-// tope $250.000 acumulado por 24h; después sube a $5.000.000/día) de "ya hay una pendiente" y de
-// errores de datos. Devuelve: 'ya_pendiente' | 'limite_primera_vez' | 'error' | 'ok' | null.
+// transferencia. Distingue DOS antifraudes de monto: (a) 1ª transferencia a una cuenta NUEVA
+// (tope $250.000 por 24h) y (b) EXCESO de límite/monto diario (cuenta conocida, giro grande sobre
+// el cupo del día, típico $5.000.000). También "ya hay una pendiente" y errores de datos.
+// Devuelve: 'ya_pendiente' | 'limite_primera_vez' | 'limite_diario' | 'error' | 'ok' | null.
 function clasificarAlerta(texto) {
   const t = String(texto || '').toLowerCase().replace(/\s+/g, ' ')
   if (!t) return null
   if (/pendientes?\s+a\s+este\s+beneficiario/.test(t)) return 'ya_pendiente'
+  // (a) CUENTA NUEVA: menciona $250.000, o "primera transferencia / nuevo destinatario" + tope/24h.
   const habla250 = /\$?\s*250[.\s]?000/.test(t)
   const primeraVez = /(primera|1[ªa.]?)\s+transferencia|nuevo\s+(destinatario|beneficiario)|reci[eé]n\s+(agregad|inscrit|cread)/.test(t)
   const topeMonto = /monto\s+m[aá]xim|excede|supera|no\s+puede\s+(ser\s+)?superior|l[ií]mite\s+de\s+monto|permitido/.test(t)
   const veinticuatro = /24\s*h|24\s*hor|primeras?\s+24/.test(t)
   if (habla250 || (primeraVez && (topeMonto || veinticuatro))) return 'limite_primera_vez'
+  // (b) EXCESO DE LÍMITE / MONTO DIARIO (cuenta conocida): "límite diario", "monto diario",
+  //     "excede/supera el límite/cupo/máximo", "$5.000.000", "cupo diario/insuficiente".
+  const limiteDiario = /l[ií]mite\s+(diario|del?\s+d[ií]a|de\s+transfer|permitido|disponible|autorizado)|monto\s+diario|m[aá]ximo\s+diario|excede\s+(el\s+)?(l[ií]mite|monto|m[aá]xim|cupo|saldo\s+disponible)|supera\s+(el\s+)?(l[ií]mite|monto|m[aá]xim|cupo)|cupo\s+(diario|disponible|insuficiente)|\$?\s*5[.\s]?000[.\s]?000/.test(t)
+  if (limiteDiario) return 'limite_diario'
   if (/pendiente|por\s+autoriz|por\s+liberar|se\s+(ha\s+)?cre[oó]|creada|exitos|realizada/.test(t)) return 'ok'
   if (/obligatori|requerid|inv[aá]lid|no\s+coincide|rechaz|no\s+se\s+pudo|error/.test(t)) return 'error'
   return null
