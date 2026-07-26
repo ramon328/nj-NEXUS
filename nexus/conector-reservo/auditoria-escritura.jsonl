@@ -658,3 +658,4 @@
 {"ts":"2026-07-26T21:34:30.169Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-26T21:49:33.124Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-26T21:55:29.932Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":67320,"tratamiento_id":390569,"hora":"2026-07-28T17:00:00-04:00","hora_fin":"17:30","cliente":{"nombre":"Josefa Collao Valdivia","rut":"27464737-k","telefono":"56963012874"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"378571785102929b7bd38da_893c_11f1_acd4_0242ac120003","error":null}
+{"ts":"2026-07-26T22:04:37.133Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
