@@ -564,3 +564,5 @@
 {"ts":"2026-07-25T23:12:50.121Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-25T23:27:53.992Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
 {"ts":"2026-07-25T23:42:57.266Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-25T23:58:00.838Z","accion":"crear","quien":"127.0.0.1","ip":"127.0.0.1","body":{},"error":"falta campo obligatorio: fecha"}
+{"ts":"2026-07-26T00:06:43.692Z","accion":"reservar","quien":"127.0.0.1","ip":"127.0.0.1","body":{"profesional_id":89545,"tratamiento_id":453083,"hora":"2026-07-30T17:00:00-04:00","hora_fin":"17:30","cliente":{"nombre":"Gustavo Alonso Caballero Miranda","rut":"26556376-7","telefono":"+56950496015"},"simular":false},"simulado":false,"ok":true,"cita_uuid":"378611785024403e27b2b20_8885_11f1_a291_0242c0a8c002","error":null}
