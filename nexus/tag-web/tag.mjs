@@ -12,6 +12,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
+try { process.loadEnvFile(join(__dirname, '..', '.env')) } catch { /* opcional */ }
 // Interruptor GLOBAL: si tag-modo.json no dice { "real": true }, TODO va en modo prueba
 // (al correo de Ramón), NADA sale a Tag Tico. Se prende/apaga sin tocar código.
 const MODO_FILE = join(__dirname, 'tag-modo.json')
@@ -23,6 +24,25 @@ export function realActivo() {
 export const TAG_TO = process.env.TAG_TO || 'contacto@tagtico.cl'
 export const TAG_CC = process.env.TAG_CC || 'ventas@mallorcautos.cl'
 export const TAG_PRUEBA = process.env.TAG_PRUEBA || 'ramon@dropout.cl'
+
+// Avisos internos (WA) cuando se envía una solicitud de TAG (autos/Mallorca).
+const AVISAR_R = process.env.TAG_AVISAR_WA || '+56932945240' // Ramón
+const AVISAR_AUTOS = process.env.TAG_AVISAR_WA_AUTOS || process.env.DOCS_AUTOS_DESTINO || '+56958589915' // Joaquín
+function splitDest(s) {
+  return String(s || '')
+    .split(/[,\s;]+/g)
+    .map((x) => x.trim())
+    .filter(Boolean)
+}
+const DESTINOS = [...new Set([...splitDest(AVISAR_R), ...splitDest(AVISAR_AUTOS)])]
+let alertarUsuario = null
+try { ({ alertarUsuario } = await import('../hub/alertar.mjs')) } catch { /* opcional */ }
+async function avisar(txt) {
+  if (!alertarUsuario) return
+  for (const to of DESTINOS) {
+    try { await alertarUsuario(to, txt) } catch { /* best-effort */ }
+  }
+}
 
 export const TIPOS = {
   nuevo_propio: {
@@ -123,6 +143,13 @@ export async function enviarSolicitudTag(d) {
         adjuntos: adjuntos.map((a) => a.filename), notas: d.notas,
       })
     } catch { /* el envío ya salió; no bloquear por el registro */ }
+    // Aviso interno: solo en modo real (evita spamear en pruebas).
+    if (!prueba && process.env.TAG_AVISAR_ON_SEND !== '0') {
+      const p = d.patente ? String(d.patente).toUpperCase() : ''
+      const id = registro?.id ? ` · ${registro.id}` : ''
+      const desde = cuenta.mallorca ? 'correo Mallorca' : 'cuenta base'
+      await avisar(`📨 TAG enviado (${t.label}${p ? ` · ${p}` : ''})${id}. Desde: ${desde}. Asunto: "${String(asunto).slice(0, 80)}"`)
+    }
     return {
       ok: true, modo: prueba ? 'prueba' : 'real', asunto,
       destino: destinoTxt,

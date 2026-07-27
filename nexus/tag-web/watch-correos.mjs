@@ -17,15 +17,34 @@ import { backfill, cacheInfo } from './backfill-tag.mjs'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const VISTOS = join(__dirname, 'correos-vistos.json')
 const INTERVALO = Number(process.env.TAG_WATCH_MS || 10 * 60 * 1000)
-const AVISAR_A = process.env.TAG_AVISAR_WA || '+56932945240' // Ramón
+const AVISAR_R = process.env.TAG_AVISAR_WA || '+56932945240' // Ramón
+// Autos/Mallorca: además avisar a Joaquín (mismo destino que documentos-autos.mjs).
+const AVISAR_AUTOS = process.env.TAG_AVISAR_WA_AUTOS || process.env.DOCS_AUTOS_DESTINO || '+56958589915'
+
+function splitDest(s) {
+  return String(s || '')
+    .split(/[,\s;]+/g)
+    .map((x) => x.trim())
+    .filter(Boolean)
+}
+const DESTINOS = [...new Set([...splitDest(AVISAR_R), ...splitDest(AVISAR_AUTOS)])]
 
 // Notificación WhatsApp best-effort (si kapso está disponible).
 let enviarKapso = null
+let alertarUsuario = null
 try { process.loadEnvFile(join(__dirname, '..', '.env')) } catch { /* */ }
 try { ({ enviarKapso } = await import('../hub/kapso.mjs')) } catch { /* sin WhatsApp, solo log */ }
+try { ({ alertarUsuario } = await import('../hub/alertar.mjs')) } catch { /* opcional */ }
 async function avisar(txt) {
   console.log('[aviso]', txt)
-  if (enviarKapso && AVISAR_A) { try { await enviarKapso(AVISAR_A, txt) } catch (e) { console.log('  (WA falló:', e.message, ')') } }
+  for (const to of DESTINOS) {
+    try {
+      if (alertarUsuario) await alertarUsuario(to, txt)
+      else if (enviarKapso) await enviarKapso(to, txt)
+    } catch (e) {
+      console.log('  (WA falló:', e.message, ')')
+    }
+  }
 }
 
 function vistos() { try { return new Set(JSON.parse(readFileSync(VISTOS, 'utf8'))) } catch { return new Set() } }
