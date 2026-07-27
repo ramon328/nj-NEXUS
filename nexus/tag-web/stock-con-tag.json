@@ -1,8 +1,8 @@
 {
-  "actualizado": "2026-07-27T13:42:24.278Z",
+  "actualizado": "2026-07-27T13:54:42.222Z",
   "fuente": "Excel Mallorca · STOCK VALORIZADO",
-  "total": 43,
-  "con_tag": 29,
+  "total": 42,
+  "con_tag": 28,
   "sin_tag": 14,
   "autos": [
     {
@@ -123,12 +123,6 @@
       "patente": "SRSJ38",
       "marca": "MITSUBISHI",
       "modelo": "L200 CRM",
-      "tag": true
-    },
-    {
-      "patente": "SPCT11",
-      "marca": "VOLKSWAGEN",
-      "modelo": "AMAROK ",
       "tag": true
     },
     {
@@ -267,6 +261,8 @@
   "cambios": {
     "nuevos_con_tag": [],
     "nuevos_en_stock": [],
-    "salieron_del_stock": []
+    "salieron_del_stock": [
+      "SPCT11"
+    ]
   }
 }
