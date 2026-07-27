@@ -11,7 +11,7 @@
 //      reintenta (cooldown), para no gastar logins ni arriesgar bloqueo.
 //   Candado: un solo pipeline a la vez. Cooldown tras pedir Superclave: 25 min.
 import { spawn } from 'node:child_process'
-import { readFileSync, writeFileSync, existsSync, statSync, unlinkSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, unlinkSync } from 'node:fs'
 import { join } from 'node:path'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
@@ -33,10 +33,14 @@ const escribirEstado = (o) => { try { writeFileSync(ESTADO, JSON.stringify({ ...
 
 function lockeado() {
   if (!existsSync(LOCK)) return false
-  try { if (Date.now() - statSync(LOCK).mtimeMs > LOCK_TTL_MS) return false } catch {}
-  return true
+  let dueño
+  try { dueño = JSON.parse(readFileSync(LOCK, 'utf8')) } catch { dueño = null }
+  const pid = Number(dueño?.pid)
+  if (!pid) return false                                              // formato viejo o ilegible → no bloquea
+  try { process.kill(pid, 0) } catch { return false }                 // el dueño murió → candado huérfano
+  return Date.now() - (dueño.ts || 0) <= LOCK_TECHO_MS
 }
-const lock = () => { try { writeFileSync(LOCK, String(process.pid)) } catch {} }
+const lock = () => { try { writeFileSync(LOCK, JSON.stringify({ pid: process.pid, ts: Date.now() })) } catch {} }
 const unlock = () => { try { existsSync(LOCK) && unlinkSync(LOCK) } catch {} }
 
 // corre un script hijo y devuelve el JSON de su línea "RESULTADO: {...}"
