@@ -61,6 +61,13 @@ function recienteBloquea(huella) {
   const v = leerRecientes()[huella]
   if (!v?.ts) return null
   const edad = Date.now() - v.ts
+  // En curso: bloquear mientras el lock viva, o hasta 12 min si el lock se perdió.
+  if (v.estado === 'en_curso' && edad < LOCK_COLGADO_MS) {
+    return {
+      ok: false, estado: 'ocupado', pendiente: false, ocupado: true, ya_intentada: true,
+      error: 'Ya hay una transferencia en curso con los mismos datos. NO se lanza otra (anti-bucle). Esperá a que termine.',
+    }
+  }
   const ok = v.estado === 'creada' || v.estado === 'ya_pendiente'
   if (ok && edad < COOLDOWN_OK_MS) {
     return {
@@ -69,7 +76,7 @@ function recienteBloquea(huella) {
       nota: `Ya se ${v.estado === 'creada' ? 'creó' : 'detectó pendiente'} esta misma transferencia hace ${Math.round(edad / 60000)} min. NO se vuelve a enviar (anti-duplicado).`,
     }
   }
-  if (!ok && edad < COOLDOWN_FAIL_MS) {
+  if (!ok && v.estado !== 'en_curso' && edad < COOLDOWN_FAIL_MS) {
     return {
       ok: false, estado: 'ya_intentada', pendiente: false, ya_intentada: true,
       error: `Esta misma transferencia ya se intentó hace ${Math.round(edad / 60000)} min (resultado: ${v.estado}). NO se reintenta sola — pedí confirmación al usuario si quiere otro intento.`,
@@ -78,25 +85,38 @@ function recienteBloquea(huella) {
   return null
 }
 
+function pidVivo(pid) {
+  if (!pid) return false
+  try { process.kill(pid, 0); return true } catch { return false }
+}
 function envioEnCurso() {
   if (!existsSync(ENVIO_LOCK)) return false
   try {
     const j = JSON.parse(readFileSync(ENVIO_LOCK, 'utf8'))
-    if (!j?.pid) return false
-    try { process.kill(j.pid, 0) } catch { return false }
+    // Preferimos el PID del hijo (login-humano): sobrevive si el hub recarga módulos
+    // o el padre async se pierde. Si aún no spawneó, vale el pid del padre.
+    const vivo = pidVivo(j.childPid) || pidVivo(j.pid)
+    if (!vivo) return false
     if (Date.now() - (j.ts || 0) > LOCK_COLGADO_MS) return false
     return j
   } catch { return false }
 }
 function tomarEnvioLock(huella) {
   try {
-    writeFileSync(ENVIO_LOCK, JSON.stringify({ pid: process.pid, ts: Date.now(), huella }), { flag: 'wx' })
+    writeFileSync(ENVIO_LOCK, JSON.stringify({ pid: process.pid, ts: Date.now(), huella }), { flag: 'wx', mode: 0o600 })
     return true
   } catch (e) {
     if (e?.code !== 'EEXIST') return true
     if (!envioEnCurso()) { try { unlinkSync(ENVIO_LOCK) } catch {} ; return tomarEnvioLock(huella) }
     return false
   }
+}
+function actualizarEnvioLock(patch) {
+  try {
+    const j = JSON.parse(readFileSync(ENVIO_LOCK, 'utf8'))
+    if (j.pid !== process.pid) return
+    writeFileSync(ENVIO_LOCK, JSON.stringify({ ...j, ...patch, ts: Date.now() }), { mode: 0o600 })
+  } catch {}
 }
 function soltarEnvioLock() {
   try {
@@ -244,6 +264,9 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
         error: 'No pude tomar el turno de envío (otra transferencia acaba de empezar). NO reintentes sola.',
       })
     }
+    // Marca YA el fingerprint como en vuelo (antes del spawn). Así otro turno del hub
+    // que llegue en paralelo ve ya_intentada/en_curso aunque el lock se pierda.
+    registrarReciente(huella, 'en_curso')
 
     const b = borrador.beneficiario
     // Santander→Santander usa el form "A Tercero mismo Banco"; a CUALQUIER otro banco (ej.
@@ -269,6 +292,7 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
     if (userId) env.TEK_USER = userId
 
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
+    actualizarEnvioLock({ childPid: hijo.pid })
 
     let out = '', err = ''
     hijo.stdout.on('data', (d) => { out += d.toString() })

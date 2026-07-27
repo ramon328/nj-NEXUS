@@ -1216,73 +1216,102 @@ function clasificarAlerta(texto) {
 }
 
 // Apreta "Aceptar" en el modal/alerta de seguridad del banco (TEF y TEFUN).
-// El fallo de ayer: solo se miraban 2 frames y el click era por mouse sintético, así que el
-// botón rojo "Aceptar" quedaba visible y el flujo seguía al vacío. Acá: TODOS los frames,
-// click nativo del locator + fallback por evaluate + mouse.
+// Fallo recurrente: el aviso $50M/4h queda abierto → tefun_no_confirmada. Causas típicas:
+// modal position:fixed (offsetParent=null), botón en iframe (coords mal sumadas), o Angular
+// ignorando .click() sin force. Acá: force+iframe offset+DOM events+verificación de cierre.
 async function aceptarModalAlerta(page, log) {
   const hayModal = async () => {
     for (const f of page.frames()) {
       const t = await f.evaluate(() => {
-        const m = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i],[class*="overlay" i]')]
-          .find((e) => e.offsetParent !== null && (e.innerText || '').trim().length > 8)
-        return m ? (m.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200) : ''
+        const visibles = (e) => {
+          const r = e.getBoundingClientRect()
+          return r.width > 40 && r.height > 40
+        }
+        const m = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i],[class*="overlay" i],.ui-dialog')]
+          .find((e) => visibles(e) && /aceptar/i.test(e.innerText || ''))
+        if (m) return (m.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200)
+        // A veces el diálogo no trae "modal" en la clase: basta un botón Aceptar grande centrado
+        const btn = [...document.querySelectorAll('button, a, [role="button"], .btn, input[type="button"]')]
+          .find((e) => visibles(e) && /^\s*aceptar\s*$/i.test((e.innerText || e.textContent || e.value || '').replace(/\s+/g, ' ').trim()))
+        return btn ? 'aceptar' : ''
       }).catch(() => '')
-      if (t && /aceptar/i.test(t)) return t
+      if (t) return t
     }
     return ''
   }
+  const clickCoords = async (fr, localX, localY) => {
+    // Coords del evaluate son del viewport del frame; page.mouse usa el page → sumar offset del iframe.
+    let ox = 0, oy = 0
+    try {
+      if (fr !== page.mainFrame()) {
+        const el = await fr.frameElement()
+        const fb = await el.boundingBox()
+        if (fb) { ox = fb.x; oy = fb.y }
+      }
+    } catch { /* main frame u orphan */ }
+    await page.mouse.move(ox + localX, oy + localY, { steps: 8 })
+    await sleep(rnd(160, 320)); await page.mouse.down(); await sleep(50); await page.mouse.up()
+  }
   const clickAceptarEn = async (fr) => {
-    // 1) role=button (más fiable con Angular/React)
-    const porRol = fr.getByRole('button', { name: /^\s*aceptar\s*$/i }).first()
-    if (await porRol.isVisible({ timeout: 400 }).catch(() => false)) {
-      try { await porRol.click({ timeout: 2500 }); return true } catch { /* sigue */ }
-      const bb = await porRol.boundingBox().catch(() => null)
+    const sels = [
+      fr.getByRole('button', { name: /^\s*aceptar\s*$/i }).first(),
+      fr.locator('button, a, [role="button"], .btn, input[type="button"], input[type="submit"]').filter({ hasText: /^\s*aceptar\s*$/i }).first(),
+      fr.getByText(/^\s*aceptar\s*$/i).first(),
+    ]
+    for (const loc of sels) {
+      if (!(await loc.isVisible({ timeout: 350 }).catch(() => false))) continue
+      try { await loc.click({ timeout: 2500, force: true }); return true } catch { /* sigue */ }
+      try { await loc.evaluate((el) => { el.click(); el.dispatchEvent(new MouseEvent('click', { bubbles: true, cancelable: true, view: window })) }); return true } catch { /* sigue */ }
+      const bb = await loc.boundingBox().catch(() => null)
       if (bb) {
+        // boundingBox de Playwright YA viene en coords de página
         await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 8 })
-        await sleep(rnd(180, 350)); await page.mouse.down(); await sleep(50); await page.mouse.up()
+        await sleep(rnd(160, 300)); await page.mouse.down(); await sleep(50); await page.mouse.up()
         return true
       }
     }
-    // 2) texto exacto (botón o span dentro del botón)
-    const porTexto = fr.getByText(/^\s*aceptar\s*$/i).first()
-    if (await porTexto.isVisible({ timeout: 400 }).catch(() => false)) {
-      try { await porTexto.click({ timeout: 2500 }); return true } catch { /* sigue */ }
-      const bb = await porTexto.boundingBox().catch(() => null)
-      if (bb) {
-        await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 8 })
-        await sleep(rnd(180, 350)); await page.mouse.down(); await sleep(50); await page.mouse.up()
-        return true
+    // DOM + eventos de puntero (Angular/Santander a veces ignora locator.click)
+    const domOk = await fr.evaluate(() => {
+      const norm = (s) => (s || '').replace(/\s+/g, ' ').trim()
+      const esAceptar = (el) => {
+        const t = norm(el.innerText || el.textContent || el.value || '')
+        return /^\s*aceptar\s*$/i.test(t) || (t.length <= 12 && /^aceptar$/i.test(t))
       }
-    }
-    // 3) click DOM directo + eventos de puntero (Angular a veces ignora .click() solo)
-    return await fr.evaluate(() => {
-      const esAceptar = (el) => /^\s*aceptar\s*$/i.test((el.innerText || el.textContent || el.value || '').replace(/\s+/g, ' ').trim())
+      const visto = (el) => { const r = el.getBoundingClientRect(); return r.width > 0 && r.height > 0 }
       const disparar = (el) => {
+        try { el.scrollIntoView({ block: 'center', inline: 'center' }) } catch { /* */ }
         const r = el.getBoundingClientRect()
         const x = r.left + r.width / 2, y = r.top + r.height / 2
         for (const tipo of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
           el.dispatchEvent(new MouseEvent(tipo, { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }))
         }
         try { el.click() } catch { /* */ }
+        // ng-click / onclick legado
+        try { if (typeof el.onclick === 'function') el.onclick() } catch { /* */ }
       }
-      const modales = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i],.modal,.ui-dialog')]
-        .filter((e) => e.offsetParent !== null || (e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 0))
-      for (const m of modales) {
-        const btn = [...m.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"], .btn')]
-          .find(esAceptar)
-        if (btn) { disparar(btn); return true }
-        const nodo = [...m.querySelectorAll('*')].find((e) => e.childElementCount === 0 && esAceptar(e))
-        if (nodo) { disparar(nodo.closest('button, a, [role="button"], .btn') || nodo); return true }
+      const candidatos = [...document.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"], .btn, [ng-click], [onclick]')]
+        .filter((e) => visto(e) && esAceptar(e))
+      for (const btn of candidatos) { disparar(btn); return { ok: true, x: btn.getBoundingClientRect().left + btn.getBoundingClientRect().width / 2, y: btn.getBoundingClientRect().top + btn.getBoundingClientRect().height / 2 } }
+      // Hoja de texto "Aceptar" dentro de un contenedor clickeable
+      const hoja = [...document.querySelectorAll('span, div, label, p, td')]
+        .find((e) => e.childElementCount === 0 && visto(e) && esAceptar(e))
+      if (hoja) {
+        const clickable = hoja.closest('button, a, [role="button"], .btn, [ng-click]') || hoja
+        disparar(clickable)
+        const r = clickable.getBoundingClientRect()
+        return { ok: true, x: r.left + r.width / 2, y: r.top + r.height / 2 }
       }
-      const any = [...document.querySelectorAll('button, a, [role="button"], .btn')]
-        .find((b) => (b.offsetParent !== null || b.getBoundingClientRect().width > 0) && esAceptar(b))
-      if (any) { disparar(any); return true }
-      return false
-    }).catch(() => false)
+      return { ok: false }
+    }).catch(() => ({ ok: false }))
+    if (domOk?.ok) {
+      if (domOk.x != null) await clickCoords(fr, domOk.x, domOk.y)
+      return true
+    }
+    return false
   }
 
   let alguna = false
-  for (let k = 0; k < 5; k++) {
+  for (let k = 0; k < 6; k++) {
     const antes = await hayModal()
     if (!antes) return alguna
     let ok = false
@@ -1290,32 +1319,47 @@ async function aceptarModalAlerta(page, log) {
     for (const fr of frames) {
       if (await clickAceptarEn(fr)) { ok = true; break }
     }
-    // Último recurso: click por coordenadas del botón Aceptar en cualquier frame
+    // Último recurso: coords locales del frame + offset del iframe
     if (!ok) {
       for (const fr of frames) {
         const box = await fr.evaluate(() => {
           const esAceptar = (el) => /^\s*aceptar\s*$/i.test((el.innerText || el.textContent || el.value || '').replace(/\s+/g, ' ').trim())
-          const btn = [...document.querySelectorAll('button, a, [role="button"], .btn')].find((b) => esAceptar(b) && b.getBoundingClientRect().width > 0)
+          const btn = [...document.querySelectorAll('button, a, [role="button"], .btn, input[type="button"], span, div')]
+            .find((b) => esAceptar(b) && b.getBoundingClientRect().width > 0)
           if (!btn) return null
-          const r = btn.getBoundingClientRect()
+          const r = (btn.closest('button, a, [role="button"], .btn') || btn).getBoundingClientRect()
           return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
         }).catch(() => null)
         if (box) {
-          await page.mouse.move(box.x, box.y, { steps: 10 })
-          await sleep(rnd(200, 400)); await page.mouse.down(); await sleep(60); await page.mouse.up()
+          await clickCoords(fr, box.x, box.y)
           ok = true; break
         }
       }
     }
     if (!ok) {
       if (log) log('  modal → Aceptar NO encontrado (intento ' + (k + 1) + ')')
+      // Dump de botones visibles para diagnosticar el próximo fallo
+      try {
+        const dump = []
+        for (const fr of frames) {
+          const rows = await fr.evaluate(() => [...document.querySelectorAll('button, a, [role="button"], .btn, input[type="button"]')]
+            .filter((e) => e.getBoundingClientRect().width > 0)
+            .slice(0, 30)
+            .map((e) => ({ tag: e.tagName, txt: (e.innerText || e.value || '').replace(/\s+/g, ' ').trim().slice(0, 40), cls: (e.className || '').toString().slice(0, 60) }))
+          ).catch(() => [])
+          dump.push(...rows)
+        }
+        writeFileSync(join(DATA, 'crear-modal-botones.json'), JSON.stringify({ ts: new Date().toISOString(), dump }, null, 2))
+      } catch { /* */ }
       break
     }
     alguna = true
-    if (log) log('  modal → Aceptar')
-    await sleep(rnd(2200, 3600))
+    if (log) log('  modal → Aceptar (intento ' + (k + 1) + ')')
+    await sleep(rnd(1800, 2800))
+    // Si el modal sigue, reintentar (click "fantasma" que no cerró)
+    if (!(await hayModal())) return true
   }
-  return alguna
+  return alguna && !(await hayModal())
 }
 
 async function existePendiente(page, log, rutDest, monto, cuentaDest) {
