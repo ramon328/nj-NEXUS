@@ -1321,7 +1321,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -2121,6 +2121,22 @@ const HERRAMIENTAS = [
         limite: { type: 'integer', description: 'Para "hoja": máximo de filas a traer' },
       },
       required: ['comando'],
+    },
+  },
+  {
+    name: 'documentos_autos',
+    description: 'Recordatorio de DOCUMENTOS por vencer de los autos en stock de MallorcAutos: Revisión Técnica, Permiso de Circulación y SOAP. Calcula cuántos días le quedan a cada documento de cada auto y le AVISA a JOAQUÍN por WhatsApp (auto + días que le quedan para renovar). La fecha de la revisión técnica sale del Excel de Mallorca (columna RT); las de SOAP y permiso de circulación NO están en ningún Excel — hay que cargarlas a mano con accion "registrar" (hasta cargarlas, esos dos no avisan; no se inventan fechas). Acciones: "revisar" = muestra qué documentos vencen dentro de N días (solo lectura, NO envía nada); "avisar" = le manda a Joaquín ahora el listado de documentos por vencer/vencidos (respeta un gate de 7 días para no spamearlo — usa forzar:true para mandarlo igual); "registrar" = carga/actualiza una fecha de un documento de un auto (patente + tipo + fecha). Úsalo cuando pidan "avísale a Joaquín de los documentos por vencer", "qué autos tienen la revisión técnica/permiso/soap por vencer", "cárgale el SOAP de la patente X que vence el …".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['revisar', 'avisar', 'registrar'], description: 'revisar = ver estado (no envía); avisar = mandarle el aviso a Joaquín; registrar = cargar una fecha.' },
+        dias: { type: 'integer', description: 'Para revisar/avisar: ventana en días (por defecto 30). Cuenta como "por vencer" lo que caduca dentro de estos días (más los ya vencidos).' },
+        forzar: { type: 'boolean', description: 'Para "avisar": salta el gate de 7 días y manda el aviso a Joaquín igual.' },
+        patente: { type: 'string', description: 'Para "registrar": patente del auto.' },
+        tipo: { type: 'string', enum: ['revision_tecnica', 'permiso_circulacion', 'soap'], description: 'Para "registrar": qué documento.' },
+        fecha: { type: 'string', description: 'Para "registrar": fecha de vencimiento en formato AAAA-MM-DD.' },
+      },
+      required: ['accion'],
     },
   },
   {
@@ -3974,6 +3990,33 @@ async function ejecutar(nombre, input, ctx = {}) {
         return `No pude crear el auto en GoAutos: ${e.message}`
       }
     }
+    if (nombre === 'documentos_autos') {
+      // Recordatorio de documentos por vencer (revisión técnica / permiso / SOAP) de los
+      // autos de MallorcAutos. La RT sale del Excel; SOAP y permiso se cargan a mano.
+      let mod
+      try { mod = await import('./documentos-autos.mjs') }
+      catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de documentos: ' + e.message }) }
+      const accion = String(input.accion || 'revisar').toLowerCase()
+      const dias = Number(input.dias) > 0 ? Number(input.dias) : 30
+      try {
+        if (accion === 'registrar') {
+          const r = mod.registrarDocumento({ patente: input.patente, tipo: input.tipo, fecha: input.fecha })
+          if (!r.ok) return JSON.stringify(r)
+          return JSON.stringify({ ok: true, nota: `Cargado: ${r.label} de ${r.patente} vence el ${r.fecha}. Entrará en los próximos avisos a Joaquín.` })
+        }
+        if (accion === 'avisar') {
+          const r = await mod.avisarJoaquin({ dias, force: Boolean(input.forzar) })
+          return JSON.stringify(r)
+        }
+        // revisar (por defecto): solo lectura, no envía nada.
+        const items = await mod.porVencer(dias)
+        const mensaje = mod.construirMensaje(items, dias)
+        return JSON.stringify({ ok: true, ventana_dias: dias, por_vencer: items.length, mensaje: mensaje || `Ningún documento vence dentro de ${dias} días.`,
+          nota: 'Esto es SOLO lectura (no se le envió nada a Joaquín). Para avisarle, usa accion:"avisar". Recuerda: SOAP y permiso de circulación solo aparecen si ya se cargaron con accion:"registrar".' })
+      } catch (e) {
+        return JSON.stringify({ ok: false, error: 'No pude procesar los documentos: ' + (e.message || String(e)) })
+      }
+    }
     if (nombre === 'consultar_mallorca') {
       // Lee el Excel global de Mallorca (datos financieros) por su conector Python.
       // Solo lectura. Cruza con GoAutos por patente (el modelo combina ambas fuentes).
@@ -4676,7 +4719,7 @@ function backstopTamano(mensajes) {
 const PERSONAS = [
   { linea: 'Me conecté a *Martes* y me dijo:', tools: ['sii', 'sii_boleta_honorarios'] },
   { linea: 'Le pregunté a *Néstor* y me dijo:', tools: ['correo', 'gmail_documentos'] },
-  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos'] },
+  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos'] },
   { linea: 'Me conecté con *Ali* y me dijo:', tools: ['aliace_resumen', 'aliace_margen', 'aliace_rpc', 'aliace_sql', 'aliace_mover_nv', 'navegar', 'iniciar_sesion', 'leer_tabla', 'leer_pagina', 'clic', 'esperar', 'guia_aliace', 'escribir_en_campo', 'ver_pestanas', 'cambiar_pestana'] },
   { linea: 'Me comuniqué con *SAI* y me dijo:', tools: ['sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'] },
   { linea: 'Me comuniqué con *Leo* y me dijo:', tools: ['banco'] },
