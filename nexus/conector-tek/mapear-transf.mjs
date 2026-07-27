@@ -7,6 +7,7 @@ import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchr
 const { chromium } = patchright
 import { writeFileSync, mkdirSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
+import { crearCandado } from '/Users/AIagenteia/nexus/conector-tek/candado.mjs'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
 const PROFILE = join(DIR, 'chrome-profile')
@@ -115,6 +116,10 @@ async function dumpForms(page, tag) {
 
 async function main() {
   setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, 240_000).unref?.()
+  // Un solo navegador por perfil: si otro proceso tiene el banco, salimos sin abrir
+  // nada. Abrir un segundo Chrome sobre el mismo perfil le corta la sesión al banco.
+  const candado = crearCandado({ log: (m) => console.error('[candado]', m) })
+  if (!await candado.adquirir()) { console.log('RESULTADO:', JSON.stringify({ estado: 'ocupado' })); return }
   const ctx = await chromium.launchPersistentContext(PROFILE, {
     headless: false, channel: 'chrome', viewport: { width: 1360, height: 860 },
     locale: 'es-CL', timezoneId: 'America/Santiago',

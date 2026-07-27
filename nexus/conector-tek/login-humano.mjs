@@ -20,6 +20,7 @@ const { chromium } = patchright
 import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync, cpSync, rmSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 import { obtener as obtenerCreds } from '/Users/AIagenteia/nexus/conector-tek/credenciales.mjs'
+import { crearCandado } from '/Users/AIagenteia/nexus/conector-tek/candado.mjs'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
 const DATA = join(DIR, 'data')
@@ -43,40 +44,11 @@ const chance = (p) => Math.random() < p
 // Antes era global (session.lock) → una operación de Nico bloqueaba una de Ramón aunque usan
 // sesiones/navegadores distintos ("banco ocupado" / sesión activa no usada). Ahora cada persona
 // tiene su propio lock y corren en paralelo. TEK_USER ya está seteado por quien nos invoca.
-const LOCK_USER = (process.env.TEK_USER || 'ramon').toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'
-const LOCK = join(DIR, LOCK_USER === 'ramon' ? 'session.lock' : `session-${LOCK_USER}.lock`)
-function lockVivo() {
-  try {
-    const j = JSON.parse(readFileSync(LOCK, 'utf8'))
-    if (!j.pid) return false
-    try { process.kill(j.pid, 0) } catch { return false }        // proceso muerto → candado viejo, se ignora
-    if (Date.now() - (j.ts || 0) > 12 * 60_000) return false      // colgado > 12 min → se ignora
-    return true
-  } catch { return false }
-}
-async function adquirirLock(esperaMs = Number(process.env.TEK_LOCK_WAIT_MS) || 8 * 60_000) {
-  const t0 = Date.now(); let aviso = false
-  for (;;) {
-    // ADQUISICIÓN ATÓMICA (arregla la carrera TOCTOU que dejaba correr DOS logins a la
-    // vez): 'wx' crea el archivo en modo EXCLUSIVO y FALLA si ya existe. Solo UN proceso
-    // puede crearlo; el resto recibe EEXIST y espera. Antes era chequear-luego-escribir
-    // (no atómico) → dos procesos veían el lock libre y ambos lo pisaban.
-    try {
-      writeFileSync(LOCK, JSON.stringify({ pid: process.pid, ts: Date.now() }), { flag: 'wx' })
-      return true                                   // lo creamos NOSOTROS → lock nuestro
-    } catch (e) {
-      if (e && e.code !== 'EEXIST') return true      // fallo raro de fs → no bloquear el banco por esto
-    }
-    // Ya existe un lock: ¿está vivo? Si el proceso murió o quedó colgado (>12 min), lo
-    // borramos y reintentamos (el próximo 'wx' lo recrea de forma atómica).
-    if (!lockVivo()) { try { unlinkSync(LOCK) } catch {} continue }
-    if (Date.now() - t0 > esperaMs) return false
-    if (!aviso) { log('ya hay una sesión de banco activa — espero a que termine (NO abro otra)'); aviso = true }
-    await sleep(5000 + Math.floor(Math.random() * 2000))   // jitter: rompe empates entre procesos
-  }
-}
-function soltarLock() { try { const j = JSON.parse(readFileSync(LOCK, 'utf8')); if (j.pid === process.pid) unlinkSync(LOCK) } catch {} }
-process.on('exit', soltarLock)
+// El protocolo vive en candado.mjs para que TODOS los scripts que abren el navegador usen
+// el mismo archivo; tenerlo acá adentro dejaba a los demás sin forma de excluirse.
+const candado = crearCandado({ log: (m) => log(m) })
+const adquirirLock = (esperaMs) => candado.adquirir(esperaMs)
+const soltarLock = () => candado.soltar()
 
 // Posición virtual del mouse (Playwright no la expone; la trackeamos).
 let mx = 680, my = 430

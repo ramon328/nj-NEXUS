@@ -20,7 +20,12 @@ const LOCK = join(DATA, '.pipeline.lock')
 const ESTADO = join(DATA, 'estado.json')
 const NODE = '/usr/local/bin/node'
 const COOLDOWN_MS = 25 * 60 * 1000     // no reintentar login si hace <25min pidió Superclave
-const LOCK_TTL_MS = 8 * 60 * 1000      // candado viejo se ignora tras 8min
+// Techo de seguridad por si un pid queda reciclado o el proceso se cuelga sin morir. NO es
+// la vida esperada del pipeline: antes eran 8 min y el trabajo real (login+captura son 320s,
+// más el volcado al cerebro) los pasaba de largo, así que arrancaba un SEGUNDO pipeline
+// encima del primero y quedaban dos Chrome sobre el mismo perfil. Eso le corta la sesión al
+// banco. Ahora lo que manda es si el dueño del candado sigue vivo.
+const LOCK_TECHO_MS = 30 * 60 * 1000
 
 const log = (...a) => console.log('·', ...a)
 const leerEstado = () => { try { return JSON.parse(readFileSync(ESTADO, 'utf8')) } catch { return {} } }
