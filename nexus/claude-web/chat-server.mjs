@@ -387,10 +387,11 @@ const MODELOS=[
  {id:'sonnet',nombre:'Sonnet',desc:'equilibrado y rápido',grupo:'Claude Code'},
  {id:'haiku',nombre:'Haiku',desc:'el más veloz y económico',grupo:'Claude Code'},
  {id:'cursor:auto',nombre:'Cursor · Auto',desc:'Cursor elige el modelo',grupo:'Cursor'},
- {id:'cursor:sonnet-4.5',nombre:'Cursor · Sonnet 4.5',desc:'Claude vía tu Cursor',grupo:'Cursor'},
- {id:'cursor:gpt-5',nombre:'Cursor · GPT-5',desc:'OpenAI vía tu Cursor',grupo:'Cursor'},
- {id:'cursor:opus-4.1',nombre:'Cursor · Opus 4.1',desc:'lo más capaz vía Cursor',grupo:'Cursor'},
- {id:'cursor:gemini-2.5-pro',nombre:'Cursor · Gemini 2.5 Pro',desc:'Google vía tu Cursor',grupo:'Cursor'},
+ {id:'cursor:composer-2.5',nombre:'Cursor · Composer 2.5',desc:'rápido, modelo propio de Cursor',grupo:'Cursor'},
+ {id:'cursor:claude-opus-5-high',nombre:'Cursor · Opus 5',desc:'lo más capaz (Claude 1M)',grupo:'Cursor'},
+ {id:'cursor:gpt-5.3-codex',nombre:'Cursor · Codex 5.3',desc:'OpenAI para código',grupo:'Cursor'},
+ {id:'cursor:cursor-grok-4.5-medium',nombre:'Cursor · Grok 4.5',desc:'de xAI',grupo:'Cursor'},
+ {id:'cursor:gpt-5.2',nombre:'Cursor · GPT-5.2',desc:'OpenAI generalista',grupo:'Cursor'},
 ]
 let cursorConn=false, cursorMask=''
 const feed=$('#feed')
@@ -798,10 +799,10 @@ function runCursorTurn(t, texto) {
   t.proc = spawn(CURSOR, args, {
     cwd: HOME, env: { ...process.env, TERM: 'dumb', FORCE_COLOR: '0', CURSOR_API_KEY: cursorKey() }, stdio: ['ignore', 'pipe', 'pipe'],
   })
-  t.buf = ''
+  t.buf = ''; t._cthink = ''
   t.proc.stdout.on('data', (d) => { t.buf += d.toString(); let nl; while ((nl = t.buf.indexOf('\n')) >= 0) { const line = t.buf.slice(0, nl); t.buf = t.buf.slice(nl + 1); if (line.trim()) handleCursorLine(t, line) } })
   t.proc.stderr.on('data', (d) => { const s = d.toString().trim(); if (s) console.error('[cursor:err]', s.slice(0, 300)) })
-  t.proc.on('exit', (code) => { t.proc = null; if (code && code !== 0) bcast(t, { t: 'error', msg: 'Cursor terminó (código ' + code + '). ¿API key válida?' }); bcast(t, { t: 'done', cost: 0, turns: 0 }) })
+  t.proc.on('exit', (code) => { t.proc = null; const tx = String(t._cthink || '').trim(); if (tx) { bcast(t, { t: 'think', text: tx }); t._cthink = '' }; if (code && code !== 0) bcast(t, { t: 'error', msg: 'Cursor terminó (código ' + code + '). ¿API key válida?' }); bcast(t, { t: 'done', cost: 0, turns: 0 }) })
 }
 
 function handleCursorLine(t, line) {
@@ -818,9 +819,10 @@ function handleCursorLine(t, line) {
     else if (typeof c === 'string' && c.trim()) bcast(t, { t: 'text', text: c })
     return
   }
-  if (ty === 'thinking' || ty === 'reasoning') {
-    const tx = m.text || (m.message && m.message.content) || ''
-    if (typeof tx === 'string' && tx.trim()) bcast(t, { t: 'think', text: tx })
+  if (ty === 'thinking') {
+    // El pensamiento llega en muchos deltas; se acumulan y se sueltan de una al completar.
+    if (m.subtype === 'completed') { const tx = String(t._cthink || '').trim(); if (tx) bcast(t, { t: 'think', text: tx }); t._cthink = '' }
+    else if (typeof m.text === 'string') t._cthink = String(t._cthink || '') + m.text
     return
   }
   if (ty === 'tool_call' && m.subtype === 'started') {
