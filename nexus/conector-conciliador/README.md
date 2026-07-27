@@ -77,17 +77,33 @@ Un conciliador ingenuo diría "195 facturas impagas" y sería mentira. Este sepa
   crédito/financiero, impuestos, remuneraciones, cobro a cliente, o **por
   revisar**. Solo los últimos son un descuadre de verdad.
 
-## Estado actual — dos limitaciones de los datos de entrada
+## Estado actual
 
-**1. No hay datos de VENTA.** `sii-web` solo ha descargado el RCV de compras
-(períodos 202506, 202604, 202605, 202606, 202607 = 422 facturas). Sin ventas, todo
-abono queda sin calzar: en el piloto son 14 de 39 movimientos sueltos. Bajarlas
-requiere **una** sesión del SII, por la vía segura de `sii-web`
-(`ensure_session()` reutiliza cookies y tiene circuit breaker de 30 min y tope de
-3 intentos).
+**Compras: completas para 2026.** Se bajaron por la vía normal de `sii-web`
+(`POST /api/empresas/3/descargar`), que hace **un solo login** para todo el job y
+reutiliza la sesión guardada. Períodos 202601–202607 más 202506: **708 facturas**.
 
-**2. La cartola del banco está truncada.** La captura de tek baja **una página por
-mes, ~60 filas**, así que cada mes viene cortado a los primeros días:
+**Ventas: no existen.** No es que falten por descargar — se consultó el RCV mes a
+mes el 27-jul-2026 y **ANA CLARA SPA tiene 0 facturas de venta en todo 2026**:
+
+| Periodo | Compras | Ventas |
+|---------|---------|--------|
+| 202601 | 112 docs · $78.736.755 | **0** |
+| 202602 | 95 docs · $281.235.095 | **0** |
+| 202603 | 110 docs · $492.026.923 | **0** |
+| 202604 | 82 docs · $234.217.899 | **0** |
+| 202605 | 104 docs · $86.984.192 | **0** |
+| 202606 | 108 docs · $279.266.265 | **0** |
+| 202607 | 97 docs · $99.759.791 | **0** |
+
+Por eso los abonos del banco ("Transf de ACE SPA", "Transf de EUN LEE") no calzan
+contra nada: **no son cobros a clientes**, son aportes de otras empresas del
+grupo. Esta empresa recibe plata y paga gastos; no factura. Si se quiere conciliar
+ingresos hay que apuntar al RUT que sí emite las ventas — hoy `sii-web` solo tiene
+configurada a ANA CLARA (`empresa_id 3`).
+
+**La cartola del banco sigue truncada.** La captura de tek trae ~60 filas por mes,
+así que cada mes viene cortado a los primeros días:
 
 | Mes | Movimientos | Cubre |
 |-----|-------------|-------|
@@ -96,9 +112,21 @@ mes, ~60 filas**, así que cada mes viene cortado a los primeros días:
 | 2026-06 | 60 | 06-01 → 06-08 |
 | 2026-07 | 50 | 07-14 → 07-21 |
 
-Falta del orden del 75% del año. Para conciliar en serio hay que **paginar la
-cartola histórica** en `conector-tek/login-humano.mjs` (`cartolaHistorica`), lo
-que sí requiere sesión de banco.
+Falta del orden del 75% del año. La captura vive en
+`conector-tek/login-humano.mjs` → `cartolaHistorica`, bajo `TEK_CARTOLA_MOVS=1`:
+hace scroll infinito hasta que no aparecen filas nuevas, y se está deteniendo en
+~60. Arreglarlo requiere iterar contra la UI del banco con sesión viva.
 
 Mientras tanto, el conciliador es correcto dentro de los días que sí existen: por
 eso marca "no concluible" en vez de inventar impagos.
+
+## Resultado sobre los datos actuales
+
+410 movimientos (2026-01-02 → 2026-07-21) contra 668 facturas en ventana:
+
+- **69 conciliados** — 53 alta, 14 media, 2 baja
+- **0 facturas impagas** dentro de los días que la cartola cubre
+- 535 no concluibles (su pago cae en días que el banco no bajó)
+- 341 movimientos sin factura, de los cuales 133 son cobros/aportes (sin venta
+  que cruzar), 61 traspasos internos, 14 crédito/impuestos/sueldos, y 133 por
+  revisar

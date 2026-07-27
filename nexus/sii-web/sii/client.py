@@ -103,11 +103,16 @@ class SiiClient:
         y requests NO la envía a www4.sii.cl (subdominio hermano) → el RCV sale
         SIN sesión y el SII responde 401. Esto la promueve a .sii.cl. Llamar tras
         login / cargar cookies, ANTES de cualquier petición a www4 (RCV).
+
+        Se reconstruye el jar entero en vez de solo añadir copias:
+          - Al recargar de disco, `cookiejar_from_dict` deja domain='' y el filtro
+            por "sii.cl" no encontraba nada — la promoción era un no-op silencioso.
+          - Tras un login sí hay dominio, pero añadir la copia .sii.cl dejaba
+            además la host-only original, o sea dos entradas TOKEN en el jar.
         """
-        pares = [
-            (c.name, c.value)
-            for c in list(self.session.cookies)
-            if c.domain and "sii.cl" in c.domain
-        ]
-        for name, value in pares:
+        pares = {c.name: c.value for c in list(self.session.cookies)}
+        if not pares:
+            return
+        self.session.cookies.clear()
+        for name, value in pares.items():
             self.session.cookies.set(name, value, domain=".sii.cl", path="/")

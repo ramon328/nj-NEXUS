@@ -232,11 +232,12 @@ if (process.argv[1] && process.argv[1].endsWith('conciliar.mjs')) {
   let movimientos = bco.movimientos
   if (limite) movimientos = movimientos.slice(0, limite)
 
-  // Las facturas se acotan a la ventana del banco: sin cargo posible, una factura
-  // aparecería como "impaga" solo porque el banco no cubre esos días.
+  // Una factura entra al análisis si su plazo de pago —[emisión, emisión+90d]—
+  // se solapa con la ventana del banco. Acotar solo por "≤ última fecha del
+  // banco" dejaba fuera las facturas viejas cuyo pago sí cae dentro.
   const fMin = movimientos.length ? movimientos[0].fecha : desde
   const fMax = movimientos.length ? movimientos[movimientos.length - 1].fecha : hasta
-  const enVentana = (f) => f.fecha <= fMax && dias(f.fecha, fMax) <= DIAS_DESPUES
+  const enVentana = (f) => dias(f.fecha, fMax) >= -DIAS_ANTES && dias(f.fecha, fMin) <= DIAS_DESPUES
   const facturas = [...compras.facturas, ...ventas.facturas].filter(enVentana)
 
   // Días que la cartola cubre de verdad (del set COMPLETO, no del recorte),

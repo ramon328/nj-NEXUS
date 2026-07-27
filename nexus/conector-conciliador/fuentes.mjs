@@ -196,7 +196,11 @@ const aIso = (f) => {
 export function facturasSii({ empresaId = 3, operacion = 'compra', desde, hasta } = {}) {
   const base = join(RCV_BASE, String(empresaId), operacion)
   if (!existsSync(base)) {
-    return { error: `No hay datos de ${operacion.toUpperCase()} descargados (falta ${base}). Hay que bajarlos del SII primero.`, facturas: [], periodos: [] }
+    // Ojo: "no hay carpeta" puede significar dos cosas distintas — que nunca se
+    // bajó, o que el SII devolvió 0 documentos y no había CSV que escribir. Para
+    // ANA CLARA es lo segundo: se consultó el RCV el 27-jul-2026 y no tiene
+    // NINGUNA factura de venta en 2026 (verificado mes a mes, 202601–202607).
+    return { error: `Sin facturas de ${operacion.toUpperCase()} en disco (${base} no existe). O no se han descargado, o el SII devolvió 0 documentos.`, facturas: [], periodos: [] }
   }
   const periodos = readdirSync(base).filter((p) => /^\d{6}$/.test(p)).sort()
   const facturas = []
