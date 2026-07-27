@@ -115,7 +115,13 @@ async function atender(user) {
   // toque normal (jamás loguea)
   const est = await correr(user, true)
   if (est === 'keepalive_ok') { deadSeguidas[user] = 0; if (!vivaDesde[user]) vivaDesde[user] = now; log(`[${user}] ✓ viva`) }
-  else if (est === 'ocupado') { if (!vivaDesde[user]) vivaDesde[user] = now; log(`[${user}] · en uso por una operación (sigue caliente), ok`) }
+  else if (est === 'ocupado') {
+    // Hay una transferencia/operación con el candado: NO abrir otro Chrome (rompería la sesión).
+    // Marcamos viva y pedimos el próximo latido pronto (~1 min) para retomarla cuando suelte.
+    if (!vivaDesde[user]) vivaDesde[user] = now
+    pokeDue[user] = Math.round(60_000 * (0.7 + Math.random() * 0.6))   // 42–78 s
+    log(`[${user}] · en uso por una operación (sigue caliente), ok — retomo en ~${Math.round(pokeDue[user] / 1000)}s`)
+  }
   else if (est === 'keepalive_omitido') log(`[${user}] · omitido`)
   else if (est === 'sesion_muerta') { const m = dormirMuerta(user, now); log(`[${user}] ✗ muerta → no la toco por ${m} min (reestablezco en ventana fría)`) }
   else { const m = dormirMuerta(user, now); log(`[${user}] · ${est} → back-off ${m} min`) }

@@ -91,6 +91,19 @@ async function moveToLoc(page, loc) {
 async function clickReal(page) { await page.mouse.down(); await sleep(rnd(45, 115)); await page.mouse.up() }
 // Micro-drift del mouse mientras "lee".
 async function idle(page, ms) { const end = Date.now() + ms; while (Date.now() < end) { await page.mouse.move(mx + rnd(-5, 5), my + rnd(-4, 4)).catch(() => {}); await sleep(rnd(220, 620)) } }
+// Pulso DENTRO del mismo navegador (misma pestaña del form). Resetea el idle del banco
+// sin abrir otro Chrome ni relogin — eso es lo que el corazón NO puede hacer mientras el
+// candado está tomado por la transferencia. Nunca navega: no saca del formulario.
+async function pulsoSesion(page, ms) {
+  const end = Date.now() + Math.max(0, ms)
+  while (Date.now() < end) {
+    const queda = end - Date.now()
+    if (queda <= 0) break
+    await idle(page, Math.min(1800, queda))
+    if (Date.now() >= end) break
+    await sleep(Math.min(1200, end - Date.now()))
+  }
+}
 // CLICK HUMANO sobre un locator: mueve el mouse con curva hasta el elemento, hover breve
 // y clic real (down→up). Si no consigue la caja, cae a un click normal. Devuelve bool.
 async function clickHumano(page, loc) {
@@ -552,14 +565,16 @@ async function crearTransferencia(page, log) {
   mkdirSync(DATA, { recursive: true })
   // El anti-bucle (1 sola transferencia, sin reintentos del hub) vive en transferir.mjs
   // ANTES de spawnear este proceso. Acá solo creamos; no abrimos otra si ya hay una en curso.
+  // sleepLargo = espera CON pulso de mouse (mantiene viva la sesión del banco en ESTE Chrome).
+  const sleepLargo = (ms) => pulsoSesion(page, ms)
   await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
-  await sleep(8000)
+  await sleepLargo(8000)
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
-  await sleep(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
+  await sleepLargo(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
   // abrir menú Transferencias (clic por texto, engancha) + clic de PIXEL en "Creación"
   const menu = page.getByText(/^transferencias?$/i).first()
   await clickHumano(page, menu)
-  await sleep(rnd(4000, 5500))
+  await sleepLargo(rnd(4000, 5500))
   await page.screenshot({ path: join(DATA, 'crear-00-menu.png') }).catch(() => {})
   const tipoOtros = /otro/i.test(process.env.TEK_TRANSFER_TIPO || '')
   // GENÉRICO: reconoce los DOS formularios de transferencia del banco (hay tipos de cuenta
@@ -582,7 +597,7 @@ async function crearTransferencia(page, log) {
     return false
   }
   await clicCreacion()
-  await sleep(9000)
+  await sleepLargo(9000)
   await page.screenshot({ path: join(DATA, 'crear-01-form.png') }).catch(() => {})
   let f1 = fr()
   // Fallback al clic por PÍXEL (layout conocido de ANA CLARA) si el texto no cargó el iframe.
@@ -592,7 +607,7 @@ async function crearTransferencia(page, log) {
     await page.mouse.move(320, yCreacion, { steps: 8 }); await sleep(rnd(150, 300))
     await page.mouse.down(); await sleep(60); await page.mouse.up()
     log('fallback: clic pixel Creación (' + yCreacion + ')')
-    await sleep(9000); f1 = fr()
+    await sleepLargo(9000); f1 = fr()
   }
   if (!f1) { log('no cargó el iframe de creación'); writeFileSync(join(DATA, 'crear-form.json'), JSON.stringify({ url: page.url(), forms: await volcarFrames(page) }, null, 2)); return { estado: 'sin_form', url: page.url() } }
   writeFileSync(join(DATA, 'crear-form.json'), JSON.stringify({ paso: 1, url: page.url(), forms: await volcarFrames(page) }, null, 2))
@@ -645,7 +660,7 @@ async function crearTransferencia(page, log) {
   const cb = await cont.boundingBox().catch(() => null)
   if (cb) { await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2, { steps: 12 }); await sleep(rnd(200, 450)); await page.mouse.down(); await sleep(60); await page.mouse.up(); log('Continuar → paso 2') }
   else log('no vi el botón Continuar')
-  await sleep(9000)
+  await sleepLargo(9000)
   await page.screenshot({ path: join(DATA, 'crear-02-destino.png') }).catch(() => {})
   const forms2 = await volcarFrames(page)
   writeFileSync(join(DATA, 'crear-destino.json'), JSON.stringify({ paso: 2, url: page.url(), forms: forms2 }, null, 2))
@@ -757,7 +772,7 @@ async function crearTransferencia(page, log) {
       }
       if (modo !== 'crear') {
         await clickBtnTEFUN(/^\s*(crear|continuar)\s*$/i)
-        await sleep(rnd(4000, 6000))
+        await sleepLargo(rnd(4000, 6000))
         return { estado: 'tefun_lleno_sin_crear', url: page.url() }
       }
       const leerAlerta = async () => {
@@ -804,7 +819,7 @@ async function crearTransferencia(page, log) {
         await page.screenshot({ path: join(DATA, 'crear-05a-alerta.png') }).catch(() => {})
         return { estado: 'sin_boton_crear', pendiente: false, nota: 'No vi el botón Crear/Continuar en el paso 2 de TEFUN.', url: page.url() }
       }
-      await sleep(rnd(3500, 5500))
+      await sleepLargo(rnd(3500, 5500))
       await page.screenshot({ path: join(DATA, 'crear-05a-alerta.png') }).catch(() => {})
 
       // 2) Modal de aviso (50M/4h, tope, etc.) → SIEMPRE Aceptar si aparece
@@ -829,7 +844,7 @@ async function crearTransferencia(page, log) {
             url: page.url(),
           }
         }
-        await sleep(rnd(2500, 4000))
+        await sleepLargo(rnd(2500, 4000))
       }
 
       // 3) Tras Aceptar a veces pide otro Crear/Continuar/Confirmar
@@ -845,7 +860,7 @@ async function crearTransferencia(page, log) {
             : (await botonVisible(/^\s*continuar\s*$/i)) ? /^\s*continuar\s*$/i
               : /^\s*(confirmar|finalizar)\s*$/i
           log('TEFUN post-modal →', await clickBtnTEFUN(cual))
-          await sleep(rnd(3000, 5000))
+          await sleepLargo(rnd(3000, 5000))
           const a2 = await leerAlerta()
           if (a2) { await aceptarModalAlerta(page, log); await sleep(rnd(1500, 2500)) }
         } else break
