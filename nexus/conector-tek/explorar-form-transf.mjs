@@ -6,7 +6,7 @@
 // NO clickea firmar/autorizar/enviar. NO mueve plata.
 import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchright/index.js'
 const { chromium } = patchright
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { writeFileSync, mkdirSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
@@ -165,7 +165,10 @@ async function main() {
 
   writeFileSync(join(OUT, 'net-json.json'), JSON.stringify(netJson, null, 2))
   console.log('RESULTADO:', JSON.stringify({ estado: 'ok', endpoints_json: netJson.length }))
-  try { await ctx.storageState({ path: join(DIR, 'session.json') }) } catch {}
+  try {
+    await ctx.storageState({ path: join(DIR, 'session.json') })
+    chmodSync(join(DIR, 'session.json'), 0o600)   // son cookies vivas del banco
+  } catch {}
   await ctx.close()
 }
 main().catch((e) => { console.log('ERROR:', e.message); process.exit(1) })

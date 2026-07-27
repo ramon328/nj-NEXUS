@@ -4,7 +4,7 @@
 // + endpoints de red (para construir el envío después). NO llena, NO envía, NO mueve plata.
 import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchright/index.js'
 const { chromium } = patchright
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
@@ -106,7 +106,10 @@ async function main() {
   }
 
   console.log('RESULTADO:', JSON.stringify({ estado: 'ok', inputs: nIn, url: page.url() }))
-  try { await ctx.storageState({ path: join(DIR, 'session.json') }) } catch {}
+  try {
+    await ctx.storageState({ path: join(DIR, 'session.json') })
+    chmodSync(join(DIR, 'session.json'), 0o600)   // son cookies vivas del banco
+  } catch {}
   await sleep(800)
   await ctx.close()
 }

@@ -10,7 +10,7 @@
 // NO firma NI transfiere.
 import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchright/index.js'
 const { chromium } = patchright
-import { writeFileSync, mkdirSync } from 'node:fs'
+import { writeFileSync, mkdirSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
@@ -184,7 +184,10 @@ async function main() {
   await page.screenshot({ path: join(DATA, 'fin-movimientos.png') }).catch(() => {})
   log(`captura: ${saldos?.length || 0} saldos, ${movimientos.length} movimientos`)
   console.log('RESULTADO:', JSON.stringify({ estado: 'ok', saldos: saldos?.length || 0, movimientos: movimientos.length, desde: desdeISO, hasta: hastaISO, muestra: movimientos.slice(0, 3) }))
-  try { await ctx.storageState({ path: join(DIR, 'session.json') }) } catch {}
+  try {
+    await ctx.storageState({ path: join(DIR, 'session.json') })
+    chmodSync(join(DIR, 'session.json'), 0o600)   // son cookies vivas del banco
+  } catch {}
   await ctx.close()
 }
 main().catch((e) => { console.log('ERROR:', e.message); process.exit(1) })
