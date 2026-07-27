@@ -94,16 +94,28 @@ export function nombreEnGlosa(razon, glosa) {
  * Movimientos del banco desde el acumulador anual de tek.
  * signo: 'egreso' (cargo, paga una compra) | 'ingreso' (abono, cobra una venta).
  */
+/**
+ * Identidad estable de un movimiento, para poder reconocerlo entre capturas.
+ * Es la MISMA clave que usa `conector-tek/almacen.mjs` al fusionar, y por una
+ * razón concreta: el saldo corrido es único por movimiento, así que distingue
+ * los cuatro cargos idénticos de $7.000.000 del 1-jun (mismo día, monto y glosa)
+ * que cualquier hash del contenido colapsaría en uno solo.
+ */
+export function idMovimiento(m) {
+  const monto = Math.round(Number(m.abono || 0) - Number(m.cargo || 0))
+  return ['b', m.fecha || '', m.saldo ?? '', monto, String(m.descripcion || '').slice(0, 40)].join('|')
+}
+
 export function movimientosBanco({ desde, hasta } = {}) {
   if (!existsSync(CARTOLA)) {
     return { error: `No encuentro la cartola del banco en ${CARTOLA}. ¿Corrió alguna vez la captura de tek?`, movimientos: [] }
   }
   const d = JSON.parse(readFileSync(CARTOLA, 'utf8'))
-  let movs = (d.movimientos || []).map((m, i) => {
+  let movs = (d.movimientos || []).map((m) => {
     const cargo = Number(m.cargo || 0)
     const abono = Number(m.abono || 0)
     return {
-      id: `bco-${i}`,
+      id: idMovimiento(m),
       fecha: String(m.fecha || '').slice(0, 10),
       descripcion: m.descripcion || '',
       documento: m.documento || '',
@@ -212,7 +224,10 @@ export function facturasSii({ empresaId = 3, operacion = 'compra', desde, hasta 
       if (!total) continue
       const rut = normRut(col(r, 'RUT Proveedor', 'Rut cliente', 'RUT Cliente', 'Rut Proveedor'))
       facturas.push({
-        id: `${operacion}-${per}-${col(r, 'Nro') || facturas.length}`,
+        // RUT + folio + monto identifican la factura de forma estable. El "Nro"
+        // del CSV es el orden de la fila y cambia si el SII reordena el periodo,
+        // así que no sirve para reconocerla entre descargas.
+        id: `${operacion}|${rut}|${col(r, 'Folio')}|${total}`,
         operacion,
         periodo: per,
         rut,

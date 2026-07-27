@@ -21,11 +21,58 @@ que relanza el login al banco si la data venció; y el SII bloquea cuentas por
 logins repetidos. Conciliar es una operación de escritorio: no justifica gastar
 un login en ninguno de los dos.
 
-## Uso
+## La corrida de cada mañana
+
+El banco solo entrega con comodidad su ventana reciente (~50 movimientos). En vez
+de pelear con el histórico, **el libro crece día a día**: cada mañana se guarda la
+tanda nueva, lo que ya estaba no se vuelve a contar, y corrida tras corrida el
+libro converge al año completo.
+
+```
+06:48  com.nexus.tek-refresco   el banco se enciende y captura su tanda
+       almacen.fusionar()       la mete en cartola-anual.json sin duplicar
+07:30  com.nexus.conciliador    sincronizar.mjs lee, acumula y cruza
+```
+
+```bash
+node sincronizar.mjs           # la corrida normal
+node sincronizar.mjs --estado  # solo mirar el libro, sin escribir
+node sincronizar.mjs --json    # para otro programa
+node sincronizar.mjs --rehacer # descartar los calces y recalcular todo
+node probar-libro.mjs          # comprobaciones del acumulador
+```
+
+El libro vive en `data/libro.json` y guarda los movimientos, las facturas, los
+calces con su justificación, y una bitácora de qué trajo cada mañana. Se escribe
+de forma atómica, así que un corte a mitad de corrida no lo deja a medias.
+
+Tres propiedades que lo hacen seguro de correr:
+
+- **Idempotente.** Correrlo dos veces seguidas no agrega nada la segunda.
+- **Los calces no se recalculan.** Una vez hecho, un calce queda; el informe de
+  ayer no cambia solo, y la corrida diaria es barata.
+- **Nada se descarta.** Lo que quedó sin contraparte vuelve al pozo. Una factura
+  de enero puede calzar con un pago que recién aparece en agosto, y un movimiento
+  viejo sin factura puede calzar con una factura emitida después.
+
+### Cómo se reconoce un movimiento entre capturas
+
+Por `fecha | saldo | monto | glosa`, la misma clave que usa
+`conector-tek/almacen.mjs`. La pieza importante es el **saldo corrido**: es único
+por movimiento, y es lo único que distingue los cuatro cargos de $7.000.000 del
+1 de junio, idénticos en día, monto y glosa. Un hash del contenido los colapsaría
+en uno y perderíamos tres movimientos reales.
+
+Las facturas se reconocen por `operación | RUT | folio | monto`. El "Nro" del CSV
+es el orden de la fila y cambia si el SII reordena el periodo, así que no sirve.
+
+## Consulta puntual
+
+Para mirar una ventana sin tocar el libro:
 
 ```bash
 node conciliar.mjs --desde 2026-06-01 --hasta 2026-06-08     # ventana concreta
-node conciliar.mjs --limite 50                                # piloto: 50 movimientos
+node conciliar.mjs --limite 50                                # 50 movimientos
 node conciliar.mjs --json > salida.json                       # para otro programa
 node conciliar.mjs --empresa 3                                # id en sii-web/app.db
 ```
