@@ -18,6 +18,7 @@ import * as recordatorios from './recordatorios.mjs'
 import * as histDB from './historial.mjs'
 import * as vista from './vista.mjs'
 import * as kapso from './kapso.mjs'
+import * as modelos from './modelos.mjs'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
 
@@ -999,6 +1000,31 @@ app.get('/api/ias/actividad', (req, res) => {
     const limite = Math.min(200, Number(req.query.limite) || 60)
     res.json({ ok: true, actividad: histDB.actividadIAs({ persona, limite }) })
   } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
+})
+
+// ─── Modelos de respaldo (apartado "Modelos" del Centro de IAs) ──────────────
+// Config del/los modelo(s) que responden si Claude se queda sin tokens. Las API
+// keys NUNCA se devuelven en claro (solo enmascaradas).
+app.get('/api/modelos/presets', (_req, res) => res.json({ ok: true, presets: modelos.PRESETS }))
+app.get('/api/modelos', (_req, res) => {
+  try { res.json({ ok: true, ...modelos.estado() }) }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }) }
+})
+app.post('/api/modelos', (req, res) => {
+  try {
+    // Si un proveedor viene SIN key (el UI la deja vacía para "no cambiar"), se
+    // conserva la key ya guardada de ese id → no hay que re-pegar la key al editar.
+    const previos = Object.fromEntries(modelos.cargar().proveedores.map((p) => [p.id, p.api_key]))
+    const provs = (req.body?.proveedores || []).map((p) => ({
+      ...p, api_key: (p.api_key && p.api_key.trim()) ? p.api_key.trim() : (previos[p.id] || ''),
+    }))
+    const norm = modelos.guardar({ activo: Boolean(req.body?.activo), proveedores: provs })
+    res.json({ ok: true, ...modelos.estado(), guardados: norm.proveedores.length })
+  } catch (e) { res.status(500).json({ ok: false, error: e.message }) }
+})
+app.post('/api/modelos/probar', async (req, res) => {
+  try { res.json({ ok: true, resultado: await modelos.probar(req.body || {}) }) }
+  catch (e) { res.status(500).json({ ok: false, error: e.message }) }
 })
 
 // Página standalone del Centro de IAs (front separado, sin build).

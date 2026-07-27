@@ -5,6 +5,7 @@
 // (con su freno de aprobación) se enchufa como otra herramienta más adelante.
 
 import Anthropic from '@anthropic-ai/sdk'
+import * as modelos from './modelos.mjs'
 import { Agent as UndiciAgent, fetch as undiciFetch } from 'undici'
 import dns from 'node:dns'
 // CAUSA RAÍZ del cuelgue "Request timed out": api.anthropic.com publica IPv4 Y IPv6,
@@ -4982,17 +4983,37 @@ export async function responder(historial, opts = {}) {
       // modo NO-streaming eso superaba el timeout del cliente → "Request timed out".
       // Con stream() la conexión recibe tokens de forma continua y no se corta;
       // .finalMessage() devuelve el MISMO objeto Message que daba .create().
-      const resp = await llamarModelo({
-        model: breve ? MODELO_WEB : MODELO,
-        // 16k: holgura para análisis pesados de Aliace (varios RPC/SQL + gráficos).
-        max_tokens: 16000,
-        // NOTA: `thinking:{type:'enabled',budget_tokens}` ya NO lo aceptan opus-4-8 ni
-        // sonnet-5 (devuelven 400 "use thinking.type.adaptive"); daba un error por turno
-        // que recuperaba por fallback (lento). Se quita: el modelo responde igual de bien.
-        system: sysCache,
-        tools: toolsCache,
-        messages: mensajes,
-      }, { onText: opts.onText || null })
+      let resp
+      try {
+        resp = await llamarModelo({
+          model: breve ? MODELO_WEB : MODELO,
+          // 16k: holgura para análisis pesados de Aliace (varios RPC/SQL + gráficos).
+          max_tokens: 16000,
+          // NOTA: `thinking:{type:'enabled',budget_tokens}` ya NO lo aceptan opus-4-8 ni
+          // sonnet-5 (devuelven 400 "use thinking.type.adaptive"); daba un error por turno
+          // que recuperaba por fallback (lento). Se quita: el modelo responde igual de bien.
+          system: sysCache,
+          tools: toolsCache,
+          messages: mensajes,
+        }, { onText: opts.onText || null })
+      } catch (eModelo) {
+        // RESPALDO ENTRE IAs: si Claude se cayó por SIN TOKENS / créditos / rate-limit /
+        // overloaded y Ramón conectó otro modelo en el Centro de IAs → contestamos con
+        // ese (solo texto, sin herramientas) en vez de tirar el turno. Cualquier otro
+        // error (red, etc.) se propaga como antes (se reintenta con Claude mismo).
+        if (modelos.esErrorSinTokens(eModelo) && modelos.hayFallback()) {
+          try {
+            console.log(`[asistente] Claude sin tokens/límite (${eModelo?.status || eModelo?.message}); uso modelo de respaldo`)
+            const fb = await modelos.responder({ system: sysCache, messages: mensajes })
+            const nota = `_⚠️ Claude no está disponible (sin tokens o límite). Respondí con el modelo de respaldo (${fb.proveedor})._\n\n`
+            if (!usadas.length) registrarConversacion({ de, web, texto: textoUsuario })
+            return { reply: chilenizar(nota + fb.texto), herramientas: usadas, graficos, tarjetas }
+          } catch (eFb) {
+            console.error('[asistente] el modelo de respaldo también falló:', eFb?.message)
+          }
+        }
+        throw eModelo
+      }
       try { console.log(`[asistente][iter ${i}] create OK en ${Date.now() - _tCreate}ms stop=${resp.stop_reason} in=${resp.usage?.input_tokens} out=${resp.usage?.output_tokens}`) } catch { /* */ }
       mensajes.push({ role: 'assistant', content: resp.content })
       if (resp.stop_reason !== 'tool_use') {

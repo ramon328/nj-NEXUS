@@ -413,6 +413,7 @@
 
     <nav id="nav">
       <div class="item" data-act="brain"><span class="ic">🧠</span>Segundo cerebro</div>
+      <div class="item" data-act="modelos"><span class="ic">🧠</span>Modelos · Respaldo IA</div>
       <div class="item" data-act="agent" data-p="Ali"><span class="ic">📊</span>Finanzas · Aliace<span class="cnt" id="nc-Ali"></span></div>
       <div class="item" data-act="agent" data-p="Meme"><span class="ic">🚗</span>Autos · GoAutos<span class="cnt" id="nc-Meme"></span></div>
       <div class="item" data-act="agent" data-p="Néstor"><span class="ic">✉️</span>Correo<span class="cnt" id="nc-Néstor"></span></div>
@@ -481,6 +482,49 @@
       <button class="sheet-close" id="d-close">✕</button>
     </div>
     <div class="sheet-body" id="d-body"></div>
+  </div>
+</div>
+
+<!-- Modelos · Respaldo IA -->
+<div class="sheet-bg" id="mdl-bg">
+  <div class="sheet" id="mdl">
+    <div class="grip"></div>
+    <div class="sheet-head">
+      <div class="sheet-emoji">🧠</div>
+      <div><div class="h-name">Modelos · Respaldo IA</div><div class="h-rol">Si Claude se queda sin tokens, Nexus responde con otra IA</div></div>
+      <button class="sheet-close" id="mdl-close">✕</button>
+    </div>
+    <div class="sheet-body" id="mdl-body">
+      <style>
+        #mdl-body .mdl-tog{display:flex;align-items:center;gap:10px;padding:10px 12px;border:1px solid rgba(255,255,255,.1);border-radius:12px;background:rgba(255,255,255,.03);margin-bottom:14px}
+        #mdl-body .mdl-tog b{font-size:13px} #mdl-body .mdl-tog small{color:var(--mut);font-size:11px;display:block}
+        #mdl-body .sw{margin-left:auto;width:44px;height:26px;border-radius:20px;background:#333;position:relative;cursor:pointer;transition:.15s;flex:none}
+        #mdl-body .sw.on{background:#36e08a} #mdl-body .sw i{position:absolute;top:3px;left:3px;width:20px;height:20px;border-radius:50%;background:#fff;transition:.15s}
+        #mdl-body .sw.on i{left:21px}
+        #mdl-body .prov{border:1px solid rgba(255,255,255,.1);border-radius:12px;padding:12px;margin-bottom:10px;background:rgba(255,255,255,.02)}
+        #mdl-body .prov .row{display:flex;gap:8px;align-items:center;margin-bottom:8px;flex-wrap:wrap}
+        #mdl-body label{font-size:10px;color:var(--mut);text-transform:uppercase;letter-spacing:.4px;display:block;margin:0 0 3px}
+        #mdl-body input,#mdl-body select{width:100%;background:rgba(0,0,0,.35);border:1px solid rgba(255,255,255,.12);color:#eee;border-radius:8px;padding:7px 9px;font-size:12.5px;font-family:inherit}
+        #mdl-body .f{flex:1;min-width:130px} #mdl-body .f-sm{width:92px;flex:none}
+        #mdl-body .btn{background:rgba(255,255,255,.08);border:1px solid rgba(255,255,255,.14);color:#eee;border-radius:8px;padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit}
+        #mdl-body .btn.pri{background:#5b9dff;border-color:#5b9dff;color:#031024;font-weight:600}
+        #mdl-body .btn.dng{color:#ff8a8a;border-color:rgba(255,120,120,.3)}
+        #mdl-body .btns{display:flex;gap:8px;margin-top:14px;position:sticky;bottom:0;padding-top:6px}
+        #mdl-body .test{font-size:11px;margin-top:6px;min-height:14px}
+        #mdl-body .test.ok{color:#36e08a} #mdl-body .test.err{color:#ff8a8a}
+        #mdl-body .hint{font-size:11px;color:var(--mut);margin:2px 0 12px;line-height:1.5}
+      </style>
+      <div class="mdl-tog">
+        <div><b>Respaldo activo</b><small>Usar otra IA cuando Claude no responda por tokens/límite</small></div>
+        <div class="sw" id="mdl-sw"><i></i></div>
+      </div>
+      <div class="hint">El respaldo responde <b>solo texto</b> (sin acciones ni herramientas). Sirve para no quedar sin respuesta. Recomendado: <b>OpenRouter</b> (una sola API key, muchos modelos).</div>
+      <div id="mdl-list"></div>
+      <button class="btn" id="mdl-add">＋ Agregar modelo</button>
+      <div class="btns">
+        <button class="btn pri" id="mdl-save" style="flex:1">Guardar</button>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -1470,14 +1514,103 @@ $('#core').onclick=()=>toggleMic();
 $('#btn-chat').onclick=openChat;
 $('#btn-lang').onclick=()=>{ lang=lang==='es'?'en':'es'; $('#btn-lang').textContent=lang.toUpperCase(); };
 $('#chatform').onsubmit=e=>{ e.preventDefault(); const v=$('#ti').value.trim(); if(!v) return; $('#ti').value=''; closeChat(); enviar(v); };
+// ══════════════ MODELOS · RESPALDO IA ══════════════
+let MDL={activo:false,proveedores:[]}, MDL_PRE={};
+async function openModelos(){
+  closeSide();
+  try{
+    const [c,pr]=await Promise.all([
+      fetch('/api/modelos').then(r=>r.json()), fetch('/api/modelos/presets').then(r=>r.json()) ]);
+    MDL={activo:!!c.activo, proveedores:c.proveedores||[]}; MDL_PRE=pr.presets||{};
+  }catch(e){ MDL={activo:false,proveedores:[]}; MDL_PRE={}; }
+  renderModelos(); $('#mdl-bg').classList.add('open');
+}
+function closeModelos(){ $('#mdl-bg').classList.remove('open'); }
+function presetOpts(sel){
+  return Object.keys(MDL_PRE).map(k=>`<option value="${k}" ${sel===k?'selected':''}>${esc(MDL_PRE[k].nombre)}</option>`).join('')
+    +`<option value="custom" ${(sel==='custom'||!sel)?'selected':''}>Personalizado…</option>`;
+}
+function renderModelos(){
+  $('#mdl-sw').classList.toggle('on',MDL.activo);
+  const L=$('#mdl-list'); L.innerHTML='';
+  MDL.proveedores.forEach((p,i)=>{
+    const d=document.createElement('div'); d.className='prov'; d.dataset.i=i;
+    d.innerHTML=`
+      <div class="row">
+        <div class="f-sm"><label>Encendido</label><div class="sw ${p.habilitado!==false?'on':''}" data-tog="hab"><i></i></div></div>
+        <div class="f"><label>Proveedor</label><select data-k="preset">${presetOpts(p.preset)}</select></div>
+        <button class="btn dng" data-del title="Quitar">✕</button>
+      </div>
+      <div class="row">
+        <div class="f"><label>Nombre</label><input data-k="nombre" value="${esc(p.nombre||'')}" placeholder="OpenRouter"></div>
+        <div class="f"><label>Modelo (id)</label><input data-k="modelo" value="${esc(p.modelo||'')}" placeholder="google/gemini-2.5-flash"></div>
+      </div>
+      <div class="row"><div class="f"><label>Base URL</label><input data-k="base_url" value="${esc(p.base_url||'')}" placeholder="https://openrouter.ai/api/v1"></div></div>
+      <div class="row"><div class="f"><label>API key ${p.tiene_key?'· guardada '+esc(p.key_mask):''}</label><input data-k="api_key" type="password" autocomplete="off" placeholder="${p.tiene_key?'(vacío = no cambiar)':'pega la API key'}"></div>
+        <div class="f-sm" style="width:auto"><label>&nbsp;</label><button class="btn" data-test>Probar</button></div></div>
+      <div class="test" data-testout></div>`;
+    L.appendChild(d);
+  });
+}
+// Lee el DOM a objetos; conserva tiene_key/key_mask del original para re-render.
+function leerProveedores(){
+  return [...document.querySelectorAll('#mdl-list .prov')].map(d=>{
+    const g=k=>d.querySelector(`[data-k="${k}"]`), o=MDL.proveedores[+d.dataset.i]||{};
+    return { id:o.id, tiene_key:o.tiene_key, key_mask:o.key_mask,
+      habilitado:d.querySelector('[data-tog="hab"]').classList.contains('on'),
+      preset:g('preset').value, nombre:g('nombre').value.trim(), modelo:g('modelo').value.trim(),
+      base_url:g('base_url').value.trim(), api_key:g('api_key').value };
+  });
+}
+$('#mdl-sw').onclick=()=>{ MDL.activo=!MDL.activo; $('#mdl-sw').classList.toggle('on',MDL.activo); };
+$('#mdl-add').onclick=()=>{ MDL.proveedores=leerProveedores(); MDL.proveedores.push({preset:'openrouter',nombre:'OpenRouter',base_url:MDL_PRE.openrouter?.base_url||'',modelo:MDL_PRE.openrouter?.modelo||'',habilitado:true}); renderModelos(); };
+$('#mdl-list').addEventListener('click',async e=>{
+  const prov=e.target.closest('.prov'); if(!prov) return;
+  if(e.target.closest('[data-tog="hab"]')){ e.target.closest('.sw').classList.toggle('on'); return; }
+  if(e.target.closest('[data-del]')){ MDL.proveedores=leerProveedores(); MDL.proveedores.splice(+prov.dataset.i,1); renderModelos(); return; }
+  if(e.target.closest('[data-test]')){
+    const g=k=>prov.querySelector(`[data-k="${k}"]`), out=prov.querySelector('[data-testout]');
+    const o=MDL.proveedores[+prov.dataset.i]||{};
+    out.className='test'; out.textContent='Probando…';
+    try{
+      const r=await (await fetch('/api/modelos/probar',{method:'POST',headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({ id:o.id, base_url:g('base_url').value.trim(), modelo:g('modelo').value.trim(), api_key:g('api_key').value, nombre:g('nombre').value.trim() })})).json();
+      const rs=r.resultado||{};
+      if(rs.ok){ out.className='test ok'; out.textContent=`✓ Responde (${rs.ms}ms): ${rs.texto||'OK'}`; }
+      else{ out.className='test err'; out.textContent='✗ '+(rs.error||'falló'); }
+    }catch(err){ out.className='test err'; out.textContent='✗ '+err.message; }
+  }
+});
+$('#mdl-list').addEventListener('change',e=>{
+  if(e.target.dataset.k!=='preset') return;
+  const prov=e.target.closest('.prov'), k=e.target.value, pre=MDL_PRE[k];
+  if(!pre) return;
+  const nom=prov.querySelector('[data-k="nombre"]'), url=prov.querySelector('[data-k="base_url"]'), mod=prov.querySelector('[data-k="modelo"]');
+  url.value=pre.base_url||''; mod.value=pre.modelo||''; if(!nom.value.trim()) nom.value=pre.nombre||'';
+});
+$('#mdl-save').onclick=async()=>{
+  const btn=$('#mdl-save'), prev=btn.textContent; btn.textContent='Guardando…'; btn.disabled=true;
+  try{
+    const r=await (await fetch('/api/modelos',{method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({ activo:MDL.activo, proveedores:leerProveedores() })})).json();
+    if(!r.ok) throw new Error(r.error||'error');
+    MDL={activo:!!r.activo, proveedores:r.proveedores||[]}; renderModelos();
+    btn.textContent='✓ Guardado';
+  }catch(e){ btn.textContent='✗ '+e.message; }
+  setTimeout(()=>{ btn.textContent=prev; btn.disabled=false; },1600);
+};
+$('#mdl-close').onclick=closeModelos;
+$('#mdl-bg').onclick=e=>{ if(e.target===$('#mdl-bg')) closeModelos(); };
+
 $('#nav').addEventListener('click',e=>{ const it=e.target.closest('.item'); if(!it) return;
   const a=it.dataset.act;
   if(a==='brain') abrirCerebro3D();
+  else if(a==='modelos') openModelos();
   else if(a==='agent') abrirAgente(it.dataset.p);
   else if(a==='hist') openDrawer();
   else if(a==='voice'){ closeSide(); toggleMic(); } });
 
-window.addEventListener('keydown',e=>{ if(e.key==='Escape'){ cerrarTarjetas(); cerrarCerebro(); cerrarAgente(); closeDrawer(); closeChat(); } });
+window.addEventListener('keydown',e=>{ if(e.key==='Escape'){ cerrarTarjetas(); cerrarCerebro(); cerrarAgente(); closeDrawer(); closeChat(); closeModelos(); } });
 let rz; window.addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout(()=>{ resetView(); sizeWave(); layout();
   if(BRAIN.listo&&$('#brain-modal').classList.contains('open')){ _brainResize(); _brainFit(); } },120); });
 
@@ -1486,7 +1619,7 @@ let rz; window.addEventListener('resize',()=>{ clearTimeout(rz); rz=setTimeout((
 $('.top .brand .logo').innerHTML=iconFor('Nexus');
 document.querySelectorAll('#nav .item').forEach(it=>{
   const a=it.dataset.act, p=it.dataset.p;
-  const key = a==='agent'?p : a==='brain'?'Cerebro' : a;
+  const key = a==='agent'?p : (a==='brain'||a==='modelos')?'Cerebro' : a;
   const ic=it.querySelector('.ic'); if(ic) ic.innerHTML=iconFor(key);
 });
 reflectMic(); armarWake();
