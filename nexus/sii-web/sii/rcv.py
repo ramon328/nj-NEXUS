@@ -80,15 +80,20 @@ class RcvClient:
         return self._facade("getDatosInicio", {})
 
     def resumen(self, periodo: str, operacion: str = COMPRA, estado: str = "REGISTRO") -> dict:
-        """Resumen del periodo (YYYYMM): totales por tipo de documento. VERIFICADO ✓."""
+        """Resumen del periodo (YYYYMM): totales por tipo de documento.
+
+        `estadoContab` va SIEMPRE, también en VENTA. Omitirlo no da error: el SII
+        responde HTTP 200 con `data: []` y `totDocRes: 0`, o sea "esta empresa no
+        vendió nada" — y el job lo daba por bueno y no descargaba. Con el campo
+        puesto, el mismo periodo devuelve los 24 documentos que declara el F29.
+        """
         if not self._inicio_ok:
             self.inicio()
         data = {
             "rutEmisor": self.cuerpo, "dvEmisor": self.dv,
             "ptributario": periodo, "operacion": operacion,
+            "estadoContab": estado,
         }
-        if operacion == COMPRA:
-            data["estadoContab"] = estado
         log.info("RCV resumen %s %s", operacion, periodo)
         return self._facade("getResumen", data)
 

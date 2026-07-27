@@ -83,24 +83,35 @@ Un conciliador ingenuo diría "195 facturas impagas" y sería mentira. Este sepa
 (`POST /api/empresas/3/descargar`), que hace **un solo login** para todo el job y
 reutiliza la sesión guardada. Períodos 202601–202607 más 202506: **708 facturas**.
 
-**Ventas: no existen.** No es que falten por descargar — se consultó el RCV mes a
-mes el 27-jul-2026 y **ANA CLARA SPA tiene 0 facturas de venta en todo 2026**:
+**Ventas: 154 facturas en 2026.** Al principio el RCV devolvía 0 ventas en todos
+los meses. Era un bug de `sii-web`, no un dato real — ver abajo.
 
 | Periodo | Compras | Ventas |
 |---------|---------|--------|
-| 202601 | 112 docs · $78.736.755 | **0** |
-| 202602 | 95 docs · $281.235.095 | **0** |
-| 202603 | 110 docs · $492.026.923 | **0** |
-| 202604 | 82 docs · $234.217.899 | **0** |
-| 202605 | 104 docs · $86.984.192 | **0** |
-| 202606 | 108 docs · $279.266.265 | **0** |
-| 202607 | 97 docs · $99.759.791 | **0** |
+| 202601 | 112 | 13 |
+| 202602 | 95 | 20 |
+| 202603 | 110 | 22 |
+| 202604 | 82 | 20 |
+| 202605 | 104 | 24 |
+| 202606 | 108 | 21 |
+| 202607 | 97 | 34 |
 
-Por eso los abonos del banco ("Transf de ACE SPA", "Transf de EUN LEE") no calzan
-contra nada: **no son cobros a clientes**, son aportes de otras empresas del
-grupo. Esta empresa recibe plata y paga gastos; no factura. Si se quiere conciliar
-ingresos hay que apuntar al RUT que sí emite las ventas — hoy `sii-web` solo tiene
-configurada a ANA CLARA (`empresa_id 3`).
+### El bug del RCV de ventas
+
+`getResumen` necesita el campo `estadoContab` **también para VENTA**, y `rcv.py`
+solo lo enviaba en COMPRA. Lo traicionero es cómo falla: el SII no devuelve error,
+responde **HTTP 200 con `data: []` y `totDocRes: 0`**, indistinguible de "esta
+empresa no vendió nada". El job leía 0 tipos de documento, anotaba "sin datos" y
+seguía de largo. Llevaba así desde siempre.
+
+Se detectó comparando contra el **F29 de mayo**, que es fuente independiente:
+declara 13 facturas emitidas (código 503) y $23.614.007 de débito fiscal (código
+502). Al agregar `estadoContab` al payload, el RCV del mismo periodo devuelve 24
+documentos con IVA $23.614.007 — calce exacto con el formulario.
+
+Detalle adicional: `getDetalleVentaExport` **sí** funcionaba, porque
+`export_detalle` siempre mandaba el campo. O sea el detalle estaba disponible todo
+el tiempo, pero nunca se pedía porque el resumen decía que no había nada.
 
 **La cartola del banco sigue truncada.** La captura de tek trae ~60 filas por mes,
 así que cada mes viene cortado a los primeros días:
@@ -122,11 +133,12 @@ eso marca "no concluible" en vez de inventar impagos.
 
 ## Resultado sobre los datos actuales
 
-410 movimientos (2026-01-02 → 2026-07-21) contra 668 facturas en ventana:
+410 movimientos (2026-01-02 → 2026-07-21) contra 816 facturas en ventana:
 
-- **69 conciliados** — 53 alta, 14 media, 2 baja
+- **93 conciliados** — 70 alta, 21 media, 2 baja
+  - 69 compras (pagos a proveedores)
+  - 24 ventas (cobros de clientes: KARTEK, AUTOMOTORA FC, BK SPA, C Y M)
 - **0 facturas impagas** dentro de los días que la cartola cubre
-- 535 no concluibles (su pago cae en días que el banco no bajó)
-- 341 movimientos sin factura, de los cuales 133 son cobros/aportes (sin venta
-  que cruzar), 61 traspasos internos, 14 crédito/impuestos/sueldos, y 133 por
-  revisar
+- 628 no concluibles (su pago cae en días que el banco no bajó)
+- 317 movimientos sin factura: 59 traspasos internos, 14
+  crédito/impuestos/sueldos, 111 cobros sin factura identificada y 133 por revisar
