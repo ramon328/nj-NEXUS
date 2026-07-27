@@ -9,10 +9,99 @@
 import { spawn } from 'node:child_process'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'node:fs'
 import * as beneficiarios from './beneficiarios.mjs'
 import * as credenciales from './credenciales.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
+const DATA = join(DIR, 'data')
+mkdirSync(DATA, { recursive: true })
+
+const soloDigitos = (s) => String(s || '').replace(/\D/g, '')
+
+// ── Anti-bucle de envíos ──────────────────────────────────────────────────────
+// El asistente del hub a veces llama tek_transferir accion:'enviar' varias veces
+// en el mismo turno (reintenta solo). Sin freno eso abre N procesos, re-loguea y
+// puede crear la misma transferencia varias veces. Acá: 1 en vuelo, y la misma
+// (empresa+rut+cuenta+monto) no se vuelve a mandar si ya corrió hace poco.
+const ENVIO_LOCK = join(DATA, '.transfer-envio.lock')
+const ENVIO_RECIENTES = join(DATA, '.transfer-recientes.json')
+const COOLDOWN_OK_MS = 60 * 60_000      // ya creada / ya pendiente → 1 h sin repetir
+const COOLDOWN_FAIL_MS = 10 * 60_000    // falló → 10 min sin reintento automático
+const LOCK_COLGADO_MS = 12 * 60_000
+
+function huellaEnvio(borrador, empresa) {
+  const b = borrador.beneficiario || {}
+  return [
+    String(empresa || '').toUpperCase().replace(/\s+/g, ' ').trim(),
+    soloDigitos(b.rut),
+    soloDigitos(b.cuenta),
+    String(borrador.monto || 0),
+  ].join('|')
+}
+
+function leerRecientes() {
+  try { return JSON.parse(readFileSync(ENVIO_RECIENTES, 'utf8')) } catch { return {} }
+}
+function guardarRecientes(map) {
+  try { writeFileSync(ENVIO_RECIENTES, JSON.stringify(map, null, 2), { mode: 0o600 }) } catch {}
+}
+function registrarReciente(huella, estado) {
+  const map = leerRecientes()
+  map[huella] = { estado, ts: Date.now() }
+  // limpia entradas viejas (> 2 h)
+  for (const [k, v] of Object.entries(map)) {
+    if (!v?.ts || Date.now() - v.ts > 2 * 3600_000) delete map[k]
+  }
+  guardarRecientes(map)
+}
+function recienteBloquea(huella) {
+  const v = leerRecientes()[huella]
+  if (!v?.ts) return null
+  const edad = Date.now() - v.ts
+  const ok = v.estado === 'creada' || v.estado === 'ya_pendiente'
+  if (ok && edad < COOLDOWN_OK_MS) {
+    return {
+      ok: true, estado: v.estado, pendiente: true, ya_pendiente: v.estado === 'ya_pendiente',
+      ya_intentada: true,
+      nota: `Ya se ${v.estado === 'creada' ? 'creó' : 'detectó pendiente'} esta misma transferencia hace ${Math.round(edad / 60000)} min. NO se vuelve a enviar (anti-duplicado).`,
+    }
+  }
+  if (!ok && edad < COOLDOWN_FAIL_MS) {
+    return {
+      ok: false, estado: 'ya_intentada', pendiente: false, ya_intentada: true,
+      error: `Esta misma transferencia ya se intentó hace ${Math.round(edad / 60000)} min (resultado: ${v.estado}). NO se reintenta sola — pedí confirmación al usuario si quiere otro intento.`,
+    }
+  }
+  return null
+}
+
+function envioEnCurso() {
+  if (!existsSync(ENVIO_LOCK)) return false
+  try {
+    const j = JSON.parse(readFileSync(ENVIO_LOCK, 'utf8'))
+    if (!j?.pid) return false
+    try { process.kill(j.pid, 0) } catch { return false }
+    if (Date.now() - (j.ts || 0) > LOCK_COLGADO_MS) return false
+    return j
+  } catch { return false }
+}
+function tomarEnvioLock(huella) {
+  try {
+    writeFileSync(ENVIO_LOCK, JSON.stringify({ pid: process.pid, ts: Date.now(), huella }), { flag: 'wx' })
+    return true
+  } catch (e) {
+    if (e?.code !== 'EEXIST') return true
+    if (!envioEnCurso()) { try { unlinkSync(ENVIO_LOCK) } catch {} ; return tomarEnvioLock(huella) }
+    return false
+  }
+}
+function soltarEnvioLock() {
+  try {
+    const j = JSON.parse(readFileSync(ENVIO_LOCK, 'utf8'))
+    if (j.pid === process.pid) unlinkSync(ENVIO_LOCK)
+  } catch {}
+}
 
 // Tope de seguridad por transferencia (CLP). Sobre esto marcamos supera_tope para que
 // Nexus confirme con más cuidado (no bloquea, solo avisa). Igual estilo que TOPE_PAGO_CLP.
@@ -23,8 +112,6 @@ export const TOPE_TRANSFER_CLP = Number(process.env.TEK_TOPE_TRANSFER || 1_000_0
 export const UMBRAL_SUGERIR_MASIVA_CLP = Number(process.env.TEK_UMBRAL_MASIVA || 3_000_000)
 
 const clp = (n) => '$' + Number(n || 0).toLocaleString('es-CL')
-// Deja la cuenta con puros dígitos (el form del banco no quiere guiones ni espacios).
-const soloDigitos = (s) => String(s || '').replace(/\D/g, '')
 // Normaliza un RUT a "12345678-9" (sin puntos, guion antes del DV). El form del banco
 // pide el RUT en ese formato.
 function normRutFmt(rut) {
@@ -133,7 +220,27 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
     }
     // Chequeo previo: el usuario tiene que tener el banco conectado (creds cifradas).
     if (!credenciales.tieneConexion(userId, empresa)) {
-      return resolve({ ok: false, error: `"${userId}" no tiene banco conectado${empresa ? ` para "${empresa}"` : ''}.` })
+      return resolve({ ok: false, error: `"${userId}" no tiene banco conectado${empresa ? ` para "${empresa}" : ''}.` })
+    }
+
+    const huella = huellaEnvio(borrador, empresa)
+    // Misma transferencia ya creada / ya intentada hace poco → NO abrir el banco otra vez.
+    const bloqueo = recienteBloquea(huella)
+    if (bloqueo) return resolve(bloqueo)
+
+    // Ya hay un envío en curso (otro proceso del hub reintentando) → NO spawnear otro.
+    const enCurso = envioEnCurso()
+    if (enCurso) {
+      return resolve({
+        ok: false, estado: 'ocupado', pendiente: false, ocupado: true,
+        error: 'Ya hay una transferencia en curso en el banco. NO se lanza otra (anti-bucle). Esperá a que termine.',
+      })
+    }
+    if (!tomarEnvioLock(huella)) {
+      return resolve({
+        ok: false, estado: 'ocupado', pendiente: false, ocupado: true,
+        error: 'No pude tomar el turno de envío (otra transferencia acaba de empezar). NO reintentes sola.',
+      })
     }
 
     const b = borrador.beneficiario
@@ -170,6 +277,7 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
 
     const terminar = (code) => {
       clearTimeout(to)
+      soltarEnvioLock()
       // Buscamos la ÚLTIMA línea `RESULTADO: {json}` del stdout.
       let resultado = null
       const lineas = out.split('\n')
@@ -180,6 +288,7 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
         }
       }
       if (!resultado) {
+        registrarReciente(huella, 'sin_resultado')
         return resolve({ ok: false, estado: 'sin_resultado', error: `login-humano no devolvió RESULTADO (code ${code}).`, stderr: err.slice(-500) })
       }
       // El estado real de la creación va anidado en `crear`. SOLO 'creada' cuenta como
@@ -194,6 +303,7 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
       // Motivos de antifraude por monto: se distinguen para que Nexus explique CLARO y no reintente.
       const limitePV = estado === 'limite_primera_vez'   // cuenta NUEVA: tope $250.000/24h
       const limiteDia = estado === 'limite_diario'        // EXCESO de límite/monto diario
+      registrarReciente(huella, estado || 'desconocido')
       resolve({
         ok, estado, resultado,
         pendiente: estado === 'creada' || yaPendiente,
@@ -208,7 +318,12 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
     }
 
     hijo.on('close', terminar)
-    hijo.on('error', (e) => { clearTimeout(to); resolve({ ok: false, estado: 'spawn_error', error: e.message }) })
+    hijo.on('error', (e) => {
+      clearTimeout(to)
+      soltarEnvioLock()
+      registrarReciente(huella, 'spawn_error')
+      resolve({ ok: false, estado: 'spawn_error', error: e.message })
+    })
   })
 }
 

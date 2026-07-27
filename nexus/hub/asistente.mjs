@@ -3232,10 +3232,21 @@ async function ejecutar(nombre, input, ctx = {}) {
         }
         const montoTxt = '$' + Number(bo.monto).toLocaleString('es-CL')
         let okTxt, instr
-        if (res.ya_pendiente) {
+        if (res.ocupado) {
+          okTxt = `⏳ Ya hay una transferencia en curso en el banco — NO lancé otra para no duplicar ni pisar la sesión.`
+          instr = '⛔ NO vuelvas a llamar tek_transferir con accion:"enviar" en este turno. Decile al usuario que espere a que termine la operación en curso.'
+        } else if (res.ya_intentada && res.pendiente) {
+          okTxt = res.nota || `✅ Esa transferencia ya estaba creada/pendiente — NO creé otra (anti-duplicado).`
+          instr = '⛔ NO reintentes enviar. Informá al usuario que ya quedó pendiente por liberar.'
+        } else if (res.ya_intentada) {
+          okTxt = `⚠️ ${res.error || 'Esa transferencia ya se intentó hace poco. NO la reintento sola.'}`
+          instr = '⛔ NO vuelvas a llamar tek_transferir accion:"enviar" ahora. Contale al usuario qué pasó y pedí confirmación explícita si quiere otro intento.'
+        } else if (res.ya_pendiente) {
           okTxt = `⚠️ YA hay una transferencia pendiente a ${bo.beneficiario.nombre} desde *${empresa}* por ese monto — NO creé otra para no duplicar. Revísala/autorízala en el banco (queda "Por Autorizar").`
+          instr = '⛔ NO reintentes. La transferencia ya está en el banco pendiente.'
         } else if (res.pendiente) {
           okTxt = `✅ Transferencia de ${montoTxt} a ${bo.beneficiario.nombre} desde *${empresa}* CREADA — queda pendiente por liberar (falta autorizarla con Superclave para que salga).`
+          instr = '⛔ NO vuelvas a llamar tek_transferir accion:"enviar" con los mismos datos: ya quedó creada. Contale al usuario que está pendiente de liberación.'
         } else if (res.limite_primera_vez) {
           okTxt = `🛡️ El banco NO dejó la transferencia: es la *1ª vez* a esa cuenta, con tope de $250.000 en las primeras 24h (protección antifraude, NO es bloqueo de la cuenta). Opciones: mandar $250.000 o menos ahora, o esperar 24h y ahí el monto completo. NO lo reintento solo.`
           instr = 'NO reintentes. Explicá que es el tope de PRIMERA transferencia a cuenta nueva ($250.000/24h), no un bloqueo. Ofrecé mandar ≤$250.000 ahora o esperar 24h.'
@@ -3244,6 +3255,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           instr = 'NO reintentes la transferencia individual. Ofrecele al usuario hacerla por TRANSFERENCIA MASIVA (tek_masiva, misma empresa) o partir el monto en varios días; aclarale que es límite diario del banco, no un bloqueo ni cuenta nueva.'
         } else {
           okTxt = `⚠️ No pude confirmar la creación (${res.estado || 'desconocido'}). Suele ser el antifraude del banco; conviene reintentar más tarde, mejor asistido.`
+          instr = '⛔ NO reintentes sola en este turno. Contale al usuario el resultado y pedí confirmación explícita antes de volver a llamar tek_transferir accion:"enviar".'
         }
         return JSON.stringify({ ...res, empresa_origen: empresa, texto: okTxt, instruccion: instr })
       }
