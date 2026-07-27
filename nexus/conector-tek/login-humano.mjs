@@ -550,6 +550,8 @@ async function volcarFrames(page) {
 // Se DETIENE en el destino: NO llena beneficiario, NO confirma, NO mueve plata.
 async function crearTransferencia(page, log) {
   mkdirSync(DATA, { recursive: true })
+  const guardia = guardiaTransferencia(log)
+  if (!guardia.ok) return guardia.respuesta
   await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
   await sleep(8000)
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
