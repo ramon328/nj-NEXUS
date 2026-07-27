@@ -22,7 +22,8 @@ import crypto from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { existsSync, statSync } from 'node:fs'
+import { existsSync, statSync, readFileSync, writeFileSync, chmodSync } from 'node:fs'
+import { networkInterfaces } from 'node:os'
 import { guardar, listar } from './credenciales.mjs'
 import { listarEmpresas } from './vincular.mjs'
 import { validar as validarCodigo } from './vincular-codes.mjs'
@@ -57,10 +58,31 @@ function calentarSesion(userId) {
 }
 
 const PORT = Number(process.env.TEK_CONECTAR_PORT || 7694)
-const HOST = process.env.TEK_CONECTAR_HOST || '0.0.0.0' // alcanzable por Tailscale (con PIN); el teléfono entra a http://100.91.97.70:7694
-// PIN de acceso: del env, o uno fuerte generado al vuelo (se loguea una vez).
-const PIN = String(process.env.TEK_CONECTAR_PIN || String(crypto.randomInt(10000000, 99999999)))
-if (!process.env.TEK_CONECTAR_PIN) console.log('[tek-conectar] PIN generado (ponlo en el env para fijarlo):', PIN)
+// El teléfono entra por la IP del tailnet (ej. http://100.91.97.70:7694); nunca por el WiFi.
+function ipTailscale() {
+  for (const dir of Object.values(networkInterfaces())) {
+    for (const i of dir || []) {
+      if (i.family === 'IPv4' && !i.internal && /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(i.address)) return i.address
+    }
+  }
+  return null
+}
+const HOSTS = process.env.TEK_CONECTAR_HOST ? [process.env.TEK_CONECTAR_HOST] : ['127.0.0.1', ipTailscale()].filter(Boolean)
+// PIN de acceso. Vivía en el plist del LaunchAgent, que es legible por cualquiera;
+// ahora vive en un archivo 600 y solo se imprime cuando se acaba de generar.
+const PINFILE = join(DIR, 'data', '.conectar-pin')
+function cargarPin() {
+  if (process.env.TEK_CONECTAR_PIN) return String(process.env.TEK_CONECTAR_PIN)
+  try {
+    const guardado = readFileSync(PINFILE, 'utf8').trim()
+    if (guardado) { try { chmodSync(PINFILE, 0o600) } catch {} ; return guardado }
+  } catch {}
+  const nuevo = String(crypto.randomInt(10000000, 99999999))
+  writeFileSync(PINFILE, nuevo, { mode: 0o600 })
+  console.log('[tek-conectar] PIN nuevo generado y guardado en data/.conectar-pin:', nuevo)
+  return nuevo
+}
+const PIN = cargarPin()
 // Secreto de firma de cookie: efímero por arranque (al reiniciar, todos re-loguean).
 const SECRET = crypto.randomBytes(32)
 
@@ -317,7 +339,7 @@ $('#otro').addEventListener('click',()=>{CREDS=null;EMPRESAS=[];$('#clave').valu
 </script></body></html>`
 
 // ── Servidor HTTP ─────────────────────────────────────────────────────────────
-const server = http.createServer(async (req, res) => {
+const manejar = async (req, res) => {
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim()
   const url = req.url || '/'
 
@@ -411,8 +433,13 @@ const server = http.createServer(async (req, res) => {
 
   res.writeHead(404, { 'content-type': 'text/plain' })
   res.end('no')
-})
+}
 
-server.listen(PORT, HOST, () => {
-  console.log(`[tek-conectar] escuchando en http://${HOST}:${PORT} (PIN requerido)`)
-})
+// Acá se tipea el RUT y la clave del banco. En 0.0.0.0 el formulario también contestaba
+// en el WiFi local, donde HTTP viaja en claro; por Tailscale va cifrado por WireGuard.
+// Por eso escuchamos solo en loopback + la IP del tailnet.
+for (const host of HOSTS) {
+  http.createServer(manejar)
+    .listen(PORT, host, () => console.log(`[tek-conectar] escuchando en http://${host}:${PORT} (PIN requerido)`))
+    .on('error', (e) => console.error(`[tek-conectar] no pude escuchar en ${host}:${PORT} → ${e.message}`))
+}

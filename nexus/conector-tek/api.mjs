@@ -13,18 +13,21 @@
 //   GET  /resumen                     → totales (ingresos/egresos/neto) del rango
 //   POST /refresh                     → lanza el extractor en segundo plano
 import { createServer } from 'node:http'
-import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
-import { randomBytes } from 'node:crypto'
+import { networkInterfaces } from 'node:os'
+import { randomBytes, timingSafeEqual } from 'node:crypto'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
 const DATA = join(DIR, 'data')
 mkdirSync(DATA, { recursive: true })
 const PORT = Number(process.env.TEK_API_PORT || 7692)
 const TOKFILE = join(DATA, '.api-token')
-if (!existsSync(TOKFILE)) { try { writeFileSync(TOKFILE, randomBytes(24).toString('hex')) } catch {} }
+if (!existsSync(TOKFILE)) { try { writeFileSync(TOKFILE, randomBytes(24).toString('hex'), { mode: 0o600 }) } catch {} }
+try { chmodSync(TOKFILE, 0o600) } catch {}
 const TOKEN = existsSync(TOKFILE) ? readFileSync(TOKFILE, 'utf8').trim() : 'tek'
+const TOKEN_BUF = Buffer.from(TOKEN)
 
 const leer = (f) => { try { return JSON.parse(readFileSync(join(DATA, f), 'utf8')) } catch { return null } }
 const edadMin = (f) => { try { return Math.round((Date.now() - statSync(join(DATA, f)).mtimeMs) / 60000) } catch { return null } }
@@ -46,7 +49,8 @@ function filtrarMovs({ desde, hasta, cuenta, q, limit }) {
   if (desde) out = out.filter((r) => { const f = isoFecha(fechaDe(r)); return !f || f >= desde })
   if (hasta) out = out.filter((r) => { const f = isoFecha(fechaDe(r)); return !f || f <= hasta })
   if (cuenta) out = out.filter((r) => JSON.stringify(r).includes(cuenta))
-  if (q) { const re = new RegExp(q, 'i'); out = out.filter((r) => re.test(JSON.stringify(r))) }
+  // Búsqueda por texto literal, no por regex: un patrón como (a+)+$ colgaba el proceso entero.
+  if (q) { const aguja = String(q).toLowerCase(); out = out.filter((r) => JSON.stringify(r).toLowerCase().includes(aguja)) }
   const total = out.length
   const lim = Number(limit) > 0 ? Number(limit) : 0
   if (lim) out = out.slice(0, lim)   // acumulador viene ordenado desc → los más recientes
@@ -79,20 +83,41 @@ function dataFresca() {
   const edad = edadMin('estado.json')
   return edad != null && edad <= FRESH_MIN
 }
+// Presupuesto de entradas al banco. Cada lanzamiento puede terminar en un login real,
+// y una ráfaga de logins es lo que gatilla el bloqueo de la cuenta en Santander. El
+// forzado (POST /refresh) puede saltarse la espera corta, pero NO el presupuesto diario:
+// si no, un bucle de requests desde fuera se traduce en un bucle de logins.
+const MIN_ENTRE = Number(process.env.TEK_MIN_ENTRE_MS || 45_000)
+const TOPE_DIA = Number(process.env.TEK_TOPE_LOGINS_DIA || 24)
+let dia = new Date().toDateString()
+let lanzadosHoy = 0
 function lanzarActualizar(forzar = false) {
-  // anti-tormenta: no relanzar si lo hicimos hace <45s
-  if (!forzar && Date.now() - ultimoLanzamiento < 45_000) return { estado: 'lanzado_reciente' }
+  const hoy = new Date().toDateString()
+  if (hoy !== dia) { dia = hoy; lanzadosHoy = 0 }
+  if (lanzadosHoy >= TOPE_DIA) return { estado: 'tope_diario', tope: TOPE_DIA, nota: 'no entro más al banco hoy' }
+  // anti-tormenta: el forzado espera menos, pero espera
+  const espera = forzar ? 10_000 : MIN_ENTRE
+  if (Date.now() - ultimoLanzamiento < espera) return { estado: 'lanzado_reciente' }
   ultimoLanzamiento = Date.now()
+  lanzadosHoy++
   const hijo = spawn('/usr/local/bin/node', [join(DIR, 'actualizar.mjs')], {
     cwd: DIR, detached: true, stdio: 'ignore', env: { ...process.env, ...(forzar ? { TEK_FORZAR: '1' } : {}) },
   })
   hijo.unref()
-  return { estado: 'lanzado', pid: hijo.pid }
+  return { estado: 'lanzado', pid: hijo.pid, hoy: lanzadosHoy, tope: TOPE_DIA }
 }
 // se llama al servir data: si está vencida, refresca en segundo plano (no bloquea)
 function asegurarFresco() { if (!dataFresca()) return lanzarActualizar(false); return { estado: 'fresca' } }
 
-createServer((req, res) => {
+// Comparación en tiempo constante: `!==` filtra el token carácter a carácter y deja
+// medir cuántos aciertan por el tiempo de respuesta.
+function tokenOk(tok) {
+  if (typeof tok !== 'string') return false
+  const b = Buffer.from(tok)
+  return b.length === TOKEN_BUF.length && timingSafeEqual(b, TOKEN_BUF)
+}
+
+const manejar = (req, res) => {
   const u = new URL(req.url, `http://localhost:${PORT}`)
   const tok = u.searchParams.get('token') || req.headers['x-api-token']
   if (u.pathname === '/health') {
@@ -107,7 +132,7 @@ createServer((req, res) => {
       frescura_min: edadMin('movimientos.json'), fresca: dataFresca(),
     })
   }
-  if (tok !== TOKEN) return send(res, 401, { error: 'token inválido', hint: 'usa ?token= o header x-api-token' })
+  if (!tokenOk(tok)) return send(res, 401, { error: 'token inválido', hint: 'usa ?token= o header x-api-token' })
   const p = Object.fromEntries(u.searchParams)
   // endpoints de DATA: aseguran frescura bajo demanda (refrescan si venció, en 2º plano)
   if (u.pathname === '/saldos') { const act = asegurarFresco(); return send(res, 200, { ...(leer('saldos.json') || { cuentas: [] }), _actualizando: act.estado }) }
@@ -126,4 +151,22 @@ createServer((req, res) => {
   if (u.pathname === '/refresh' && req.method === 'POST') return send(res, 202, lanzarActualizar(true))
   if (u.pathname === '/') return send(res, 200, { api: 'tek-santander', rutas: ['/health', '/saldos', '/movimientos?desde=&hasta=&cuenta=&q=', '/resumen', '/resumen-mensual', 'POST /refresh'] })
   return send(res, 404, { error: 'no existe' })
-}).listen(PORT, process.env.TEK_API_HOST || '0.0.0.0', () => console.log(`[tek-api] http://${process.env.TEK_API_HOST || '0.0.0.0'}:${PORT}  token=${TOKEN.slice(0, 6)}… (alcanzable por Tailscale; auth por token)`))
+}
+
+// Dónde escuchamos. En 0.0.0.0 esto también respondía en el WiFi del café, y el token
+// vive en un archivo del disco: quien lee el archivo entra. Escuchamos solo en loopback
+// (los consumidores locales) y en la IP de Tailscale (el teléfono), que va cifrada.
+function ipTailscale() {
+  for (const dir of Object.values(networkInterfaces())) {
+    for (const i of dir || []) {
+      if (i.family === 'IPv4' && !i.internal && /^100\.(6[4-9]|[7-9]\d|1[01]\d|12[0-7])\./.test(i.address)) return i.address
+    }
+  }
+  return null
+}
+const forzado = process.env.TEK_API_HOST
+const destinos = forzado ? [forzado] : ['127.0.0.1', ipTailscale()].filter(Boolean)
+for (const host of destinos) {
+  createServer(manejar).listen(PORT, host, () => console.log(`[tek-api] http://${host}:${PORT}  token=${TOKEN.slice(0, 6)}… (auth por token)`))
+    .on('error', (e) => console.error(`[tek-api] no pude escuchar en ${host}:${PORT} → ${e.message}`))
+}

@@ -17,7 +17,7 @@
 // ⚠️ SOLO loguea/lee estado y guarda la sesión. NO transfiere.
 import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchright/index.js'
 const { chromium } = patchright
-import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync, cpSync, rmSync } from 'node:fs'
+import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync, cpSync, rmSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 import { obtener as obtenerCreds } from '/Users/AIagenteia/nexus/conector-tek/credenciales.mjs'
 
@@ -2094,6 +2094,12 @@ async function main() {
   const sesionUsuario = !esRamon && !vinculando
   const PROFILE_USER = join(DIR, 'chrome-profile-' + userSlug)
   const SESSION_TARGET = esRamon ? SESSION_FILE : join(DIR, 'session-' + userSlug + '.json')
+  // El storageState son las cookies VIVAS del banco: entrar con ese archivo no pide clave.
+  // Playwright lo escribe con el umask (644), así que lo cerramos a 600 en cada guardado.
+  const guardarSesion = async (ctx) => {
+    try { await ctx.storageState({ path: SESSION_TARGET }) } catch { return }
+    try { chmodSync(SESSION_TARGET, 0o600) } catch {}
+  }
   // Solo lo que da la confianza del dispositivo (no los caches de GB).
   const TRUST_ITEMS = ['Local State', 'First Run', 'Default/Cookies', 'Default/Cookies-journal', 'Default/Network', 'Default/Local Storage', 'Default/Session Storage', 'Default/WebStorage', 'Default/Preferences', 'Default/Trust Tokens', 'Default/Shared Dictionary']
   let recienSembrado = false
@@ -2149,7 +2155,7 @@ async function main() {
   const cerrar = async () => {
     // Guardamos la sesión en el archivo del USUARIO (ramon → session.json; otro →
     // session-<user>.json). En VINCULACIÓN (aislado) no guardamos y borramos el clon /tmp.
-    if (!aislado) { try { await ctx.storageState({ path: SESSION_TARGET }) } catch {} }
+    if (!aislado) await guardarSesion(ctx)
     try { await ctx.close() } catch {}
     if (aislado && profileDir.startsWith('/tmp/tek-vinc-')) { try { rmSync(profileDir, { recursive: true, force: true }) } catch {} }
   }
@@ -2219,7 +2225,7 @@ async function main() {
           try { await scrollHumano(page, rnd(-140, 160)) } catch { /* */ }
         }
         await moveTo(page, rnd(300, 1000), rnd(200, 600)); await idle(page, rnd(500, 1200))
-        try { await ctx.storageState({ path: SESSION_TARGET }) } catch { /* */ }
+        await guardarSesion(ctx)
         return fin('keepalive_ok', { nota: 'sesión mantenida viva (latido humano)', user: USER })
       }
       return fin('sesion_muerta', { nota: 'no hay sesión viva que mantener; el latido NUNCA loguea' })
