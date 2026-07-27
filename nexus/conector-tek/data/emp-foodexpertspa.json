@@ -5,16 +5,18 @@
       "tipo": "CUENTA CORRIENTE",
       "numero": "000072253590",
       "moneda": "CLP",
-      "saldo": 450094
+      "saldo": 450094,
+      "linea_credito": 3500000
     },
     {
       "tipo": "CUENTA MONEDA EXTRANJERA",
       "numero": "005100366691",
       "moneda": "USD",
-      "saldo": 1.26
+      "saldo": 1.26,
+      "linea_credito": 0
     }
   ],
   "total_clp": 450094,
-  "_ts": 1784904101287,
+  "_ts": 1785178171097,
   "_fuente": "vivo"
 }

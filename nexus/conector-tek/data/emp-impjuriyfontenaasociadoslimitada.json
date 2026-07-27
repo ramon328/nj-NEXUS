@@ -5,22 +5,25 @@
       "tipo": "CUENTA CORRIENTE",
       "numero": "000072019474",
       "moneda": "CLP",
-      "saldo": 24031132
+      "saldo": 37528952,
+      "linea_credito": 10000000
     },
     {
       "tipo": "CUENTA MONEDA EXTRANJERA",
       "numero": "005100235147",
       "moneda": "USD",
-      "saldo": 136.58
+      "saldo": 136.58,
+      "linea_credito": 0
     },
     {
       "tipo": "CUENTA MONEDA EXTRANJERA",
       "numero": "005100395551",
       "moneda": "EUR",
-      "saldo": 1249.41
+      "saldo": 1249.41,
+      "linea_credito": 0
     }
   ],
-  "total_clp": 24031132,
-  "_ts": 1784904101287,
+  "total_clp": 37528952,
+  "_ts": 1785177651063,
   "_fuente": "vivo"
 }
