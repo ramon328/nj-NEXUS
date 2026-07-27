@@ -713,99 +713,152 @@ async function crearTransferencia(page, log) {
       await sleep(rnd(600, 1000))
       await page.screenshot({ path: join(DATA, 'crear-02b-destino-tefun.png') }).catch(() => {})
       try { writeFileSync(join(DATA, 'crear-tefun-fill.json'), JSON.stringify({ ts: new Date().toISOString() })) } catch { /* */ }
-      // ── SUBMIT del form NUEVO (TEFUN): Continuar → (preview) → botón final. Distinto al TEF
-      //    (que usa "Crear"). CANDADO: NUNCA ponemos Superclave → la transferencia queda "por autorizar".
+      // ── SUBMIT TEFUN (Express): en el paso 2 el botón es CREAR (no Continuar).
+      //    Flujo real visto en capturas: llenar destino → Crear → modal aviso → Aceptar → queda pendiente.
+      //    El código viejo buscaba Continuar dos veces, no apretaba Crear a tiempo y el Aceptar
+      //    fallaba → tefun_no_confirmada con el modal todavía abierto.
       const clickBtnTEFUN = async (re) => {
-        for (const fr of [f2, page]) {
-          const b = fr.getByText(re).first()
-          const bb = await b.boundingBox().catch(() => null)
-          if (bb) { await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 10 }); await sleep(rnd(250, 500)); await page.mouse.down(); await sleep(60); await page.mouse.up(); return true }
+        const frames = [f2, ...page.frames().filter((f) => f !== f2), page]
+        for (const fr of frames) {
+          const b = fr.getByRole('button', { name: re }).first()
+          if (await b.isVisible({ timeout: 500 }).catch(() => false)) {
+            try { await b.click({ timeout: 3000 }); return true } catch { /* */ }
+            const bb = await b.boundingBox().catch(() => null)
+            if (bb) {
+              await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 10 })
+              await sleep(rnd(250, 500)); await page.mouse.down(); await sleep(60); await page.mouse.up()
+              return true
+            }
+          }
+          const t = fr.getByText(re).first()
+          if (await t.isVisible({ timeout: 400 }).catch(() => false)) {
+            try { await t.click({ timeout: 3000 }); return true } catch { /* */ }
+            const bb = await t.boundingBox().catch(() => null)
+            if (bb) {
+              await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 10 })
+              await sleep(rnd(250, 500)); await page.mouse.down(); await sleep(60); await page.mouse.up()
+              return true
+            }
+          }
+        }
+        // Fallback DOM: botón visible cuyo texto calza
+        for (const fr of page.frames()) {
+          const ok = await fr.evaluate((src) => {
+            const re = new RegExp(src, 'i')
+            const btn = [...document.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"]')]
+              .find((e) => e.offsetParent !== null && re.test((e.innerText || e.textContent || e.value || '').replace(/\s+/g, ' ').trim()))
+            if (!btn) return false
+            btn.click()
+            return true
+          }, re.source).catch(() => false)
+          if (ok) return true
         }
         return false
       }
-      if (modo !== 'crear') { await clickBtnTEFUN(/^\s*continuar\s*$/i); await sleep(rnd(4000, 6000)); return { estado: 'tefun_lleno_sin_crear', url: page.url() } }
-      // SUBMIT en BUCLE: el modal de seguridad ("1ª transferencia ≤ $250.000") REAPARECE, así que
-      // en cada vuelta: Continuar → cerrar modal (Aceptar) → intentar botón final → cerrar modal →
-      // detectar ÉXITO. Hasta 5 vueltas. CANDADO: NUNCA Superclave (queda "por autorizar").
-      const OK_TEFUN = /transferencia\s+(creada|generada|ingresada|registrada|realizada|enviada)|por\s+autoriz|por\s+liberar|pendiente\s+de\s+autoriz|comprobante\s+de\s+transfer|n[uú]mero\s+de\s+(la\s+)?transferencia|se\s+ha\s+creado|solicitud\s+(fue\s+)?creada|creada\s+con\s+[eé]xito|transferencia\s+n[°º]/i
-      const leerTxt = async () => { let t = ''; for (const f of page.frames()) t += (await f.locator('body').innerText().catch(() => '') || '') + ' '; return t }
-      // Misma lógica para TEFUN y TEF: Aceptar en CUALQUIER frame (antes fallaba y el modal
-      // quedaba abierto → crear-06-tefun-resultado.png con el aviso todavía visible).
-      const cerrarModal = async () => aceptarModalAlerta(page, log)
-      // INSTRUMENTACIÓN: volcar TODOS los botones visibles (para ver la secuencia real del submit).
-      const dumpBotones = async (tag) => {
-        const b = []
-        for (const f of page.frames()) {
-          const arr = await f.evaluate(() => {
-            const words = /^(continuar|aceptar|confirmar|crear|transferir|enviar|finalizar|cancelar|volver|siguiente|s[ií]|no|ok)$/i
-            const out = []
-            for (const e of document.querySelectorAll('*')) {
-              if (e.childElementCount !== 0 || e.offsetParent === null) continue
-              const t = (e.textContent || '').replace(/\s+/g, ' ').trim()
-              if (words.test(t)) out.push(`${t} <${e.tagName.toLowerCase()}.${String(e.className || '').slice(0, 30)}>`)
-            }
-            return out
-          }).catch(() => [])
-          b.push(...arr)
-        }
-        const uniq = [...new Set(b)]
-        try { writeFileSync(join(DATA, `botones-${tag}.json`), JSON.stringify(uniq, null, 2)) } catch { /* */ }
-        log(`  botones[${tag}]: ${uniq.slice(0, 12).join(' | ')}`)
-        return uniq
+      if (modo !== 'crear') {
+        await clickBtnTEFUN(/^\s*(crear|continuar)\s*$/i)
+        await sleep(rnd(4000, 6000))
+        return { estado: 'tefun_lleno_sin_crear', url: page.url() }
       }
-      // Lee el texto de un modal/alerta visible (para distinguir el aviso de límite vs "ya pendiente").
       const leerAlerta = async () => {
         for (const f of page.frames()) {
-          const t = await f.evaluate(() => { const m = [...document.querySelectorAll('[class*=modal i],[role=dialog],[class*=alert i],[class*=popup i],[class*=swal i]')].find((e) => e.offsetParent !== null && (e.innerText || '').trim().length > 8); return m ? (m.innerText || '').replace(/\s+/g, ' ').trim() : '' }).catch(() => '')
+          const t = await f.evaluate(() => {
+            const m = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i]')]
+              .find((e) => e.offsetParent !== null && (e.innerText || '').trim().length > 8)
+            return m ? (m.innerText || '').replace(/\s+/g, ' ').trim() : ''
+          }).catch(() => '')
           if (t) return t
         }
         return ''
       }
-      // GUARDA: si el RUT del destinatario quedó VACÍO no enviamos NADA. Sin RUT el banco no crea
-      // la transferencia, y existePendiente podría dar un FALSO positivo (matchear una pendiente
-      // vieja al mismo RUT). Abortar limpio → sin envío, sin heat desperdiciado, sin falso "creada".
+      const botonVisible = async (re) => {
+        for (const fr of [f2, ...page.frames()]) {
+          if (await fr.getByRole('button', { name: re }).first().isVisible({ timeout: 300 }).catch(() => false)) return true
+          if (await fr.getByText(re).first().isVisible({ timeout: 300 }).catch(() => false)) return true
+        }
+        return false
+      }
+      // GUARDA: RUT vacío → no enviar
       const rutEnForm = await f2.evaluate(() => { const el = document.getElementById('rutDestinatario'); return el ? el.value : '' }).catch(() => '')
       if (!rutEnForm || String(rutEnForm).replace(/\D/g, '').length < 7) {
         log('ABORT TEFUN: RUT destinatario vacío → NO envío (evita falso positivo).')
         return { estado: 'falta_rut', pendiente: false, nota: 'El RUT del destinatario no se cargó en el formulario del banco (re-render al elegir banco destino). NO se envió nada — reintentar.', url: page.url() }
       }
-      // PASO 1: Continuar → ALERTA. Si dice "pendientes a este beneficiario" = YA EXISTE una →
-      // NO se crea otra (ANTI-DUPLICADO). NUNCA se reintenta el submit.
-      log('TEFUN paso1 Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(4500, 6500))
+
+      // 1) CREAR (o Continuar si el form viejo todavía lo muestra)
+      const hayCrear = await botonVisible(/^\s*crear\s*$/i)
+      const hayCont = await botonVisible(/^\s*continuar\s*$/i)
+      log(`TEFUN botones: Crear=${hayCrear} Continuar=${hayCont}`)
+      let clickOk = false
+      if (hayCrear) {
+        clickOk = await clickBtnTEFUN(/^\s*crear\s*$/i)
+        log('TEFUN → Crear', clickOk)
+      } else if (hayCont) {
+        clickOk = await clickBtnTEFUN(/^\s*continuar\s*$/i)
+        log('TEFUN → Continuar (form sin Crear)', clickOk)
+      } else {
+        clickOk = await clickBtnTEFUN(/^\s*(crear|continuar|confirmar|transferir)\s*$/i)
+        log('TEFUN → botón final genérico', clickOk)
+      }
+      if (!clickOk) {
+        await page.screenshot({ path: join(DATA, 'crear-05a-alerta.png') }).catch(() => {})
+        return { estado: 'sin_boton_crear', pendiente: false, nota: 'No vi el botón Crear/Continuar en el paso 2 de TEFUN.', url: page.url() }
+      }
+      await sleep(rnd(3500, 5500))
       await page.screenshot({ path: join(DATA, 'crear-05a-alerta.png') }).catch(() => {})
-      const alerta = await leerAlerta()
-      log('TEFUN alerta:', alerta.slice(0, 140))
+
+      // 2) Modal de aviso (50M/4h, tope, etc.) → SIEMPRE Aceptar si aparece
+      let alerta = await leerAlerta()
+      log('TEFUN alerta:', (alerta || '(ninguna)').slice(0, 160))
       const clase = clasificarAlerta(alerta)
       if (clase === 'ya_pendiente') {
-        await cerrarModal()
+        await aceptarModalAlerta(page, log)
         log('ANTI-DUP: ya hay una pendiente a este beneficiario → NO creo otra')
         return { estado: 'ya_pendiente', pendiente: true, nota: 'Ya existe una transferencia PENDIENTE a este beneficiario por el mismo monto; NO se creó otra (anti-duplicado). Revisala/autorizala en el banco.', url: page.url() }
       }
-      // ANTIFRAUDE POR MONTO: el banco tope la 1ª transferencia a una cuenta NUEVA en $250.000 por 24h
-      // (después sube a $5.000.000/día). NO es un bloqueo de la cuenta ni un bug: es su protección.
-      // Igual cerramos el modal e intentamos continuar por si el banco permite CREARLA "por autorizar";
-      // si al final NO quedó creada y el aviso era ese tope, devolvemos 'limite_primera_vez' con el
-      // texto real — NUNCA reintentamos a ciegas (eso confundía y parecía que "se envió").
       const eraLimitePV = clase === 'limite_primera_vez'
       const eraLimiteDia = clase === 'limite_diario'
-      if (eraLimitePV) log('TEFUN: TOPE 1ª transferencia a cuenta nueva ($250.000/24h) →', alerta.slice(0, 120))
-      if (eraLimiteDia) log('TEFUN: EXCESO de límite/monto diario →', alerta.slice(0, 120))
-      await cerrarModal()   // Aceptar el aviso (ej. límite $250.000 la primera vez)
-      await sleep(rnd(1500, 2500))
-      // PASO 2: Continuar de nuevo → crea la transferencia (queda "por autorizar").
-      log('TEFUN paso2 Continuar →', await clickBtnTEFUN(/^\s*continuar\s*$/i)); await sleep(rnd(6000, 8000))
-      await cerrarModal()
-      await clickBtnTEFUN(/^\s*(confirmar|crear|transferir|enviar|finalizar)\s*$/i); await sleep(rnd(5000, 7000))
-      await cerrarModal()
+      if (alerta) {
+        const cerrado = await aceptarModalAlerta(page, log)
+        log('TEFUN modal Aceptar →', cerrado)
+        if (!cerrado) {
+          await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
+          return {
+            estado: 'modal_sin_aceptar', pendiente: false, alerta_banco: alerta.slice(0, 240),
+            nota: 'Salió el aviso del banco pero no pude apretar Aceptar. NO se confirmó la creación.',
+            url: page.url(),
+          }
+        }
+        await sleep(rnd(2500, 4000))
+      }
+
+      // 3) Tras Aceptar a veces pide otro Crear/Continuar/Confirmar
+      for (let i = 0; i < 3; i++) {
+        const otraAlerta = await leerAlerta()
+        if (otraAlerta) {
+          await aceptarModalAlerta(page, log)
+          await sleep(rnd(1500, 2500))
+          continue
+        }
+        if (await botonVisible(/^\s*(crear|continuar|confirmar|finalizar)\s*$/i)) {
+          const cual = (await botonVisible(/^\s*crear\s*$/i)) ? /^\s*crear\s*$/i
+            : (await botonVisible(/^\s*continuar\s*$/i)) ? /^\s*continuar\s*$/i
+              : /^\s*(confirmar|finalizar)\s*$/i
+          log('TEFUN post-modal →', await clickBtnTEFUN(cual))
+          await sleep(rnd(3000, 5000))
+          const a2 = await leerAlerta()
+          if (a2) { await aceptarModalAlerta(page, log); await sleep(rnd(1500, 2500)) }
+        } else break
+      }
+
       await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
-      // VERIFICACIÓN REAL (no adivinar por texto): ¿aparece ya en la lista de Autorización? Esto
-      // navega a la lista y confirma → 0 falsos negativos, y como es SOLO 1 intento, 0 duplicados.
+      // 4) Verificar en lista de Autorización (1 sola vez — anti-duplicado)
       const creada = await existePendiente(page, log, process.env.TEK_DEST_RUT, monto, process.env.TEK_DEST_CUENTA)
       log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : (eraLimitePV ? 'TOPE 1ª vez' : eraLimiteDia ? 'EXCESO límite diario' : 'NO confirmada'))
       if (creada) return { estado: 'creada', pendiente: true, url: page.url() }
-      if (eraLimitePV) return { estado: 'limite_primera_vez', pendiente: false, alerta_banco: alerta.slice(0, 240), nota: 'El banco NO deja la 1ª transferencia a esta cuenta NUEVA sobre $250.000 (protección antifraude, primeras 24h). La cuenta NO está bloqueada. Opciones: enviar $250.000 o menos ahora, o esperar 24h desde el primer envío para el monto completo.', url: page.url() }
-      if (eraLimiteDia) return { estado: 'limite_diario', pendiente: false, alerta_banco: alerta.slice(0, 240), nota: 'El banco frenó por EXCESO de límite/monto diario (el giro supera el cupo del día, típico $5.000.000). La cuenta NO está bloqueada ni el destinatario es nuevo. Opciones: bajar el monto, partirlo en varios días, o usar TRANSFERENCIA MASIVA (que parte el monto en líneas).', url: page.url() }
-      return { estado: 'tefun_no_confirmada', pendiente: false, url: page.url() }
+      if (eraLimitePV) return { estado: 'limite_primera_vez', pendiente: false, alerta_banco: (alerta || '').slice(0, 240), nota: 'El banco NO deja la 1ª transferencia a esta cuenta NUEVA sobre $250.000 (protección antifraude, primeras 24h). La cuenta NO está bloqueada. Opciones: enviar $250.000 o menos ahora, o esperar 24h desde el primer envío para el monto completo.', url: page.url() }
+      if (eraLimiteDia) return { estado: 'limite_diario', pendiente: false, alerta_banco: (alerta || '').slice(0, 240), nota: 'El banco frenó por EXCESO de límite/monto diario (el giro supera el cupo del día, típico $5.000.000). La cuenta NO está bloqueada ni el destinatario es nuevo. Opciones: bajar el monto, partirlo en varios días, o usar TRANSFERENCIA MASIVA (que parte el monto en líneas).', url: page.url() }
+      return { estado: 'tefun_no_confirmada', pendiente: false, alerta_banco: (alerta || '').slice(0, 240) || null, url: page.url() }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
     const setVal = async (sel, valTxt) => {
@@ -1186,36 +1239,58 @@ async function aceptarModalAlerta(page, log) {
         return true
       }
     }
-    // 3) click DOM directo dentro del modal visible
+    // 3) click DOM directo + eventos de puntero (Angular a veces ignora .click() solo)
     return await fr.evaluate(() => {
       const esAceptar = (el) => /^\s*aceptar\s*$/i.test((el.innerText || el.textContent || el.value || '').replace(/\s+/g, ' ').trim())
-      const modales = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i]')]
-        .filter((e) => e.offsetParent !== null)
-      for (const m of modales) {
-        const btn = [...m.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"]')].find(esAceptar)
-        if (btn) { btn.click(); return true }
-        // a veces el texto está en un span hijo: subir al botón clickeable
-        const nodo = [...m.querySelectorAll('*')].find((e) => e.childElementCount === 0 && esAceptar(e))
-        if (nodo) {
-          const clickable = nodo.closest('button, a, [role="button"]') || nodo
-          clickable.click(); return true
+      const disparar = (el) => {
+        const r = el.getBoundingClientRect()
+        const x = r.left + r.width / 2, y = r.top + r.height / 2
+        for (const tipo of ['pointerdown', 'mousedown', 'pointerup', 'mouseup', 'click']) {
+          el.dispatchEvent(new MouseEvent(tipo, { bubbles: true, cancelable: true, view: window, clientX: x, clientY: y }))
         }
+        try { el.click() } catch { /* */ }
       }
-      const any = [...document.querySelectorAll('button, a, [role="button"]')].find((b) => b.offsetParent !== null && esAceptar(b))
-      if (any) { any.click(); return true }
+      const modales = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i],.modal,.ui-dialog')]
+        .filter((e) => e.offsetParent !== null || (e.getBoundingClientRect().width > 0 && e.getBoundingClientRect().height > 0))
+      for (const m of modales) {
+        const btn = [...m.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"], .btn')]
+          .find(esAceptar)
+        if (btn) { disparar(btn); return true }
+        const nodo = [...m.querySelectorAll('*')].find((e) => e.childElementCount === 0 && esAceptar(e))
+        if (nodo) { disparar(nodo.closest('button, a, [role="button"], .btn') || nodo); return true }
+      }
+      const any = [...document.querySelectorAll('button, a, [role="button"], .btn')]
+        .find((b) => (b.offsetParent !== null || b.getBoundingClientRect().width > 0) && esAceptar(b))
+      if (any) { disparar(any); return true }
       return false
     }).catch(() => false)
   }
 
   let alguna = false
-  for (let k = 0; k < 4; k++) {
+  for (let k = 0; k < 5; k++) {
     const antes = await hayModal()
     if (!antes) return alguna
     let ok = false
-    // Preferir frames más internos primero (el modal suele vivir en un iframe del form).
     const frames = [...page.frames()].reverse()
     for (const fr of frames) {
       if (await clickAceptarEn(fr)) { ok = true; break }
+    }
+    // Último recurso: click por coordenadas del botón Aceptar en cualquier frame
+    if (!ok) {
+      for (const fr of frames) {
+        const box = await fr.evaluate(() => {
+          const esAceptar = (el) => /^\s*aceptar\s*$/i.test((el.innerText || el.textContent || el.value || '').replace(/\s+/g, ' ').trim())
+          const btn = [...document.querySelectorAll('button, a, [role="button"], .btn')].find((b) => esAceptar(b) && b.getBoundingClientRect().width > 0)
+          if (!btn) return null
+          const r = btn.getBoundingClientRect()
+          return { x: r.left + r.width / 2, y: r.top + r.height / 2 }
+        }).catch(() => null)
+        if (box) {
+          await page.mouse.move(box.x, box.y, { steps: 10 })
+          await sleep(rnd(200, 400)); await page.mouse.down(); await sleep(60); await page.mouse.up()
+          ok = true; break
+        }
+      }
     }
     if (!ok) {
       if (log) log('  modal → Aceptar NO encontrado (intento ' + (k + 1) + ')')
@@ -2236,7 +2311,20 @@ async function main() {
     if (capturarOn) { try { cap = await capturarData(ctx, page, log) } catch (e) { log('capturar falló:', e.message) } }
     if (transferirMapear) { try { transf = await mapearTransferencia(ctx, page, log) } catch (e) { log('transf falló:', e.message) } }
     let crear = null
-    if (['mapear', 'llenar', 'crear'].includes(process.env.TEK_CREAR)) { try { crear = await crearTransferencia(page, log) } catch (e) { log('crear falló:', e.message) } }
+    if (['mapear', 'llenar', 'crear'].includes(process.env.TEK_CREAR)) {
+      try { crear = await crearTransferencia(page, log) } catch (e) { log('crear falló:', e.message) }
+      // Dejar la sesión TIBIA: tras transferir el corazón no pudo latir (candado ocupado).
+      // Antes de cerrar el navegador, volvemos al dashboard y guardamos cookies — así el
+      // próximo latido/pedido reusa la sesión sin relogin.
+      if (!aislado) {
+        try {
+          await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {})
+          await sleep(rnd(2000, 3500))
+          await guardarSesion(ctx)
+          log('sesión tibada post-transferencia (dashboard + storageState)')
+        } catch (e) { log('tibar sesión falló:', e.message) }
+      }
+    }
     let masiva = null
     if (['map', 'subir'].includes(process.env.TEK_MASIVA)) { try { masiva = await masivaImportar(page, log) } catch (e) { log('masiva falló:', e.message) } }
     let carthist = null
