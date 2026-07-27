@@ -1,9 +1,9 @@
 {
-  "actualizado": "2026-07-27T12:34:46.299Z",
+  "actualizado": "2026-07-27T12:40:54.940Z",
   "fuente": "Excel Mallorca · STOCK VALORIZADO",
-  "total": 42,
+  "total": 43,
   "con_tag": 29,
-  "sin_tag": 13,
+  "sin_tag": 14,
   "autos": [
     {
       "patente": "VFYG69",
@@ -256,11 +256,19 @@
       "marca": "MITSUBISHI",
       "modelo": "L200",
       "tag": false
+    },
+    {
+      "patente": "KZCW87-5",
+      "marca": "BMW ",
+      "modelo": "M3 3.0 AUT",
+      "tag": false
     }
   ],
   "cambios": {
     "nuevos_con_tag": [],
-    "nuevos_en_stock": [],
+    "nuevos_en_stock": [
+      "KZCW87-5(sin tag)"
+    ],
     "salieron_del_stock": []
   }
 }
