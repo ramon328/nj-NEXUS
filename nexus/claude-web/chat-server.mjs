@@ -17,7 +17,7 @@ import http from 'node:http'
 import crypto from 'node:crypto'
 import { spawn, execSync } from 'node:child_process'
 import { fileURLToPath } from 'node:url'
-import { readFileSync, writeFileSync, mkdirSync, readdirSync } from 'node:fs'
+import { readFileSync, writeFileSync, mkdirSync, readdirSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 import os from 'node:os'
 
@@ -41,6 +41,29 @@ const CLAUDE = `${HOME}/.local/bin/claude`
 const PERM = String(process.env.CLAUDE_CHAT_PERM || 'bypassPermissions')
 const MODEL = String(process.env.CLAUDE_CHAT_MODEL || '').trim()
 const SECRET = crypto.randomBytes(32)
+
+// ── Cursor (motor alternativo en estas mismas terminales) ─────────────────────
+// El CLI de Cursor (`cursor-agent`) corre con la suscripción/API de Ramón. Cada
+// turno es una corrida de un tiro (`-p`), la charla se retoma con `--resume <chatId>`.
+// La key vive en .env.apis (permisos 600, la sourcea start-chat.sh) y en process.env.
+const CURSOR = `${HOME}/.local/bin/cursor-agent`
+const ENV_APIS = join(HOME, 'nexus', 'claude-web', '.env.apis')
+const cursorKey = () => String(process.env.CURSOR_API_KEY || '').trim()
+const cursorConectado = () => Boolean(cursorKey())
+const maskKey = (k) => { const s = String(k || ''); return s.length <= 8 ? (s ? '••••' : '') : s.slice(0, 4) + '…' + s.slice(-4) }
+function guardarCursorKey(key) {
+  const k = String(key || '').trim()
+  process.env.CURSOR_API_KEY = k
+  try {
+    let txt = ''
+    try { txt = readFileSync(ENV_APIS, 'utf8') } catch { /* nuevo */ }
+    const linea = 'CURSOR_API_KEY=' + k
+    if (/^CURSOR_API_KEY=.*$/m.test(txt)) txt = txt.replace(/^CURSOR_API_KEY=.*$/m, linea)
+    else txt = txt.replace(/\s*$/, '') + '\n' + linea + '\n'
+    writeFileSync(ENV_APIS, txt)
+    try { chmodSync(ENV_APIS, 0o600) } catch { /* */ }
+  } catch (e) { console.error('[cursor] no pude guardar la key:', e.message) }
+}
 
 // ── Subir archivos (protegido por la MISMA cookie de sesión que el chat) ──────
 // Para mandar archivos que no se pueden pegar en el chat (certificados .pfx/.p12,
@@ -250,6 +273,13 @@ const PAGINA = `<!doctype html><html lang="es"><head><meta charset="utf-8">
  .mrow.cur{border-color:var(--blue);background:#16233f}
  .mrow .chk{margin-left:auto;color:var(--ok);font-weight:700;opacity:0}
  .mrow.cur .chk{opacity:1}
+ .mgrp{font-size:11px;text-transform:uppercase;letter-spacing:.5px;color:var(--mut);margin:14px 2px 7px;font-weight:700}
+ .mgrp:first-child{margin-top:2px}
+ .ckbox{margin:9px 0 2px;padding:11px;border:1px solid var(--line);border-radius:12px;background:var(--bg)}
+ .cst{font-size:12px;margin-bottom:9px} .cok{color:var(--ok);font-weight:700} .cno{color:var(--mut)} .cmk{color:var(--mut);font-size:11px}
+ .crow{display:flex;gap:7px} .crow input{flex:1;min-width:0;padding:9px 10px;border:1px solid var(--line);border-radius:9px;background:var(--panel,#0b141a);color:var(--txt);font-size:13px;-webkit-appearance:none}
+ .crow button{padding:9px 13px;border:0;border-radius:9px;background:var(--blue);color:#04122b;font-weight:700;font-size:13px}
+ .cdel{margin-top:8px;background:none;border:0;color:#ff6b6b;font-size:12px;text-decoration:underline;padding:2px}
 </style></head><body>
 <div id="login">
   <h1>🤖 Claude Code — Mac mini</h1>
@@ -351,7 +381,18 @@ function renderMd(src){
 let ws=null, typingEl=null, curAi=null, busy=false, reconnTO=null
 let hbTO=null, wdTO=null, lastRx=0, connecting=false
 let ROLE='owner', curTerm=null, termList=[], headerName='Claude Code', wantTerm=null, curModel=''
-const MODELOS=[{id:'',nombre:'Por defecto',desc:'el que trae Claude Code'},{id:'opus',nombre:'Opus 4.8',desc:'el más capaz'},{id:'sonnet',nombre:'Sonnet',desc:'equilibrado y rápido'},{id:'haiku',nombre:'Haiku',desc:'el más veloz y económico'}]
+const MODELOS=[
+ {id:'',nombre:'Por defecto',desc:'el que trae Claude Code',grupo:'Claude Code'},
+ {id:'opus',nombre:'Opus 4.8',desc:'el más capaz',grupo:'Claude Code'},
+ {id:'sonnet',nombre:'Sonnet',desc:'equilibrado y rápido',grupo:'Claude Code'},
+ {id:'haiku',nombre:'Haiku',desc:'el más veloz y económico',grupo:'Claude Code'},
+ {id:'cursor:auto',nombre:'Cursor · Auto',desc:'Cursor elige el modelo',grupo:'Cursor'},
+ {id:'cursor:sonnet-4.5',nombre:'Cursor · Sonnet 4.5',desc:'Claude vía tu Cursor',grupo:'Cursor'},
+ {id:'cursor:gpt-5',nombre:'Cursor · GPT-5',desc:'OpenAI vía tu Cursor',grupo:'Cursor'},
+ {id:'cursor:opus-4.1',nombre:'Cursor · Opus 4.1',desc:'lo más capaz vía Cursor',grupo:'Cursor'},
+ {id:'cursor:gemini-2.5-pro',nombre:'Cursor · Gemini 2.5 Pro',desc:'Google vía tu Cursor',grupo:'Cursor'},
+]
+let cursorConn=false, cursorMask=''
 const feed=$('#feed')
 function atBottom(){return feed.scrollHeight-feed.scrollTop-feed.clientHeight<120}
 function scroll(force){if(force||atBottom())requestAnimationFrame(()=>feed.scrollTop=feed.scrollHeight)}
@@ -438,6 +479,7 @@ function connect(){
     if(m.t==='reset'){feed.innerHTML='';for(const k in tools)delete tools[k];for(const k in perms)delete perms[k];hideTyping();setBusy(false);return}
     if(m.t==='share'){showShare(m.url);return}
     if(m.t==='model'){curModel=m.model||'';updateHeader();renderModelos();if(m.note)add('sys',esc(m.note));return}
+    if(m.t==='cursorstatus'){cursorConn=!!m.conectado;cursorMask=m.mask||'';if(cursorConn&&$('#cursorKey'))add('sys','✅ Cursor conectado. Elígelo en 🧠 Modelo.');if($('#modal').classList.contains('show'))renderModelos();return}
     if(m.t==='user'){hideTyping();add('msg me',esc(m.text));setBusy(true);scroll();return}
     if(m.t==='text'){hideTyping();curAi=add('msg ai',renderMd(m.text));curAi=null;speak(m.text);return}
     if(m.t==='think'){hideTyping();add('think',esc(m.text));if(busy)showTyping();return}
@@ -522,14 +564,35 @@ $('#shareNat').addEventListener('click',async()=>{
   try{if(navigator.share)await navigator.share({title:'Terminal en vivo',text:'Entra a mi terminal de programación',url:u});else await navigator.clipboard.writeText(u)}catch(e){}
 })
 /* Modelo */
+function fila(m){
+  const b=document.createElement('button');b.type='button';b.className='mrow'+(m.id===curModel?' cur':'')
+  b.innerHTML='<span><span class="mn">'+m.nombre+'</span> <span class="md">· '+m.desc+'</span></span><span class="chk">✓</span>'
+  b.addEventListener('click',()=>{
+    if(m.id.indexOf('cursor:')===0 && !cursorConn){ add('sys','🔒 Primero conecta Cursor: pega tu API key aquí abajo.'); const k=$('#cursorKey'); if(k)k.focus(); return }
+    ws&&ws.send(JSON.stringify({t:'model',model:m.id}));$('#modal').classList.remove('show')
+  })
+  return b
+}
 function renderModelos(){
   const c=$('#modelList');c.innerHTML=''
-  for(const m of MODELOS){
-    const b=document.createElement('button');b.type='button';b.className='mrow'+(m.id===curModel?' cur':'')
-    b.innerHTML='<span><span class="mn">'+m.nombre+'</span> <span class="md">· '+m.desc+'</span></span><span class="chk">✓</span>'
-    b.addEventListener('click',()=>{ws&&ws.send(JSON.stringify({t:'model',model:m.id}));$('#modal').classList.remove('show')})
-    c.appendChild(b)
+  const grupos=[...new Set(MODELOS.map(m=>m.grupo))]
+  for(const g of grupos){
+    const h=document.createElement('div');h.className='mgrp';h.textContent=g;c.appendChild(h)
+    for(const m of MODELOS.filter(x=>x.grupo===g)) c.appendChild(fila(m))
+    if(g==='Cursor') c.appendChild(cursorBox())
   }
+}
+function cursorBox(){
+  const wrap=document.createElement('div');wrap.className='ckbox'
+  const est=cursorConn?('<span class="cok">● conectado</span> <span class="cmk">'+esc(cursorMask)+'</span>'):'<span class="cno">○ sin conectar</span>'
+  wrap.innerHTML='<div class="cst">'+est+'</div>'
+    +'<div class="crow"><input id="cursorKey" type="password" autocomplete="off" placeholder="Pega tu API key de Cursor (cursor.com → Dashboard → API Keys)"><button id="cursorSave" type="button">'+(cursorConn?'Actualizar':'Conectar')+'</button></div>'
+    +(cursorConn?'<button id="cursorDel" type="button" class="cdel">Desconectar Cursor</button>':'')
+  setTimeout(()=>{
+    const s=$('#cursorSave'); if(s)s.addEventListener('click',()=>{const k=$('#cursorKey').value.trim(); if(!k){add('sys','⚠️ Pega la API key primero.');return} ws&&ws.send(JSON.stringify({t:'cursorkey',key:k})); $('#cursorKey').value=''})
+    const d=$('#cursorDel'); if(d)d.addEventListener('click',()=>{ if(confirm('¿Desconectar Cursor?')) ws&&ws.send(JSON.stringify({t:'cursorkey',key:''})) })
+  },0)
+  return wrap
 }
 $('#modelo').addEventListener('click',()=>{renderModelos();$('#modal').classList.add('show')})
 $('#modelClose').addEventListener('click',()=>$('#modal').classList.remove('show'))
@@ -694,7 +757,7 @@ const REPLAY = new Set(['user', 'text', 'think', 'tool', 'tool_result', 'img', '
 
 function crearTerm() {
   const id = ++seqTerm
-  const t = { id, nombre: 'Terminal ' + id, proc: null, buf: '', auto: (PERM === 'bypassPermissions'), model: MODEL, pend: new Map(), sessionId: null, clientes: new Set(), share: null, hist: [] }
+  const t = { id, nombre: 'Terminal ' + id, proc: null, buf: '', auto: (PERM === 'bypassPermissions'), model: MODEL, engine: 'claude', cursorSession: null, pend: new Map(), sessionId: null, clientes: new Set(), share: null, hist: [] }
   TERMS.set(id, t)
   return t
 }
@@ -719,6 +782,56 @@ function spawnClaude(t) {
   t.proc.stdout.on('data', (d) => { t.buf += d.toString(); let nl; while ((nl = t.buf.indexOf('\n')) >= 0) { const line = t.buf.slice(0, nl); t.buf = t.buf.slice(nl + 1); if (line.trim()) handleLine(t, line) } })
   t.proc.stderr.on('data', (d) => { const s = d.toString().trim(); if (s) console.error('[claude-chat:err]', s.slice(0, 300)) })
   t.proc.on('exit', (code) => { t.proc = null; if (code && code !== 0) bcast(t, { t: 'error', msg: 'el proceso de Claude terminó (código ' + code + ')' }); bcast(t, { t: 'done', cost: 0, turns: 0 }) })
+}
+
+// ── Motor CURSOR ──────────────────────────────────────────────────────────────
+// Corre `cursor-agent -p` UNA vez por turno (no hay proceso persistente como Claude
+// Code). Guardamos el chatId del evento `system` para retomar con --resume. Va con
+// --force (auto-aprueba todo): en modo terminal Cursor no usa los popups de permiso.
+function runCursorTurn(t, texto) {
+  if (!cursorConectado()) { bcast(t, { t: 'error', msg: 'Cursor no está conectado. Pega tu API key en 🧠 Modelo.' }); bcast(t, { t: 'done', cost: 0, turns: 0 }); return }
+  const model = String(t.model || '').replace(/^cursor:/, '')
+  const args = ['-p', '--output-format', 'stream-json', '--force']
+  if (model && model !== 'auto') args.push('--model', model)
+  if (t.cursorSession) args.push('--resume', t.cursorSession)
+  args.push(String(texto || ''))
+  t.proc = spawn(CURSOR, args, {
+    cwd: HOME, env: { ...process.env, TERM: 'dumb', FORCE_COLOR: '0', CURSOR_API_KEY: cursorKey() }, stdio: ['ignore', 'pipe', 'pipe'],
+  })
+  t.buf = ''
+  t.proc.stdout.on('data', (d) => { t.buf += d.toString(); let nl; while ((nl = t.buf.indexOf('\n')) >= 0) { const line = t.buf.slice(0, nl); t.buf = t.buf.slice(nl + 1); if (line.trim()) handleCursorLine(t, line) } })
+  t.proc.stderr.on('data', (d) => { const s = d.toString().trim(); if (s) console.error('[cursor:err]', s.slice(0, 300)) })
+  t.proc.on('exit', (code) => { t.proc = null; if (code && code !== 0) bcast(t, { t: 'error', msg: 'Cursor terminó (código ' + code + '). ¿API key válida?' }); bcast(t, { t: 'done', cost: 0, turns: 0 }) })
+}
+
+function handleCursorLine(t, line) {
+  let m; try { m = JSON.parse(line) } catch { return }
+  const ty = m.type
+  if (ty === 'system') {
+    const sid = m.session_id || m.chatId || m.chat_id
+    if (sid) { t.cursorSession = sid; bcast(t, { t: 'session', id: sid }) }
+    return
+  }
+  if (ty === 'assistant' && m.message) {
+    const c = m.message.content
+    if (Array.isArray(c)) { for (const b of c) { const tx = (b && (b.text != null ? b.text : (typeof b === 'string' ? b : ''))) || ''; if (typeof tx === 'string' && tx.trim()) bcast(t, { t: 'text', text: tx }) } }
+    else if (typeof c === 'string' && c.trim()) bcast(t, { t: 'text', text: c })
+    return
+  }
+  if (ty === 'thinking' || ty === 'reasoning') {
+    const tx = m.text || (m.message && m.message.content) || ''
+    if (typeof tx === 'string' && tx.trim()) bcast(t, { t: 'think', text: tx })
+    return
+  }
+  if (ty === 'tool_call' && m.subtype === 'started') {
+    const tc = m.tool_call || {}
+    const key = Object.keys(tc)[0] || 'tool'
+    const nombre = key.replace(/ToolCall$/, '')
+    const input = (tc[key] && (tc[key].args || tc[key].input)) || {}
+    bcast(t, { t: 'tool', id: m.id || (key + '-' + (t.hist.length || 0)), name: nombre, input })
+    return
+  }
+  // 'result' y otros: el exit del proceso emite el 'done'.
 }
 
 function handleLine(t, line) {
@@ -911,6 +1024,7 @@ function sesion(ws) {
     attach(ws, [...TERMS.values()][0] || crearTerm())
   }
   sendTerms(ws)
+  send(ws, { t: 'cursorstatus', conectado: cursorConectado(), mask: maskKey(cursorKey()) })
 
   ws.on('message', (raw) => {
     let o; try { o = JSON.parse(raw.toString()) } catch { return }
@@ -918,8 +1032,10 @@ function sesion(ws) {
     const cur = TERMS.get(ws._term)
     const owner = ws._role === 'owner'
     if (o.t === 'msg' && cur && (o.text || (Array.isArray(o.images) && o.images.length) || (Array.isArray(o.files) && o.files.length))) {
-      if (!cur.proc) spawnClaude(cur)
+      const esCursor = cur.engine === 'cursor'
+      if (!esCursor && !cur.proc) spawnClaude(cur)
       const content = []
+      let fileNote = ''
       if (o.text) content.push({ type: 'text', text: String(o.text) })
       if (Array.isArray(o.images)) {
         for (const img of o.images.slice(0, 6)) {
@@ -939,7 +1055,7 @@ function sesion(ws) {
           }
         }
         nFiles = lineas.length
-        if (nFiles) content.push({ type: 'text', text: `El usuario adjuntó ${nFiles} archivo(s). Están guardados en el servidor; léelos con la herramienta Read cuando los necesites:\n${lineas.join('\n')}` })
+        if (nFiles) { fileNote = `El usuario adjuntó ${nFiles} archivo(s). Están guardados en el servidor; léelos con la herramienta Read cuando los necesites:\n${lineas.join('\n')}`; content.push({ type: 'text', text: fileNote }) }
       }
       if (!content.length) return
       // Eco a los DEMÁS viewers de esta terminal (colaborativo) + al historial.
@@ -947,6 +1063,16 @@ function sesion(ws) {
       pushHist(cur, echo)
       const es = JSON.stringify(echo)
       for (const c of cur.clientes) { if (c !== ws) { try { if (c.readyState === 1) c.send(es) } catch { /* */ } } }
+      // === Motor CURSOR: una corrida por turno (no proceso persistente) ===
+      if (esCursor) {
+        if (cur.proc) { bcast(cur, { t: 'error', msg: 'Cursor sigue trabajando; espera a que termine este turno.' }); return }
+        if (Array.isArray(o.images) && o.images.length) bcast(cur, { t: 'text', text: '_(Cursor en modo terminal no recibe imágenes; descríbemelo por texto.)_' })
+        let prompt = o.text ? String(o.text) : ''
+        if (fileNote) prompt += (prompt ? '\n\n' : '') + fileNote
+        if (!prompt.trim()) { bcast(cur, { t: 'done', cost: 0, turns: 0 }); return }
+        runCursorTurn(cur, prompt)
+        return
+      }
       const turn = JSON.stringify({ type: 'user', message: { role: 'user', content } }) + '\n'
       try { cur.proc.stdin.write(turn) } catch { bcast(cur, { t: 'error', msg: 'no pude enviar el mensaje' }) }
     } else if (o.t === 'perm_reply' && cur) {
@@ -964,13 +1090,25 @@ function sesion(ws) {
       if (cur.proc) { const p = cur.proc; try { p.kill('SIGINT') } catch { /* */ } setTimeout(() => { try { if (p && !p.killed) p.kill('SIGKILL') } catch { /* */ } }, 400) }
       bcast(cur, { t: 'done', cost: 0, turns: 0 })  // limpia el spinner aunque el proceso ya estuviera muerto (terminal "colgada")
     } else if (o.t === 'model' && cur && owner) {
-      // Cambiar el modelo: se aplica en el próximo turno (la conversación se mantiene
-      // vía --resume). Si hay proceso ocioso lo reciclamos para que tome el modelo ya.
-      const permitido = ['', 'opus', 'sonnet', 'haiku']
-      const nm = permitido.includes(String(o.model)) ? String(o.model) : cur.model
-      cur.model = nm
+      // Cambiar el modelo/motor: se aplica en el próximo turno. Claude Code mantiene la
+      // charla vía --resume; Cursor (motor aparte) usa su propio chatId. `cursor:<id>`
+      // = motor Cursor; '', opus, sonnet, haiku = Claude Code.
+      const nm = String(o.model || '')
+      const esCursor = nm.startsWith('cursor:')
+      const claudeOk = ['', 'opus', 'sonnet', 'haiku'].includes(nm)
+      if (!esCursor && !claudeOk) return  // id desconocido → ignora
+      if (esCursor && !cursorConectado()) { bcast(cur, { t: 'error', msg: 'Primero conecta Cursor: pega tu API key en 🧠 Modelo.' }); return }
       if (cur.proc) { try { cur.proc.kill('SIGKILL') } catch { /* */ } cur.proc = null }
-      bcast(cur, { t: 'model', model: nm, note: 'Modelo cambiado a ' + (nm || 'por defecto') + ' · sigue la misma conversación.' })
+      const cambioMotor = cur.engine !== (esCursor ? 'cursor' : 'claude')
+      cur.engine = esCursor ? 'cursor' : 'claude'
+      cur.model = nm
+      const etiqueta = esCursor ? ('Cursor · ' + (nm.replace('cursor:', '') || 'auto')) : (nm || 'por defecto')
+      const nota = 'Modelo cambiado a ' + etiqueta + (cambioMotor && esCursor ? ' · Cursor empieza una charla nueva.' : ' · sigue la misma conversación.')
+      bcast(cur, { t: 'model', model: nm, note: nota })
+    } else if (o.t === 'cursorkey' && owner) {
+      // Guardar/actualizar la API key de Cursor (o borrarla con key vacía).
+      guardarCursorKey(String(o.key || ''))
+      send(ws, { t: 'cursorstatus', conectado: cursorConectado(), mask: maskKey(cursorKey()) })
     } else if (o.t === 'attach' && owner) {
       const nt = TERMS.get(o.term); if (nt) { attach(ws, nt); sendTerms(ws) }
     } else if (o.t === 'new' && owner) {
