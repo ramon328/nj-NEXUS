@@ -32,10 +32,12 @@ const LOCK_COLGADO_MS = 12 * 60_000
 
 function huellaEnvio(borrador, empresa) {
   const b = borrador.beneficiario || {}
+  // Cuenta sin ceros a la izquierda: "007031422978" y "7031422978" son la misma.
+  const cta = soloDigitos(b.cuenta).replace(/^0+/, '') || '0'
   return [
     String(empresa || '').toUpperCase().replace(/\s+/g, ' ').trim(),
-    soloDigitos(b.rut),
-    soloDigitos(b.cuenta),
+    soloDigitos(b.rut).toUpperCase(),
+    cta,
     String(borrador.monto || 0),
   ].join('|')
 }
@@ -220,7 +222,7 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
     }
     // Chequeo previo: el usuario tiene que tener el banco conectado (creds cifradas).
     if (!credenciales.tieneConexion(userId, empresa)) {
-      return resolve({ ok: false, error: `"${userId}" no tiene banco conectado${empresa ? ` para "${empresa}" : ''}.` })
+      return resolve({ ok: false, error: `"${userId}" no tiene banco conectado${empresa ? ` para "${empresa}"` : ''}.` })
     }
 
     const huella = huellaEnvio(borrador, empresa)

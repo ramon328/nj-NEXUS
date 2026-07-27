@@ -729,7 +729,9 @@ async function crearTransferencia(page, log) {
       // detectar ÉXITO. Hasta 5 vueltas. CANDADO: NUNCA Superclave (queda "por autorizar").
       const OK_TEFUN = /transferencia\s+(creada|generada|ingresada|registrada|realizada|enviada)|por\s+autoriz|por\s+liberar|pendiente\s+de\s+autoriz|comprobante\s+de\s+transfer|n[uú]mero\s+de\s+(la\s+)?transferencia|se\s+ha\s+creado|solicitud\s+(fue\s+)?creada|creada\s+con\s+[eé]xito|transferencia\s+n[°º]/i
       const leerTxt = async () => { let t = ''; for (const f of page.frames()) t += (await f.locator('body').innerText().catch(() => '') || '') + ' '; return t }
-      const cerrarModal = async () => { for (let k = 0; k < 3; k++) { if (await clickBtnTEFUN(/^\s*aceptar\s*$/i)) { log('  modal → Aceptar'); await sleep(rnd(2500, 3800)) } else return } }
+      // Misma lógica para TEFUN y TEF: Aceptar en CUALQUIER frame (antes fallaba y el modal
+      // quedaba abierto → crear-06-tefun-resultado.png con el aviso todavía visible).
+      const cerrarModal = async () => aceptarModalAlerta(page, log)
       // INSTRUMENTACIÓN: volcar TODOS los botones visibles (para ver la secuencia real del submit).
       const dumpBotones = async (tag) => {
         const b = []
@@ -977,20 +979,25 @@ async function crearTransferencia(page, log) {
     if (bb) { await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 12 }); await sleep(rnd(250, 550)); await page.mouse.down(); await sleep(60); await page.mouse.up(); log('CREAR clickeado') }
     else { log('no vi el botón Crear'); return { estado: 'sin_boton_crear', url: page.url() } }
 
-    // 5b) Si sale un MODAL de aviso (antifraude por monto: 1ª transferencia a cuenta nueva, tope
-    //     $250.000/24h; u otro), leerlo y apretarle "Aceptar" para que —si el banco lo permite— la
-    //     creación continúe. Guardamos el texto para clasificar el resultado.
+    // 5b) Si sale un MODAL de aviso (antifraude / info de 1ª transferencia a cuenta nueva),
+    //     leerlo y apretarle "Aceptar". Misma rutina robusta que TEFUN (todos los frames).
     let alertaBanco = ''
     for (let k = 0; k < 3; k++) {
       let m = ''
-      for (const f of page.frames()) { const t = await f.evaluate(() => { const el = [...document.querySelectorAll('[class*=modal i],[role=dialog],[class*=alert i],[class*=popup i],[class*=swal i]')].find((e) => e.offsetParent !== null && (e.innerText || '').trim().length > 8); return el ? (el.innerText || '').replace(/\s+/g, ' ').trim() : '' }).catch(() => ''); if (t) { m = t; break } }
+      for (const f of page.frames()) {
+        const t = await f.evaluate(() => {
+          const el = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i]')]
+            .find((e) => e.offsetParent !== null && (e.innerText || '').trim().length > 8)
+          return el ? (el.innerText || '').replace(/\s+/g, ' ').trim() : ''
+        }).catch(() => '')
+        if (t) { m = t; break }
+      }
       if (!m) break
       alertaBanco = m
-      let cerrado = false
-      for (const f of [f2, page]) { const b = f.getByText(/^\s*aceptar\s*$/i).first(); const cb = await b.boundingBox().catch(() => null); if (cb) { await page.mouse.move(cb.x + cb.width / 2, cb.y + cb.height / 2, { steps: 8 }); await sleep(rnd(200, 420)); await page.mouse.down(); await sleep(50); await page.mouse.up(); cerrado = true; break } }
+      const cerrado = await aceptarModalAlerta(page, log)
       log('TEF modal →', alertaBanco.slice(0, 100), cerrado ? '(Aceptar)' : '(sin botón)')
       if (!cerrado) break
-      await sleep(rnd(2000, 3200))
+      await sleep(rnd(800, 1500))
     }
 
     // 6) DETECTAR EL RESULTADO REAL — NO dar por creada solo por haber apretado el botón.
@@ -1116,17 +1123,21 @@ async function verPendientes(page, log) {
 // transferencia. Distingue DOS antifraudes de monto: (a) 1ª transferencia a una cuenta NUEVA
 // (tope $250.000 por 24h) y (b) EXCESO de límite/monto diario (cuenta conocida, giro grande sobre
 // el cupo del día, típico $5.000.000). También "ya hay una pendiente" y errores de datos.
-// Devuelve: 'ya_pendiente' | 'limite_primera_vez' | 'limite_diario' | 'error' | 'ok' | null.
+// Devuelve: 'ya_pendiente' | 'limite_primera_vez' | 'limite_diario' | 'aviso_info' | 'error' | 'ok' | null.
 function clasificarAlerta(texto) {
   const t = String(texto || '').toLowerCase().replace(/\s+/g, ' ')
   if (!t) return null
   if (/pendientes?\s+a\s+este\s+beneficiario/.test(t)) return 'ya_pendiente'
+  // AVISO INFORMATIVO (no bloquea): "primera transferencia a cuenta nueva no podrá exceder
+  // $50.000.000" + "próxima en 4 hrs". Hay que ACEPTARLO y seguir; el monto de $1 pasa igual.
+  if (/50[.\s]?000[.\s]?000/.test(t) && /(4\s*h|4\s*hor)/.test(t) && /primera|nueva\s+cuenta/.test(t)) return 'aviso_info'
+  if (/le\s+informamos|por\s+su\s+seguridad/.test(t) && /pr[oó]xima\s+transferencia/.test(t) && !/\$?\s*250[.\s]?000/.test(t)) return 'aviso_info'
   // (a) CUENTA NUEVA: menciona $250.000, o "primera transferencia / nuevo destinatario" + tope/24h.
   const habla250 = /\$?\s*250[.\s]?000/.test(t)
   const primeraVez = /(primera|1[ªa.]?)\s+transferencia|nuevo\s+(destinatario|beneficiario)|reci[eé]n\s+(agregad|inscrit|cread)/.test(t)
   const topeMonto = /monto\s+m[aá]xim|excede|supera|no\s+puede\s+(ser\s+)?superior|l[ií]mite\s+de\s+monto|permitido/.test(t)
   const veinticuatro = /24\s*h|24\s*hor|primeras?\s+24/.test(t)
-  if (habla250 || (primeraVez && (topeMonto || veinticuatro))) return 'limite_primera_vez'
+  if (habla250 || (primeraVez && (topeMonto || veinticuatro) && !/50[.\s]?000[.\s]?000/.test(t))) return 'limite_primera_vez'
   // (b) EXCESO DE LÍMITE / MONTO DIARIO (cuenta conocida): "límite diario", "monto diario",
   //     "excede/supera el límite/cupo/máximo", "$5.000.000", "cupo diario/insuficiente".
   const limiteDiario = /l[ií]mite\s+(diario|del?\s+d[ií]a|de\s+transfer|permitido|disponible|autorizado)|monto\s+diario|m[aá]ximo\s+diario|excede\s+(el\s+)?(l[ií]mite|monto|m[aá]xim|cupo|saldo\s+disponible)|supera\s+(el\s+)?(l[ií]mite|monto|m[aá]xim|cupo)|cupo\s+(diario|disponible|insuficiente)|\$?\s*5[.\s]?000[.\s]?000/.test(t)
@@ -1134,6 +1145,87 @@ function clasificarAlerta(texto) {
   if (/pendiente|por\s+autoriz|por\s+liberar|se\s+(ha\s+)?cre[oó]|creada|exitos|realizada/.test(t)) return 'ok'
   if (/obligatori|requerid|inv[aá]lid|no\s+coincide|rechaz|no\s+se\s+pudo|error/.test(t)) return 'error'
   return null
+}
+
+// Apreta "Aceptar" en el modal/alerta de seguridad del banco (TEF y TEFUN).
+// El fallo de ayer: solo se miraban 2 frames y el click era por mouse sintético, así que el
+// botón rojo "Aceptar" quedaba visible y el flujo seguía al vacío. Acá: TODOS los frames,
+// click nativo del locator + fallback por evaluate + mouse.
+async function aceptarModalAlerta(page, log) {
+  const hayModal = async () => {
+    for (const f of page.frames()) {
+      const t = await f.evaluate(() => {
+        const m = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i],[class*="overlay" i]')]
+          .find((e) => e.offsetParent !== null && (e.innerText || '').trim().length > 8)
+        return m ? (m.innerText || '').replace(/\s+/g, ' ').trim().slice(0, 200) : ''
+      }).catch(() => '')
+      if (t && /aceptar/i.test(t)) return t
+    }
+    return ''
+  }
+  const clickAceptarEn = async (fr) => {
+    // 1) role=button (más fiable con Angular/React)
+    const porRol = fr.getByRole('button', { name: /^\s*aceptar\s*$/i }).first()
+    if (await porRol.isVisible({ timeout: 400 }).catch(() => false)) {
+      try { await porRol.click({ timeout: 2500 }); return true } catch { /* sigue */ }
+      const bb = await porRol.boundingBox().catch(() => null)
+      if (bb) {
+        await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 8 })
+        await sleep(rnd(180, 350)); await page.mouse.down(); await sleep(50); await page.mouse.up()
+        return true
+      }
+    }
+    // 2) texto exacto (botón o span dentro del botón)
+    const porTexto = fr.getByText(/^\s*aceptar\s*$/i).first()
+    if (await porTexto.isVisible({ timeout: 400 }).catch(() => false)) {
+      try { await porTexto.click({ timeout: 2500 }); return true } catch { /* sigue */ }
+      const bb = await porTexto.boundingBox().catch(() => null)
+      if (bb) {
+        await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 8 })
+        await sleep(rnd(180, 350)); await page.mouse.down(); await sleep(50); await page.mouse.up()
+        return true
+      }
+    }
+    // 3) click DOM directo dentro del modal visible
+    return await fr.evaluate(() => {
+      const esAceptar = (el) => /^\s*aceptar\s*$/i.test((el.innerText || el.textContent || el.value || '').replace(/\s+/g, ' ').trim())
+      const modales = [...document.querySelectorAll('[class*="modal" i],[role="dialog"],[class*="alert" i],[class*="popup" i],[class*="swal" i]')]
+        .filter((e) => e.offsetParent !== null)
+      for (const m of modales) {
+        const btn = [...m.querySelectorAll('button, a, [role="button"], input[type="button"], input[type="submit"]')].find(esAceptar)
+        if (btn) { btn.click(); return true }
+        // a veces el texto está en un span hijo: subir al botón clickeable
+        const nodo = [...m.querySelectorAll('*')].find((e) => e.childElementCount === 0 && esAceptar(e))
+        if (nodo) {
+          const clickable = nodo.closest('button, a, [role="button"]') || nodo
+          clickable.click(); return true
+        }
+      }
+      const any = [...document.querySelectorAll('button, a, [role="button"]')].find((b) => b.offsetParent !== null && esAceptar(b))
+      if (any) { any.click(); return true }
+      return false
+    }).catch(() => false)
+  }
+
+  let alguna = false
+  for (let k = 0; k < 4; k++) {
+    const antes = await hayModal()
+    if (!antes) return alguna
+    let ok = false
+    // Preferir frames más internos primero (el modal suele vivir en un iframe del form).
+    const frames = [...page.frames()].reverse()
+    for (const fr of frames) {
+      if (await clickAceptarEn(fr)) { ok = true; break }
+    }
+    if (!ok) {
+      if (log) log('  modal → Aceptar NO encontrado (intento ' + (k + 1) + ')')
+      break
+    }
+    alguna = true
+    if (log) log('  modal → Aceptar')
+    await sleep(rnd(2200, 3600))
+  }
+  return alguna
 }
 
 async function existePendiente(page, log, rutDest, monto, cuentaDest) {
