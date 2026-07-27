@@ -3253,9 +3253,17 @@ async function ejecutar(nombre, input, ctx = {}) {
         } else if (res.limite_diario) {
           okTxt = `🛡️ El banco frenó por *exceso de límite/monto diario* (el giro supera el cupo del día, típico $5.000.000). La cuenta NO está bloqueada ni el destinatario es nuevo. Para ${montoTxt} conviene *transferencia masiva* (parte el monto en líneas) o partirlo en varios días. NO lo reintento solo.`
           instr = 'NO reintentes la transferencia individual. Ofrecele al usuario hacerla por TRANSFERENCIA MASIVA (tek_masiva, misma empresa) o partir el monto en varios días; aclarale que es límite diario del banco, no un bloqueo ni cuenta nueva.'
+        } else if (res.estado === 'modal_sin_aceptar') {
+          okTxt = `⚠️ El banco mostró un aviso y no pude apretar "Aceptar". NO confirmo si se creó — pedile revisar *Por Autorizar* en el banco antes de reintentar.`
+          instr = '⛔ NO reintentes sola. Pedile al usuario mirar pendientes. NO digas que "el banco bloqueó" como hecho seguro.'
+        } else if (res.estado === 'tefun_no_confirmada' || res.aviso_info) {
+          // Bug histórico: el aviso $50M/4h es INFORMACIÓN; a veces la transferencia SÍ se crea
+          // y solo falla la verificación en la lista → Nexus mentía "atascada en antifraude".
+          okTxt = res.nota || `⚠️ Corrí el flujo pero no pude verificar la pendiente en la lista del banco. Pedile mirar *Por Autorizar*: puede haberse creado igual. El aviso de $50M/4h (si apareció) es INFORMACIÓN, no un bloqueo.`
+          instr = '⛔ NO reintentes sola. Pedile al usuario revisar Por Autorizar. ⛔ PROHIBIDO decir que "quedó atascada en antifraude" o que "no se creó nada" como hecho seguro: puede haberse creado y falló solo la verificación. NO ofrezcas asistido como si hubiera fallado seguro.'
         } else {
-          okTxt = `⚠️ No pude confirmar la creación (${res.estado || 'desconocido'}). Suele ser el antifraude del banco; conviene reintentar más tarde, mejor asistido.`
-          instr = '⛔ NO reintentes sola en este turno. Contale al usuario el resultado y pedí confirmación explícita antes de volver a llamar tek_transferir accion:"enviar".'
+          okTxt = `⚠️ No pude confirmar la creación (${res.estado || 'desconocido'}). Pedile al usuario revisar Por Autorizar antes de reintentar.`
+          instr = '⛔ NO reintentes sola en este turno. Contale el estado tal cual y pedí confirmación explícita si quiere otro intento. No inventes bloqueo antifraude.'
         }
         return JSON.stringify({ ...res, empresa_origen: empresa, texto: okTxt, instruccion: instr })
       }

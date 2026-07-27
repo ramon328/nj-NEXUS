@@ -27,8 +27,16 @@ const soloDigitos = (s) => String(s || '').replace(/\D/g, '')
 const ENVIO_LOCK = join(DATA, '.transfer-envio.lock')
 const ENVIO_RECIENTES = join(DATA, '.transfer-recientes.json')
 const COOLDOWN_OK_MS = 60 * 60_000      // ya creada / ya pendiente → 1 h sin repetir
-const COOLDOWN_FAIL_MS = 10 * 60_000    // falló → 10 min sin reintento automático
+const COOLDOWN_FAIL_MS = 60 * 60_000    // cualquier intento terminado → 1 h (antes 10 min: reintentos duplicaban $1)
 const LOCK_COLGADO_MS = 12 * 60_000
+const ULTIMA_FILE = join(DATA, '.ultima-transferencia.json')
+
+function guardarUltima(info) {
+  try { writeFileSync(ULTIMA_FILE, JSON.stringify({ ...info, ts: Date.now() }, null, 2), { mode: 0o600 }) } catch {}
+}
+export function leerUltimaTransferencia() {
+  try { return JSON.parse(readFileSync(ULTIMA_FILE, 'utf8')) } catch { return null }
+}
 
 function huellaEnvio(borrador, empresa) {
   const b = borrador.beneficiario || {}
@@ -68,18 +76,23 @@ function recienteBloquea(huella) {
       error: 'Ya hay una transferencia en curso con los mismos datos. NO se lanza otra (anti-bucle). Esperá a que termine.',
     }
   }
-  const ok = v.estado === 'creada' || v.estado === 'ya_pendiente'
+  const ok = v.estado === 'creada' || v.estado === 'ya_pendiente' || v.estado === 'posible_creada'
   if (ok && edad < COOLDOWN_OK_MS) {
     return {
-      ok: true, estado: v.estado, pendiente: true, ya_pendiente: v.estado === 'ya_pendiente',
+      ok: true, estado: v.estado === 'posible_creada' ? 'creada' : v.estado, pendiente: true,
+      ya_pendiente: v.estado === 'ya_pendiente',
       ya_intentada: true,
-      nota: `Ya se ${v.estado === 'creada' ? 'creó' : 'detectó pendiente'} esta misma transferencia hace ${Math.round(edad / 60000)} min. NO se vuelve a enviar (anti-duplicado).`,
+      nota: v.estado === 'posible_creada'
+        ? `Esta misma transferencia probablemente YA se creó hace ${Math.round(edad / 60000)} min (el banco a veces confirma y la verificación falla). NO se vuelve a enviar — revisá Por Autorizar.`
+        : `Ya se ${v.estado === 'creada' ? 'creó' : 'detectó pendiente'} esta misma transferencia hace ${Math.round(edad / 60000)} min. NO se vuelve a enviar (anti-duplicado).`,
     }
   }
+  // CUALQUIER otro resultado reciente (tefun_no_confirmada, modal_sin_aceptar, etc.)
+  // también bloquea 1 h: reintentar a ciegas es lo que duplicó los $1 a Joaquín.
   if (!ok && v.estado !== 'en_curso' && edad < COOLDOWN_FAIL_MS) {
     return {
       ok: false, estado: 'ya_intentada', pendiente: false, ya_intentada: true,
-      error: `Esta misma transferencia ya se intentó hace ${Math.round(edad / 60000)} min (resultado: ${v.estado}). NO se reintenta sola — pedí confirmación al usuario si quiere otro intento.`,
+      error: `Esta misma transferencia ya se intentó hace ${Math.round(edad / 60000)} min (resultado: ${v.estado}). NO se reintenta sola — pedí confirmación EXPLÍCITA al usuario solo si quiere otro intento a sabiendas de posible duplicado.`,
     }
   }
   return null
@@ -326,19 +339,40 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
       // NO se duplicó (también es un resultado OK: la transferencia ya está en el banco).
       const yaPendiente = estado === 'ya_pendiente'
       const ok = estado === 'creada' || yaPendiente
-      // Motivos de antifraude por monto: se distinguen para que Nexus explique CLARO y no reintente.
-      const limitePV = estado === 'limite_primera_vez'   // cuenta NUEVA: tope $250.000/24h
-      const limiteDia = estado === 'limite_diario'        // EXCESO de límite/monto diario
-      registrarReciente(huella, estado || 'desconocido')
+      const limitePV = estado === 'limite_primera_vez'
+      const limiteDia = estado === 'limite_diario'
+      // Falso negativo histórico: aviso $50M + verificación fallida aunque el banco SÍ creó.
+      // Marcamos posible_creada → mismo anti-duplicado que creada (no reenviar 1 h).
+      let estadoReg = estado || 'desconocido'
+      if (estado === 'tefun_no_confirmada' && (crear?.aviso_info || /50[.\s]?000[.\s]?000|por su seguridad/i.test(crear?.alerta_banco || ''))) {
+        estadoReg = 'posible_creada'
+      }
+      registrarReciente(huella, estadoReg)
+      if (ok || estadoReg === 'posible_creada') {
+        guardarUltima({
+          huella, estado: ok ? estado : 'posible_creada',
+          empresa, monto: borrador.monto,
+          beneficiario: b.nombre, rut: b.rut, cuenta: b.cuenta, banco: b.banco,
+          nota: ok
+            ? 'Transferencia CREADA — queda pendiente por liberar (no movió plata).'
+            : 'Probable creación (banner/aviso); verificar Por Autorizar. NO reenviar.',
+        })
+      }
       resolve({
-        ok, estado, resultado,
-        pendiente: estado === 'creada' || yaPendiente,
+        ok: ok || estadoReg === 'posible_creada',
+        estado: estadoReg === 'posible_creada' ? 'creada' : estado,
+        resultado,
+        pendiente: ok || estadoReg === 'posible_creada',
         ya_pendiente: yaPendiente,
+        posible_creada: estadoReg === 'posible_creada',
         limite_primera_vez: limitePV,
         limite_diario: limiteDia,
         limite_monto: limitePV || limiteDia,
+        aviso_info: !!(crear?.aviso_info),
         alerta_banco: crear?.alerta_banco || null,
-        nota: crear?.nota || null,
+        nota: crear?.nota || (estadoReg === 'posible_creada'
+          ? 'El banco probablemente YA creó esta transferencia; la verificación automática falló antes. Revisá Por Autorizar. NO se reenvía.'
+          : null),
         motivo: crear?.pista || crear?.motivo || (crear?.faltan ? `faltan campos: ${crear.faltan.join(', ')}` : null),
       })
     }

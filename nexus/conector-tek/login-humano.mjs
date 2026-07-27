@@ -867,13 +867,38 @@ async function crearTransferencia(page, log) {
       }
 
       await page.screenshot({ path: join(DATA, 'crear-06-tefun-resultado.png') }).catch(() => {})
-      // 4) Verificar en lista de Autorización (1 sola vez — anti-duplicado)
+      // 4) Confirmar creación. PRIMERO el banner de éxito en la misma pantalla
+      //    ("La transferencia ha sido creada con éxito"). Antes solo mirábamos la lista
+      //    de Autorización → falso tefun_no_confirmada aunque el banco YA la creó.
+      const textoPagina = async () => {
+        let t = ''
+        for (const fr of page.frames()) {
+          t += ' ' + (await fr.evaluate(() => (document.body && document.body.innerText) || '').catch(() => ''))
+        }
+        return t.replace(/\s+/g, ' ').trim()
+      }
+      const body = await textoPagina()
+      const exitoEnPantalla = /transferencia\s+ha\s+sido\s+creada\s+con\s+[eé]xito|creada\s+con\s+[eé]xito|solicitud\s+creada|queda(r[aá])?\s+pendiente\s+por\s+autoriz/i.test(body)
+      if (exitoEnPantalla) {
+        log('TEFUN resultado: CREADA (banner de éxito en pantalla)')
+        return { estado: 'creada', pendiente: true, via: 'banner_exito', url: page.url() }
+      }
       const creada = await existePendiente(page, log, process.env.TEK_DEST_RUT, monto, process.env.TEK_DEST_CUENTA)
       log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : (eraLimitePV ? 'TOPE 1ª vez' : eraLimiteDia ? 'EXCESO límite diario' : 'NO confirmada'))
-      if (creada) return { estado: 'creada', pendiente: true, url: page.url() }
+      if (creada) return { estado: 'creada', pendiente: true, via: 'lista_autorizacion', url: page.url() }
       if (eraLimitePV) return { estado: 'limite_primera_vez', pendiente: false, alerta_banco: (alerta || '').slice(0, 240), nota: 'El banco NO deja la 1ª transferencia a esta cuenta NUEVA sobre $250.000 (protección antifraude, primeras 24h). La cuenta NO está bloqueada. Opciones: enviar $250.000 o menos ahora, o esperar 24h desde el primer envío para el monto completo.', url: page.url() }
       if (eraLimiteDia) return { estado: 'limite_diario', pendiente: false, alerta_banco: (alerta || '').slice(0, 240), nota: 'El banco frenó por EXCESO de límite/monto diario (el giro supera el cupo del día, típico $5.000.000). La cuenta NO está bloqueada ni el destinatario es nuevo. Opciones: bajar el monto, partirlo en varios días, o usar TRANSFERENCIA MASIVA (que parte el monto en líneas).', url: page.url() }
-      return { estado: 'tefun_no_confirmada', pendiente: false, alerta_banco: (alerta || '').slice(0, 240) || null, url: page.url() }
+      // aviso_info ($50M/4h) NO es bloqueo: si llegamos acá es fallo de VERIFICACIÓN, no de creación segura.
+      const avisoInfo = clase === 'aviso_info'
+      return {
+        estado: 'tefun_no_confirmada', pendiente: false,
+        aviso_info: avisoInfo,
+        alerta_banco: (alerta || '').slice(0, 240) || null,
+        nota: avisoInfo
+          ? 'El aviso del banco era INFORMACIÓN ($50M / próxima en 4h), no un bloqueo. No pude verificar en la lista Por Autorizar: pedile al usuario que la revise — puede haberse creado igual. NO reintentar a ciegas.'
+          : 'No pude verificar la creación en la lista Por Autorizar. Pedile al usuario revisar pendientes antes de reintentar.',
+        url: page.url(),
+      }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
     const setVal = async (sel, valTxt) => {
@@ -1069,7 +1094,7 @@ async function crearTransferencia(page, log) {
     }
 
     // 6) DETECTAR EL RESULTADO REAL — NO dar por creada solo por haber apretado el botón.
-    const OK_RE = /pendiente|autoriz|por\s+liberar|comprobante|solicitud\s+(de\s+)?transfer|se\s+(ha\s+)?cre[oó]|creada|exitos|realizada con [eé]xito|registrada/i
+    const OK_RE = /pendiente|autoriz|por\s+liberar|comprobante|solicitud\s+(de\s+)?transfer|se\s+(ha\s+)?cre[oó]|ha\s+sido\s+creada|creada\s+con\s+[eé]xito|creada|exitos|realizada con [eé]xito|registrada/i
     const ERRC_RE = /obligatori|requerid|debe\s+ingresar|ingrese\s+un|inv[aá]lid|no\s+coincide|insuficient|excede|no\s+se\s+pudo|rechaz|super[oó]\s+el\s+monto|fuera\s+de\s+horario|monto\s+m[ií]nimo/i
     let veredicto = null, pista = ''
     const dlv = Date.now() + 30_000
@@ -1366,18 +1391,21 @@ async function existePendiente(page, log, rutDest, monto, cuentaDest) {
   try {
     const r = await verPendientes(page, log)
     const txt = (r.texto || '')
-    const txtDig = txt.replace(/\D/g, '')   // solo dígitos: casa cuentas con o sin guiones/puntos
-    const cuentaNorm = String(cuentaDest || '').replace(/\D/g, '')
-    // PREFERIR casar por CUENTA DESTINO: es única por transferencia. El RUT solo NO basta —
-    // puede haber otra pendiente al MISMO RUT en otra cuenta/banco → falso positivo (ej. $1 a
-    // Joaquín ya existía en Santander y matcheaba un intento a su cuenta Falabella).
-    if (cuentaNorm.length >= 6) {
-      const tail = cuentaNorm.slice(-7)   // cola larga: evita colisiones con rut/monto/fecha
-      const hay = txtDig.includes(cuentaNorm) || txtDig.includes(tail)
-      log(`existePendiente cuenta=${cuentaNorm} (tail ${tail}):`, hay)
-      return hay
+    const txtDig = txt.replace(/\D/g, '')
+    const cuentaNorm = String(cuentaDest || '').replace(/\D/g, '').replace(/^0+/, '') || ''
+    const cuentaRaw = String(cuentaDest || '').replace(/\D/g, '')
+    // Casar por cuenta (con/sin ceros a la izquierda) o cola de 6–8 dígitos.
+    if (cuentaRaw.length >= 6) {
+      const tails = [cuentaRaw.slice(-8), cuentaRaw.slice(-7), cuentaRaw.slice(-6), cuentaNorm.slice(-8), cuentaNorm.slice(-7)].filter((t) => t && t.length >= 6)
+      const hay = txtDig.includes(cuentaRaw) || (cuentaNorm && txtDig.includes(cuentaNorm)) || tails.some((t) => txtDig.includes(t))
+      // Refuerzo: RUT + monto en la misma página (misma transferencia)
+      const rutNorm = String(rutDest || '').replace(/[^0-9kK]/g, '')
+      const montoDig = String(monto || '').replace(/\D/g, '')
+      const hayRutMonto = rutNorm.length >= 7 && montoDig && txt.replace(/[.\-\s]/g, '').includes(rutNorm) && (txtDig.includes(montoDig) || txt.includes('$' + Number(monto).toLocaleString('es-CL')) || txt.includes('$ ' + montoDig) || txt.includes('$'+montoDig))
+      const ok = hay || hayRutMonto
+      log(`existePendiente cuenta=${cuentaRaw} tails=${tails.join(',')}:`, hay, 'rut+monto:', !!hayRutMonto, '→', ok)
+      return ok
     }
-    // Fallback (sin cuenta): casar por RUT (comportamiento viejo).
     const rutNorm = String(rutDest || '').replace(/[^0-9kK]/g, '')
     const rutFmt = rutNorm.length > 1 ? rutNorm.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.') + '-' + rutNorm.slice(-1) : rutNorm
     const hayRut = rutNorm && (txt.replace(/[.\-\s]/g, '').includes(rutNorm) || txt.includes(rutFmt))
