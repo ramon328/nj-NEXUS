@@ -743,14 +743,21 @@ async function crearTransferencia(page, log) {
         nuevos++
       }
       if (nuevos === 0 && pag > 0) break   // página sin filas nuevas → fin
-      // clic "Siguiente"
+      // clic "Siguiente" del paginador (robusto: texto exacto → contiene → flecha/next;
+      // scroll a la vista + click forzado, sin exigir isVisible).
       let avanzo = false
       for (const f of page.frames()) {
-        const sig = f.getByText(/^\s*Siguiente\s*$/i).first()
-        if ((await sig.count().catch(() => 0)) && (await sig.isVisible().catch(() => false))) { await clickHumano(page, sig).catch(() => {}); avanzo = true; break }
+        let sig = f.getByText(/^\s*Siguiente\s*$/i).last()
+        if (!(await sig.count().catch(() => 0))) sig = f.getByText(/Siguiente/i).last()
+        if (!(await sig.count().catch(() => 0))) sig = f.locator('[class*="next" i],[aria-label*="siguiente" i],[title*="siguiente" i],[class*="paginat" i] a:last-child, [class*="pager" i] a:last-child').last()
+        if (await sig.count().catch(() => 0)) {
+          await sig.scrollIntoViewIfNeeded().catch(() => {})
+          const ok = await sig.click({ force: true, timeout: 3000 }).then(() => true).catch(() => false)
+          if (ok) { avanzo = true; break }
+        }
       }
-      if (!avanzo) break
-      await sleepLargo(2200)
+      if (!avanzo) { log('scrape: no encontré "Siguiente" → fin en pág ' + (pag + 1)); break }
+      await sleepLargo(2400)
     }
     const contactos = [...porRut.values()]
     writeFileSync(join(DATA, 'scrape-destinatarios.json'), JSON.stringify({ empresa: process.env.TEK_EMPRESA, cuando: new Date().toISOString(), paginas: pag + 1, vacio, contactos }, null, 2))
