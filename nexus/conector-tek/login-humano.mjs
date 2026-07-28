@@ -2407,6 +2407,46 @@ async function leerSaldosTodas(ctx, page, log) {
   return { total: resultados.length, conectan: resultados.filter((r) => r.conecta).length, empresas: resultados }
 }
 
+// EXPLORAR "Pagos Masivos / Nómina" (TEK_NOMINA=mapear). SOLO LECTURA: navega al módulo,
+// mapea el submenú y la pantalla de carga de nómina. NO sube archivo, NO paga, NO confirma.
+async function explorarNomina(page, log) {
+  mkdirSync(DATA, { recursive: true })
+  const sleepLargo = (ms) => pulsoSesion(page, ms)
+  await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+  await sleepLargo(8000)
+  if (process.env.TEK_FORCE_EMPRESA === '1') {
+    for (const f of page.frames()) { const b = f.getByText(/Empresa\s*\/\s*Rol/i).first(); if (await b.count().catch(() => 0)) { await clickHumano(page, b).catch(() => {}); break } }
+    await sleepLargo(6000)
+  }
+  await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
+  await sleepLargo(rnd(3000, 5000))
+  await cerrarPopups(page, log)
+  await sleepLargo(1500)
+  let clic = false
+  for (const f of page.frames()) {
+    const m = f.getByText(/^\s*Pagos Masivos\s*$/i).first()
+    if (await m.count().catch(() => 0)) { await clickHumano(page, m).catch(() => {}); clic = true; log('nómina: clic "Pagos Masivos"'); break }
+  }
+  await sleepLargo(6000)
+  await page.screenshot({ path: join(DATA, 'nomina-01-menu.png') }).catch(() => {})
+  writeFileSync(join(DATA, 'nomina-menu.json'), JSON.stringify({ paso: 'menu', url: page.url(), forms: await volcarFrames(page) }, null, 2))
+  let sub = ''
+  for (const re of [/^\s*Importaci[oó]n\s*$/i, /Carga.*N[oó]mina/i, /^\s*N[oó]mina\s*$/i, /Crear.*N[oó]mina/i, /^\s*Cargar\s*$/i, /Importar/i]) {
+    for (const f of page.frames()) {
+      const o = f.getByText(re).first()
+      if ((await o.count().catch(() => 0)) && (await o.isVisible().catch(() => false))) { await clickHumano(page, o).catch(() => {}); sub = re.source; log('nómina: entré a submenú', re.source); break }
+    }
+    if (sub) break
+  }
+  await sleepLargo(7000)
+  await page.screenshot({ path: join(DATA, 'nomina-02-carga.png') }).catch(() => {})
+  writeFileSync(join(DATA, 'nomina-carga.json'), JSON.stringify({ paso: 'carga', submenu: sub, url: page.url(), forms: await volcarFrames(page) }, null, 2))
+  let fileInputs = 0
+  for (const f of page.frames()) { fileInputs += await f.locator('input[type="file"]').count().catch(() => 0) }
+  log(`nómina: mapeado (clic_pagos_masivos=${clic}, submenu=${sub || '?'}, inputs_file=${fileInputs})`)
+  return { estado: 'nomina_mapeada', clic, submenu: sub, file_inputs: fileInputs, url: page.url() }
+}
+
 async function main() {
   setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, 600_000).unref?.()
   // Credenciales: primero la BÓVEDA cifrada (por usuario+empresa), con fallback al
@@ -2544,6 +2584,8 @@ async function main() {
         } catch (e) { log('tibar sesión falló:', e.message) }
       }
     }
+    let nomina = null
+    if (process.env.TEK_NOMINA === 'mapear') { try { nomina = await explorarNomina(page, log) } catch (e) { log('nómina falló:', e.message) } }
     let masiva = null
     if (['map', 'subir'].includes(process.env.TEK_MASIVA)) { try { masiva = await masivaImportar(page, log) } catch (e) { log('masiva falló:', e.message) } }
     let carthist = null
@@ -2556,7 +2598,7 @@ async function main() {
     if (leerSaldos) { try { lectura = await leerSaldosTodas(ctx, page, log) } catch (e) { log('lector falló:', e.message) } }
     let pendientes = null
     if (process.env.TEK_VER_PENDIENTES === '1') { try { pendientes = await verPendientes(page, log) } catch (e) { log('ver pendientes falló:', e.message) } }
-    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}), ...(lectura ? { lectura } : {}), ...(pendientes ? { pendientes } : {}) })
+    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(nomina ? { nomina } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}), ...(lectura ? { lectura } : {}), ...(pendientes ? { pendientes } : {}) })
   }
 
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión
