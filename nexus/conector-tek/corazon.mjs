@@ -24,7 +24,14 @@ const NODE = '/usr/local/bin/node'
 // una y otra vez desde la misma máquina es justo la firma que busca un antifraude.
 // Además medimos que la sesión muere a los ~90 min pase lo que pase, así que latir seguido
 // no la alarga: solo agrega huella. Ahora latimos como alguien que revisa su banco.
-const POKE_MS = Number(process.env.TEK_CORAZON_POKE_MS || 420_000)                  // ~7 min (con jitter: 5-9)
+// Intervalo del latido: AL AZAR y uniforme dentro de un rango [MIN, MAX] cada vez (más
+// humano que un intervalo fijo: nunca late en un tiempo exacto). Por defecto 1–3 min:
+// el techo de 3 min queda cómodo bajo el umbral de Santander (mata la sesión ociosa a
+// los ~5-7 min) y el azar dentro del rango no deja un patrón regular que delate un bot.
+const POKE_MIN_MS = Number(process.env.TEK_CORAZON_POKE_MIN_MS || 60_000)           // piso: 1 min
+const POKE_MAX_MS = Number(process.env.TEK_CORAZON_POKE_MAX_MS || 180_000)          // techo: 3 min
+const POKE_MS = Number(process.env.TEK_CORAZON_POKE_MS || POKE_MAX_MS)              // fallback (1er latido / compat)
+function proximoLatido() { return Math.round(POKE_MIN_MS + Math.random() * (POKE_MAX_MS - POKE_MIN_MS)) }
 const TICK_MS = 20_000                                                              // revisar quién toca latir
 const DEAD_BACKOFF_MS = 15 * 60_000                                                 // 1ª espera tras encontrarla muerta
 const DEAD_BACKOFF_MAX = 3 * 3600_000                                               // la espera se duplica hasta 3 h
@@ -127,7 +134,7 @@ async function atender(user) {
   else { const m = dormirMuerta(user, now); log(`[${user}] · ${est} → back-off ${m} min`) }
 }
 
-log(`❤️  corazón (ÚNICO guardián) encendido. poke=${Math.round(POKE_MS / 60000)} min, hábil=07-22 L-S, tope=${TOPE_DIA}/día, self-heal=${AUTO_RELOGIN} (solo ventana fría 05-10h)`)
+log(`❤️  corazón (ÚNICO guardián) encendido. poke=al azar ${Math.round(POKE_MIN_MS / 60000)}–${Math.round(POKE_MAX_MS / 60000)} min, hábil=07-22 L-S, tope=${TOPE_DIA}/día, self-heal=${AUTO_RELOGIN} (solo ventana fría 05-10h)`)
 let avisoNocturno = false
 for (;;) {
   if (!horarioHabil()) {
@@ -139,8 +146,8 @@ for (;;) {
   for (const user of usuarios()) {
     if (Date.now() - (lastPoke[user] || 0) >= (pokeDue[user] || POKE_MS)) {
       lastPoke[user] = Date.now()
-      // Próximo latido con JITTER ±30% → no tocamos en un intervalo EXACTO (eso es patrón de bot).
-      pokeDue[user] = Math.round(POKE_MS * (0.7 + Math.random() * 0.6))
+      // Próximo latido AL AZAR dentro de [MIN, MAX] → nunca un intervalo EXACTO (patrón de bot).
+      pokeDue[user] = proximoLatido()
       try { await atender(user) } catch (e) { log(`[${user}] error:`, e.message) }
     }
   }
