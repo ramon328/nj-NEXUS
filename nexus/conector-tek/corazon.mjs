@@ -10,7 +10,7 @@
 //
 // Reglas de oro: el latido NUNCA loguea (solo reusa+navega). Reestablecer una sesión muerta
 // (1 login) se hace SOLO en la ventana fría de la mañana, con cooldown de 3 h → no machaca.
-import { readFileSync, existsSync, readdirSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -55,6 +55,14 @@ const deadSeguidas = {} // user → veces seguidas que la encontramos muerta (pa
 const lastLogin = {}    // user → ts del último intento de RE-LOGIN
 const vivaDesde = {}    // user → ts en que la vimos viva por primera vez este ciclo
 const gasto = {}        // user → { dia, n } aperturas de navegador de hoy
+const deadMtime = {}    // user → mtime del archivo de sesión cuando la dimos por muerta
+
+// Ruta y mtime del archivo de sesión de cada usuario. El latido NUNCA escribe ese archivo
+// mientras está en back-off (ni siquiera lo toca), así que si el mtime CRECE durante el
+// back-off fue una OPERACIÓN externa (transferencia/lectura) que reactivó la sesión →
+// señal limpia de "sesión activada afuera" para que el corazón la retome.
+function sesionFile(user) { return join(DIR, user === 'ramon' ? 'session.json' : `session-${user}.json`) }
+function sesionMtime(user) { try { return statSync(sesionFile(user)).mtimeMs } catch { return 0 } }
 
 function presupuesto(user) {
   const hoy = new Date().toDateString()
@@ -94,6 +102,7 @@ function dormirMuerta(user, now) {
   const n = (deadSeguidas[user] = (deadSeguidas[user] || 0) + 1)
   const espera = Math.min(DEAD_BACKOFF_MS * 2 ** (n - 1), DEAD_BACKOFF_MAX)
   deadUntil[user] = now + espera
+  deadMtime[user] = sesionMtime(user)   // línea base: para detectar si una operación la reescribe
   delete vivaDesde[user]
   return Math.round(espera / 60000)
 }
@@ -102,14 +111,23 @@ async function atender(user) {
   const now = Date.now()
   // ¿sesión muerta conocida? No la tocamos (evita churn). Solo reestablecer en ventana fría.
   if (deadUntil[user] && now < deadUntil[user]) {
-    if (AUTO_RELOGIN && ventanaFria() && now - (lastLogin[user] || 0) > RELOGIN_COOLDOWN) {
-      lastLogin[user] = now
-      log(`[${user}] muerta → reestablezco (ventana fría, 1 login)…`)
-      const est2 = await correr(user, false)
-      if (est2 === 'logueado') { delete deadUntil[user]; deadSeguidas[user] = 0; vivaDesde[user] = now; log(`[${user}] ✓ REESTABLECIDA`) }
-      else { const m = dormirMuerta(user, now); log(`[${user}] reestablecer → ${est2} (espero ${m} min)`) }
+    // ⚡ ¿Una OPERACIÓN (transferencia/lectura) reactivó la sesión mientras la creíamos muerta?
+    // El archivo de sesión se reescribió (el latido NO escribe en back-off) → reenganchar YA y
+    // volver a mantenerla viva. Esto es "sesión se activa → corazón se activa".
+    if (deadMtime[user] && sesionMtime(user) > deadMtime[user] + 1500) {
+      delete deadUntil[user]; delete deadMtime[user]; deadSeguidas[user] = 0; vivaDesde[user] = now
+      log(`[${user}] ⚡ reactivada por una operación → retomo el latido para mantenerla viva`)
+      // cae al flujo normal de latido (abajo) para empezar a mantenerla caliente
+    } else {
+      if (AUTO_RELOGIN && ventanaFria() && now - (lastLogin[user] || 0) > RELOGIN_COOLDOWN) {
+        lastLogin[user] = now
+        log(`[${user}] muerta → reestablezco (ventana fría, 1 login)…`)
+        const est2 = await correr(user, false)
+        if (est2 === 'logueado') { delete deadUntil[user]; delete deadMtime[user]; deadSeguidas[user] = 0; vivaDesde[user] = now; log(`[${user}] ✓ REESTABLECIDA`) }
+        else { const m = dormirMuerta(user, now); log(`[${user}] reestablecer → ${est2} (espero ${m} min)`) }
+      }
+      return
     }
-    return
   }
   // Una sesión que ya pasó su vida útil se va a caer igual; seguir tocándola solo suma
   // huella. La dejamos ir y esperamos a que alguien pida data (login bajo demanda).
