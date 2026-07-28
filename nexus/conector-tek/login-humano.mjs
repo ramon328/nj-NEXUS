@@ -2546,14 +2546,31 @@ async function main() {
     proxy = { server: process.env.TEK_PROXY_URL, username: process.env.TEK_PROXY_USER + sep + sess, password: process.env.TEK_PROXY_PASS }
     log(`proxy residencial ON (${process.env.TEK_PROXY_URL}, sticky=${sess})`)
   }
-  // Patchright recomienda mínimos args (nada de --no-sandbox/UA: son señales de bot).
-  const ctx = await chromium.launchPersistentContext(profileDir, {
-    headless, channel: 'chrome',
-    ...(proxy ? { proxy } : {}),
-    args: perfilReal ? ['--profile-directory=Default', '--disable-background-networking', '--disable-sync', '--no-first-run'] : [],
-    viewport: { width: 1360, height: 860 }, locale: 'es-CL', timezoneId: 'America/Santiago',
-    acceptDownloads: true,   // para bajar los PDF de la cartola histórica
-  })
+  // VENTANA PERSISTENTE: si el daemon (banco-navegador.mjs) publicó su ventana para este usuario,
+  // NOS CONECTAMOS a ESA MISMA ventana (una sola, reusada) en vez de abrir un Chrome nuevo. Así el
+  // corazón y las operaciones comparten una ventana → no se acumulan cientos de Chrome. Si el daemon
+  // no está, abrimos la nuestra como siempre (fallback seguro).
+  let ctx, conectado = false, browserCDP = null
+  const cdpFile = join(DIR, 'data', `cdp-${userSlug}.txt`)
+  if (!aislado && !perfilReal && existsSync(cdpFile)) {
+    try {
+      const ep = readFileSync(cdpFile, 'utf8').trim()
+      browserCDP = await chromium.connectOverCDP(ep, { timeout: 8000 })
+      ctx = browserCDP.contexts()[0] || (await browserCDP.newContext())
+      conectado = true
+      log('navegador: CONECTADO a la ventana persistente (reuso, no abro otro Chrome)')
+    } catch (e) { log('navegador: no pude conectar al daemon → abro el mío. ' + e.message); conectado = false; ctx = null; browserCDP = null }
+  }
+  if (!ctx) {
+    // Patchright recomienda mínimos args (nada de --no-sandbox/UA: son señales de bot).
+    ctx = await chromium.launchPersistentContext(profileDir, {
+      headless, channel: 'chrome',
+      ...(proxy ? { proxy } : {}),
+      args: perfilReal ? ['--profile-directory=Default', '--disable-background-networking', '--disable-sync', '--no-first-run'] : [],
+      viewport: { width: 1360, height: 860 }, locale: 'es-CL', timezoneId: 'America/Santiago',
+      acceptDownloads: true,   // para bajar los PDF de la cartola histórica
+    })
+  }
   const mapearOn = process.env.TEK_MAPEAR === '1'
   const capturarOn = process.env.TEK_CAPTURAR === '1'
   const transferirMapear = process.env.TEK_TRANSFERIR === 'mapear'   // SOLO mapea el form, no mueve plata
@@ -2564,7 +2581,14 @@ async function main() {
     // Guardamos la sesión en el archivo del USUARIO (ramon → session.json; otro →
     // session-<user>.json). En VINCULACIÓN (aislado) no guardamos y borramos el clon /tmp.
     if (!aislado) await guardarSesion(ctx)
-    try { await ctx.close() } catch {}
+    if (conectado) {
+      // Conectados al daemon: NO cerramos la ventana persistente (queda viva para el próximo).
+      // Cerramos las pages extra que hayamos abierto y solo DESCONECTAMOS.
+      try { for (const p of ctx.pages().slice(1)) { await p.close().catch(() => {}) } } catch {}
+      try { await browserCDP.close() } catch {}
+    } else {
+      try { await ctx.close() } catch {}
+    }
     if (aislado && profileDir.startsWith('/tmp/tek-vinc-')) { try { rmSync(profileDir, { recursive: true, force: true }) } catch {} }
   }
   const shot = (n) => page.screenshot({ path: join(SHOTS, n) }).catch(() => {})
