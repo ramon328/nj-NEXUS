@@ -1,20 +1,18 @@
 {
-  "ts": "2026-07-28T07:09:45.643Z",
-  "estado": "ROJO",
-  "nivel": 2,
-  "razones": [
-    "Carga muy alta (9.1 en 6 núcleos)"
-  ],
+  "ts": "2026-07-28T07:21:49.018Z",
+  "estado": "VERDE",
+  "nivel": 0,
+  "razones": [],
   "metricas": {
-    "load1": 9.14,
+    "load1": 1.29,
     "nucleos": 6,
-    "loadPorNucleo": 1.52,
-    "ramLibreMB": 3921,
+    "loadPorNucleo": 0.21,
+    "ramLibreMB": 3905,
     "ramTotalMB": 32768,
     "swapUsedMB": 875,
     "compresorMB": 1848,
     "discoPct": 49,
-    "procesos": 789,
+    "procesos": 787,
     "sesionesClaude": 0,
     "sesionesClaudeViejas": 0
   },
