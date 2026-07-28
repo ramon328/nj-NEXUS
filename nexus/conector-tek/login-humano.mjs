@@ -1493,14 +1493,22 @@ async function masivaImportar(page, log) {
   await clickHumano(page, menu)
   await sleep(rnd(4000, 5500))
   await page.screenshot({ path: join(DATA, 'masiva-00-menu.png') }).catch(() => {})
-  // "Transferencias Masivas → Importación" por TEXTO; fallback a clic de PÍXEL (columna 3).
-  const entro = await clickColumna(page, /^Transferencias Masivas$/i, /^Importaci[oó]n$/i, log)
-  if (!entro) {
-    await page.mouse.move(760, 300, { steps: 10 }); await sleep(rnd(150, 320))
-    await page.mouse.move(790, 320, { steps: 8 }); await sleep(rnd(150, 300))
-    await page.mouse.down(); await sleep(60); await page.mouse.up()
-    log('masiva: clic pixel Importación (fallback)')
+  // "Transferencias Masivas → Importación" por TEXTO (geometría header+columna).
+  let entro = await clickColumna(page, /^Transferencias Masivas$/i, /^Importaci[oó]n$/i, log)
+  // Fallback ROBUSTO: "Importación" es ÚNICA en este menú (solo cuelga de Transferencias
+  // Masivas), así que la clickeamos DIRECTO en cualquier frame, reintentando ~20s (el flyout
+  // puede tardar en pintar). Reemplaza al viejo clic por píxel, que apuntaba a otra fila.
+  for (let i = 0; i < 10 && !entro; i++) {
+    for (const f of page.frames()) {
+      const loc = f.getByText(/^\s*Importaci[oó]n\s*$/i).first()
+      if (await loc.count().catch(() => 0)) {
+        const ok = await clickHumano(page, loc).catch(() => false)
+        if (ok !== false) { entro = true; log('masiva: clic Importación directo (frame)'); break }
+      }
+    }
+    if (!entro) await sleep(2000)
   }
+  if (!entro) log('masiva: NO pude clickear Importación (ni columna ni directo)')
   await sleep(9000); await idle(page, rnd(800, 1600))
   await page.screenshot({ path: join(DATA, 'masiva-01-import.png') }).catch(() => {})
   // Volcar pantalla: inputs (file), links (plantilla), botones, texto.
@@ -1527,6 +1535,15 @@ async function masivaImportar(page, log) {
       if (await f.locator('input[type="file"]').first().count().catch(() => 0)) { imp = f; break }
     }
     if (!imp) { log('masiva: no encontré el frame de importación'); return { estado: 'sin_frame_importacion', url: page.url() } }
+
+    // DRY-RUN (TEK_MASIVA_DRY=1): llegamos al FORMULARIO de importación → paramos acá.
+    // NO se adjunta archivo, NO se importa, NO se confirma. Solo verifica que la navegación
+    // (incl. selector de empresa + cierre de popup) llega bien para esta sesión/empresa.
+    if (process.env.TEK_MASIVA_DRY === '1') {
+      await page.screenshot({ path: join(DATA, 'masiva-dry-form.png') }).catch(() => {})
+      log('masiva DRY: llegué al FORMULARIO de importación (frame OK). NO subo nada ni confirmo.')
+      return { estado: 'form_ok', frame_importacion: true, url: page.url() }
+    }
 
     // 1) CONCEPTO ASOCIADO — único campo editable del panel; lo elige el usuario. Si NO se
     //    puede fijar el pedido, ABORTAMOS (no subimos con un concepto equivocado). Todo lo
