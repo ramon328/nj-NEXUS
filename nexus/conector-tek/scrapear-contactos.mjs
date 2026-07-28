@@ -31,7 +31,7 @@ function scrapeEmpresa(empresa) {
       let res = null; const m = out.match(/RESULTADO:\s*(\{.*\})\s*$/m)
       if (m) { try { res = JSON.parse(m[1]) } catch {} }
       const c = res?.crear || {}
-      resolve({ empresa, contactos: c.contactos ?? 0, paginas: c.paginas ?? 0, vacio: !!c.vacio, estado: c.estado || res?.estado })
+      resolve({ empresa, contactos: c.contactos ?? 0, paginas: c.paginas ?? 0, vacio: !!c.vacio, empresa_real: c.empresa_real || '', estado: c.estado || res?.estado })
     })
   })
 }
@@ -42,10 +42,11 @@ const resumen = []
 for (const e of empresas) {
   log(`→ ${e} …`)
   const r = await scrapeEmpresa(e)
-  cerebro.merge()                 // acumula lo de ESTA empresa (data/scrape-destinatarios.json)
-  const nota = cerebro.escribir() // reescribe la nota del cerebro con todo lo acumulado
-  log(`   ${r.vacio ? '(sin beneficiarios)' : r.contactos + ' contactos'} · ${r.paginas} págs · acumulado cerebro: ${nota.total}`)
-  resumen.push(r)
+  cerebro.merge()                 // dedup GLOBAL por RUT (data/scrape-destinatarios.json)
+  const nota = cerebro.escribir() // reescribe la nota con todo lo acumulado (únicos)
+  const switchOk = (r.empresa_real || '').toUpperCase().includes(String(e).replace(/ (SPA|LTDA|LIMITADA)$/i, '').toUpperCase().slice(0, 10))
+  log(`   pidió "${e}" → cayó en "${r.empresa_real || '?'}" ${switchOk ? '✓' : '⚠ (¿mismo?)'} · ${r.vacio ? 'sin beneficiarios' : r.contactos + ' contactos'} · ÚNICOS acumulados: ${nota.total}`)
+  resumen.push({ ...r, unicos: nota.total })
 }
 console.log('\n===== RESUMEN =====')
 for (const r of resumen) console.log(`${String(r.contactos).padStart(4)} · ${r.empresa}${r.vacio ? ' (vacía)' : ''}`)

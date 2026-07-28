@@ -1,4 +1,5 @@
 {
-  "ok": false,
-  "err": "Error: frame.evaluate: Target page, context or browser has been closed"
+  "ok": true,
+  "via": "radio",
+  "html": "<span class=\"label-radio-inline pr20\">\n                                    <input class=\"inputRadio muestra_tab\" id=\"terceros\" name=\"tipo-codigo\" type=\"radio\" value=\"cod-swift\" data-activate=\"#destino\" data-bind=\"click: $root.checkTerceros, enable: (validacion"
 }

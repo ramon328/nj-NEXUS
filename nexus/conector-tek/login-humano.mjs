@@ -694,6 +694,18 @@ async function crearTransferencia(page, log) {
   // SCRAPEO de contactos guardados (TEK_SCRAPE_DEST=1): clic "Buscar destinatario" → vuelca la
   // lista de destinatarios inscritos de ESTA empresa. NO llena nada, NO transfiere.
   if (process.env.TEK_SCRAPE_DEST === '1') {
+    // Capturar la empresa REAL en pantalla ANTES de abrir el modal (que tapa el header).
+    // Así sabemos en qué empresa cayó de verdad (verifica que el cambio de empresa funcionó).
+    let empresaReal = '', rutEmpresaReal = ''
+    for (const f of page.frames()) {
+      const t = await f.evaluate(() => document.body?.innerText || '').catch(() => '')
+      const mr = t.match(/RUT empresa:\s*([\d.]+-[\dkK])/i)
+      const me = t.match(/Empresa:\s*([^\n]{3,60})/i)
+      if (mr) rutEmpresaReal = mr[1].trim()
+      if (me) empresaReal = me[1].trim()
+      if (mr || me) break
+    }
+    log(`scrape: empresa en pantalla = "${empresaReal}" (RUT ${rutEmpresaReal || '?'})`)
     let clicBuscar = false
     for (const f of page.frames()) {
       const b = f.getByText(/^\s*Buscar destinatario\s*$/i).first()
@@ -760,9 +772,9 @@ async function crearTransferencia(page, log) {
       await sleepLargo(2400)
     }
     const contactos = [...porRut.values()]
-    writeFileSync(join(DATA, 'scrape-destinatarios.json'), JSON.stringify({ empresa: process.env.TEK_EMPRESA, cuando: new Date().toISOString(), paginas: pag + 1, vacio, contactos }, null, 2))
-    log(`scrape: ${contactos.length} contactos en ${pag + 1} páginas (vacio=${vacio})`)
-    return { estado: 'scrape_destinatarios', contactos: contactos.length, paginas: pag + 1, vacio, url: page.url() }
+    writeFileSync(join(DATA, 'scrape-destinatarios.json'), JSON.stringify({ empresa: process.env.TEK_EMPRESA, empresa_real: empresaReal, rut_empresa: rutEmpresaReal, cuando: new Date().toISOString(), paginas: pag + 1, vacio, contactos }, null, 2))
+    log(`scrape: ${contactos.length} contactos en ${pag + 1} páginas (empresa real: ${empresaReal || '?'}, vacio=${vacio})`)
+    return { estado: 'scrape_destinatarios', contactos: contactos.length, paginas: pag + 1, vacio, empresa_real: empresaReal, rut_empresa: rutEmpresaReal, url: page.url() }
   }
 
   const modo = process.env.TEK_CREAR   // 'mapear' | 'llenar' | 'crear'
