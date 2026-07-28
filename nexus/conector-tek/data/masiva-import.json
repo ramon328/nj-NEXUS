@@ -1,9 +1,24 @@
 {
-  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1785248902103",
+  "url": "https://privado.officebanking.cl/dashboard",
   "dump": [
     {
-      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1785248902103",
-      "inputs": [],
+      "url": "https://privado.officebanking.cl/dashboard",
+      "inputs": [
+        {
+          "type": "text",
+          "id": "",
+          "name": "buscar",
+          "accept": "",
+          "vis": true
+        },
+        {
+          "type": "checkbox",
+          "id": "",
+          "name": "",
+          "accept": "",
+          "vis": false
+        }
+      ],
       "links": [
         {
           "text": "Inicio",
@@ -76,281 +91,214 @@
         {
           "text": "Expandir Menú",
           "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Visación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Visación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Visación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Visación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Histórico",
+          "href": ""
+        },
+        {
+          "text": "Eliminación",
+          "href": ""
+        },
+        {
+          "text": "Importación",
+          "href": ""
+        },
+        {
+          "text": "Visación Detallada",
+          "href": ""
+        },
+        {
+          "text": "Visación Agrupada",
+          "href": ""
+        },
+        {
+          "text": "Autorización Detallada",
+          "href": ""
+        },
+        {
+          "text": "Autorización Agrupada",
+          "href": ""
+        },
+        {
+          "text": "Liberación",
+          "href": ""
+        },
+        {
+          "text": "Consulta",
+          "href": ""
+        },
+        {
+          "text": "Ocultar",
+          "href": "https://privado.officebanking.cl/#"
         }
       ],
       "botones": [
         "Accesibilidad",
-        "Empresa / Rol"
+        "Empresa / Rol",
+        "Estas autorizaciones no están consideradas"
       ],
-      "textos": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú"
+      "textos": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú Transferencias Transferencias Express Creación Autorización Entre Cuentas Empresa Creación Visación Autorización Cuenta a Línea de Crédito Creación Visación Autorización Línea de Crédito a Cuenta Creación Visación Autorización Cuenta a Tarjeta de Crédito Creación Visación Autorización Consultas Histórica y Eliminación Histórico Eliminación Transferencias Masivas Importación Visación Detallada Visación Agrupada Autorización Detallada Autorización Agrupada Liberación Consulta Ocultar Tus datos Fecha y Hora: 28/07/2026 11:01 Usuario: NICOLAS PATRICIO JURI CABA"
     },
     {
-      "url": "https://eob.officebanking.cl/TEFM.UI.Web/Importacion/?servicioId=TRFCTA_MSV_C",
+      "url": "https://www.officebanking.cl/campna/CAMPANAS_OB/TC_GESTION_CLAVES/Dash.aspx?HDRUTUS=016142580K&HDNOMUS=NICOLAS%20PATRICIO%20JURI%20CABALLERO&HDRUTEM=0767153945&HDNOMEM=INVERSIONES%20MALLORCA%20HOLDING%20GROUP%20LTDA&CONTRATO=000690035185210&HDROL=3&PERFIL=Apoderado&HDCODBT=1006&HDCODCM=1820&HDCMP01=&HDCMP02=&HDCMP03=&HDCMP04=&HDCMP05=&HDCMP06=&HDCMP07=&HDCMP08=&HDCMP09=&HDCMP10=&HDCMP11=&HDCMP12=&HDCMP13=&HDCMP14=&HDCMP15=&HDCMP16=&HDCMP17=&HDCMP18=&HDCMP19=&HDCMP20=",
       "inputs": [
         {
-          "type": "text",
-          "id": "",
-          "name": "",
+          "type": "hidden",
+          "id": "HDFECAL",
+          "name": "HDFECAL",
           "accept": "",
           "vis": false
         },
         {
-          "type": "file",
-          "id": "archivo",
-          "name": "",
-          "accept": ".xls, .xlsx, .txt, .dat",
-          "vis": true
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": true
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
+          "type": "hidden",
+          "id": "HDIP_US",
+          "name": "HDIP_US",
           "accept": "",
           "vis": false
         },
         {
-          "type": "text",
-          "id": "",
-          "name": "",
+          "type": "hidden",
+          "id": "HDCTTOB",
+          "name": "HDCTTOB",
           "accept": "",
           "vis": false
         },
         {
-          "type": "text",
-          "id": "email",
-          "name": "email",
-          "accept": "",
-          "vis": true
-        },
-        {
-          "type": "checkbox",
-          "id": "checkRecibirCorreo",
-          "name": "",
+          "type": "hidden",
+          "id": "HDRUTUS",
+          "name": "HDRUTUS",
           "accept": "",
           "vis": false
         },
         {
-          "type": "text",
-          "id": "",
-          "name": "",
+          "type": "hidden",
+          "id": "HDROL",
+          "name": "HDROL",
           "accept": "",
-          "vis": true
+          "vis": false
         },
         {
-          "type": "text",
-          "id": "",
-          "name": "",
+          "type": "hidden",
+          "id": "HDSUBSE",
+          "name": "HDSUBSE",
+          "accept": "",
+          "vis": false
+        },
+        {
+          "type": "hidden",
+          "id": "HDCODBT",
+          "name": "HDCODBT",
+          "accept": "",
+          "vis": false
+        },
+        {
+          "type": "hidden",
+          "id": "HDNOMUS",
+          "name": "HDNOMUS",
+          "accept": "",
+          "vis": false
+        },
+        {
+          "type": "hidden",
+          "id": "HDNOMEM",
+          "name": "HDNOMEM",
+          "accept": "",
+          "vis": false
+        },
+        {
+          "type": "hidden",
+          "id": "HDRUTEM",
+          "name": "HDRUTEM",
+          "accept": "",
+          "vis": false
+        },
+        {
+          "type": "hidden",
+          "id": "HDCODCM",
+          "name": "HDCODCM",
+          "accept": "",
+          "vis": false
+        },
+        {
+          "type": "hidden",
+          "id": "valor11",
+          "name": "valor11",
           "accept": "",
           "vis": false
         }
       ],
       "links": [
         {
-          "text": "Utilizar cuentas ingresadas en archivo",
+          "text": "Cambiar Clave",
           "href": ""
         },
         {
-          "text": "0-000-8028093-9",
-          "href": ""
-        },
-        {
-          "text": "0-051-0260763-7",
-          "href": ""
-        },
-        {
-          "text": "Excel",
-          "href": ""
-        },
-        {
-          "text": "TXT",
-          "href": ""
-        },
-        {
-          "text": "En línea",
-          "href": ""
-        },
-        {
-          "text": "Diferida 24hrs",
-          "href": ""
-        },
-        {
-          "text": "Pago de Asignaciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Dividendos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Pensiones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Proveedores",
-          "href": ""
-        },
-        {
-          "text": "Pago de Reembolsos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Remuneraciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Subsidios",
-          "href": ""
-        },
-        {
-          "text": "Pago de Viáticos",
-          "href": ""
-        },
-        {
-          "text": "Pago Extraordinarios",
-          "href": ""
-        },
-        {
-          "text": "Transferencias Masivas",
-          "href": ""
-        },
-        {
-          "text": "+",
-          "href": ""
-        },
-        {
-          "text": "Liberada a pago",
-          "href": ""
-        },
-        {
-          "text": "Pendiente de liberación",
-          "href": ""
-        },
-        {
-          "text": "Transaccional",
-          "href": ""
-        },
-        {
-          "text": "Obtener desde archivo",
-          "href": ""
-        },
-        {
-          "text": "Fija",
-          "href": ""
-        },
-        {
-          "text": "Obtener desde archivo",
-          "href": ""
-        },
-        {
-          "text": "Fija",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "AQUI",
-          "href": "https://eob.officebanking.cl/TEFM.UI.Web/Content/Formato%20Importacion.pdf"
-        },
-        {
-          "text": "Imprimir",
-          "href": "https://eob.officebanking.cl/TEFM.UI.Web/Importacion/?servicioId=TRFCTA_MSV_C#"
-        },
-        {
-          "text": "www.sbif.cl",
-          "href": "http://www.sbif.cl/"
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "Pago de Remuneraciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Proveedores",
-          "href": ""
-        },
-        {
-          "text": "Pago de Dividendos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Pensiones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Subsidios",
-          "href": ""
-        },
-        {
-          "text": "Pago de Reembolsos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Viáticos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Asignaciones",
-          "href": ""
-        },
-        {
-          "text": "Pago Extraordinarios",
-          "href": ""
-        },
-        {
-          "text": "Transferencias Masivas",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "www.sbif.cl",
-          "href": "http://www.sbif.cl/"
+          "text": "X",
+          "href": "https://www.officebanking.cl/campna/CAMPANAS_OB/TC_GESTION_CLAVES/Dash.aspx?HDRUTUS=016142580K&HDNOMUS=NICOLAS%20PATRICIO%20JURI%20CABALLERO&HDRUTEM=0767153945&HDNOMEM=INVERSIONES%20MALLORCA%20HOLDING%20GROUP%20LTDA&CONTRATO=000690035185210&HDROL=3&PERFIL=Apoderado&HDCODBT=1006&HDCODCM=1820&HDCMP01=&HDCMP02=&HDCMP03=&HDCMP04=&HDCMP05=&HDCMP06=&HDCMP07=&HDCMP08=&HDCMP09=&HDCMP10=&HDCMP11=&HDCMP12=&HDCMP13=&HDCMP14=&HDCMP15=&HDCMP16=&HDCMP17=&HDCMP18=&HDCMP19=&HDCMP20=#close"
         }
       ],
       "botones": [
-        "Utilizar cuentas ingresadas en archivo",
-        "Ver ejemplo",
-        "Examinar",
-        "Examinar",
-        "En línea\n \nEn línea\nDiferida 24hrs",
-        "En línea",
-        "Pago de Asignaciones",
-        "+",
-        "Liberada a pago",
-        "Transaccional\n \nTransaccional",
-        "Transaccional",
-        "Obtener desde archivo",
-        "Obtener desde archivo",
-        "Importar",
-        "Pago de Remuneraciones",
-        "Guardar",
-        "Aceptar",
-        "Aceptar",
-        "Aceptar"
+        "Cambiar Clave",
+        "Cambiar Clave"
       ],
-      "textos": "Importación masiva de transferencia de fondos Sr. (a): Ramon Molina Fierro Empresa: ANA CLARA SPA RUT empresa: 77.271.121-2 Fecha: 28 de julio de 2026 Hora: 10:28 Características importación Cuenta origen Utilizar cuentas ingresadas en archivo Utilizar cuentas ingresadas en archivo 0-000-8028093-9 0-051-0260763-7 Seleccione archivo Ver ejemplo Examinar Tipo transferencia En línea En línea Diferida 24hrs Concepto asociado Pago de Asignaciones Pago de Asignaciones Pago de Dividendos Pago de Pensiones Pago de Proveedores Pago de Reembolsos Pago de Remuneraciones Pago de Subsidios Pago de Viáticos Pago Extraordinarios Transferencias Masivas + Estado post autorización Liberada a pago Liberada a pago Pendiente de liberación Tipo autorización Transaccional Transaccional Glosa cartola cliente Obtener desde archivo Obtener desde archivo Fija Glosa cartola beneficiario Obtener desde archivo Obtene"
+      "textos": "Actualiza tu Clave Protege la seguridad de tu empresa Cámbiala ahora y sigue operando con Office Banking. Cambiar Clave X El cliente podrá cambiar su clave a través de la autogestión de claves, si el cambio es exitoso, posteriormente deberás volver a ingresar a tu OfficeBanking con la nueva clave."
     }
   ]
 }

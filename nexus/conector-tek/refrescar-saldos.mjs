@@ -33,4 +33,6 @@ function leerUsuario(user) {
 const users = cred.usuarios()
 log(`refresco diario de saldos: usuarios = ${users.join(', ') || '(ninguno)'}`)
 for (const u of users) { await leerUsuario(u) }   // secuencial (una sesión de banco a la vez)
+// Volcar los saldos frescos al segundo cerebro (nota "Saldos bancarios"). Solo lee cachés.
+try { const s = await import('./saldos-a-cerebro.mjs'); const r = s.escribir(); log(`saldos → segundo cerebro OK (${r.empresas} empresas)`) } catch (e) { log('saldos → cerebro falló:', e.message) }
 log('refresco diario terminado')

@@ -134,7 +134,7 @@ function runLeerSaldos(user, empresa) {
     const h = spawn(process.execPath, [join(TEK_DIR, 'leer-saldos.mjs'), '--user', user, '--empresas', empresa], { cwd: TEK_DIR })
     let out = ''
     h.stdout.on('data', (d) => { out += d }); h.stderr.on('data', () => {})
-    const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, 180_000)
+    const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, 60_000)
     h.on('exit', () => { clearTimeout(kill); try { const j = JSON.parse(out); resolve({ ok: j.ok, empresa: (j.empresas || [])[0], estado_login: j.estado_login }) } catch { resolve({ ok: false }) } })
   })
 }
@@ -154,6 +154,16 @@ async function saldoEmpresa(empresa) {
   }
   if (cached) return { ...cached, _stale: true, _nota: 'no pude refrescar ahora (banco); te muestro el último dato conocido' }
   return { error: `No pude leer "${empresa}" ahora mismo (${r.estado_login || 'banco no disponible'}). Reintenta en un rato — su sesión se activa cuando la necesites.` }
+}
+
+// Saldo SOLO de caché (NUNCA abre el banco): para "todas" → instantáneo, jamás cuelga.
+// Devuelve el último dato guardado (marcado _stale si ya pasó su frescura), o null si nunca
+// se leyó esa empresa. Así "dame todos los saldos" no dispara 9 logins en serie.
+function saldoEmpresaCache(empresa) {
+  const cached = leerEmpCache(empresa)
+  if (!cached) return null
+  const fresco = Date.now() - (cached._ts || 0) < EMP_FRESH_MS
+  return fresco ? { ...cached, _fuente: 'cache' } : { ...cached, _stale: true, _nota: 'último dato conocido (se refresca en la mañana o al consultar esa empresa puntual)' }
 }
 
 // ── MOVIMIENTOS / RESUMEN por empresa (desde el caché emp-<slug>-movs.json, que refresca
@@ -247,18 +257,21 @@ export async function saldos({ userId, rut, banco, empresa } = {}) {
   return { error: 'Dime de qué empresa quieres el saldo (usa accion:empresas para ver las conectadas).' }
 }
 
-// Saldos de TODAS las empresas conectadas por un usuario (cache-first cada una).
+// Saldos de TODAS las empresas conectadas por un usuario — SOLO CACHÉ (último dato conocido).
+// NO abre el banco (abrir 9 sesiones en serie colgaba el turno hasta ~27 min). Cada empresa
+// da su último saldo guardado; el que nunca se leyó sale marcado. Para el saldo EN VIVO de
+// una empresa puntual, se pregunta por esa empresa (ahí sí refresca con su sesión).
 export async function saldosTodas({ userId } = {}) {
   const conns = userId ? cred.listar(userId) : []
   const vistas = new Set(); const empresasOut = []
   for (const c of conns) {
     const key = empSlug(c.empresa); if (vistas.has(key)) continue; vistas.add(key)
-    if (esAnaClara(null, c.empresa)) { try { const t = await tekSaldos(); empresasOut.push(t) } catch { /* */ }; continue }
-    const r = await saldoEmpresa(c.empresa)
-    empresasOut.push(r.error ? { empresa: c.empresa, error: r.error } : shapeSaldoEmpresa(c.empresa, r))
+    if (esAnaClara(null, c.empresa)) { try { const t = await tekSaldos(); empresasOut.push(t); continue } catch { /* cae a caché */ } }
+    const r = saldoEmpresaCache(c.empresa)
+    empresasOut.push(r ? shapeSaldoEmpresa(c.empresa, r) : { empresa: c.empresa, sin_dato: true, nota: 'aún sin leer — se lee en el refresco de la mañana o cuando consultes esa empresa puntual' })
   }
   const totalCLP = empresasOut.reduce((s, e) => s + Number(e.total_disponible_clp || 0), 0)
-  return { empresas: empresasOut, total_disponible_clp: totalCLP, total_disponible_clp_fmt: fmt(totalCLP, 'CLP') }
+  return { empresas: empresasOut, total_disponible_clp: totalCLP, total_disponible_clp_fmt: fmt(totalCLP, 'CLP'), fuente: 'cache', nota: 'Saldos de todas las empresas = último dato guardado (no abre los bancos en vivo para no colgarse). Para el saldo EN VIVO de una empresa, pregunta por esa empresa puntual.' }
 }
 
 // ── Movimientos ───────────────────────────────────────────────────────

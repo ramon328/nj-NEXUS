@@ -1,23 +1,22 @@
 {
-  "ts": "2026-07-28T14:56:46.064Z",
+  "ts": "2026-07-28T15:08:49.783Z",
   "estado": "AMARILLO",
   "nivel": 1,
   "razones": [
-    "Swap subiendo (1096 MB)",
-    "RAM libre baja (1230 MB)"
+    "Swap subiendo (1572 MB)"
   ],
   "metricas": {
-    "load1": 1.76,
+    "load1": 2.71,
     "nucleos": 6,
-    "loadPorNucleo": 0.29,
-    "ramLibreMB": 1230,
+    "loadPorNucleo": 0.45,
+    "ramLibreMB": 2510,
     "ramTotalMB": 32768,
-    "swapUsedMB": 1096,
-    "compresorMB": 2984,
-    "discoPct": 49,
-    "procesos": 860,
+    "swapUsedMB": 1572,
+    "compresorMB": 1026,
+    "discoPct": 50,
+    "procesos": 873,
     "sesionesClaude": 3,
     "sesionesClaudeViejas": 0
   },
-  "ultimaAlerta": "2026-07-28T14:47:43.420Z"
+  "ultimaAlerta": "2026-07-28T14:59:46.839Z"
 }

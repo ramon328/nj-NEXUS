@@ -3220,6 +3220,9 @@ async function ejecutar(nombre, input, ctx = {}) {
       try {
         const cred = await import('../conector-tek/credenciales.mjs')
         const quien = (usuarioDe(ctx.de)?.nombre || '').toLowerCase().trim()
+        // Si el usuario escribió el nombre de la empresa mal/abreviado ("Ltda" vs "LIMITADA"),
+        // lo resolvemos al nombre canónico de SUS empresas conectadas (la más parecida).
+        if (quien && esAdmin(ctx.de)) { const em = cred.resolverEmpresa(quien, empresa); if (em) empresa = em }
         if (quien && cred.tieneConexion(quien, empresa)) userId = quien
         else { const d = cred.dueñoDeEmpresa(empresa); if (d) userId = d }
       } catch { /* */ }
@@ -3313,6 +3316,8 @@ async function ejecutar(nombre, input, ctx = {}) {
       try {
         const cr = await import('../conector-tek/credenciales.mjs')
         const quien = (usuarioDe(ctx.de)?.nombre || '').toLowerCase().trim()
+        // Match difuso del nombre de empresa contra las conectadas de quien pide ("Ltda"≈"LIMITADA").
+        if (quien && esAdmin(ctx.de)) { const em = cr.resolverEmpresa(quien, empresaMasiva); if (em) empresaMasiva = em }
         if (quien && cr.tieneConexion(quien, empresaMasiva)) userMasiva = quien
         else { const d = cr.dueñoDeEmpresa(empresaMasiva); if (d) userMasiva = d }
       } catch { /* */ }
