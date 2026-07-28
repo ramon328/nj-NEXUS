@@ -1484,6 +1484,11 @@ async function masivaImportar(page, log) {
   await sleep(8000)
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
   await sleep(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
+  // Cerrar el popup "Actualiza tu Clave" que intercepta los clics del dashboard (aparece en
+  // algunas sesiones, ej. Nico). Sin esto, el clic en "Importación" no aterriza y la subida
+  // queda en sin_frame_importacion. En sesiones sin popup (ej. Ana Clara) es no-op.
+  try { await cerrarPopups(page, log) } catch { /* */ }
+  await sleep(rnd(800, 1600))
   const menu = page.getByText(/^transferencias?$/i).first()
   await clickHumano(page, menu)
   await sleep(rnd(4000, 5500))
