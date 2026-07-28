@@ -584,6 +584,15 @@ async function crearTransferencia(page, log) {
   const sleepLargo = (ms) => pulsoSesion(page, ms)
   await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
   await sleepLargo(8000)
+  // FORZAR empresa (TEK_FORCE_EMPRESA=1): si la sesión ya está DENTRO de otra empresa,
+  // entrarEmpresa no re-cambia. Clic en "Empresa / Rol" → vuelve al selector → entrarEmpresa.
+  if (process.env.TEK_FORCE_EMPRESA === '1') {
+    for (const f of page.frames()) {
+      const b = f.getByText(/Empresa\s*\/\s*Rol/i).first()
+      if (await b.count().catch(() => 0)) { await clickHumano(page, b).catch(() => {}); log('scrape: clic "Empresa / Rol" (forzar cambio de empresa)'); break }
+    }
+    await sleepLargo(6000)
+  }
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
   await sleepLargo(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
   // abrir menú Transferencias (clic por texto, engancha) + clic de PIXEL en "Creación"
@@ -690,27 +699,39 @@ async function crearTransferencia(page, log) {
       const b = f.getByText(/^\s*Buscar destinatario\s*$/i).first()
       if (await b.count().catch(() => 0)) { await clickHumano(page, b).catch(() => {}); clicBuscar = true; log('scrape: clic "Buscar destinatario"'); break }
     }
-    await sleepLargo(6000)
-    await page.screenshot({ path: join(DATA, 'scrape-destinatarios.png') }).catch(() => {})
-    const contactos = []
+    await sleepLargo(5000)
+    // pestaña "Todos" (ver TODOS los beneficiarios, no solo Favoritos)
     for (const f of page.frames()) {
-      const rows = await f.evaluate(() => {
-        const out = []
-        for (const tr of document.querySelectorAll('table tr')) {
-          const cels = [...tr.querySelectorAll('td,th')].map((td) => (td.innerText || '').trim()).filter(Boolean)
-          if (cels.length >= 2) out.push(cels)
-        }
-        for (const el of document.querySelectorAll('[class*="row" i],[class*="item" i],[class*="card" i],li')) {
-          const t = (el.innerText || '').replace(/\s+/g, ' ').trim()
-          if (/\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]/.test(t) && t.length < 180) out.push([t])
-        }
-        return out
-      }).catch(() => [])
-      if (rows.length) contactos.push(...rows)
+      const t = f.getByText(/^\s*Todos\s*$/i).first()
+      if ((await t.count().catch(() => 0)) && (await t.isVisible().catch(() => false))) { await clickHumano(page, t).catch(() => {}); log('scrape: pestaña "Todos"'); break }
     }
-    writeFileSync(join(DATA, 'scrape-destinatarios.json'), JSON.stringify({ empresa: process.env.TEK_EMPRESA, cuando: new Date().toISOString(), clic_buscar: clicBuscar, filas: contactos }, null, 2))
-    log(`scrape: clic_buscar=${clicBuscar} · ${contactos.length} filas volcadas`)
-    return { estado: 'scrape_destinatarios', filas: contactos.length, clic_buscar: clicBuscar, url: page.url() }
+    await sleepLargo(3500)
+    await page.screenshot({ path: join(DATA, 'scrape-destinatarios.png') }).catch(() => {})
+    // Extraer del MODAL "DESTINATARIOS" (no del fondo). Detecta "No existen beneficiarios".
+    let vacio = false; const contactos = []
+    for (const f of page.frames()) {
+      const r = await f.evaluate(() => {
+        const norm = (s) => (s || '').replace(/\s+/g, ' ').trim()
+        let modal = null
+        for (const el of document.querySelectorAll('h1,h2,h3,h4,[class*="title" i],[class*="header" i],[class*="modal" i]')) {
+          if (/destinatarios/i.test(el.textContent || '') && (el.textContent || '').length < 40) { modal = el.closest('[class*="modal" i],[class*="dialog" i],[class*="popup" i],[class*="panel" i]') || el.parentElement; break }
+        }
+        const scope = modal || document.body
+        const vac = /no existen beneficiarios/i.test(scope.innerText || '')
+        const filas = []
+        for (const row of scope.querySelectorAll('tr,[class*="row" i],[class*="item" i],[class*="card" i],[class*="benef" i],li')) {
+          const txt = norm(row.innerText)
+          if (/\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]/.test(txt) && txt.length < 220) filas.push(txt)
+        }
+        return { vac, filas: [...new Set(filas)] }
+      }).catch(() => ({ vac: false, filas: [] }))
+      if (r.vac) vacio = true
+      if (r.filas.length) contactos.push(...r.filas)
+    }
+    const uniq = [...new Set(contactos)]
+    writeFileSync(join(DATA, 'scrape-destinatarios.json'), JSON.stringify({ empresa: process.env.TEK_EMPRESA, cuando: new Date().toISOString(), clic_buscar: clicBuscar, vacio, contactos: uniq }, null, 2))
+    log(`scrape: clic_buscar=${clicBuscar} · vacio=${vacio} · ${uniq.length} contactos`)
+    return { estado: 'scrape_destinatarios', contactos: uniq.length, vacio, url: page.url() }
   }
 
   const modo = process.env.TEK_CREAR   // 'mapear' | 'llenar' | 'crear'
