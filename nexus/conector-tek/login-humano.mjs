@@ -707,31 +707,55 @@ async function crearTransferencia(page, log) {
     }
     await sleepLargo(3500)
     await page.screenshot({ path: join(DATA, 'scrape-destinatarios.png') }).catch(() => {})
-    // Extraer del MODAL "DESTINATARIOS" (no del fondo). Detecta "No existen beneficiarios".
-    let vacio = false; const contactos = []
-    for (const f of page.frames()) {
-      const r = await f.evaluate(() => {
-        const norm = (s) => (s || '').replace(/\s+/g, ' ').trim()
-        let modal = null
-        for (const el of document.querySelectorAll('h1,h2,h3,h4,[class*="title" i],[class*="header" i],[class*="modal" i]')) {
-          if (/destinatarios/i.test(el.textContent || '') && (el.textContent || '').length < 40) { modal = el.closest('[class*="modal" i],[class*="dialog" i],[class*="popup" i],[class*="panel" i]') || el.parentElement; break }
-        }
-        const scope = modal || document.body
-        const vac = /no existen beneficiarios/i.test(scope.innerText || '')
-        const filas = []
-        for (const row of scope.querySelectorAll('tr,[class*="row" i],[class*="item" i],[class*="card" i],[class*="benef" i],li')) {
-          const txt = norm(row.innerText)
-          if (/\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]/.test(txt) && txt.length < 220) filas.push(txt)
-        }
-        return { vac, filas: [...new Set(filas)] }
-      }).catch(() => ({ vac: false, filas: [] }))
-      if (r.vac) vacio = true
-      if (r.filas.length) contactos.push(...r.filas)
+    // Tabla del modal: columnas RUT · NOMBRE · CUENTA · BANCO · EMAIL, con PAGINACIÓN.
+    // Extraemos filas con RUT (≥3 celdas), clic "Siguiente", repetimos hasta que no haya
+    // filas nuevas (dedupe por RUT) o se acabe el tope. NO llena, NO transfiere.
+    const extraerPagina = async () => {
+      const out = []; let vac = false
+      for (const f of page.frames()) {
+        const r = await f.evaluate(() => {
+          const norm = (s) => (s || '').replace(/\s+/g, ' ').trim()
+          const rutRe = /\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]/
+          const vac = /no existen beneficiarios/i.test(document.body?.innerText || '')
+          const rows = []
+          for (const tr of document.querySelectorAll('table tr, [role="row"]')) {
+            const cels = [...tr.querySelectorAll('td,th,[role="cell"]')].map((c) => norm(c.innerText)).filter(Boolean)
+            if (cels.length >= 3 && rutRe.test(cels[0] || '')) rows.push(cels)
+          }
+          return { vac, rows }
+        }).catch(() => ({ vac: false, rows: [] }))
+        if (r.vac) vac = true
+        out.push(...r.rows)
+      }
+      return { vac, rows: out }
     }
-    const uniq = [...new Set(contactos)]
-    writeFileSync(join(DATA, 'scrape-destinatarios.json'), JSON.stringify({ empresa: process.env.TEK_EMPRESA, cuando: new Date().toISOString(), clic_buscar: clicBuscar, vacio, contactos: uniq }, null, 2))
-    log(`scrape: clic_buscar=${clicBuscar} · vacio=${vacio} · ${uniq.length} contactos`)
-    return { estado: 'scrape_destinatarios', contactos: uniq.length, vacio, url: page.url() }
+    const porRut = new Map(); let vacio = false
+    const MAXPAG = Number(process.env.TEK_SCRAPE_MAXPAG || 80)
+    let pag = 0
+    for (; pag < MAXPAG; pag++) {
+      const { vac, rows } = await extraerPagina()
+      if (vac) vacio = true
+      let nuevos = 0
+      for (const cels of rows) {
+        const rut = (cels[0] || '').match(/\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]/)?.[0]
+        if (!rut || porRut.has(rut)) continue
+        porRut.set(rut, { rut, nombre: cels[1] || '', cuenta: cels[2] || '', banco: cels[3] || '', email: cels[4] || '', crudo: cels })
+        nuevos++
+      }
+      if (nuevos === 0 && pag > 0) break   // página sin filas nuevas → fin
+      // clic "Siguiente"
+      let avanzo = false
+      for (const f of page.frames()) {
+        const sig = f.getByText(/^\s*Siguiente\s*$/i).first()
+        if ((await sig.count().catch(() => 0)) && (await sig.isVisible().catch(() => false))) { await clickHumano(page, sig).catch(() => {}); avanzo = true; break }
+      }
+      if (!avanzo) break
+      await sleepLargo(2200)
+    }
+    const contactos = [...porRut.values()]
+    writeFileSync(join(DATA, 'scrape-destinatarios.json'), JSON.stringify({ empresa: process.env.TEK_EMPRESA, cuando: new Date().toISOString(), paginas: pag + 1, vacio, contactos }, null, 2))
+    log(`scrape: ${contactos.length} contactos en ${pag + 1} páginas (vacio=${vacio})`)
+    return { estado: 'scrape_destinatarios', contactos: contactos.length, paginas: pag + 1, vacio, url: page.url() }
   }
 
   const modo = process.env.TEK_CREAR   // 'mapear' | 'llenar' | 'crear'
