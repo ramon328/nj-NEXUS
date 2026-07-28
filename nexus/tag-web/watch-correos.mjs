@@ -32,9 +32,12 @@ const DESTINOS = [...new Set([...splitDest(AVISAR_R), ...splitDest(AVISAR_AUTOS)
 // Notificación WhatsApp best-effort (si kapso está disponible).
 let enviarKapso = null
 let alertarUsuario = null
+let alertarTodos = null
 try { process.loadEnvFile(join(__dirname, '..', '.env')) } catch { /* */ }
 try { ({ enviarKapso } = await import('../hub/kapso.mjs')) } catch { /* sin WhatsApp, solo log */ }
-try { ({ alertarUsuario } = await import('../hub/alertar.mjs')) } catch { /* opcional */ }
+try { ({ alertarUsuario, alertarTodos } = await import('../hub/alertar.mjs')) } catch { /* opcional */ }
+
+// Aviso INTERNO (Ramón + Joaquín): convenios y casos que no se pudieron emparejar.
 async function avisar(txt) {
   console.log('[aviso]', txt)
   for (const to of DESTINOS) {
@@ -45,6 +48,18 @@ async function avisar(txt) {
       console.log('  (WA falló:', e.message, ')')
     }
   }
+}
+
+// Aviso de ENVÍO de TAG (Blue Express): le llega a TODOS los usuarios de Nexus a su WhatsApp,
+// incluso fuera de la ventana de 24h (plantilla Meta). Si por algo no está disponible
+// alertarTodos, cae al aviso interno para no perder el evento.
+async function avisarTodos(txt) {
+  console.log('[aviso-todos]', txt)
+  if (alertarTodos) {
+    try { const r = await alertarTodos(txt); console.log(`  (enviado a ${r.ok}/${r.total})`); return }
+    catch (e) { console.log('  (alertarTodos falló:', e.message, '→ caigo a interno)') }
+  }
+  await avisar(txt)
 }
 
 function vistos() { try { return new Set(JSON.parse(readFileSync(VISTOS, 'utf8'))) } catch { return new Set() } }
@@ -103,9 +118,9 @@ async function revisar() {
         const entregado = /ha sido entregado|fue entregado|entrega exitosa/i.test(texto)
         // Empareja con el lead más reciente que espera dispositivo (convenio_recibido).
         const lead = pendientes.filter((r) => r.estado === 'convenio_recibido')[0]
-        if (lead && entregado) { actualizarEstado(lead.id, 'activo', `TAG entregado (Blue Express, auto): "${asunto.slice(0, 80)}"`); await avisar(`📦 TAG ENTREGADO (${lead.id}${lead.patente ? ' · ' + lead.patente : ''}). Blue Express: "${asunto.slice(0, 80)}".`) }
-        else if (lead && enCamino) { actualizarEstado(lead.id, 'en_camino', `TAG en camino (Blue Express, auto): "${asunto.slice(0, 80)}"`); await avisar(`🚚 TAG en camino (${lead.id}${lead.patente ? ' · ' + lead.patente : ''}). Blue Express: "${asunto.slice(0, 80)}".`) }
-        else { await avisar(`🚚 Blue Express avisa un envío que parece TAG pero no pude emparejarlo a un auto: "${asunto.slice(0, 80)}". Revísalo en el tablero.`) }
+        if (lead && entregado) { actualizarEstado(lead.id, 'activo', `TAG entregado (Blue Express, auto): "${asunto.slice(0, 80)}"`); await avisarTodos(`📦 TAG ENTREGADO (${lead.id}${lead.patente ? ' · ' + lead.patente : ''}). Blue Express: "${asunto.slice(0, 80)}".`) }
+        else if (lead && enCamino) { actualizarEstado(lead.id, 'en_camino', `TAG en camino (Blue Express, auto): "${asunto.slice(0, 80)}"`); await avisarTodos(`🚚 TAG en camino (${lead.id}${lead.patente ? ' · ' + lead.patente : ''}). Blue Express: "${asunto.slice(0, 80)}".`) }
+        else { await avisarTodos(`🚚 Blue Express avisa un envío de TAG en camino: "${asunto.slice(0, 80)}".`) }
       }
     }
 
