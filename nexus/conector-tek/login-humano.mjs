@@ -516,7 +516,22 @@ async function mapearTransferencia(ctx, page, log) {
   await sleep(rnd(6000, 8500)); await idle(page, rnd(800, 1600))
   await page.screenshot({ path: join(DATA, 'transf-01-menu.png') }).catch(() => {})
   // entrar de verdad a "A Tercero mismo Banco → Creación" (la columna correcta)
-  const entro = await clickColumna(page, /^A Tercero mismo Banco$/i, /^Creaci[oó]n$/i, log)
+  let entro = await clickColumna(page, /^A Tercero mismo Banco$/i, /^Creaci[oó]n$/i, log)
+  // Fallback ROBUSTO (menú = shadow DOM cerrado): clic en la "Creación" que SIGUE al header
+  // de la sección de terceros, por XPath en cualquier frame (igual criterio que crearTransferencia).
+  for (let i = 0; i < 6 && !entro; i++) {
+    for (const sec of ['A Tercero mismo Banco', 'A Tercero otros Banco', 'Transferencias Express', 'A Tercero']) {
+      for (const f of page.frames()) {
+        const loc = f.locator(`xpath=//*[contains(normalize-space(.),${JSON.stringify(sec)})]/following::*[normalize-space(text())="Creación" or normalize-space(text())="Creacion"][1]`).first()
+        if ((await loc.count().catch(() => 0)) && (await loc.isVisible().catch(() => false))) {
+          const ok = await clickHumano(page, loc).catch(() => false)
+          if (ok !== false) { entro = true; log('mapear: clic Creación directo (XPath, sección ' + sec + ')'); break }
+        }
+      }
+      if (entro) break
+    }
+    if (!entro) await sleep(2000)
+  }
   log('clic "A Tercero mismo Banco → Creación":', entro)
   await sleep(rnd(8000, 10500)); await idle(page, rnd(800, 1600))
   // volcar formularios visibles de todos los frames
