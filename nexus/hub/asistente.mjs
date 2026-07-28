@@ -3213,8 +3213,16 @@ async function ejecutar(nombre, input, ctx = {}) {
       // resuelve del vault → así la transferencia sale de la cuenta correcta.
       let empresa = (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA'
       if (!esAdmin(ctx.de)) empresa = 'ANA CLARA SPA'
+      // Sesión de banco a usar: la de QUIEN PIDE si tiene su propia conexión a esa empresa
+      // (cada persona opera con SU login: Nico→sesión nico, Ramón→ramon). Solo si el que pide
+      // no la tiene conectada, cae al dueño canónico del vault. Antes iba SIEMPRE por ramon.
       let userId = 'ramon'
-      try { const cred = await import('../conector-tek/credenciales.mjs'); const d = cred.dueñoDeEmpresa(empresa); if (d) userId = d } catch { /* */ }
+      try {
+        const cred = await import('../conector-tek/credenciales.mjs')
+        const quien = (usuarioDe(ctx.de)?.nombre || '').toLowerCase().trim()
+        if (quien && cred.tieneConexion(quien, empresa)) userId = quien
+        else { const d = cred.dueñoDeEmpresa(empresa); if (d) userId = d }
+      } catch { /* */ }
       const arm = tr.armarBorrador({ userId, nombre: input.nombre, monto: input.monto, motivo: input.motivo,
                                      rut: input.rut, banco: input.banco, cuenta: input.cuenta, tipo_cuenta: input.tipo_cuenta })
       if (!arm.ok) {
@@ -3299,8 +3307,15 @@ async function ejecutar(nombre, input, ctx = {}) {
       // Empresa de ORIGEN del lote (la que el usuario eligió). No-admin acotado a ANA CLARA.
       let empresaMasiva = (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA'
       if (!esAdmin(ctx.de)) empresaMasiva = 'ANA CLARA SPA'
+      // Sesión de banco: la de QUIEN PIDE si tiene su propia conexión a esa empresa (cada
+      // persona opera con SU login). Si no la tiene, cae al dueño canónico. Antes: siempre ramon.
       let userMasiva = 'ramon'
-      try { const cr = await import('../conector-tek/credenciales.mjs'); const d = cr.dueñoDeEmpresa(empresaMasiva); if (d) userMasiva = d } catch { /* */ }
+      try {
+        const cr = await import('../conector-tek/credenciales.mjs')
+        const quien = (usuarioDe(ctx.de)?.nombre || '').toLowerCase().trim()
+        if (quien && cr.tieneConexion(quien, empresaMasiva)) userMasiva = quien
+        else { const d = cr.dueñoDeEmpresa(empresaMasiva); if (d) userMasiva = d }
+      } catch { /* */ }
 
       // Resolver cada transferencia a datos completos. Con rut+cuenta se usa directo; si no,
       // se busca por nombre en la libreta de tek. El motivo va como glosa cartola originador.
