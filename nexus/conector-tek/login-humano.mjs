@@ -682,6 +682,37 @@ async function crearTransferencia(page, log) {
   const nIn = forms2.reduce((a, f) => a + f.inputs.length, 0)
   log(`paso 2 (destino) mapeado: ${nIn} inputs`)
 
+  // SCRAPEO de contactos guardados (TEK_SCRAPE_DEST=1): clic "Buscar destinatario" → vuelca la
+  // lista de destinatarios inscritos de ESTA empresa. NO llena nada, NO transfiere.
+  if (process.env.TEK_SCRAPE_DEST === '1') {
+    let clicBuscar = false
+    for (const f of page.frames()) {
+      const b = f.getByText(/^\s*Buscar destinatario\s*$/i).first()
+      if (await b.count().catch(() => 0)) { await clickHumano(page, b).catch(() => {}); clicBuscar = true; log('scrape: clic "Buscar destinatario"'); break }
+    }
+    await sleepLargo(6000)
+    await page.screenshot({ path: join(DATA, 'scrape-destinatarios.png') }).catch(() => {})
+    const contactos = []
+    for (const f of page.frames()) {
+      const rows = await f.evaluate(() => {
+        const out = []
+        for (const tr of document.querySelectorAll('table tr')) {
+          const cels = [...tr.querySelectorAll('td,th')].map((td) => (td.innerText || '').trim()).filter(Boolean)
+          if (cels.length >= 2) out.push(cels)
+        }
+        for (const el of document.querySelectorAll('[class*="row" i],[class*="item" i],[class*="card" i],li')) {
+          const t = (el.innerText || '').replace(/\s+/g, ' ').trim()
+          if (/\d{1,2}\.?\d{3}\.?\d{3}-[\dkK]/.test(t) && t.length < 180) out.push([t])
+        }
+        return out
+      }).catch(() => [])
+      if (rows.length) contactos.push(...rows)
+    }
+    writeFileSync(join(DATA, 'scrape-destinatarios.json'), JSON.stringify({ empresa: process.env.TEK_EMPRESA, cuando: new Date().toISOString(), clic_buscar: clicBuscar, filas: contactos }, null, 2))
+    log(`scrape: clic_buscar=${clicBuscar} · ${contactos.length} filas volcadas`)
+    return { estado: 'scrape_destinatarios', filas: contactos.length, clic_buscar: clicBuscar, url: page.url() }
+  }
+
   const modo = process.env.TEK_CREAR   // 'mapear' | 'llenar' | 'crear'
   if (modo === 'llenar' || modo === 'crear') {
     const f2 = page.frames().find((f) => /TEF(UN)?\.UI\.Web/i.test(f.url())) || f1

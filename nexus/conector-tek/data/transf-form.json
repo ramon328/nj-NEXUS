@@ -1,25 +1,49 @@
 {
-  "cuando": "2026-07-28T15:31:09.308Z",
-  "url": "https://privado.officebanking.cl/dashboard",
+  "cuando": "2026-07-28T16:01:12.581Z",
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1785254460805",
   "forms": [
     {
-      "url": "https://privado.officebanking.cl/dashboard",
-      "inputs": [
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "buscar",
-          "placeholder": "Buscar",
-          "label": ""
-        }
-      ],
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1785254460805",
+      "inputs": [],
       "botones": [
         "Accesibilidad",
         "Empresa / Rol",
         "logout"
       ],
       "titulos": []
+    },
+    {
+      "url": "https://eob.officebanking.cl/TEFUN.UI.Web/TransferenciaUnitaria/creacionTransferenciaUnitaria/?servicioId=TEF_UNIF_C",
+      "inputs": [
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "montoTEFinput",
+          "name": "",
+          "placeholder": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "correoOrigenInput",
+          "name": "",
+          "placeholder": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "motivoInputText",
+          "name": "",
+          "placeholder": "",
+          "label": ""
+        }
+      ],
+      "botones": [],
+      "titulos": [
+        "Transferencia Express"
+      ]
     }
   ]
 }
