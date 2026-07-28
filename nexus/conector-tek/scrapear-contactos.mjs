@@ -4,12 +4,20 @@
 import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
+import { existsSync, renameSync } from 'node:fs'
 import * as cred from './credenciales.mjs'
 import * as cerebro from './contactos-a-cerebro.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 const USER = process.env.TEK_USER || 'nico'
+const FRESCA = process.env.TEK_SESION_FRESCA === '1'   // login nuevo por empresa (cambio confiable)
+const SOLO = (process.env.TEK_SOLO_EMPRESAS || '').split('|').map((s) => s.trim().toLowerCase()).filter(Boolean)
 const log = (...a) => console.log(new Date().toISOString(), ...a)
+
+function sesionFresca() {
+  const f = join(DIR, USER === 'ramon' ? 'session.json' : `session-${USER}.json`)
+  if (existsSync(f)) { try { renameSync(f, f + '.bak-' + Date.now()) } catch {} }
+}
 
 function scrapeEmpresa(empresa) {
   return new Promise((resolve) => {
@@ -36,11 +44,13 @@ function scrapeEmpresa(empresa) {
   })
 }
 
-const empresas = [...new Set((cred.listar(USER) || []).map((c) => c.empresa).filter(Boolean))]
-log(`scrapeando contactos de ${USER} en ${empresas.length} empresas…`)
+let empresas = [...new Set((cred.listar(USER) || []).map((c) => c.empresa).filter(Boolean))]
+if (SOLO.length) empresas = empresas.filter((e) => SOLO.some((s) => e.toLowerCase().includes(s)))
+log(`scrapeando contactos de ${USER} en ${empresas.length} empresas${FRESCA ? ' (sesión fresca c/u)' : ''}…`)
 const resumen = []
 for (const e of empresas) {
   log(`→ ${e} …`)
+  if (FRESCA) sesionFresca()   // login nuevo → aterriza en el selector → elige la empresa bien
   const r = await scrapeEmpresa(e)
   cerebro.merge()                 // dedup GLOBAL por RUT (data/scrape-destinatarios.json)
   const nota = cerebro.escribir() // reescribe la nota con todo lo acumulado (únicos)
