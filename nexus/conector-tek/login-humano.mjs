@@ -2414,18 +2414,26 @@ async function explorarNomina(page, log) {
   const sleepLargo = (ms) => pulsoSesion(page, ms)
   await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
   await sleepLargo(8000)
-  if (process.env.TEK_FORCE_EMPRESA === '1') {
-    for (const f of page.frames()) { const b = f.getByText(/Empresa\s*\/\s*Rol/i).first(); if (await b.count().catch(() => 0)) { await clickHumano(page, b).catch(() => {}); break } }
+  // Forzar cambio de empresa SOLO si ya estamos DENTRO de una (clic "Empresa / Rol"). En login
+  // fresco aterrizamos en el SELECTOR → NO clickear eso (rompe la sesión); entrarEmpresa basta.
+  const enSelector = /seleccion-empresa|listado de empresas|selecciona.*empresa/i.test(page.url() + ' ' + (await page.evaluate(() => document.body?.innerText || '').catch(() => '')))
+  if (process.env.TEK_FORCE_EMPRESA === '1' && !enSelector) {
+    for (const f of page.frames()) { const b = f.getByText(/Empresa\s*\/\s*Rol/i).first(); if (await b.count().catch(() => 0)) { await clickHumano(page, b).catch(() => {}); log('nómina: clic "Empresa / Rol" (ya adentro)'); break } }
     await sleepLargo(6000)
   }
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
   await sleepLargo(rnd(3000, 5000))
   await cerrarPopups(page, log)
   await sleepLargo(1500)
+  // clic "Pagos Masivos" (menú lateral) con reintentos: texto exacto → contiene, click forzado.
   let clic = false
-  for (const f of page.frames()) {
-    const m = f.getByText(/^\s*Pagos Masivos\s*$/i).first()
-    if (await m.count().catch(() => 0)) { await clickHumano(page, m).catch(() => {}); clic = true; log('nómina: clic "Pagos Masivos"'); break }
+  for (let i = 0; i < 5 && !clic; i++) {
+    for (const f of page.frames()) {
+      let m = f.getByText(/^\s*Pagos Masivos\s*$/i).first()
+      if (!(await m.count().catch(() => 0))) m = f.getByText(/Pagos Masivos/i).first()
+      if (await m.count().catch(() => 0)) { const ok = await m.click({ force: true, timeout: 3000 }).then(() => true).catch(() => false); if (ok) { clic = true; log('nómina: clic "Pagos Masivos"'); break } }
+    }
+    if (!clic) await sleepLargo(2500)
   }
   await sleepLargo(6000)
   await page.screenshot({ path: join(DATA, 'nomina-01-menu.png') }).catch(() => {})
