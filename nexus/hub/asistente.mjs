@@ -2281,7 +2281,7 @@ const HERRAMIENTAS = [
   },
   {
     name: 'sii',
-    description: 'Sistema SII ("Martes"): descarga documentos del SII (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros) y EMITE facturas. Empresa configurada: ANA CLARA SPA. Acciones: estado (empresas + qué se puede bajar), descargar (dispara la descarga), job (avance de una descarga), documentos (lista lo ya bajado, con su "ruta"), enviar (MANDA el archivo PDF/Excel al WhatsApp del usuario), emitir (EMITE una factura/boleta electrónica — SIMULA PRIMERO: sin confirmado=true solo arma y devuelve el BORRADOR con neto/IVA/total para pedir OK; NUNCA emite sin una confirmación explícita del usuario). Los precios de los ítems son NETOS (sin IVA); el IVA 19% se agrega solo en facturas afectas (33).',
+    description: 'Sistema SII ("Martes"): descarga documentos del SII (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros, y "facturas de compra a detalle") y EMITE facturas. Empresa configurada: ANA CLARA SPA. 🧾 IMPORTANTE — si te piden "el detalle de la(s) factura(s)", "la factura a detalle", "el PDF de la factura", "las facturas con los productos/ítems" o similar: es el tipo docs:["facturas"] (baja el PDF timbrado de CADA factura de compra recibida, con sus líneas). El RCV solo trae la cabecera (folio/montos/IVA); "facturas" trae el documento completo. Entra solo con la cuenta del facturador (persona autorizada), ya configurada. Flujo: descargar docs:["facturas"] del período → job hasta completado → documentos (ubica la "ruta" del PDF que pidieron, por folio/proveedor) → enviar esa ruta. Acotado a N documentos por corrida (anti-bloqueo). Acciones: estado (empresas + qué se puede bajar), descargar (dispara la descarga), job (avance de una descarga), documentos (lista lo ya bajado, con su "ruta"), enviar (MANDA el archivo PDF/Excel al WhatsApp del usuario), emitir (EMITE una factura/boleta electrónica — SIMULA PRIMERO: sin confirmado=true solo arma y devuelve el BORRADOR con neto/IVA/total para pedir OK; NUNCA emite sin una confirmación explícita del usuario). Los precios de los ítems son NETOS (sin IVA); el IVA 19% se agrega solo en facturas afectas (33).',
     input_schema: {
       type: 'object',
       properties: {
@@ -2289,7 +2289,7 @@ const HERRAMIENTAS = [
         empresa_id: { type: 'integer', description: 'id de la empresa (lo da accion:estado). ANA CLARA SPA = 3.' },
         desde: { type: 'string', description: 'periodo inicio AAAAMM, ej "202605"' },
         hasta: { type: 'string', description: 'periodo fin AAAAMM (si es uno solo, igual a desde)' },
-        docs: { type: 'array', items: { type: 'string' }, description: 'tipos a bajar, ej ["rcv_compra"] o ["f29","rcv_venta"]' },
+        docs: { type: 'array', items: { type: 'string' }, description: 'tipos a bajar, ej ["rcv_compra"] o ["f29","rcv_venta"]. Para el DETALLE de las facturas (PDF timbrado con líneas de productos de cada factura de compra recibida): ["facturas"].' },
         job_id: { type: 'string', description: 'id del job (lo da accion:descargar)' },
         ruta: { type: 'string', description: 'para "enviar": la ruta del archivo tal cual sale en accion:documentos' },
         titulo: { type: 'string', description: 'para "enviar": texto/caption opcional junto al archivo' },
