@@ -55,7 +55,7 @@ async function enviarArchivo(target, archivo, caption) {
 
 const HERRAMIENTAS = [{
   name: 'sii',
-  description: 'Sistema SII: descarga documentos tributarios (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros) de la(s) empresa(s) a las que TIENES acceso. Acciones: estado (lista tus empresas y qué se puede bajar), descargar (dispara la descarga), job (avance), documentos (lista lo bajado, con su "ruta"), enviar (manda el archivo a tu WhatsApp).',
+  description: 'Sistema SII: descarga documentos tributarios (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros, y "facturas de compra a detalle" = PDF timbrado de cada factura recibida con sus líneas) de la(s) empresa(s) a las que TIENES acceso. Acciones: estado (lista tus empresas y qué se puede bajar), descargar (dispara la descarga), job (avance), documentos (lista lo bajado, con su "ruta"), enviar (manda el archivo a tu WhatsApp).',
   input_schema: {
     type: 'object',
     properties: {
