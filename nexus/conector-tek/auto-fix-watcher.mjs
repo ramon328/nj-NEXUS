@@ -52,14 +52,21 @@ async function procesar(incPath) {
   log(`incidente procesado (ok=${ok}).`)
 }
 
-log(`watcher encendido (activo=${ACTIVO}, poll=${POLL_MS}ms, aviso a ${NUM_RAMON}).`)
+log(`watcher encendido (auto-editar=${ACTIVO ? 'ON' : 'OFF (solo avisa)'}, poll=${POLL_MS}ms, aviso a ${NUM_RAMON}).`)
 for (;;) {
   try {
-    if (ACTIVO) {
-      const pend = incidentesPendientes()
-      // procesar de a UNO (serial) — el más viejo; el resto en la próxima vuelta
-      if (pend.length) await procesar(pend[0])
+    const pend = incidentesPendientes()
+    // SIEMPRE ATENTO: avisa cada incidente nuevo apenas aparece (aunque el auto-editar esté OFF).
+    for (const p of pend) {
+      const flag = p + '.avisado'
+      if (!existsSync(flag)) {
+        let inc = {}; try { inc = JSON.parse(readFileSync(p, 'utf8')) } catch {}
+        writeFileSync(flag, new Date().toISOString())
+        await avisar(`🔎 Detecté un error en el banco: flujo *${inc.flujo}*, ${inc.estado}.${ACTIVO ? ' Lo arreglo solo y te aviso.' : ' (Auto-arreglo APAGADO — activalo con TEK_AUTOFIX=1 cuando el banco esté arriba, o corré `node auto-fix-banco.mjs` a mano.)'}`)
+      }
     }
+    // AUTO-EDITAR: solo si está encendido Y el banco está operativo (si no, no puede verificar).
+    if (ACTIVO && pend.length) await procesar(pend[0])
   } catch (e) { log('error en la vuelta:', e.message) }
   await sleep(POLL_MS)
 }
