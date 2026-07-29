@@ -14,6 +14,7 @@ from __future__ import annotations
 import base64
 import calendar
 import json
+import re
 import threading
 import time
 import uuid
@@ -920,6 +921,58 @@ def descargar_archivo(empresa_id: int, ruta: str, inline: bool = False):
         filename=destino.name,
         content_disposition_type="inline" if inline else "attachment",
     )
+
+
+@app.get("/api/empresas/{empresa_id}/facturas-recibidas")
+def facturas_recibidas_listar(empresa_id: int, desde: str = "", hasta: str = "", limite: int = 40):
+    """Lista RÁPIDA (sin bajar PDFs) de facturas de compra recibidas, ordenadas de
+    la más reciente a la más antigua. Para "la última factura que me enviaron":
+    llamar sin fechas (usa ~45 días hacia atrás) y tomar la primera. Entra con el
+    facturador (Nico), reutilizando su sesión."""
+    emp = db.obtener_empresa(empresa_id, con_clave=True)
+    if not emp:
+        raise HTTPException(404, "Empresa no encontrada.")
+    fac = _facturador(empresa_id)
+    if not fac:
+        raise HTTPException(400, "No hay facturador (persona autorizada) configurado para esta empresa.")
+    from sii import facturas_recibidas as fr
+    hoy = datetime.now()
+    if not hasta:
+        hasta = hoy.strftime("%Y-%m-%d")
+    if not desde:
+        desde = (hoy - timedelta(days=45)).strftime("%Y-%m-%d")
+    client = _client_facturador(empresa_id, fac)
+    fr.seleccionar_empresa(client, emp["rut"])
+    docs = fr.listar(client, desde, hasta)
+    client.save_cookies(_empresa_dir(empresa_id) / "facturador_session.json")
+    docs.sort(key=lambda d: d.get("fecha", ""), reverse=True)  # fecha YYYY-MM-DD
+    return {"desde": desde, "hasta": hasta, "total": len(docs), "documentos": docs[:limite]}
+
+
+@app.get("/api/empresas/{empresa_id}/factura-pdf")
+def factura_pdf(empresa_id: int, codigo: str):
+    """Baja y sirve el PDF timbrado (con líneas) de UNA factura recibida, por su
+    `codigo` (lo da facturas-recibidas). Rápido: no baja el mes entero."""
+    emp = db.obtener_empresa(empresa_id, con_clave=True)
+    if not emp:
+        raise HTTPException(404, "Empresa no encontrada.")
+    fac = _facturador(empresa_id)
+    if not fac:
+        raise HTTPException(400, "No hay facturador configurado para esta empresa.")
+    if not re.fullmatch(r"\d+", str(codigo)):
+        raise HTTPException(400, "codigo inválido.")
+    from sii import facturas_recibidas as fr
+    client = _client_facturador(empresa_id, fac)
+    fr.seleccionar_empresa(client, emp["rut"])
+    dest = _empresa_dir(empresa_id) / "facturas" / "adhoc"
+    dest.mkdir(parents=True, exist_ok=True)
+    ruta = dest / f"factura_{codigo}.pdf"
+    n = fr.descargar_pdf(client, str(codigo), ruta)
+    client.save_cookies(_empresa_dir(empresa_id) / "facturador_session.json")
+    if not n:
+        raise HTTPException(502, "El SII no devolvió el PDF de ese documento.")
+    return FileResponse(ruta, filename=ruta.name, media_type="application/pdf",
+                        content_disposition_type="inline")
 
 
 @app.delete("/api/empresas/{empresa_id}/archivo", status_code=204)

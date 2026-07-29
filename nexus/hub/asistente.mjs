@@ -2281,11 +2281,12 @@ const HERRAMIENTAS = [
   },
   {
     name: 'sii',
-    description: 'Sistema SII ("Martes"): descarga documentos del SII (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros, y "facturas de compra a detalle") y EMITE facturas. Empresa configurada: ANA CLARA SPA. 🧾 IMPORTANTE — si te piden "el detalle de la(s) factura(s)", "la factura a detalle", "el PDF de la factura", "las facturas con los productos/ítems" o similar: es el tipo docs:["facturas"] (baja el PDF timbrado de CADA factura de compra recibida, con sus líneas). El RCV solo trae la cabecera (folio/montos/IVA); "facturas" trae el documento completo. Entra solo con la cuenta del facturador (persona autorizada), ya configurada. Flujo: descargar docs:["facturas"] del período → job hasta completado → documentos (ubica la "ruta" del PDF que pidieron, por folio/proveedor) → enviar esa ruta. Acotado a N documentos por corrida (anti-bloqueo). Acciones: estado (empresas + qué se puede bajar), descargar (dispara la descarga), job (avance de una descarga), documentos (lista lo ya bajado, con su "ruta"), enviar (MANDA el archivo PDF/Excel al WhatsApp del usuario), emitir (EMITE una factura/boleta electrónica — SIMULA PRIMERO: sin confirmado=true solo arma y devuelve el BORRADOR con neto/IVA/total para pedir OK; NUNCA emite sin una confirmación explícita del usuario). Los precios de los ítems son NETOS (sin IVA); el IVA 19% se agrega solo en facturas afectas (33).',
+    description: 'Sistema SII ("Martes"): descarga documentos del SII (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros, y "facturas de compra a detalle") y EMITE facturas. Empresa configurada: ANA CLARA SPA. 🧾 IMPORTANTE — si te piden "el detalle de la(s) factura(s)", "la factura a detalle", "el PDF de la factura", "las facturas con los productos/ítems" o similar: es el tipo docs:["facturas"] (baja el PDF timbrado de CADA factura de compra recibida, con sus líneas). El RCV solo trae la cabecera (folio/montos/IVA); "facturas" trae el documento completo. Entra solo con la cuenta del facturador (persona autorizada), ya configurada. ⚡ Si piden UNA sola (ej. "la última factura que me enviaron", "mándame la factura de tal proveedor"): NO uses descargar (baja el mes entero y es lento). Usa la vía rápida: facturas_recientes (empresa_id 3, sin fechas = últimos 45 días, ya vienen de la más nueva a la más vieja) → elige el "codigo" que corresponda (la 1ª = la última) → factura_enviar (empresa_id, codigo) y listo, le llega el PDF. Para bajar MUCHAS de un período (ej. "todas las de junio"): descargar docs:["facturas"] → job hasta completado → documentos → enviar cada ruta. Acotado a N documentos por corrida (anti-bloqueo). Acciones: estado (empresas + qué se puede bajar), descargar (dispara la descarga), job (avance de una descarga), documentos (lista lo ya bajado, con su "ruta"), enviar (MANDA el archivo PDF/Excel al WhatsApp del usuario), emitir (EMITE una factura/boleta electrónica — SIMULA PRIMERO: sin confirmado=true solo arma y devuelve el BORRADOR con neto/IVA/total para pedir OK; NUNCA emite sin una confirmación explícita del usuario). Los precios de los ítems son NETOS (sin IVA); el IVA 19% se agrega solo en facturas afectas (33).',
     input_schema: {
       type: 'object',
       properties: {
-        accion: { type: 'string', enum: ['estado', 'descargar', 'job', 'documentos', 'enviar', 'emitir'] },
+        accion: { type: 'string', enum: ['estado', 'descargar', 'job', 'documentos', 'enviar', 'emitir', 'facturas_recientes', 'factura_enviar'] },
+        codigo: { type: 'string', description: 'para "factura_enviar": el codigo de la factura (sale en facturas_recientes)' },
         empresa_id: { type: 'integer', description: 'id de la empresa (lo da accion:estado). ANA CLARA SPA = 3.' },
         desde: { type: 'string', description: 'periodo inicio AAAAMM, ej "202605"' },
         hasta: { type: 'string', description: 'periodo fin AAAAMM (si es uno solo, igual a desde)' },
@@ -4352,6 +4353,34 @@ async function ejecutar(nombre, input, ctx = {}) {
             await enviarMediaWhatsApp(ctx.de, tmp, input.titulo || '')
             return JSON.stringify({ ok: true, enviado: input.ruta, nota: 'Documento enviado al WhatsApp del usuario.' })
           } catch (e) { return `No pude enviar el archivo: ${e.message}` }
+        }
+        if (input.accion === 'facturas_recientes') {
+          // Lista RÁPIDA de facturas de compra recibidas (sin bajar PDFs). Para
+          // "la última factura que me enviaron": llama esto (empresa 3) y toma la 1ª.
+          const empId = input.empresa_id || 3
+          if (empresaBloqueada(empId)) return '🔒 No tienes acceso al SII de esa empresa.'
+          const qs = new URLSearchParams()
+          if (input.desde) qs.set('desde', input.desde)
+          if (input.hasta) qs.set('hasta', input.hasta)
+          const r = await fetch(`${base}/api/empresas/${empId}/facturas-recibidas?${qs}`, { headers: H })
+          if (!r.ok) return `No pude listar las facturas recibidas (HTTP ${r.status}).`
+          return JSON.stringify(await r.json())
+        }
+        if (input.accion === 'factura_enviar') {
+          // Baja el PDF de UNA factura (por codigo) y lo manda al WhatsApp del usuario.
+          const empId = input.empresa_id || 3
+          if (empresaBloqueada(empId)) return '🔒 No tienes acceso al SII de esa empresa.'
+          if (!ctx.de) return 'No puedo identificar a quién enviarle el archivo.'
+          if (!input.codigo) return 'Falta el codigo de la factura (sale en facturas_recientes).'
+          try {
+            const r = await fetch(`${base}/api/empresas/${empId}/factura-pdf?codigo=${encodeURIComponent(input.codigo)}`, { headers: H })
+            if (!r.ok) return `No pude bajar esa factura (HTTP ${r.status}).`
+            const buf = Buffer.from(await r.arrayBuffer())
+            const tmp = `/tmp/nexus-factura-${input.codigo}.pdf`
+            writeFileSync(tmp, buf)
+            await enviarMediaWhatsApp(ctx.de, tmp, input.titulo || '')
+            return JSON.stringify({ ok: true, enviado: input.codigo, nota: 'Factura enviada al WhatsApp del usuario.' })
+          } catch (e) { return `No pude enviar la factura: ${e.message}` }
         }
         if (input.accion === 'emitir') {
           const empresaId = input.empresa_id || 3 // ANA CLARA SPA
