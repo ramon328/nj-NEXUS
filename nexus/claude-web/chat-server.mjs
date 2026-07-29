@@ -657,6 +657,10 @@ if(SR){
 let pendImgs=[]
 let pendFiles=[]
 const MAXDIM=1568, MAXN=6
+// Prefijo de ruta: '' en Tailscale directo (puerto 7683) o '/code' cuando el
+// chat se sirve por el proxy público (…ts.net/code). Sin esto, las subidas
+// (fetch relativo) se salían de /code y la cookie de sesión no viajaba → 401.
+const PFX=location.pathname.startsWith('/code')?'/code':''
 function renderPrevs(){
   const c=$('#prevs');c.innerHTML=''
   pendFiles.forEach((p,idx)=>{
@@ -707,12 +711,15 @@ async function addFiles(files){
       // Cualquier otro archivo (PDF, txt, xlsx, zip…): se sube a ~/nexus/uploads/
       // y se le pasa la ruta a Claude para que lo lea con Read.
       try{
+        add('sys','subiendo '+f.name+' ('+Math.round(f.size/1024)+' KB)…')
         const b64=await fileB64(f)
-        const r=await fetch('subir/up',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:f.name,data:b64})})
+        const r=await fetch(PFX+'/subir/up',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name:f.name,data:b64})})
         const j=await r.json().catch(()=>null)
         if(j&&j.ok){pendFiles.push({name:f.name,archivo:j.archivo})}
-        else add('sys','no pude subir '+f.name)
-      }catch(e){add('sys','no pude subir '+f.name)}
+        else if(r.status===401) add('sys','no pude subir '+f.name+': sesión no válida (recarga la página)')
+        else if(r.status===413) add('sys','no pude subir '+f.name+': archivo demasiado grande')
+        else add('sys','no pude subir '+f.name+' (error '+r.status+')')
+      }catch(e){add('sys','no pude subir '+f.name+': '+(e&&e.message||'error de red'))}
     }
   }
   renderPrevs();$('#inp').focus()
@@ -737,7 +744,7 @@ if(window.visualViewport)visualViewport.addEventListener('resize',()=>scroll())
   const tok=new URLSearchParams(location.search).get('t')
   if(!tok)return
   try{
-    const r=await fetch('share-auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:tok})})
+    const r=await fetch(PFX+'/share-auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({token:tok})})
     if(r.ok){ROLE='guest';$('#login').style.display='none';$('#app').style.display='flex';applyRole();connect()}
     else{$('#err').textContent='Este link ya no está activo';$('#pin').focus()}
   }catch(e){$('#err').textContent='Sin conexión, reintenta'}
@@ -964,16 +971,19 @@ const server = http.createServer((req, res) => {
   }
   if (req.method === 'POST' && url === '/subir/up') {
     if (!authed(req)) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
-    let body = ''
-    req.on('data', (c) => { body += c; if (body.length > 60e6) req.destroy() })
+    let body = '', tooBig = false
+    // ~300MB de body base64 ≈ archivo de ~220MB. Antes el tope era 60MB y se
+    // cortaba la conexión en silencio (Excel/ZIP grandes fallaban sin motivo).
+    req.on('data', (c) => { if (tooBig) return; body += c; if (body.length > 300e6) { tooBig = true; res.writeHead(413, { 'content-type': 'application/json' }); res.end('{"error":"archivo demasiado grande"}'); req.destroy() } })
     req.on('end', () => {
+      if (tooBig) return
       try {
         const j = JSON.parse(body)
         const nombre = `${Date.now()}-${nombreSeguro(j.name)}`
         writeFileSync(join(UPLOADS_DIR, nombre), Buffer.from(j.data, 'base64'))
-        console.log(`[claude-chat] archivo subido: ${nombre}`)
+        console.log(`[claude-chat] archivo subido: ${nombre} (${Math.round(body.length / 1024)} KB base64)`)
         res.writeHead(200, { 'content-type': 'application/json' }); res.end(JSON.stringify({ ok: true, archivo: nombre }))
-      } catch (e) { res.writeHead(400, { 'content-type': 'application/json' }); res.end('{"error":"no se pudo guardar"}') }
+      } catch (e) { console.log(`[claude-chat] subida FALLÓ: ${e && e.message}`); res.writeHead(400, { 'content-type': 'application/json' }); res.end('{"error":"no se pudo guardar"}') }
     })
     return
   }
