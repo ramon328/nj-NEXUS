@@ -12,6 +12,7 @@ Arranque:  .venv/bin/uvicorn api:app --reload --port 8000
 from __future__ import annotations
 
 import base64
+import calendar
 import json
 import threading
 import time
@@ -65,6 +66,12 @@ DOC_TYPES = [
     {"id": "libros", "nombre": "Libro de Compras/Ventas",
      "descripcion": "Resumen mensual de IVA por periodo (débito/crédito fiscal), "
                     "armado desde el RCV.",
+     "estable": True},
+    {"id": "facturas", "nombre": "Facturas de compra a detalle (PDF)",
+     "descripcion": "PDF timbrado de CADA factura de compra recibida en el periodo, "
+                    "con sus líneas de productos, desde el Sistema de Facturación "
+                    "Gratuito del SII. Requiere el facturador (persona autorizada) "
+                    "configurado para la empresa. Acotado a N documentos por corrida.",
      "estable": True},
     {"id": "dte", "nombre": "Documentos individuales (DTE) [experimental]",
      "descripcion": "Intento best-effort de bajar PDF/XML de cada factura. "
@@ -174,6 +181,30 @@ def _client_para(empresa: dict) -> SiiClient:
     return auth.ensure_session(
         client, empresa["rut"], empresa["clave"], session_file=_session_file(empresa["id"])
     )
+
+
+def _facturador(empresa_id: int) -> dict | None:
+    """Persona autorizada por la empresa para el Sistema de Facturación Gratuito
+    del SII (donde salen las facturas recibidas a detalle). Ese portal NO acepta
+    la clave de la empresa: exige el RUT+clave de una persona. Config en
+    facturadores.json (gitignored), keyed por empresa_id.
+    """
+    f = BASE_DIR / "facturadores.json"
+    if not f.exists():
+        return None
+    try:
+        data = json.loads(f.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return None
+    return data.get(str(empresa_id))
+
+
+def _client_facturador(empresa_id: int, fac: dict) -> SiiClient:
+    """SiiClient autenticado como el facturador (persona), sesión propia y
+    reutilizada (un solo login, igual que la de la empresa)."""
+    client = SiiClient(Throttle(DELAY_MIN, DELAY_MAX), max_retries=MAX_RETRIES)
+    sf = _empresa_dir(empresa_id) / "facturador_session.json"
+    return auth.ensure_session(client, fac["rut"], fac["clave"], session_file=sf)
 
 
 def periodos_rango(desde: str, hasta: str) -> list[str]:
@@ -404,7 +435,7 @@ def _run_job(job_id: str, empresa: dict, body: DescargaIn) -> None:
     periodos = periodos_rango(body.desde, body.hasta)
     ops = [d for d in ("rcv_compra", "rcv_venta") if d in body.docs]
     otros = [d for d in ("carpeta", "carpeta_oficial", "f29", "f22",
-                         "ficha", "boletas", "dte") if d in body.docs]
+                         "ficha", "boletas", "dte", "facturas") if d in body.docs]
 
     # Docs que se arman a partir de los datos de la carpeta (una sola consulta).
     # "boletas" YA NO usa la carpeta: las BHE *recibidas* salen del portal dedicado
@@ -807,6 +838,45 @@ def _run_job(job_id: str, empresa: dict, body: DescargaIn) -> None:
             _log(job_id, f"🔬 DTE (experimental) no concluyó: {exc}")
             _bump(job_id, {"doc": "dte", "ok": False, "experimental": True,
                            "mensaje": str(exc)})
+
+    # ── Facturas de compra a detalle (PDF timbrado con líneas) ─────────
+    # Sistema de Facturación Gratuito del SII: el PDF de cada documento recibido,
+    # con sus líneas. Ese portal NO acepta la clave de la empresa → se usa el
+    # facturador (persona autorizada), con su PROPIA sesión reutilizada. Un solo
+    # login por corrida; throttle 2-5s por request; límite de N docs.
+    if "facturas" in body.docs:
+        try:
+            from sii import facturas_recibidas as fr
+            fac = _facturador(empresa_id)
+            if not fac:
+                msg = ("No hay facturador configurado para esta empresa. El sistema "
+                       "de facturación gratuito del SII exige el RUT+clave de la "
+                       "persona autorizada (no la clave de la empresa). "
+                       "Config: facturadores.json.")
+                _log(job_id, f"⚠️ Facturas: {msg}")
+                _bump(job_id, {"doc": "facturas", "ok": False, "mensaje": msg})
+            else:
+                _log(job_id, f"📄 Facturas a detalle: entrando como {fac.get('nombre', fac['rut'])}…")
+                fclient = _client_facturador(empresa_id, fac)
+                total_docs = 0
+                for periodo in periodos:
+                    y, m = periodo[:4], periodo[4:]
+                    ult = calendar.monthrange(int(y), int(m))[1]
+                    desde, hasta = f"{y}-{m}-01", f"{y}-{m}-{ult:02d}"
+                    base = salida / "facturas" / periodo
+                    res = fr.descargar_facturas(fclient, empresa["rut"], desde, hasta, base)
+                    (base / f"indice_{periodo}.json").write_text(
+                        json.dumps(res["documentos"], ensure_ascii=False, indent=2),
+                        encoding="utf-8")
+                    total_docs += res["descargados"]
+                    aviso = " (truncado por límite anti-bloqueo)" if res["truncado"] else ""
+                    _log(job_id, f"✅ Facturas {periodo}: {res['descargados']}/{res['total']} "
+                                 f"PDF con detalle{aviso}")
+                fclient.save_cookies(_empresa_dir(empresa_id) / "facturador_session.json")
+                _bump(job_id, {"doc": "facturas", "ok": True, "docs": total_docs})
+        except Exception as exc:  # noqa: BLE001
+            _log(job_id, f"⚠️ Facturas a detalle falló: {exc}")
+            _bump(job_id, {"doc": "facturas", "ok": False, "mensaje": str(exc)})
 
     client.save_cookies(_session_file(empresa_id))
     _set(job_id, estado="completado")
