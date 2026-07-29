@@ -21,6 +21,7 @@ import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync, cpSync,
 import { join } from 'node:path'
 import { obtener as obtenerCreds } from '/Users/AIagenteia/nexus/conector-tek/credenciales.mjs'
 import { crearCandado } from '/Users/AIagenteia/nexus/conector-tek/candado.mjs'
+import { registrarIncidente } from '/Users/AIagenteia/nexus/conector-tek/incidente.mjs'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
 const DATA = join(DIR, 'data')
@@ -1663,7 +1664,11 @@ async function masivaImportar(page, log) {
     for (const f of page.frames()) {
       if (await f.locator('input[type="file"]').first().count().catch(() => 0)) { imp = f; break }
     }
-    if (!imp) { log('masiva: no encontré el frame de importación'); return { estado: 'sin_frame_importacion', url: page.url() } }
+    if (!imp) {
+      log('masiva: no encontré el frame de importación')
+      try { registrarIncidente({ flujo: 'masiva', estado: 'sin_frame_importacion', url: page.url(), empresa: process.env.TEK_EMPRESA, user: process.env.TEK_USER, screenshots: ['masiva-00-menu.png', 'masiva-01-import.png', 'masiva-import.json'] }) } catch { /* */ }
+      return { estado: 'sin_frame_importacion', url: page.url() }
+    }
 
     // DRY-RUN (TEK_MASIVA_DRY=1): llegamos al FORMULARIO de importación → paramos acá.
     // NO se adjunta archivo, NO se importa, NO se confirma. Solo verifica que la navegación
@@ -2471,6 +2476,9 @@ async function explorarNomina(page, log) {
   let fileInputs = 0
   for (const f of page.frames()) { fileInputs += await f.locator('input[type="file"]').count().catch(() => 0) }
   log(`nómina: mapeado (clic_pagos_masivos=${clic}, submenu=${sub || '?'}, inputs_file=${fileInputs})`)
+  if (!clic || fileInputs === 0) {
+    try { registrarIncidente({ flujo: 'nomina', estado: !clic ? 'no_encontre_pagos_masivos' : 'nomina_sin_input_archivo', url: page.url(), empresa: process.env.TEK_EMPRESA, user: process.env.TEK_USER, screenshots: ['nomina-01-menu.png', 'nomina-02-carga.png', 'nomina-menu.json', 'nomina-carga.json'] }) } catch { /* */ }
+  }
   return { estado: 'nomina_mapeada', clic, submenu: sub, file_inputs: fileInputs, url: page.url() }
 }
 
