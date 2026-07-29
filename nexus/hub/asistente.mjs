@@ -1576,7 +1576,7 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
   Ej. completo: "vende el Musso a Juan Pérez en 22.9, transferencia" → buscar 'musso' → confirmar → vender_goautos id=4810 precio=22900000 nombre='Juan' apellido='Pérez' pago='transferencia'. Ej. con falta: "vende el id 4810" → falta precio (y comprador/pago) → UNA pregunta: "¿En cuánto lo vendiste, a quién (nombre o RUT) y cómo pagó? Si no, lo dejo sin cliente y en efectivo."
 - AGREGAR un GASTO a un auto de MallorcAutos (gasto del vehículo: taller, neumáticos, transferencia, documentación, pintura, repuestos, etc.) = herramienta gasto_goautos (agente "Meme"). SOLO MallorcAutos. Sigue el 🧾 FORMULARIO PARA AGREGAR UN GASTO de más abajo. Sé ÁGIL, no te des vueltas. OBLIGATORIOS = el AUTO + TÍTULO + MONTO + si es CON o SIN FACTURA. Flujo: (1) identifica el auto (si no es evidente, búscalo con consultar_goautos/buscar y confirma cuál); (2) arma el gasto con lo que ya te mandó y, si falta algún obligatorio, PREGUNTA SOLO POR LO QUE FALTA, todo junto en UN mensaje (no de a uno). (3) FACTURA = lo que define el IVA: NO lo asumas. Espera a que Ramón diga si el gasto es con o sin factura; si no lo dijo, PREGÚNTALO. CON factura (es el ~98% de los casos) → factura=true (IVA recuperable: el sistema descuenta el IVA y carga el neto al costo del auto) y además PÍDELE el N° de factura (numero_factura). SIN factura (boleta, contrato, derechos de transferencia) → factura=false. (4) El MONTO es el total que pagó (lo que dice la factura/boleta). (5) categoría, quién asume y descripción son OPCIONALES (no trabes por ellos; por defecto la asume la automotora). (6) con auto+título+monto+factura listos, llama gasto_goautos y confirma corto (auto, título, monto, con/sin factura y N° si aplica). Ej.: "súmale 280 lucas de neumáticos al Musso, con factura 4567" → buscar 'musso' → gasto_goautos id=4810 titulo='Cambio de neumáticos' monto=280000 categoria='Neumáticos' factura=true numero_factura='4567'. Ej. sin dato de factura: "anótale 90 mil de lavado al id 4810" → pregunta "¿ese gasto fue con factura o sin factura? Si fue con factura, pásame el número."
 - SUBIR / INGRESAR / CARGAR / AGREGAR / PUBLICAR un auto NUEVO = herramienta subir_auto (agente "Meme"). SOLO para MallorcAutos (los autos solo se suben a MallorcAutos). NO improvises el flujo: sigue SIEMPRE, paso a paso, el 📋 FORMULARIO ESTÁNDAR PARA PUBLICAR UN AUTO definido más abajo (foto primero → extraer → mostrar el formulario → rellenar conversando → confirmar y subir). El auto entra en estado "Chillan" (ingreso) y "en el local" por defecto; no lo publiques tú.
-- DATOS FINANCIEROS de Mallorca (COSTO, GASTOS, TOTAL invertido, PV esperado, MARGEN, ventas, compras, y también CxC/CxP/flujo/bancos) = herramienta consultar_mallorca (Excel global de Mallorca, agente "Meme"). GoAutos NO tiene el costo ni el margen: están en este Excel. Cruce por PATENTE. Combina ambas fuentes cuando convenga: (a) MARGEN/COSTO de un auto → saca la patente de GoAutos (consultar_goautos/buscar) y pásala a consultar_mallorca comando 'auto'; el margen estimado = precio publicado en GoAutos − TOTAL del Excel. (b) STOCK VALORIZADO ("cuánta plata hay en el stock", "stock valorizado") → consultar_mallorca comando 'stock'. (c) VENTAS y MÁRGENES (por mes o acumulado) → comando 'ventas' (--mes YYYY-MM). (d) ENRIQUECER fichas: al dar el detalle de un auto de MallorcAutos, si te piden o tiene sentido (rentabilidad), agrega su costo/margen del Excel. (e) Otra hoja del negocio (CxC, CxP, flujo, etc.) → comando 'hojas' para verlas y 'hoja' para leer una. Montos en CLP.
+- DATOS FINANCIEROS de Mallorca (COSTO, GASTOS, TOTAL invertido, PV esperado, MARGEN, ventas) = herramienta consultar_mallorca (agente "Meme"). ⚙️ IMPORTANTE: el costo/gastos/total/margen de cada auto ahora salen EN VIVO de GoAutos (Supabase), NO del Excel — compra + consignación + gastos (neto de IVA recuperable) + venta. Ya NO digas "según el Excel" para estos números; son de GoAutos y están al día. (a) MARGEN/COSTO de un auto → consultar_mallorca comando 'auto' con la patente (o el id) de GoAutos; ya devuelve costo, gastos, total, precio publicado y el margen (realizado si está vendido; estimado vs precio publicado si está en stock). (b) STOCK VALORIZADO ("cuánta plata hay en el stock", "stock valorizado") → comando 'stock'. (c) VENTAS y MÁRGENES (por mes o acumulado) → comando 'ventas' (--mes YYYY-MM). (d) ENRIQUECER fichas: al dar el detalle de un auto de MallorcAutos, si te piden o tiene sentido (rentabilidad), agrega su costo/margen (ya vienen de GoAutos). (e) OTRAS hojas del negocio que NO viven en GoAutos (CxC, CxP, flujo, bancos) → comando 'hojas' para verlas y 'hoja' para leer una (esas siguen del Excel). Montos en CLP.
 - 🚗 GoAutos AMPLIADO (agente "Meme", SOLO MallorcAutos) — además del stock/ventas/gastos, Nexus ahora hace TODO lo que hacía la IA "GAIA" de GoAuto Admin. Piensa como GERENTE COMERCIAL, no como buscador:
   · LEADS / prospectos = leads_goautos (interesados de WhatsApp/web/ChileAutos). Cambiar su estado = lead_estado_goautos. Un lead "pending" de +48h es una venta que se puede perder; prioriza los de compra directa. (Ej.: "¿tengo leads nuevos?", "muéstrame los prospectos de venta").
   · CITAS / agenda = citas_goautos (visitas al showroom, pruebas de manejo). Ej.: "¿qué citas hay esta semana?".
@@ -2109,12 +2109,13 @@ const HERRAMIENTAS = [
   },
   {
     name: 'consultar_mallorca',
-    description: 'Datos FINANCIEROS del negocio Mallorca desde su Excel global (SOLO LECTURA). Complementa a GoAutos: GoAutos tiene precio publicado/estado/foto, pero el COSTO, GASTOS, TOTAL invertido, PV esperado y MARGEN están acá. Cruce por PATENTE. Úsalo para margen/costo de un auto, stock valorizado (plata invertida), ventas y márgenes, o cualquier otra hoja del Excel (CxC, CxP, flujo, etc.). comando: stock (stock valorizado: total invertido + lista) | auto (costo/margen de UN auto por patente) | ventas (ventas y márgenes; opcional --mes YYYY-MM) | hojas (lista las hojas del Excel) | hoja (lee una hoja cualquiera por nombre).',
+    description: 'Datos FINANCIEROS de MallorcAutos (SOLO LECTURA). ⚙️ El COSTO, GASTOS, TOTAL invertido, PV esperado y MARGEN de cada auto ahora se calculan EN VIVO desde GoAutos (Supabase), NO del Excel: compra (vehicles_purchases) o consignación (agreed_price) + gastos (extras expense/document, neto de IVA recuperable) + venta (vehicles_sales). Ya no hay lag de sync ni Excel a mano. comando: stock (stock valorizado: total invertido + costo+gastos por auto y márgenes estimados vs precio publicado) | auto (costo/gastos/total/margen de UN auto por patente o id, con desglose de gastos) | ventas (ventas y márgenes realizados; opcional --mes YYYY-MM) | hojas / hoja (OTRAS hojas del negocio que NO viven en GoAutos: CxC, CxP, flujo, bancos — esas siguen del Excel). Para un auto puntual, cruza con GoAutos por PATENTE.',
     input_schema: {
       type: 'object',
       properties: {
         comando: { type: 'string', enum: ['stock', 'auto', 'ventas', 'hojas', 'hoja'] },
         patente: { type: 'string', description: 'Para "auto": patente del vehículo (sácala de GoAutos si no la tienes)' },
+        id: { type: 'integer', description: 'Para "auto": id del vehículo en GoAutos (alternativa a la patente)' },
         mes: { type: 'string', description: 'Para "ventas": mes YYYY-MM (opcional; sin esto, total acumulado)' },
         hoja: { type: 'string', description: 'Para "hoja": nombre EXACTO de la hoja (usa "hojas" para verlas)' },
         buscar: { type: 'string', description: 'Para "hoja": filtra filas que contengan este texto' },
@@ -4127,14 +4128,20 @@ async function ejecutar(nombre, input, ctx = {}) {
       }
     }
     if (nombre === 'consultar_mallorca') {
-      // Lee el Excel global de Mallorca (datos financieros) por su conector Python.
-      // Solo lectura. Cruza con GoAutos por patente (el modelo combina ambas fuentes).
+      // FINANZAS de MallorcAutos. El COSTO/GASTOS/TOTAL/MARGEN de cada auto ahora se
+      // calculan DIRECTO de GoAutos (Supabase, en vivo) — conector-goautos/finanzas.mjs —
+      // NO del Excel: compra (vehicles_purchases) + consignación + gastos (extras
+      // expense/document, neto de IVA recuperable) + venta (vehicles_sales). Comandos
+      // stock / auto / ventas → GoAutos. Las OTRAS hojas del negocio (CxC, CxP, flujo,
+      // bancos…), que no viven en GoAutos, se siguen leyendo del Excel (hojas / hoja).
       const cmd = String(input.comando || 'stock').replace(/[^a-z]/g, '')
       const comando = ['stock', 'auto', 'ventas', 'hojas', 'hoja'].includes(cmd) ? cmd : 'stock'
+      const esGoautos = comando === 'stock' || comando === 'auto' || comando === 'ventas'
       let args = comando
       if (comando === 'auto') {
-        if (!input.patente) return 'Para "auto" necesito la patente. Si no la tienes, búscala primero en GoAutos (consultar_goautos/buscar).'
-        args += ` --patente ${JSON.stringify(String(input.patente))}`
+        if (!input.patente && !input.id) return 'Para "auto" necesito la patente (o el id). Si no la tienes, búscala primero en GoAutos (consultar_goautos/buscar).'
+        if (input.patente) args += ` --patente ${JSON.stringify(String(input.patente))}`
+        else args += ` --id ${Number(input.id)}`
       }
       if (comando === 'ventas' && input.mes) args += ` --mes ${JSON.stringify(String(input.mes))}`
       if (comando === 'hoja') {
@@ -4143,10 +4150,12 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (input.buscar) args += ` --buscar ${JSON.stringify(String(input.buscar))}`
         if (input.limite) args += ` --limite ${Number(input.limite)}`
       }
-      const py = join(__dirname, '..', 'conector-mallorca', '.venv', 'bin', 'python')
-      const script = join(__dirname, '..', 'conector-mallorca', 'mallorca.py')
+      // stock/auto/ventas → GoAutos (node finanzas.mjs); hojas/hoja → Excel (mallorca.py).
+      const invoca = esGoautos
+        ? `node ${JSON.stringify(join(__dirname, '..', 'conector-goautos', 'finanzas.mjs'))} ${args}`
+        : `${JSON.stringify(join(__dirname, '..', 'conector-mallorca', '.venv', 'bin', 'python'))} ${JSON.stringify(join(__dirname, '..', 'conector-mallorca', 'mallorca.py'))} ${args}`
       try {
-        const { stdout } = await ejecCmd(`${JSON.stringify(py)} ${JSON.stringify(script)} ${args}`, { timeout: 60000, maxBuffer: 8 * 1024 * 1024 })
+        const { stdout } = await ejecCmd(invoca, { timeout: 60000, maxBuffer: 8 * 1024 * 1024 })
         const txt = stdout.slice(0, 16000)
         // Igual que Aliace: si son DATOS FINANCIEROS con varios componentes (stock
         // valorizado por marca, ventas/márgenes por mes), acompañar SIEMPRE con gráfico.
@@ -4161,7 +4170,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         }
         return txt
       } catch (e) {
-        return `No pude leer el Excel de Mallorca: ${e.message}`
+        return `No pude leer las finanzas de Mallorca (${esGoautos ? 'GoAutos' : 'Excel'}): ${e.message}`
       }
     }
     if (nombre === 'enviar_fotos_autos') {
