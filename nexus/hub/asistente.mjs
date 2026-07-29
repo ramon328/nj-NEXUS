@@ -2861,6 +2861,45 @@ async function avisarTrabajando(ctx, texto) {
   } catch { /* un aviso no debe romper la operación */ }
 }
 
+// AUTO-SANACIÓN de LECTURAS del banco (saldos en vivo, pendientes, comprobantes): si la lectura
+// falla por un error TRANSITORIO (sesión caída / error de seguridad / timeout / sin_frame), la
+// re-ejecuta UNA vez (login-humano re-establece la sesión al vuelo) → "que funcione solo".
+// ⛔ SOLO para LECTURAS. Jamás envolver transferencias/masivas: reintentar un WRITE DUPLICA plata.
+// device_trust / antifraude NO se reintenta (empeora el bloqueo de la cuenta).
+async function lecturaBancoAutoSana(fn) {
+  const clasificar = (r) => {
+    const s = String((r && (r.estado || r.error)) || '')
+    if (/device_trust|incapsula|antifraud/i.test(s)) return 'no_reintentar'   // cuenta/dispositivo bloqueado
+    if (/sesion_caida|error.?segurid|invalid_token|timeout|sin_frame|banco no disponible|desconocid|spawn_error/i.test(s)) return 'transitorio'
+    if (r && r.ok === false && !r.rechazado) return 'transitorio'
+    return 'ok'
+  }
+  let r = await fn()
+  if (clasificar(r) === 'transitorio') {
+    await new Promise((res) => setTimeout(res, 4000))   // respiro breve; login-humano re-loguea
+    const r2 = await fn()
+    if (clasificar(r2) !== 'transitorio') r = r2; else r = r2
+  }
+  return r
+}
+
+// AUTO-SANACIÓN de ESCRITURAS (transferir/masiva) — tu lógica: verificar antes de reintentar.
+// Reintenta UNA vez SOLO si la operación falló ANTES de enviar nada al banco (no cargó la
+// pantalla de importación/formulario → estado sin_frame*): el banco NUNCA recibió la solicitud,
+// así que reintentar NO puede duplicar. Para el resto NO reintenta acá; la verificación "¿ya se
+// creó?" en casos ambiguos la hace el propio motor (existePendiente → ya_pendiente, no crea otra).
+// ⛔ Nunca reintenta: creada/ya_pendiente/posible_creada/tefun_no_confirmada/device_trust/ocupado/limite_*.
+async function escrituraBancoAutoSana(ejecutar) {
+  let r = await ejecutar()
+  const s = String((r && (r.estado || r.error)) || '')
+  const noSeEnvioNada = r?.ok === false && /sin_frame_importacion|sin_frame\b/i.test(s)
+  if (noSeEnvioNada) {
+    await new Promise((res) => setTimeout(res, 3000))   // respiro; login-humano reintenta la navegación
+    r = await ejecutar()
+  }
+  return r
+}
+
 async function ejecutar(nombre, input, ctx = {}) {
   try {
     // ── Control de acceso por usuario ───────────────────────────────────────────
@@ -3249,7 +3288,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       const ultima = (typeof tr.leerUltimaTransferencia === 'function') ? tr.leerUltimaTransferencia() : null
       if (input.accion === 'enviar') {
         await avisarTrabajando(ctx, `💸 Creando la transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} en el banco… dame ~1-2 min, sigo trabajando 🏦`)
-        const res = await tr.ejecutar(bo, { userId, empresa })
+        const res = await escrituraBancoAutoSana(() => tr.ejecutar(bo, { userId, empresa }))
         // Si era un beneficiario NUEVO y la transferencia se creó, lo guardamos en la libreta
         // para no volver a pedir los datos la próxima vez (best-effort, no rompe si falla).
         if (res.pendiente && bo.nuevo) {
@@ -3395,7 +3434,7 @@ async function ejecutar(nombre, input, ctx = {}) {
 
       if (input.accion === 'enviar') {
         await avisarTrabajando(ctx, `📤 Subiendo el lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) al banco… dame ~1-2 min, sigo acá trabajando 🏦`)
-        const res = await mm.ejecutarMasivo(resueltas, { concepto, stamp: String(Date.now()), userId: userMasiva, empresa: empresaMasiva })
+        const res = await escrituraBancoAutoSana(() => mm.ejecutarMasivo(resueltas, { concepto, stamp: String(Date.now()), userId: userMasiva, empresa: empresaMasiva }))
         if (res.ok && tr) { for (const t of resueltas) { try { if (String(t.rut || '').replace(/\D/g, '')) tr.guardarBeneficiario({ nombre: t.nombre, rut: t.rut, banco: t.banco, cuenta: t.cuenta }) } catch { /* */ } } }
         let okTxt, instruccion
         if (res.ok) {
@@ -3436,7 +3475,8 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (input.todos === true) spec = 'todos'
         else if (Array.isArray(input.indices) && input.indices.length) spec = input.indices.map((n) => parseInt(n, 10)).filter((n) => n >= 1).join(',')
         else if (input.indice != null) spec = String(Math.max(1, parseInt(input.indice, 10) || 1))
-        const r = await cm.bajarComprobantes(spec, { userId: uidComp, empresa: empComp })
+        await avisarTrabajando(ctx, '🧾 Entrando al banco a bajar los comprobantes… dame ~1-2 min, sigo acá 🏦')
+        const r = await lecturaBancoAutoSana(() => cm.bajarComprobantes(spec, { userId: uidComp, empresa: empComp }))
         if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de bajar comprobantes.' })
         const oks = (r.comprobantes || []).filter((c) => c.pdf)
         if (!oks.length) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude bajar ${spec === 'todos' ? 'los comprobantes' : 'ese comprobante'} (${r.estado || 'desconocido'}). Puede que esas filas no tengan PDF o el banco no los entregó.` })
@@ -3455,7 +3495,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         return JSON.stringify({ ok: true, enviados, descargados: oks.length, fallidos, pdfs: oks.map((c) => c.idx), texto })
       }
       // listar
-      const r = await cm.listarComprobantes({ userId: uidComp, empresa: empComp })
+      const r = await lecturaBancoAutoSana(() => cm.listarComprobantes({ userId: uidComp, empresa: empComp }))
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de leer comprobantes.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer los comprobantes (${r.estado || 'desconocido'}).` })
       return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (nº · fecha · beneficiario · monto · estado). RECUERDA esta lista para el próximo mensaje: si el usuario responde "todos"/"mándamelos todos" llama tek_comprobantes accion:"bajar" con todos:true; si dice "el 3 y el 5" usa indices:[3,5]; si dice uno, indice:ese número. Los números son los que le mostraste.' })
@@ -3471,7 +3511,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       let empP = input.empresa
       if (!empP) { try { const cr = await import('../conector-tek/credenciales.mjs'); empP = (cr.listar(uidP) || [])[0]?.empresa } catch { /* */ } }
       await avisarTrabajando(ctx, '🔎 Entrando al banco a revisar las pendientes… dame ~1-2 min, sigo acá 🏦')
-      const r = await pm.listarPendientes({ userId: uidP, empresa: empP })
+      const r = await lecturaBancoAutoSana(() => pm.listarPendientes({ userId: uidP, empresa: empP }))
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Reintentá en un momento y la reabro.' })
       if (r.estado === 'ocupado') return JSON.stringify({ ok: false, estado: 'ocupado', texto: 'Hay una operación bancaria en curso para esta persona. Espera ~2 min y reintenta UNA vez.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer las pendientes (${r.estado || 'desconocido'}).` })
