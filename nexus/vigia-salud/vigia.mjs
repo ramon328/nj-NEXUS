@@ -1,7 +1,8 @@
 #!/usr/bin/env node
 // Vigía de Salud del Mac mini — Nexus
-// Filosofía: SOLO observa, mide, registra y AVISA. NUNCA mata procesos.
-//            Nunca toca servicios de Nexus/estudio. Nada destructivo por defecto.
+// Filosofía: observa, mide, registra y AVISA. La ÚNICA acción destructiva es matar Chrome
+//            HUÉRFANO del banco (login-humano muerto, PPID=1, no-daemon) — nada más. Nunca toca
+//            los 3 daemons persistentes, ni el Chrome personal, ni servicios de Nexus/estudio.
 // Corre una vez y sale (lo agenda launchd cada 3 min). Bajo consumo.
 
 import { execSync } from 'node:child_process';
@@ -146,11 +147,35 @@ try {
   }
 } catch {}
 
-// ---- Housekeeping 100% seguro (nunca toca procesos) ----
+// ---- Housekeeping seguro ----
 try {
   // PNGs de gráficos en /tmp de más de 2 días
   sh("find /tmp -maxdepth 1 -name '*.png' -mtime +2 -delete 2>/dev/null");
 } catch {}
+
+// ---- AUTO-SANACIÓN quirúrgica (pedido de Ramón: que se arregle solo, no dependa de él).
+//      ÚNICA acción destructiva y ACOTADA: matar Chrome HUÉRFANO del banco = Chrome de un
+//      perfil chrome-profile-tek cuyo login-humano YA MURIÓ (PPID=1) y que NO es uno de los 3
+//      daemons persistentes (esos tienen --remote-debugging-port). Eso fue lo que ahogó la RAM
+//      y colgó el hub el 28-jul. NO toca: los 3 daemons, el Chrome personal, ni servicios Nexus.
+//      Se puede apagar creando el archivo vigia-salud/NO_AUTOHEAL.
+let saneados = [];
+try {
+  if (!fs.existsSync(path.join(DIR, 'NO_AUTOHEAL'))) {
+    const psCh = sh("ps -Ao pid,ppid,command | grep -i 'conector-tek/chrome-profile' | grep -v grep");
+    for (const ln of (psCh ? psCh.split('\n') : [])) {
+      if (/--type=/.test(ln)) continue;                    // es un helper, no el proceso principal
+      if (/--remote-debugging-port=/.test(ln)) continue;   // es un DAEMON persistente → NO tocar
+      const t = ln.trim().split(/\s+/); const pid = num(t[0]); const ppid = num(t[1]);
+      if (pid && ppid === 1) { sh(`kill -9 ${pid} 2>/dev/null`); saneados.push(pid); }
+    }
+  }
+} catch {}
+if (saneados.length) {
+  const msg = `Auto-saneé ${saneados.length} Chrome huérfano(s) del banco (pids ${saneados.join(',')})`;
+  razones.push('🔧 ' + msg);
+  try { sh(`osascript -e 'display notification "${msg}" with title "🔧 Vigía auto-sanó"'`); } catch {}
+}
 
 // ---- Alerta (local siempre; WhatsApp solo si opt-in) ----
 function debeAvisar() {

@@ -471,6 +471,25 @@ async function cerrarPopups(page, log) {
   return true
 }
 
+// ESPERA POR CONDICIÓN (robustez anti-flaky): espera hasta que un texto/elemento APAREZCA
+// visible en CUALQUIER frame, hasta `ms`. Devuelve true si apareció, false si venció. Reemplaza
+// los `sleep(9000)` a ciegas: espera lo justo que tarde la pantalla, ni de más ni de menos —
+// que es la causa #1 de que un mapeo "funcione un día y se rompa al otro". Uso:
+//   if (!await esperarTexto(page, /Importaci[oó]n/i, 15000)) log('no cargó el menú')
+async function esperarTexto(page, re, ms = 12000) {
+  const t0 = Date.now()
+  while (Date.now() - t0 < ms) {
+    for (const f of page.frames()) {
+      try {
+        const loc = f.getByText(re).first()
+        if ((await loc.count()) && (await loc.isVisible().catch(() => false))) return true
+      } catch { /* frame cross-origin o navegando */ }
+    }
+    await sleep(400)
+  }
+  return false
+}
+
 // Clic en la opción (p.ej. "Creación") que pertenece a la COLUMNA de un header
 // (p.ej. "A Tercero mismo Banco"): elige la opción más cercana debajo y alineada.
 async function clickColumna(page, headerRe, opcionRe, log) {

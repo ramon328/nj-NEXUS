@@ -2849,6 +2849,18 @@ function leerNovedades() {
   return _novedadesCache
 }
 
+// Aviso "sigo trabajando" para operaciones lentas del banco (masiva/transferir/pendientes/
+// comprobantes tardan ~1-2 min navegando Santander). Manda un WhatsApp interino para que el
+// usuario NO crea que Nexus se colgó. Solo por WhatsApp (en web ya hay streaming en vivo) y
+// nunca bloquea ni rompe la operación si el aviso falla.
+async function avisarTrabajando(ctx, texto) {
+  try {
+    if (ctx?.web) return
+    const target = destinoValido(ctx?.de)
+    if (target) await kapso.enviarKapso(target, texto)
+  } catch { /* un aviso no debe romper la operación */ }
+}
+
 async function ejecutar(nombre, input, ctx = {}) {
   try {
     // ── Control de acceso por usuario ───────────────────────────────────────────
@@ -3236,6 +3248,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       const bo = arm.borrador
       const ultima = (typeof tr.leerUltimaTransferencia === 'function') ? tr.leerUltimaTransferencia() : null
       if (input.accion === 'enviar') {
+        await avisarTrabajando(ctx, `💸 Creando la transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} en el banco… dame ~1-2 min, sigo trabajando 🏦`)
         const res = await tr.ejecutar(bo, { userId, empresa })
         // Si era un beneficiario NUEVO y la transferencia se creó, lo guardamos en la libreta
         // para no volver a pedir los datos la próxima vez (best-effort, no rompe si falla).
@@ -3381,6 +3394,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       }
 
       if (input.accion === 'enviar') {
+        await avisarTrabajando(ctx, `📤 Subiendo el lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) al banco… dame ~1-2 min, sigo acá trabajando 🏦`)
         const res = await mm.ejecutarMasivo(resueltas, { concepto, stamp: String(Date.now()), userId: userMasiva, empresa: empresaMasiva })
         if (res.ok && tr) { for (const t of resueltas) { try { if (String(t.rut || '').replace(/\D/g, '')) tr.guardarBeneficiario({ nombre: t.nombre, rut: t.rut, banco: t.banco, cuenta: t.cuenta }) } catch { /* */ } } }
         let okTxt, instruccion
@@ -3456,6 +3470,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       const uidP = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
       let empP = input.empresa
       if (!empP) { try { const cr = await import('../conector-tek/credenciales.mjs'); empP = (cr.listar(uidP) || [])[0]?.empresa } catch { /* */ } }
+      await avisarTrabajando(ctx, '🔎 Entrando al banco a revisar las pendientes… dame ~1-2 min, sigo acá 🏦')
       const r = await pm.listarPendientes({ userId: uidP, empresa: empP })
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Reintentá en un momento y la reabro.' })
       if (r.estado === 'ocupado') return JSON.stringify({ ok: false, estado: 'ocupado', texto: 'Hay una operación bancaria en curso para esta persona. Espera ~2 min y reintenta UNA vez.' })
