@@ -157,7 +157,9 @@ const manejar = (req, res) => {
     return send(res, 200, { empresa: 'ANA CLARA SPA', cuenta: '0-000-8028093-9', actualizado: h.actualizado, fuente: 'cartola histórica Santander', meses })
   }
   if (u.pathname === '/refresh' && req.method === 'POST') return send(res, 202, lanzarActualizar(true))
-  if (u.pathname === '/') return send(res, 200, { api: 'tek-santander', rutas: ['/health', '/saldos', '/movimientos?desde=&hasta=&cuenta=&q=', '/resumen', '/resumen-mensual', 'POST /refresh'] })
+  if (u.pathname === '/') return send(res, 200, SOLO_MOVS
+    ? { api: 'tek-santander (solo movimientos · ANA CLARA)', rutas: ['/health', '/movimientos?desde=&hasta=&cuenta=&q=&limit='] }
+    : { api: 'tek-santander', rutas: ['/health', '/saldos', '/movimientos?desde=&hasta=&cuenta=&q=', '/resumen', '/resumen-mensual', 'POST /refresh'] })
   return send(res, 404, { error: 'no existe' })
 }
 
