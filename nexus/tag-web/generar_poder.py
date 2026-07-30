@@ -20,7 +20,7 @@ def parrafos_de_docx(path):
     xml = zipfile.ZipFile(path).read('word/document.xml').decode('utf-8', 'ignore')
     parras = []
     for pm in re.finditer(r'<w:p[ >].*?</w:p>', xml, re.S):
-        runs = re.findall(r'<w:t[^>]*>(.*?)</w:t>', pm.group(0), re.S)
+        runs = re.findall(r'<w:t(?: [^>]*)?>(.*?)</w:t>', pm.group(0), re.S)
         txt = re.sub(r'\s+', ' ', ''.join(runs)).strip()
         if txt:
             parras.append(txt)

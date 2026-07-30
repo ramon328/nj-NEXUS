@@ -1576,7 +1576,7 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
   Ej. completo: "vende el Musso a Juan Pérez en 22.9, transferencia" → buscar 'musso' → confirmar → vender_goautos id=4810 precio=22900000 nombre='Juan' apellido='Pérez' pago='transferencia'. Ej. con falta: "vende el id 4810" → falta precio (y comprador/pago) → UNA pregunta: "¿En cuánto lo vendiste, a quién (nombre o RUT) y cómo pagó? Si no, lo dejo sin cliente y en efectivo."
 - AGREGAR un GASTO a un auto de MallorcAutos (gasto del vehículo: taller, neumáticos, transferencia, documentación, pintura, repuestos, etc.) = herramienta gasto_goautos (agente "Meme"). SOLO MallorcAutos. Sigue el 🧾 FORMULARIO PARA AGREGAR UN GASTO de más abajo. Sé ÁGIL, no te des vueltas. OBLIGATORIOS = el AUTO + TÍTULO + MONTO + si es CON o SIN FACTURA. Flujo: (1) identifica el auto (si no es evidente, búscalo con consultar_goautos/buscar y confirma cuál); (2) arma el gasto con lo que ya te mandó y, si falta algún obligatorio, PREGUNTA SOLO POR LO QUE FALTA, todo junto en UN mensaje (no de a uno). (3) FACTURA = lo que define el IVA: NO lo asumas. Espera a que Ramón diga si el gasto es con o sin factura; si no lo dijo, PREGÚNTALO. CON factura (es el ~98% de los casos) → factura=true (IVA recuperable: el sistema descuenta el IVA y carga el neto al costo del auto) y además PÍDELE el N° de factura (numero_factura). SIN factura (boleta, contrato, derechos de transferencia) → factura=false. (4) El MONTO es el total que pagó (lo que dice la factura/boleta). (5) categoría, quién asume y descripción son OPCIONALES (no trabes por ellos; por defecto la asume la automotora). (6) con auto+título+monto+factura listos, llama gasto_goautos y confirma corto (auto, título, monto, con/sin factura y N° si aplica). Ej.: "súmale 280 lucas de neumáticos al Musso, con factura 4567" → buscar 'musso' → gasto_goautos id=4810 titulo='Cambio de neumáticos' monto=280000 categoria='Neumáticos' factura=true numero_factura='4567'. Ej. sin dato de factura: "anótale 90 mil de lavado al id 4810" → pregunta "¿ese gasto fue con factura o sin factura? Si fue con factura, pásame el número."
 - SUBIR / INGRESAR / CARGAR / AGREGAR / PUBLICAR un auto NUEVO = herramienta subir_auto (agente "Meme"). SOLO para MallorcAutos (los autos solo se suben a MallorcAutos). NO improvises el flujo: sigue SIEMPRE, paso a paso, el 📋 FORMULARIO ESTÁNDAR PARA PUBLICAR UN AUTO definido más abajo (foto primero → extraer → mostrar el formulario → rellenar conversando → confirmar y subir). El auto entra en estado "Chillan" (ingreso) y "en el local" por defecto; no lo publiques tú.
-- 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → tek_masiva desde ANA CLARA con beneficiario = el vendedor (nombre+RUT) y monto = el precio de compra (el campo "pago" del expediente ya te lo trae armado); pregunta concepto y motivo; queda "Por Autorizar" y lo libera un humano (NUNCA autorizas tú); publicar → subir_auto (con o sin foto); TAG → solicitar_tag (adjuntando el poder); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
+- 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → tek_masiva desde ANA CLARA con beneficiario = el vendedor (nombre+RUT) y monto = el precio de compra (el campo "pago" del expediente ya te lo trae armado); pregunta concepto y motivo; queda "Por Autorizar" y lo libera un humano (NUNCA autorizas tú); publicar → subir_auto (con o sin foto); TAG → solicitar_tag (el PODER lo genera Nexus solo con la patente y la fecha del día — NO lo pidas; el usuario solo adjunta carnet + factura/contrato); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
 - DATOS FINANCIEROS de Mallorca (COSTO, GASTOS, TOTAL invertido, PV esperado, MARGEN, ventas) = herramienta consultar_mallorca (agente "Meme"). ⚙️ IMPORTANTE: el costo/gastos/total/margen de cada auto ahora salen EN VIVO de GoAutos (Supabase), NO del Excel — compra + consignación + gastos (neto de IVA recuperable) + venta. Ya NO digas "según el Excel" para estos números; son de GoAutos y están al día. (a) MARGEN/COSTO de un auto → consultar_mallorca comando 'auto' con la patente (o el id) de GoAutos; ya devuelve costo, gastos, total, precio publicado y el margen (realizado si está vendido; estimado vs precio publicado si está en stock). (b) STOCK VALORIZADO ("cuánta plata hay en el stock", "stock valorizado") → comando 'stock'. (c) VENTAS y MÁRGENES (por mes o acumulado) → comando 'ventas' (--mes YYYY-MM). (d) ENRIQUECER fichas: al dar el detalle de un auto de MallorcAutos, si te piden o tiene sentido (rentabilidad), agrega su costo/margen (ya vienen de GoAutos). (e) OTRAS hojas del negocio que NO viven en GoAutos (CxC, CxP, flujo, bancos) → comando 'hojas' para verlas y 'hoja' para leer una (esas siguen del Excel). Montos en CLP.
 - 🚗 GoAutos AMPLIADO (agente "Meme", SOLO MallorcAutos) — además del stock/ventas/gastos, Nexus ahora hace TODO lo que hacía la IA "GAIA" de GoAuto Admin. Piensa como GERENTE COMERCIAL, no como buscador:
   · LEADS / prospectos = leads_goautos (interesados de WhatsApp/web/ChileAutos). Cambiar su estado = lead_estado_goautos. Un lead "pending" de +48h es una venta que se puede perder; prioriza los de compra directa. (Ej.: "¿tengo leads nuevos?", "muéstrame los prospectos de venta").
@@ -2604,7 +2604,7 @@ const HERRAMIENTAS = [
   // ── TAG · solicitud / traspaso de TAG (MallorcAutos → Tag Tico) ──────────────
   {
     name: 'solicitar_tag',
-    description: 'SOLICITA o TRASPASA un TAG (peaje) de MallorcAutos a Tag Tico. El correo SALE desde el buzón de Mallorca (ventas@mallorcautos.cl) a contacto@tagtico.cl con copia a ventas@mallorcautos.cl, y queda registrado como "lead" con seguimiento. FLUJO DE 2 PASOS (obligatorio, es un correo real hacia afuera): (1) accion:"preparar" → NO envía: valida, arma el ASUNTO oficial, te dice qué DOCUMENTOS faltan y cuántos PDF adjuntos hay. Con eso PÍDELE a la persona los documentos que falten EN PDF por WhatsApp, y muéstrale el resumen para confirmar. (2) accion:"enviar" → SOLO tras el OK de la persona y con los PDF ya adjuntos: manda el correo y registra el lead. Los 3 CASOS: "nuevo_propio" = auto propio recién llegado (Ana Clara), asunto "Tag nuevo Ana clara (X)" (X=cantidad); basta poder + CAV. "traspaso" = auto con tag nuestro que se vende, asunto "Traspaso Tag patente XXXX". "nuevo_tercero" = auto de un tercero/consignación, asunto "Tag nuevo patente XXXX". Los PDF los toma de TODOS los que la persona mandó por WhatsApp en la conversación (llegan en mensajes separados y se acumulan). ⚠️ NO seas rígido con los documentos: la lista de "documentos_requeridos" es solo una GUÍA. En MallorcAutos NO se exige el contrato de compraventa firmado; basta con lo que el vendedor mande (carnet + poder + CAV/factura). Si la persona ya mandó sus documentos y confirma que con esos se puede (ej. "con esos 3 se puede"), NO le sigas pidiendo contrato ni otros papeles: adjunta TODOS los PDF que mandó y envía. Tampoco digas "es el mismo documento que ya me mandaste" salvo que de verdad sobre; confía en lo que el vendedor te manda. Por defecto ENVÍA DE VERDAD (a Tag Tico); usa prueba:true para que llegue solo a Ramón mientras pruebas.',
+    description: 'SOLICITA o TRASPASA un TAG (peaje) de MallorcAutos a Tag Tico. El correo SALE desde el buzón de Mallorca (ventas@mallorcautos.cl) a contacto@tagtico.cl con copia a ventas@mallorcautos.cl, y queda registrado como "lead" con seguimiento. FLUJO DE 2 PASOS (obligatorio, es un correo real hacia afuera): (1) accion:"preparar" → NO envía: valida, arma el ASUNTO oficial, te dice qué DOCUMENTOS faltan y cuántos PDF adjuntos hay. Con eso PÍDELE a la persona los documentos que falten EN PDF por WhatsApp, y muéstrale el resumen para confirmar. (2) accion:"enviar" → SOLO tras el OK de la persona y con los PDF ya adjuntos: manda el correo y registra el lead. Los 3 CASOS: "nuevo_propio" = auto propio recién llegado (Ana Clara), asunto "Tag nuevo Ana clara (X)" (X=cantidad); basta poder + CAV. "traspaso" = auto con tag nuestro que se vende, asunto "Traspaso Tag patente XXXX". "nuevo_tercero" = auto de un tercero/consignación, asunto "Tag nuevo patente XXXX". Los PDF los toma de TODOS los que la persona mandó por WhatsApp en la conversación (llegan en mensajes separados y se acumulan). 🔑 EL PODER SE GENERA SOLO: Nexus arma automáticamente el poder de gestión del TAG desde una plantilla fija de Ana Clara, cambiando SOLO la patente y la fecha del día, y lo adjunta al correo. NO le pidas el poder al usuario ni esperes que lo mande. ⚠️ NO seas rígido con los documentos: la lista de "documentos_requeridos" es solo una GUÍA (y ya viene SIN el poder). En MallorcAutos NO se exige el contrato de compraventa firmado; basta con lo que el vendedor mande (carnet + CAV/factura) + el poder que genero yo. Si la persona ya mandó sus documentos y confirma que con esos se puede (ej. "con esos 3 se puede"), NO le sigas pidiendo contrato ni otros papeles: adjunta TODOS los PDF que mandó y envía. Tampoco digas "es el mismo documento que ya me mandaste" salvo que de verdad sobre; confía en lo que el vendedor te manda. Por defecto ENVÍA DE VERDAD (a Tag Tico); usa prueba:true para que llegue solo a Ramón mientras pruebas.',
     input_schema: {
       type: 'object',
       properties: {
@@ -3090,6 +3090,9 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (patente && !(await tagEsAutoMallorca(patente)))
         return JSON.stringify({ ok: false, error: `La patente ${patente.toUpperCase()} no aparece en el stock de MallorcAutos. Solo se puede solicitar/traspasar TAG de autos de Mallorca. Verifica la patente (búscala con consultar_goautos) antes de continuar.` })
       const docs = documentosRequeridos(tipo, !!input.es_empresa)
+      // El PODER lo genera Nexus solo (plantilla fija de Ana Clara, cambia patente+fecha) →
+      // NO se le pide al usuario. Solo se le piden los demás documentos.
+      const docsSinPoder = docs.filter((d) => !/poder/i.test(d))
       // PDF que la persona mandó por WhatsApp (rutas en ctx.media). Solo .pdf.
       const pdfs = (Array.isArray(ctx.media) ? ctx.media : []).filter((p) => /\.pdf$/i.test(String(p)))
       const asunto = t.asunto({ cantidad: input.cantidad, patente })
@@ -3098,22 +3101,37 @@ async function ejecutar(nombre, input, ctx = {}) {
         return JSON.stringify({
           ok: true, paso: 'preparar',
           caso: t.label, asunto,
-          documentos_requeridos: docs,
+          documentos_requeridos: docsSinPoder,
+          poder: patente ? 'lo genero YO automático (plantilla de Ana Clara con la patente y la fecha de hoy) — NO se lo pidas al usuario' : 'para autos sin patente no puedo autogenerar el poder',
           pdf_adjuntos: pdfs.length,
           faltan_pdf: pdfs.length === 0,
           destino: input.prueba ? 'ramon@dropout.cl (PRUEBA)' : 'contacto@tagtico.cl (copia ventas@mallorcautos.cl)',
           instruccion: pdfs.length === 0
-            ? `Pídele a la persona que mande por WhatsApp, EN PDF, estos documentos: ${docs.join('; ')}. Cuando los tengas, confirma y llama accion:"enviar".`
-            : `Ya hay ${pdfs.length} PDF adjunto(s). Muéstrale el resumen (caso, asunto, destino) y con su OK llama accion:"enviar".`,
+            ? `El PODER lo genero yo automático (NO lo pidas). Pídele a la persona SOLO estos documentos por WhatsApp EN PDF: ${docsSinPoder.join('; ') || '(ninguno más)'}. Cuando los tengas, confirma y llama accion:"enviar".`
+            : `Ya hay ${pdfs.length} PDF adjunto(s) + el poder que genero yo. Muéstrale el resumen (caso, asunto, destino) y con su OK llama accion:"enviar".`,
         })
       }
 
       if (input.accion === 'enviar') {
-        if (pdfs.length === 0)
-          return JSON.stringify({ ok: false, error: `No hay PDF adjuntos. Pídele a la persona los documentos EN PDF por WhatsApp: ${docs.join('; ')}.` })
         const { readFileSync } = await import('node:fs')
         const { basename } = await import('node:path')
-        const adjuntos = pdfs.slice(0, 10).map((p) => ({ filename: basename(p), mime: 'application/pdf', buffer: readFileSync(p) }))
+        // 🔑 EL PODER SE GENERA SOLO: plantilla fija de Ana Clara (poder-plantilla.docx),
+        // cambiando únicamente la PATENTE y la FECHA (el día de hoy). Ya no se le pide al usuario.
+        let poderAdj = null
+        if (patente) {
+          try {
+            const script = join(__dirname, '..', 'tag-web', 'generar_poder.py')
+            const outP = join('/tmp', `poder-tag-${patente.toUpperCase().replace(/[^A-Z0-9]/g, '')}-${Date.now()}.pdf`)
+            const hoy = new Date().toISOString().slice(0, 10)
+            await ejecCmd(`python3 ${JSON.stringify(script)} ${JSON.stringify(patente)} ${JSON.stringify(outP)} ${hoy}`, { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })
+            const buf = readFileSync(outP)
+            if (buf && buf.length > 800) poderAdj = { filename: `Poder_Tag_${patente.toUpperCase()}.pdf`, mime: 'application/pdf', buffer: buf }
+          } catch { /* si falla el poder auto, se sigue con lo que mandó el usuario */ }
+        }
+        if (pdfs.length === 0 && !poderAdj)
+          return JSON.stringify({ ok: false, error: `No hay PDF adjuntos. Pídele a la persona los documentos EN PDF por WhatsApp: ${docsSinPoder.join('; ') || docs.join('; ')}.` })
+        const userAdj = pdfs.slice(0, poderAdj ? 9 : 10).map((p) => ({ filename: basename(p), mime: 'application/pdf', buffer: readFileSync(p) }))
+        const adjuntos = poderAdj ? [poderAdj, ...userAdj] : userAdj
         const r = await enviarSolicitudTag({
           tipo, patente, cantidad: input.cantidad, es_empresa: !!input.es_empresa,
           solicitante: input.solicitante, notas: input.notas,
@@ -3123,8 +3141,8 @@ async function ejecutar(nombre, input, ctx = {}) {
         return JSON.stringify({
           ok: true, paso: 'enviado', modo: r.modo, asunto: r.asunto,
           destino: r.destino, enviado_desde: r.enviado_desde, adjuntos: r.adjuntos,
-          lead: r.registro_id,
-          nota: 'Registrado en el seguimiento de TAG. Recuerda confirmar la recepción del convenio el mismo día (si no, el auto queda sin tag y caen multas).',
+          poder_generado: !!poderAdj, lead: r.registro_id,
+          nota: `${poderAdj ? 'El PODER se generó automático (patente + fecha de hoy) y se adjuntó. ' : ''}Registrado en el seguimiento de TAG. Recuerda confirmar la recepción del convenio el mismo día (si no, el auto queda sin tag y caen multas).`,
         })
       }
       return JSON.stringify({ ok: false, error: 'accion debe ser "preparar" o "enviar".' })
@@ -3741,7 +3759,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         store[ckey] = exp; guardar(store)
         const tb = tablero(exp)
         const sig = siguiente(exp)
-        const guia = { contrato: 'genera el contrato en AutoRed (usa accion:"contrato" para el paquete de datos)', pago: 'sube el pago masivo con tek_masiva desde ANA CLARA — beneficiario = el vendedor (nombre+RUT), monto = el precio de compra; pregunta concepto y motivo; queda Por Autorizar (lo libera un humano)', goautos: 'publica el auto con subir_auto', tag: 'solicita el TAG con solicitar_tag (adjunta el poder)', factura: 'genera el borrador de la factura de compra (DTE 46) con el tool factura_compra (te manda la vista previa, NO emite)' }
+        const guia = { contrato: 'genera el contrato en AutoRed (usa accion:"contrato" para el paquete de datos)', pago: 'sube el pago masivo con tek_masiva desde ANA CLARA — beneficiario = el vendedor (nombre+RUT), monto = el precio de compra; pregunta concepto y motivo; queda Por Autorizar (lo libera un humano)', goautos: 'publica el auto con subir_auto', tag: 'solicita el TAG con solicitar_tag (el PODER se genera solo con la patente y la fecha de hoy; solo adjunta carnet + factura/contrato)', factura: 'genera el borrador de la factura de compra (DTE 46) con el tool factura_compra (te manda la vista previa, NO emite)' }
         return JSON.stringify({
           ok: true, patente, tablero: tb.lines,
           siguiente_paso: sig ? { paso: sig, que_hacer: guia[sig] } : null,
