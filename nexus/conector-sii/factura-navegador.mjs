@@ -180,6 +180,75 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
   }
 }
 
+// ── FACTURA DE COMPRA (DTE 46) — BORRADOR. Para cuando MallorcAutos/Ana Clara COMPRA
+//    un auto usado a un particular. MISMA mecánica que generarBorrador: llega a la VISTA
+//    PREVIA y SE DETIENE. NUNCA firma. Cambio de sujeto = "PRODUCTOS USADOS Sin IVA"
+//    (radio camsuj 6298 → producto "Productos Usados", cód 1600) ⇒ SIN IVA, total = precio.
+//    El "receptor" del formulario es el VENDEDOR (el particular que vende el auto).
+//    Mapeado en vivo el 2026-07-30 para ANA CLARA (que ya tiene habilitada la fact. de compra).
+const CS_USADOS = '6298'
+const LAUNCH_COMPRA = 'https://www1.sii.cl/cgi-bin/Portal001/mipeLaunchPage.cgi?OPCION=46&TIPO=4'
+const FORM_COMPRA = `https://www1.sii.cl/cgi-bin/Portal001/mipeGenFacEx.cgi?AGENTE_RETENEDOR=${CS_USADOS}&PTDC_CODIGO=46`
+
+export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor = {}, empresaRut, apiToken }) {
+  await inyectarSesion(apiToken)
+  // 1) empresa emisora (Ana Clara)
+  await ir(PORTAL_SEL); await sleep(1500)
+  await nav('/seleccionar', { selector: 'select[name=RUT_EMP]', valor: empresaRut })
+  await click('button[type=submit]'); await sleep(2500)
+  // 2) wizard de cambio de sujeto → elegir PRODUCTOS USADOS Sin IVA → "Enviar"
+  await ir(LAUNCH_COMPRA); await sleep(3000)
+  await click(`input[name=camsuj][value="${CS_USADOS}"]`); await sleep(600)
+  // "Enviar" lo bloquea el navegador por palabra sensible → aprobado:true (NO emite, solo avanza el wizard)
+  await nav('/click', { selector: 'input[name=BOTON][value="Enviar"]', aprobado: true }); await sleep(5000)
+  let est = await nav('/estado')
+  if (!String(est?.url || '').includes('mipeGenFacEx')) { await ir(FORM_COMPRA); await sleep(3000) }
+  // 3) RECEPTOR = VENDEDOR (particular). El SII autocompleta razón social/dir/giro desde el RUT.
+  const [cuerpo, digito] = dv(vendedor.rut)
+  if (cuerpo) await escribir('[name=EFXP_RUT_RECEP]', cuerpo)
+  if (digito) await escribir('[name=EFXP_DV_RECEP]', digito)
+  await sleep(1500)
+  if (vendedor.nombre) await escribir('[name=EFXP_RZN_SOC_RECEP]', vendedor.nombre).catch(() => {})
+  await escribir('[name=EFXP_GIRO_RECEP]', vendedor.giro || 'PARTICULAR').catch(() => {})
+  await escribir('[name=EFXP_CIUDAD_ORIGEN]', emisor.ciudad || 'SANTIAGO').catch(() => {})
+  if (vendedor.comuna) await escribir('[name=EFXP_CMNA_RECEP]', vendedor.comuna).catch(() => {})
+  await escribir('[name=EFXP_CIUDAD_RECEP]', vendedor.ciudad || vendedor.comuna || 'SANTIAGO').catch(() => {})
+  if (vendedor.direccion) {
+    await nav('/forzar-valor', { selector: '[name=EFXP_DIR_RECEP]', valor: vendedor.direccion, hidden: '[name=EFXP_DIR_RECEP_DEFUALT]' }).catch(() => {})
+    if (vendedor.comuna) await escribir('[name=EFXP_CMNA_RECEP]', vendedor.comuna).catch(() => {})
+    await escribir('[name=EFXP_CIUDAD_RECEP]', vendedor.ciudad || vendedor.comuna || 'SANTIAGO').catch(() => {})
+  }
+  // 4) ÍTEM: producto "Productos Usados" (select), descripción del auto, cantidad 1, precio
+  await nav('/seleccionar', { selector: '[name=EFXP_NMB_01]', valor: 'Productos Usados' }).catch(() => {})
+  if (item.detalle) {
+    await click('[name=DESCRIP_01]').catch(() => {}); await sleep(800)
+    await escribir('[name=EFXP_DSC_ITEM_01]', item.detalle).catch(() => {})
+  }
+  await escribir('[name=EFXP_QTY_01]', item.cantidad || 1)
+  await escribir('[name=EFXP_PRC_01]', item.precio)
+  await sleep(400)
+  // 5) "Validar y visualizar" → VISTA PREVIA. SE DETIENE. NO firma.
+  await fetch(`${NAV}/ultimo-pdf?olvidar=1`).catch(() => {})
+  await click('[name=Button_Update]'); await sleep(8000)
+  est = await nav('/estado')
+  const enVistaPrevia = String(est?.url || '').includes('mipeDisplayPreView')
+  const pdf = await (await fetch(`${NAV}/ultimo-pdf`)).json().catch(() => null)
+  if (enVistaPrevia && pdf?.ok && pdf.ruta) {
+    return {
+      ok: true, pdf: pdf.ruta, archivo: pdf.ruta, en_vista_previa: true, tipo_dte: 46,
+      nota: 'Vista previa de la FACTURA DE COMPRA (DTE 46) generada en el SII (producto "Productos Usados", SIN IVA). NO se emitió: el robot se detiene en la vista previa.',
+    }
+  }
+  const cap = await (await fetch(`${NAV}/captura?full=1`)).json()
+  if (!cap?.png_base64) return { ok: false, error: 'No pude obtener el borrador de la factura de compra (ni PDF ni captura).' }
+  const ruta = `/tmp/nexus-borrador-compra-${Date.now()}.png`
+  writeFileSync(ruta, Buffer.from(cap.png_base64, 'base64'))
+  return {
+    ok: true, captura: ruta, archivo: ruta, en_vista_previa: enVistaPrevia, tipo_dte: 46,
+    nota: enVistaPrevia ? 'Vista previa generada (va la captura).' : 'Quedó en el formulario (revisa: puede faltar un dato del vendedor).',
+  }
+}
+
 // ⛔⛔ EMISIÓN REAL — IRREVERSIBLE. Consume folio y le llega al receptor. ⛔⛔
 // Cadena COMPLETA validada en vivo el 2026-07-15 (factura exenta N° 243):
 //   vista previa → "Firmar" (btnSign) → mipeGenXMLFirma.cgi (pide la clave del

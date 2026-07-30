@@ -1320,7 +1320,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 // gestión de usuarios) no requiere scope. Sirve para el control de acceso real.
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
-  sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'],
+  sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras', 'factura_compra'],
   mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
@@ -1576,7 +1576,7 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
   Ej. completo: "vende el Musso a Juan Pérez en 22.9, transferencia" → buscar 'musso' → confirmar → vender_goautos id=4810 precio=22900000 nombre='Juan' apellido='Pérez' pago='transferencia'. Ej. con falta: "vende el id 4810" → falta precio (y comprador/pago) → UNA pregunta: "¿En cuánto lo vendiste, a quién (nombre o RUT) y cómo pagó? Si no, lo dejo sin cliente y en efectivo."
 - AGREGAR un GASTO a un auto de MallorcAutos (gasto del vehículo: taller, neumáticos, transferencia, documentación, pintura, repuestos, etc.) = herramienta gasto_goautos (agente "Meme"). SOLO MallorcAutos. Sigue el 🧾 FORMULARIO PARA AGREGAR UN GASTO de más abajo. Sé ÁGIL, no te des vueltas. OBLIGATORIOS = el AUTO + TÍTULO + MONTO + si es CON o SIN FACTURA. Flujo: (1) identifica el auto (si no es evidente, búscalo con consultar_goautos/buscar y confirma cuál); (2) arma el gasto con lo que ya te mandó y, si falta algún obligatorio, PREGUNTA SOLO POR LO QUE FALTA, todo junto en UN mensaje (no de a uno). (3) FACTURA = lo que define el IVA: NO lo asumas. Espera a que Ramón diga si el gasto es con o sin factura; si no lo dijo, PREGÚNTALO. CON factura (es el ~98% de los casos) → factura=true (IVA recuperable: el sistema descuenta el IVA y carga el neto al costo del auto) y además PÍDELE el N° de factura (numero_factura). SIN factura (boleta, contrato, derechos de transferencia) → factura=false. (4) El MONTO es el total que pagó (lo que dice la factura/boleta). (5) categoría, quién asume y descripción son OPCIONALES (no trabes por ellos; por defecto la asume la automotora). (6) con auto+título+monto+factura listos, llama gasto_goautos y confirma corto (auto, título, monto, con/sin factura y N° si aplica). Ej.: "súmale 280 lucas de neumáticos al Musso, con factura 4567" → buscar 'musso' → gasto_goautos id=4810 titulo='Cambio de neumáticos' monto=280000 categoria='Neumáticos' factura=true numero_factura='4567'. Ej. sin dato de factura: "anótale 90 mil de lavado al id 4810" → pregunta "¿ese gasto fue con factura o sin factura? Si fue con factura, pásame el número."
 - SUBIR / INGRESAR / CARGAR / AGREGAR / PUBLICAR un auto NUEVO = herramienta subir_auto (agente "Meme"). SOLO para MallorcAutos (los autos solo se suben a MallorcAutos). NO improvises el flujo: sigue SIEMPRE, paso a paso, el 📋 FORMULARIO ESTÁNDAR PARA PUBLICAR UN AUTO definido más abajo (foto primero → extraer → mostrar el formulario → rellenar conversando → confirmar y subir). El auto entra en estado "Chillan" (ingreso) y "en el local" por defecto; no lo publiques tú.
-- 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → tek_masiva (queda por autorizar, lo libera un humano); publicar → subir_auto (con o sin foto); TAG → solicitar_tag (adjuntando el poder); factura de compra → borrador SII sin emitir. ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
+- 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → tek_masiva (queda por autorizar, lo libera un humano); publicar → subir_auto (con o sin foto); TAG → solicitar_tag (adjuntando el poder); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
 - DATOS FINANCIEROS de Mallorca (COSTO, GASTOS, TOTAL invertido, PV esperado, MARGEN, ventas) = herramienta consultar_mallorca (agente "Meme"). ⚙️ IMPORTANTE: el costo/gastos/total/margen de cada auto ahora salen EN VIVO de GoAutos (Supabase), NO del Excel — compra + consignación + gastos (neto de IVA recuperable) + venta. Ya NO digas "según el Excel" para estos números; son de GoAutos y están al día. (a) MARGEN/COSTO de un auto → consultar_mallorca comando 'auto' con la patente (o el id) de GoAutos; ya devuelve costo, gastos, total, precio publicado y el margen (realizado si está vendido; estimado vs precio publicado si está en stock). (b) STOCK VALORIZADO ("cuánta plata hay en el stock", "stock valorizado") → comando 'stock'. (c) VENTAS y MÁRGENES (por mes o acumulado) → comando 'ventas' (--mes YYYY-MM). (d) ENRIQUECER fichas: al dar el detalle de un auto de MallorcAutos, si te piden o tiene sentido (rentabilidad), agrega su costo/margen (ya vienen de GoAutos). (e) OTRAS hojas del negocio que NO viven en GoAutos (CxC, CxP, flujo, bancos) → comando 'hojas' para verlas y 'hoja' para leer una (esas siguen del Excel). Montos en CLP.
 - 🚗 GoAutos AMPLIADO (agente "Meme", SOLO MallorcAutos) — además del stock/ventas/gastos, Nexus ahora hace TODO lo que hacía la IA "GAIA" de GoAuto Admin. Piensa como GERENTE COMERCIAL, no como buscador:
   · LEADS / prospectos = leads_goautos (interesados de WhatsApp/web/ChileAutos). Cambiar su estado = lead_estado_goautos. Un lead "pending" de +48h es una venta que se puede perder; prioriza los de compra directa. (Ej.: "¿tengo leads nuevos?", "muéstrame los prospectos de venta").
@@ -2697,6 +2697,24 @@ const HERRAMIENTAS = [
       required: ['accion', 'patente'],
     },
   },
+  // ── FACTURA DE COMPRA (DTE 46) · BORRADOR, sin emitir ─────────────────────────
+  {
+    name: 'factura_compra',
+    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos — para cuando la automotora COMPRA un auto usado a un particular (el que emite el documento es el comprador, no el vendedor). Genera el borrador en el SII con el producto "Productos Usados" (SIN IVA → total = precio) y te MANDA la VISTA PREVIA por WhatsApp. ⛔ NO EMITE nada: se DETIENE en la vista previa (la firma/emisión real NO está habilitada en esta fase). Toma el auto (marca/modelo/motor/chasis/km) y el precio del EXPEDIENTE de compra (el del tool "compra") con solo pasarle la PATENTE; puedes sobreescribir con vendedor/precio explícitos. Necesita el RUT del VENDEDOR (el SII autocompleta su nombre) y el precio de compra. Úsalo en el PASO 5 del flujo de compra, o si piden directamente "hazme/prepara la factura de compra del auto patente XXXX". Es el paso 5 del tool "compra".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['borrador'], description: 'Solo "borrador" (vista previa, no emite). Es lo único disponible.' },
+        patente: { type: 'string', description: 'Patente del auto comprado (para sacar auto+precio del expediente de compra).' },
+        vendedor_rut: { type: 'string', description: 'RUT del vendedor (particular). Si no está en el expediente, pásalo acá. El SII autocompleta el nombre.' },
+        vendedor_nombre: { type: 'string', description: 'Nombre/razón social del vendedor (opcional; el SII suele autocompletarlo del RUT).' },
+        vendedor_direccion: { type: 'string', description: 'Dirección del vendedor (opcional).' },
+        vendedor_comuna: { type: 'string', description: 'Comuna del vendedor (opcional).' },
+        precio: { type: 'number', description: 'Precio de compra (CLP). Si no lo pasas, se usa el del expediente.' },
+      },
+      required: ['accion', 'patente'],
+    },
+  },
   // ── NOVEDADES · qué cambios/mejoras se le hicieron a Nexus (changelog propio) ──
   {
     name: 'novedades_nexus',
@@ -3713,7 +3731,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         store[ckey] = exp; guardar(store)
         const tb = tablero(exp)
         const sig = siguiente(exp)
-        const guia = { contrato: 'genera el contrato en AutoRed (usa accion:"contrato" para el paquete de datos)', pago: 'sube el pago masivo con tek_masiva', goautos: 'publica el auto con subir_auto', tag: 'solicita el TAG con solicitar_tag (adjunta el poder)', factura: 'genera el borrador de la factura de compra en el SII (sin emitir)' }
+        const guia = { contrato: 'genera el contrato en AutoRed (usa accion:"contrato" para el paquete de datos)', pago: 'sube el pago masivo con tek_masiva', goautos: 'publica el auto con subir_auto', tag: 'solicita el TAG con solicitar_tag (adjunta el poder)', factura: 'genera el borrador de la factura de compra (DTE 46) con el tool factura_compra (te manda la vista previa, NO emite)' }
         return JSON.stringify({
           ok: true, patente, tablero: tb.lines,
           siguiente_paso: sig ? { paso: sig, que_hacer: guia[sig] } : null,
@@ -3751,6 +3769,55 @@ async function ejecutar(nombre, input, ctx = {}) {
         avisos: exp.avisos || [], siguiente_paso: sig,
         instruccion: `Tablero de la compra de ${patente}. Muéstralo ordenado, di qué falta ("necesito") y cuál es el siguiente paso (${sig || 'ninguno, ya está completo'}).`,
       })
+    }
+    // ── FACTURA DE COMPRA (DTE 46) · BORRADOR (vista previa), NUNCA emite ──────────
+    if (nombre === 'factura_compra') {
+      const patente = String(input.patente || '').trim().toUpperCase().replace(/[\s.\-]/g, '')
+      if (!patente) return 'Necesito la PATENTE del auto para armar la factura de compra.'
+      // Trae el expediente de compra (auto + vendedor + precio) para esta patente.
+      const CPATH = join(__dirname, '.compras-pendientes.json')
+      const ckey = `${ctx.de || '_anon'}::${patente}`
+      let exp = {}
+      try { exp = (JSON.parse(readFileSync(CPATH, 'utf8')) || {})[ckey] || {} } catch { exp = {} }
+      const a = exp.auto || {}
+      const v = exp.vendedor || {}
+      const rut = String(input.vendedor_rut || v.rut || '').trim()
+      const precio = Number(input.precio) > 0 ? Number(input.precio) : Number(exp.precio_compra) || 0
+      if (!rut) return 'Para la factura de compra necesito el RUT del VENDEDOR (particular). Pídeselo al usuario o guárdalo con el tool compra.'
+      if (!(precio > 0)) return 'Falta el PRECIO de compra para la factura. Pídeselo al usuario o guárdalo con el tool compra.'
+      const detalle = [
+        `Vehiculo usado ${[a.marca, a.modelo, a.anio].filter(Boolean).join(' ')}`.trim(),
+        `Patente ${patente}`,
+        a.motor ? `Nro. Motor ${a.motor}` : '',
+        a.chasis ? `Nro. Chasis ${String(a.chasis).replace(/\s+/g, '')}` : '',
+        exp.km != null ? `${exp.km} km` : '',
+      ].filter(Boolean).join(' · ')
+      // Token del backend SII LOCAL (el navegador usa la sesión que guarda ese backend).
+      let token = ''
+      try { token = (readFileSync(join(__dirname, '..', 'sii-web', '.env'), 'utf8').match(/^API_TOKEN=(.+)$/m) || [])[1] || '' } catch { token = '' }
+      if (!token) return 'No tengo el token del backend SII local para armar el borrador. Avísale a Nico.'
+      try {
+        const robot = await import('../conector-sii/factura-navegador.mjs')
+        const out = await robot.generarBorradorCompra({
+          empresaRut: '77271121-2', apiToken: token,
+          vendedor: { rut, nombre: input.vendedor_nombre || v.nombre, direccion: input.vendedor_direccion || v.direccion, comuna: input.vendedor_comuna || v.comuna, ciudad: v.ciudad },
+          item: { detalle, precio, cantidad: 1 },
+        })
+        if (!out.ok) return JSON.stringify({ ok: false, error: out.error, instruccion: 'El robot no pudo armar el borrador de la factura de compra en el SII. Dile el error al usuario tal cual; NO digas que se emitió.' })
+        const archivo = out.archivo || out.pdf || out.captura
+        const esPdf = /\.pdf$/i.test(String(archivo || ''))
+        let enviado = false, errEnvio = ''
+        if (ctx.de && archivo) {
+          try { await enviarMediaWhatsApp(ctx.de, archivo, `🧾 Borrador de la FACTURA DE COMPRA (DTE 46) de ${patente} — total $${precio.toLocaleString('es-CL')}, sin IVA. Vista previa: AÚN NO se ha emitido.`); enviado = true }
+          catch (e) { errEnvio = e.message }
+        }
+        return JSON.stringify({
+          ok: true, modo: 'borrador_compra_enviado', enviado, formato: esPdf ? 'pdf' : 'imagen', total: precio, archivo_local: archivo || null,
+          instruccion: enviado
+            ? `Le MANDÉ la VISTA PREVIA de la factura de compra (DTE 46, sin IVA, total $${precio.toLocaleString('es-CL')}). ⛔ NO está emitida (la emisión real no está habilitada en esta fase): dile que la revise. Si está OK, márcalo en el flujo con compra accion:"paso", paso:"factura".`
+            : `El borrador SÍ se armó en el SII pero NO se pudo mandar el archivo al WhatsApp (${errEnvio || 'sin archivo'}). No digas que se lo enviaste. NO emitas.`,
+        })
+      } catch (e) { return `El robot de factura de compra falló: ${e.message}` }
     }
     if (nombre === 'datos_auto_cav') {
       const patente = String(input.patente || '').trim().toUpperCase().replace(/\s+/g, '')
