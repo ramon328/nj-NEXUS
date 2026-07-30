@@ -15,6 +15,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { execFileSync } from 'node:child_process';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const SESION_FILE = path.join(__dirname, 'sesion.json');
@@ -227,6 +228,30 @@ export async function descargarInforme(url, destino) {
   const buf = Buffer.from(await r.arrayBuffer());
   fs.writeFileSync(destino, buf);
   return { destino, bytes: buf.length };
+}
+
+// Datos del vehículo + KILOMETRAJE a partir de un Informe Completo (NMP) YA COMPRADO.
+// NO compra nada: busca el NMP existente más reciente de la patente, lo baja (gratis)
+// y lo parsea con leer_nmp.py. Si no hay NMP comprado, devuelve { ok:false, sin_informe:true }.
+export async function fichaCompra(patente) {
+  const pat = String(patente || '').toUpperCase().replace(/[\s.\-]/g, '');
+  if (!pat) return { ok: false, error: 'Falta la patente.' };
+  const lst = await listarInformes({ patente: pat, tipo: 'NMP', filas: 20 }).catch(() => ({}));
+  const rows = (lst.rows || lst || []).filter?.((r) => r) || [];
+  const nmp = rows
+    .filter((r) => r.reportType === 'NMP' && String(r.ready) === 'true' && (r.url || r.publicUrl))
+    .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+  if (!nmp) return { ok: false, sin_informe: true, patente: pat, nota: 'No hay Informe Completo (NMP) comprado para esta patente. No se compra automáticamente.' };
+  const dest = path.join('/tmp', `nmp_compra_${pat}.pdf`);
+  await descargarInforme(nmp.url || nmp.publicUrl, dest);
+  let campos = {};
+  try {
+    const out = execFileSync('python3', [path.join(__dirname, 'leer_nmp.py'), dest], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+    campos = (JSON.parse(out) || {}).campos || {};
+  } catch (e) {
+    return { ok: false, error: `No pude leer el informe: ${e.message}`, informe_id: nmp.id, pdf: dest };
+  }
+  return { ok: true, patente: campos.patente || pat, campos, informe_id: nmp.id, informe_fecha: nmp.createdAt, pdf: dest };
 }
 
 // COMPRA un informe/CAV (COBRA) -> doble candado. tipo: clave de TIPOS_INFORME o reportType directo.
