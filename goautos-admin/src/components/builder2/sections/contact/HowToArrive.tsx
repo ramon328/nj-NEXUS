@@ -158,7 +158,7 @@ export const HowToArrive = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: 'AIzaSyCTH9xZ0XhNsX5sJwp-2wPGcbtiBB1NOKU',
+    googleMapsApiKey: '__REDACTED_SECRET__',
   });
 
   // Fetch dealerships data from Supabase

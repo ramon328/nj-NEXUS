@@ -73,7 +73,7 @@ const LocationPicker: React.FC<LocationPickerProps> = ({
   const defaultLng = initialLocation?.lng ?? -70.6693;
 
   const MAPBOX_TOKEN =
-    'pk.eyJ1IjoiaWFubGVlMTMiLCJhIjoiY2xsOXp5MWZzMWczaTNnbzhqYmFxOWRqcSJ9.J9uBiKjLdCSnqU6Ez5oPmA';
+    '__REDACTED_SECRET__';
 
   /* ---------- reverse geocode ---------- */
   const reverseGeocode = async (lat: number, lng: number): Promise<string> => {
