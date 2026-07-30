@@ -2746,9 +2746,27 @@ async function main() {
   await shot('h02-modal.png')
   if (await textoVisible(page, DEVICE_RE)) return fin('device_trust', { nota: 'Incapsula flageó la conexión/dispositivo (IP quemada o perfil sin confianza)' })
 
-  const rutLoc = await firstVisible(page, ['#office-banking-login #username', '#username', 'input[name="username" i]'])
-  const passLoc = await firstVisible(page, ['#office-banking-login #password', '#password', 'input[type="password"]'])
-  if (!rutLoc || !passLoc) return fin('sin_form', { nota: 'no apareció el form (ver h02-modal.png)' })
+  // El form del modal puede tardar en renderizar (latencia de proxy/red): el modal abre pero
+  // los campos RUT/clave aparecen unos segundos después. Polleamos hasta ~22s en vez de un
+  // sleep fijo; si a mitad sigue vacío, re-clickeamos el botón de login una vez para forzarlo.
+  let rutLoc, passLoc, reBoton = false
+  const formDL = Date.now() + 22_000
+  while (Date.now() < formDL) {
+    rutLoc = await firstVisible(page, ['#office-banking-login #username', '#username', 'input[name="username" i]'])
+    passLoc = await firstVisible(page, ['#office-banking-login #password', '#password', 'input[type="password"]'])
+    if (rutLoc && passLoc) break
+    if (await textoVisible(page, DEVICE_RE)) return fin('device_trust', { nota: 'Incapsula flageó la conexión/dispositivo (IP quemada o perfil sin confianza)' })
+    if (!reBoton && Date.now() > formDL - 13_000) {
+      reBoton = true
+      const alb2 = page.locator('app-login-button').first()
+      if (await moveToLoc(page, alb2)) { await sleep(rnd(120, 320)); await clickReal(page) }
+      else await alb2.click({ force: true, timeout: 4000 }).catch(() => {})
+      log('form vacío → re-clic botón de login (1 vez)')
+    }
+    await sleep(1200)
+  }
+  if (!rutLoc || !passLoc) return fin('sin_form', { nota: 'no apareció el form tras 22s (ver h02-modal.png)' })
+  log('form de login visible ✓')
 
   // Llenar humano: mover, clic real, tipear con dwell, blur natural.
   await moveToLoc(page, rutLoc); await clickReal(page); await sleep(rnd(200, 500)); await humanType(page, rut)
