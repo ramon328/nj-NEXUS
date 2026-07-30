@@ -1,20 +1,20 @@
 {
-  "ts": "2026-07-30T16:56:43.006Z",
+  "ts": "2026-07-30T17:05:45.634Z",
   "estado": "ROJO",
   "nivel": 2,
   "razones": [
-    "Swap crítico (1932 MB)"
+    "Swap crítico (1900 MB)"
   ],
   "metricas": {
-    "load1": 1.68,
+    "load1": 1.67,
     "nucleos": 6,
     "loadPorNucleo": 0.28,
-    "ramLibreMB": 15919,
+    "ramLibreMB": 15638,
     "ramTotalMB": 32768,
-    "swapUsedMB": 1932,
-    "compresorMB": 2204,
+    "swapUsedMB": 1900,
+    "compresorMB": 2187,
     "discoPct": 50,
-    "procesos": 679,
+    "procesos": 688,
     "sesionesClaude": 2,
     "sesionesClaudeViejas": 0
   },
