@@ -17,7 +17,7 @@ import { readFileSync, writeFileSync, existsSync, statSync, mkdirSync, chmodSync
 import { join } from 'node:path'
 import { spawn } from 'node:child_process'
 import { networkInterfaces } from 'node:os'
-import { randomBytes, timingSafeEqual } from 'node:crypto'
+import { randomBytes, timingSafeEqual, createHash } from 'node:crypto'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
 const DATA = join(DIR, 'data')
@@ -57,6 +57,16 @@ const edadMin = (f) => { try { return Math.round((Date.now() - statSync(join(DAT
 const num = (v) => { const n = Number(String(v ?? '').replace(/[^\d,-]/g, '').replace(/\.(?=\d{3})/g, '').replace(',', '.')); return isNaN(n) ? 0 : n }
 const fechaDe = (row) => { for (const k of Object.keys(row)) if (/fecha/i.test(k)) return String(row[k]); return '' }
 const isoFecha = (s) => { const m = String(s).match(/(\d{2})[/-](\d{2})[/-](\d{4})/); if (m) return `${m[3]}-${m[2]}-${m[1]}`; const m2 = String(s).match(/(\d{4})-(\d{2})-(\d{2})/); return m2 ? m2[0] : '' }
+// ID ESTABLE por movimiento — para que quien consume la API pueda hacer upsert/dedup en SU BD.
+// Usa el nroMov del banco (único por cuenta) si es real; si no (cartola histórica sin nroMov),
+// cae a un hash del contenido. Mismo movimiento → mismo id siempre.
+function idMov(r) {
+  const cta = String(r.cuenta || '').replace(/\D/g, '')
+  const nro = String(r.nroMov || '').replace(/\D/g, '')
+  if (nro && Number(nro) > 0) return `${cta}-${nro}`
+  const base = [isoFecha(fechaDe(r)), r.descripcion, r.cargo, r.abono, r.saldo, r.documento].join('|')
+  return `${cta}-h${createHash('sha1').update(base).digest('hex').slice(0, 12)}`
+}
 
 // Fuente de movimientos: PREFIERE el acumulador anual (cartola-anual.json, que nunca
 // pierde lo viejo); cae a movimientos.json (última captura) si aún no hay acumulado.
@@ -77,7 +87,7 @@ function filtrarMovs({ desde, hasta, cuenta, q, limit }) {
   const total = out.length
   const lim = Number(limit) > 0 ? Number(limit) : 0
   if (lim) out = out.slice(0, lim)   // acumulador viene ordenado desc → los más recientes
-  return { actualizado: d.actualizado, fuente: d._fuente, cobertura: d.cobertura, desde: desde || d.desde, hasta: hasta || d.hasta, total, mostrados: out.length, movimientos: out }
+  return { actualizado: d.actualizado, fuente: d._fuente, cobertura: d.cobertura, desde: desde || d.desde, hasta: hasta || d.hasta, total, mostrados: out.length, movimientos: out.map((r) => ({ id: idMov(r), ...r })) }
 }
 
 function resumen(params) {
