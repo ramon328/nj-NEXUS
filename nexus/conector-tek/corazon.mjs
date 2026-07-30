@@ -10,7 +10,7 @@
 //
 // Reglas de oro: el latido NUNCA loguea (solo reusa+navega). Reestablecer una sesión muerta
 // (1 login) se hace SOLO en la ventana fría de la mañana, con cooldown de 3 h → no machaca.
-import { readFileSync, existsSync, readdirSync, statSync } from 'node:fs'
+import { readFileSync, existsSync, readdirSync, statSync, writeFileSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
@@ -153,10 +153,35 @@ async function atender(user) {
 }
 
 log(`❤️  corazón (ÚNICO guardián) encendido. poke=al azar ${Math.round(POKE_MIN_MS / 60000)}–${Math.round(POKE_MAX_MS / 60000)} min, hábil=07-22 L-S, tope=${TOPE_DIA}/día, self-heal=${AUTO_RELOGIN} (solo ventana fría 05-10h)`)
+// Persistir el estado de cada sesión a un archivo que la API pueda servir (control para los
+// usuarios: viva/muerta + hace cuánto está viva + tope de vida). Se llama en cada tick.
+function escribirEstado() {
+  const now = Date.now()
+  const out = {}
+  const users = new Set([...usuarios(), ...Object.keys(vivaDesde), ...Object.keys(deadUntil)])
+  for (const u of users) {
+    const viva = !!vivaDesde[u]
+    out[u] = {
+      viva,
+      estado: viva ? 'viva' : 'muerta',
+      desde: viva ? new Date(vivaDesde[u]).toISOString() : null,
+      viva_seg: viva ? Math.round((now - vivaDesde[u]) / 1000) : 0,
+      viva_min: viva ? Math.round((now - vivaDesde[u]) / 60000) : 0,
+      ultimo_latido: lastPoke[u] ? new Date(lastPoke[u]).toISOString() : null,
+      // cuánto le queda antes del tope de vida (~95 min) si está viva
+      restante_min: viva ? Math.max(0, Math.round((VIDA_MAX_MS - (now - vivaDesde[u])) / 60000)) : 0,
+      vida_max_min: Math.round(VIDA_MAX_MS / 60000),
+      muerta_hasta: deadUntil[u] ? new Date(deadUntil[u]).toISOString() : null,
+    }
+  }
+  try { writeFileSync(join(DATA, 'sesiones.json'), JSON.stringify({ actualizado: new Date(now).toISOString(), sesiones: out }, null, 2)) } catch { /* */ }
+}
+
 let avisoNocturno = false
 for (;;) {
   if (!horarioHabil()) {
     if (!avisoNocturno) { log('· fuera de horario hábil: no late nadie (el login bajo demanda sigue activo)'); avisoNocturno = true }
+    escribirEstado()
     await sleep(TICK_MS)
     continue
   }
@@ -169,5 +194,6 @@ for (;;) {
       try { await atender(user) } catch (e) { log(`[${user}] error:`, e.message) }
     }
   }
+  escribirEstado()
   await sleep(TICK_MS)
 }

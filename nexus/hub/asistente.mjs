@@ -1325,7 +1325,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'vincular_banco', 'mis_bancos_conectados'],
+  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'tek_sesion', 'vincular_banco', 'mis_bancos_conectados'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -2827,6 +2827,12 @@ const HERRAMIENTAS = [
       },
     },
   },
+  // ── tek · ESTADO DE LA SESIÓN del banco (viva/muerta + hace cuánto) ──
+  {
+    name: 'tek_sesion',
+    description: 'ESTADO DE LA SESIÓN DEL BANCO (sistema "tek"). SOLO LECTURA e INSTANTÁNEO: NO entra al banco, lee el estado que mantiene el "corazón". Úsalo cuando pregunten "¿está viva/conectada la sesión del banco?", "¿puedo transferir ahora?", "¿está caído el banco?", "cuánto dura la sesión del banco", "está operativo el banco". Devuelve si la sesión de ANA CLARA está VIVA o MUERTA, hace cuántos minutos está viva y cuánto le queda (el banco la cae sola al tope de ~95 min). Respondé corto y claro. ⛔ Si está MUERTA: avisá que hay que esperar a que se reestablezca (se reactiva sola al operar, o en la ventana fría 5-10 AM) — NO se puede forzar con reintentos.',
+    input_schema: { type: 'object', properties: { empresa: { type: 'string', description: 'Opcional: de qué empresa (por defecto ANA CLARA).' } } },
+  },
   // ── tek · VINCULAR un banco: manda el LINK del widget seguro (NO pedir clave por chat) ──
   {
     name: 'vincular_banco',
@@ -3562,6 +3568,18 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de leer comprobantes.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer los comprobantes (${r.estado || 'desconocido'}).` })
       return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (nº · fecha · beneficiario · monto · estado). RECUERDA esta lista para el próximo mensaje: si el usuario responde "todos"/"mándamelos todos" llama tek_comprobantes accion:"bajar" con todos:true; si dice "el 3 y el 5" usa indices:[3,5]; si dice uno, indice:ese número. Los números son los que le mostraste.' })
+    }
+    // ── tek · ESTADO DE LA SESIÓN (viva/muerta) — INSTANTÁNEO, lee el archivo del corazón (NO entra al banco) ──
+    if (nombre === 'tek_sesion') {
+      try {
+        const s = JSON.parse(readFileSync('/Users/AIagenteia/nexus/conector-tek/data/sesiones.json', 'utf8'))
+        const info = s?.sesiones?.ramon   // ANA CLARA / Mallorca se operan con la sesión de ramon
+        if (!info) return JSON.stringify({ ok: false, estado: 'desconocida', texto: 'No tengo el estado de la sesión del banco ahora (el guardián no está reportando). Reintentá en un rato.' })
+        if (info.viva) return JSON.stringify({ ok: true, viva: true, estado: 'viva', tiempo_vivo_min: info.viva_min, restante_min: info.restante_min, vida_max_min: info.vida_max_min, texto: `✅ La sesión del banco (ANA CLARA) está VIVA hace ${info.viva_min} min. Le quedan ~${info.restante_min} min antes de que expire sola (tope ${info.vida_max_min} min). Se puede operar.`, instruccion: 'Dale al usuario el texto corto y claro.' })
+        return JSON.stringify({ ok: true, viva: false, estado: 'muerta', texto: '🔴 La sesión del banco (ANA CLARA) está caída/dormida ahora. No se puede operar hasta que se reestablezca — se reactiva sola al operar o en la ventana fría (5-10 AM). NO se puede forzar con reintentos.', instruccion: 'Dale al usuario el texto corto y claro. NO ofrezcas reintentar logins en bucle.' })
+      } catch (e) {
+        return JSON.stringify({ ok: false, error: 'No pude leer el estado de la sesión del banco: ' + e.message })
+      }
     }
     // ── tek · PENDIENTES DE APROBACIÓN ("Por Autorizar") — SOLO LECTURA, por persona ──
     if (nombre === 'tek_pendientes') {

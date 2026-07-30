@@ -92,6 +92,25 @@ function resumen(params) {
   return { ...meta, ingresos, egresos, neto: ingresos - egresos, n: movimientos.length }
 }
 
+// Estado de la sesión del banco (lo escribe el corazón en data/sesiones.json cada ~20s).
+// Da control a los usuarios: si está viva o muerta, y hace cuánto está viva.
+function estadoSesion(user = 'ramon') {
+  const s = leer('sesiones.json')
+  const info = s?.sesiones?.[user]
+  if (!info) return { viva: false, estado: 'desconocida', nota: 'sin dato del corazón (¿corazón activo?)', actualizado: s?.actualizado || null }
+  return {
+    viva: info.viva,
+    estado: info.estado,                 // 'viva' | 'muerta'
+    viva_desde: info.desde,              // ISO cuándo se estableció
+    tiempo_vivo_min: info.viva_min,      // hace cuántos min está viva
+    tiempo_vivo_seg: info.viva_seg,
+    restante_min: info.restante_min,     // min hasta el tope de vida (~95)
+    vida_max_min: info.vida_max_min,
+    ultimo_latido: info.ultimo_latido,
+    actualizado: s.actualizado,          // cuándo el corazón escribió esto
+  }
+}
+
 const send = (res, code, obj) => { res.writeHead(code, { 'content-type': 'application/json; charset=utf-8' }); res.end(JSON.stringify(obj, null, 2)) }
 
 // ── Re-login BAJO DEMANDA ──────────────────────────────────────────────
@@ -168,6 +187,7 @@ const manejar = (req, res) => {
     return send(res, 200, {
       ok: true, puerto: PORT, data: e,
       sesion_viva: sesionViva,   // discriminante real: la URL, no el estado "ok"
+      sesion: estadoSesion('ramon'),   // estado en vivo del corazón (viva/muerta + hace cuánto)
       anual: a ? { total: a.total, desde: a.cobertura?.min_fecha, hasta: a.cobertura?.max_fecha, capturas: a.cobertura?.capturas } : null,
       frescura_min: edadMin('movimientos.json'), fresca: dataFresca(),
     })
@@ -179,8 +199,10 @@ const manejar = (req, res) => {
   }
   const p = Object.fromEntries(u.searchParams)
   // endpoints de DATA: aseguran frescura bajo demanda (refrescan si venció, en 2º plano)
+  // Estado de la sesión del banco — NO toca el banco (lee lo que escribió el corazón).
+  if (u.pathname === '/sesion') return send(res, 200, { empresa: 'ANA CLARA SPA', ...estadoSesion('ramon') })
   if (u.pathname === '/saldos') { const act = asegurarFresco(); return send(res, 200, { ...(leer('saldos.json') || { cuentas: [] }), _actualizando: act.estado }) }
-  if (u.pathname === '/movimientos') { const act = asegurarFresco(); return send(res, 200, { ...filtrarMovs(p), _actualizando: act.estado }) }
+  if (u.pathname === '/movimientos') { const act = asegurarFresco(); return send(res, 200, { sesion: estadoSesion('ramon'), ...filtrarMovs(p), _actualizando: act.estado }) }
   if (u.pathname === '/resumen') { const act = asegurarFresco(); return send(res, 200, { ...resumen(p), _actualizando: act.estado }) }
   // RESUMEN MENSUAL OFICIAL de la cartola histórica (ingresos/egresos/saldos por mes, COMPLETO
   // ene→jun; los movimientos individuales de /movimientos son parciales para meses viejos).
@@ -194,8 +216,8 @@ const manejar = (req, res) => {
   }
   if (u.pathname === '/refresh' && req.method === 'POST') return send(res, 202, lanzarActualizar(true))
   if (u.pathname === '/') return send(res, 200, SOLO_MOVS
-    ? { api: 'tek-santander (solo movimientos · ANA CLARA)', rutas: ['/health', '/movimientos?desde=&hasta=&cuenta=&q=&limit='] }
-    : { api: 'tek-santander', rutas: ['/health', '/saldos', '/movimientos?desde=&hasta=&cuenta=&q=', '/resumen', '/resumen-mensual', 'POST /refresh'] })
+    ? { api: 'tek-santander (solo movimientos · ANA CLARA)', rutas: ['/health', '/sesion', '/movimientos?desde=&hasta=&cuenta=&q=&limit='] }
+    : { api: 'tek-santander', rutas: ['/health', '/sesion', '/saldos', '/movimientos?desde=&hasta=&cuenta=&q=', '/resumen', '/resumen-mensual', 'POST /refresh'] })
   return send(res, 404, { error: 'no existe' })
 }
 
