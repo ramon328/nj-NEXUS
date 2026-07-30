@@ -174,6 +174,33 @@ async function sesionCaida(page) {
   try { if (/error-seguridad|\/logout|\/login(?!-)/i.test(page.url())) return true } catch { /* */ }
   return await textoVisible(page, SESION_FIN_RE)
 }
+
+// ── THROTTLE DE LOGIN (anti-quemado de cuenta) ────────────────────────────────────────────
+// Santander marca la CUENTA tras ~7 logins en poco rato. Este es el ÚNICO lugar por donde pasan
+// los logins reales → ningún llamador (API, tools, un bug, o un humano dale-que-dale) puede
+// pasarse. Persiste el historial por usuario y REHÚSA loguear si: hubo device_trust reciente
+// (cooldown), pasó muy poco del último login (gap mínimo), o ya hubo demasiados en la última hora.
+const LOGIN_MAX_HORA = Number(process.env.TEK_LOGIN_MAX_HORA || 4)          // tope de logins/hora por cuenta
+const LOGIN_MIN_GAP_MS = Number(process.env.TEK_LOGIN_MIN_GAP_MS || 8 * 60_000)   // gap mínimo entre logins
+const LOGIN_DT_COOLDOWN_MS = Number(process.env.TEK_LOGIN_DT_COOLDOWN_MS || 25 * 60_000) // tras device_trust
+function histLoginPath(slug) { return join(DATA, `login-hist-${slug}.json`) }
+function leerHistLogin(slug) { try { return JSON.parse(readFileSync(histLoginPath(slug), 'utf8')) } catch { return { logins: [], device_trust: [] } } }
+function guardarHistLogin(slug, h) { try { writeFileSync(histLoginPath(slug), JSON.stringify(h)) } catch { /* */ } }
+function registrarDeviceTrust(slug) {
+  const h = leerHistLogin(slug)
+  h.device_trust = (h.device_trust || []).filter((t) => Date.now() - t < 6 * 3600_000)
+  h.device_trust.push(Date.now()); guardarHistLogin(slug, h)
+}
+// null = se puede loguear (y REGISTRA el intento). {motivo, esperaMin} = NO loguear.
+function chequearThrottleLogin(slug) {
+  const now = Date.now(); const h = leerHistLogin(slug)
+  h.logins = (h.logins || []).filter((t) => now - t < 3600_000)
+  const dt = (h.device_trust || []).filter((t) => now - t < LOGIN_DT_COOLDOWN_MS)
+  if (dt.length) return { motivo: 'cooldown_device_trust', esperaMin: Math.ceil((LOGIN_DT_COOLDOWN_MS - (now - Math.max(...dt))) / 60000) }
+  if (h.logins.length && now - Math.max(...h.logins) < LOGIN_MIN_GAP_MS) return { motivo: 'gap_minimo', esperaMin: Math.ceil((LOGIN_MIN_GAP_MS - (now - Math.max(...h.logins))) / 60000) }
+  if (h.logins.length >= LOGIN_MAX_HORA) return { motivo: 'max_por_hora', esperaMin: Math.ceil((3600_000 - (now - Math.min(...h.logins))) / 60000) }
+  h.logins.push(now); guardarHistLogin(slug, h); return null
+}
 const ERR_RE = /clave.*incorrect|usuario.*incorrect|datos.*inv[aá]lid|no coincide|bloquead|revisa los datos/i
 
 // ── MAPEO (TEK_MAPEAR=1): captura API interna + menú + bundles, SOLO LECTURA ──
@@ -2641,7 +2668,11 @@ async function main() {
     if (aislado && profileDir.startsWith('/tmp/tek-vinc-')) { try { rmSync(profileDir, { recursive: true, force: true }) } catch {} }
   }
   const shot = (n) => page.screenshot({ path: join(SHOTS, n) }).catch(() => {})
-  const fin = async (estado, extra = {}) => { await shot(`fin-${estado}.png`); console.log('RESULTADO:', JSON.stringify({ estado, url: page.url(), ...extra })); await cerrar() }
+  const fin = async (estado, extra = {}) => {
+    // Registrar device_trust/error_seguridad para el cooldown del throttle (no re-machacar la cuenta).
+    if (/device_trust|error_seguridad/.test(estado)) { try { registrarDeviceTrust(userSlug) } catch { /* */ } }
+    await shot(`fin-${estado}.png`); console.log('RESULTADO:', JSON.stringify({ estado, url: page.url(), ...extra })); await cerrar()
+  }
 
   // Acciones post-login (mapear/capturar/transferir) — reutilizables tanto si
   // REUSAMOS la sesión viva como si logueamos de cero.
@@ -2734,6 +2765,16 @@ async function main() {
       return acciones('reuso')
     }
     log('sesión no reutilizable → hago login')
+    // CANDADO ANTI-QUEMADO: antes de un login REAL, chequear el throttle por cuenta. Si se pasó
+    // (device_trust reciente / gap mínimo / tope por hora) NO logueamos → así no se marca la cuenta.
+    // TEK_IGNORAR_THROTTLE=1 lo salta (solo para un login asistido/deliberado puntual).
+    if (process.env.TEK_IGNORAR_THROTTLE !== '1') {
+      const bloqueo = chequearThrottleLogin(userSlug)
+      if (bloqueo) {
+        log(`THROTTLE: NO logueo (${bloqueo.motivo}), esperar ~${bloqueo.esperaMin} min`)
+        return fin('login_throttle', { motivo: bloqueo.motivo, espera_min: bloqueo.esperaMin, nota: `Candado anti-quemado: no entro al banco por ahora (${bloqueo.motivo}). Reintentar en ~${bloqueo.esperaMin} min. Es una PROTECCIÓN para no marcar la cuenta en Santander, NO un error ni una caída.` })
+      }
+    }
   } else if (keepAlive) {
     return fin('keepalive_omitido', { nota: 'assist/forzar-login activo; el latido no aplica' })
   }
