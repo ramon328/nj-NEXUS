@@ -31,7 +31,13 @@ if (!existsSync(TOKFILE)) { try { writeFileSync(TOKFILE, randomBytes(24).toStrin
 try { chmodSync(TOKFILE, 0o600) } catch {}
 // Token: por env (instancia con scope propio, ej. la de solo-movimientos) o el del archivo.
 const TOKEN = (process.env.TEK_API_TOKEN || (existsSync(TOKFILE) ? readFileSync(TOKFILE, 'utf8').trim() : 'tek')).trim()
-const TOKEN_BUF = Buffer.from(TOKEN)
+// TOKEN DE NAVEGADOR (opcional): distinto al de scripts, REVOCABLE por separado (se quita del
+// env y se recarga). Es visible en las devtools de la web, por eso no debe ser el de scripts.
+const BROWSER_TOKEN = (process.env.TEK_API_TOKEN_BROWSER || '').trim()
+// Tokens válidos (cualquiera de los dos entra). Comparación en tiempo constante contra cada uno.
+const TOKEN_BUFS = [TOKEN, BROWSER_TOKEN].filter(Boolean).map((t) => Buffer.from(t))
+// CORS: lista blanca de orígenes por env (coma-separada). NUNCA '*' — esto sirve data bancaria.
+const CORS_ORIGINS = (process.env.CORS_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean)
 
 const leer = (f) => { try { return JSON.parse(readFileSync(join(DATA, f), 'utf8')) } catch { return null } }
 const edadMin = (f) => { try { return Math.round((Date.now() - statSync(join(DATA, f)).mtimeMs) / 60000) } catch { return null } }
@@ -116,12 +122,27 @@ function asegurarFresco() { if (!dataFresca()) return lanzarActualizar(false); r
 // Comparación en tiempo constante: `!==` filtra el token carácter a carácter y deja
 // medir cuántos aciertan por el tiempo de respuesta.
 function tokenOk(tok) {
-  if (typeof tok !== 'string') return false
+  if (typeof tok !== 'string' || !tok) return false
   const b = Buffer.from(tok)
-  return b.length === TOKEN_BUF.length && timingSafeEqual(b, TOKEN_BUF)
+  for (const t of TOKEN_BUFS) { if (b.length === t.length && timingSafeEqual(b, t)) return true }
+  return false
 }
 
 const manejar = (req, res) => {
+  // ── CORS ─────────────────────────────────────────────────────────────
+  // Solo para orígenes en la lista blanca (CORS_ORIGIN). Sin '*': es data bancaria.
+  // Los headers se setean ANTES de cualquier auth → así el preflight y las respuestas
+  // reales los llevan. writeHead() posterior los conserva (merge con setHeader).
+  const origin = req.headers['origin']
+  if (origin && CORS_ORIGINS.includes(origin)) {
+    res.setHeader('Access-Control-Allow-Origin', origin)
+    res.setHeader('Vary', 'Origin')
+    res.setHeader('Access-Control-Allow-Methods', 'GET, OPTIONS')
+    res.setHeader('Access-Control-Allow-Headers', 'Authorization, X-API-Token, Content-Type')
+    res.setHeader('Access-Control-Max-Age', '600')
+  }
+  // Preflight: NUNCA lleva credenciales → responde 204 sin exigir token (antes de validar).
+  if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
   const u = new URL(req.url, `http://localhost:${PORT}`)
   const tok = u.searchParams.get('token') || req.headers['x-api-token']
   if (u.pathname === '/health') {
