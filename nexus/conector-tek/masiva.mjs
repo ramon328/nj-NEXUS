@@ -197,6 +197,10 @@ export async function generarMasivo(transfers, opts = {}) {
  */
 export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp, userId = 'ramon', empresa = 'ANA CLARA SPA' } = {}) {
   userId = (userId || 'ramon').toLowerCase()
+  // ANA CLARA / Mallorca: la sesión operativa es SIEMPRE la de ramon (su dispositivo es el
+  // ÚNICO confiado por el banco). Quien pida (nico/joaquin) igual transfiere desde la sesión
+  // de ramon, no la suya — así no chocamos con el device_trust de sus perfiles.
+  if (/ana\s*clara|mallorca/i.test(empresa || '')) { userId = 'ramon'; empresa = 'ANA CLARA SPA' }
   if (!credenciales.tieneConexion(userId, empresa)) {
     return { ok: false, estado: 'sin_conexion', error: `"${userId}" no tiene banco conectado para "${empresa}".` }
   }

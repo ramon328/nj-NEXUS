@@ -253,6 +253,9 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
     if (!borrador || !borrador.beneficiario) {
       return resolve({ ok: false, error: 'Borrador inválido.' })
     }
+    // ANA CLARA / Mallorca: se opera SIEMPRE con la sesión de ramon (único dispositivo confiado
+    // por el banco). Quien pida (nico/joaquin) transfiere desde la sesión de ramon, no la suya.
+    if (/ana\s*clara|mallorca/i.test(empresa || '')) { userId = 'ramon'; empresa = 'ANA CLARA SPA' }
     // Chequeo previo: el usuario tiene que tener el banco conectado (creds cifradas).
     if (!credenciales.tieneConexion(userId, empresa)) {
       return resolve({ ok: false, error: `"${userId}" no tiene banco conectado${empresa ? ` para "${empresa}"` : ''}.` })
