@@ -1,2 +1,12 @@
-com.nexus.tek-keepalive com.nexus.tek-conectar com.nexus.tek-refresco com.nexus.tek-monitor-sesion com.nexus.tek-nav-ramon com.nexus.tek-nav-nico com.nexus.tek-nav-joaquin com.nexus.tek-autofix-watcher
-Wed Jul 29 13:15:47 -04 2026
+ESTADO 30-jul-2026 09:57 — REACTIVADO PARCIAL (IP nueva y LIMPIA)
+IP mini: 190.114.41.105 (Pacífico Cable, dinámica). Login de prueba de ramon → estado "logueado", pasó el muro sin device_trust.
+
+ACTIVOS (solo ramon):
+  com.nexus.tek-nav-ramon      (ventana persistente CDP :9410)
+  com.nexus.tek-keepalive      (EL CORAZÓN — late ramon al azar 1-3 min; confirmó "[ramon] ✓ viva")
+  com.nexus.tek-api            (solo lectura, 7692)
+
+SIGUEN PAUSADOS (a propósito):
+  com.nexus.tek-conectar com.nexus.tek-refresco com.nexus.tek-monitor-sesion
+  com.nexus.tek-nav-nico com.nexus.tek-nav-joaquin com.nexus.tek-autofix-watcher
+  (nico/joaquin: sesión muerta, se reestablece en ventana fría 05-10h)
