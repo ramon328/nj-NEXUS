@@ -98,7 +98,7 @@ export const TraditionalHowToArrive = ({
   const [isLoading, setIsLoading] = useState(true);
 
   const { isLoaded } = useLoadScript({
-    googleMapsApiKey: '__REDACTED_SECRET__',
+    googleMapsApiKey: 'AIzaSyCTH9xZ0XhNsX5sJwp-2wPGcbtiBB1NOKU',
   });
 
   // ── Fetch dealerships — same as website ──
