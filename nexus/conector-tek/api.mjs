@@ -23,10 +23,14 @@ const DIR = '/Users/AIagenteia/nexus/conector-tek'
 const DATA = join(DIR, 'data')
 mkdirSync(DATA, { recursive: true })
 const PORT = Number(process.env.TEK_API_PORT || 7692)
+// MODO SOLO-MOVIMIENTOS: para compartir afuera sin exponer saldos ni forzar refrescos.
+// Con TEK_API_SOLO_MOVS=1 solo responden /health y /movimientos; el resto da 403.
+const SOLO_MOVS = process.env.TEK_API_SOLO_MOVS === '1'
 const TOKFILE = join(DATA, '.api-token')
 if (!existsSync(TOKFILE)) { try { writeFileSync(TOKFILE, randomBytes(24).toString('hex'), { mode: 0o600 }) } catch {} }
 try { chmodSync(TOKFILE, 0o600) } catch {}
-const TOKEN = existsSync(TOKFILE) ? readFileSync(TOKFILE, 'utf8').trim() : 'tek'
+// Token: por env (instancia con scope propio, ej. la de solo-movimientos) o el del archivo.
+const TOKEN = (process.env.TEK_API_TOKEN || (existsSync(TOKFILE) ? readFileSync(TOKFILE, 'utf8').trim() : 'tek')).trim()
 const TOKEN_BUF = Buffer.from(TOKEN)
 
 const leer = (f) => { try { return JSON.parse(readFileSync(join(DATA, f), 'utf8')) } catch { return null } }
@@ -133,6 +137,10 @@ const manejar = (req, res) => {
     })
   }
   if (!tokenOk(tok)) return send(res, 401, { error: 'token inválido', hint: 'usa ?token= o header x-api-token' })
+  // En modo solo-movimientos, TODO lo que no sea /movimientos (o /) queda bloqueado.
+  if (SOLO_MOVS && ['/saldos', '/resumen', '/resumen-mensual', '/refresh'].includes(u.pathname)) {
+    return send(res, 403, { error: 'esta API es solo de movimientos' })
+  }
   const p = Object.fromEntries(u.searchParams)
   // endpoints de DATA: aseguran frescura bajo demanda (refrescan si venció, en 2º plano)
   if (u.pathname === '/saldos') { const act = asegurarFresco(); return send(res, 200, { ...(leer('saldos.json') || { cuentas: [] }), _actualizando: act.estado }) }
