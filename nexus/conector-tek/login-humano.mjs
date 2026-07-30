@@ -2572,6 +2572,10 @@ async function main() {
     const sess = (process.env.TEK_PROXY_SESSION || String(rut || '').replace(/[^0-9kK]/g, '') || 'tek').slice(0, 24)
     proxy = { server: process.env.TEK_PROXY_URL, username: process.env.TEK_PROXY_USER + sep + sess, password: process.env.TEK_PROXY_PASS }
     log(`proxy residencial ON (${process.env.TEK_PROXY_URL}, sticky=${sess})`)
+  } else if (process.env.TEK_PROXY_URL) {
+    // Proxy SIN auth (ej. túnel SOCKS local a una IP limpia): solo server.
+    proxy = { server: process.env.TEK_PROXY_URL }
+    log(`proxy ON sin-auth (${process.env.TEK_PROXY_URL})`)
   }
   // VENTANA PERSISTENTE: si el daemon (banco-navegador.mjs) publicó su ventana para este usuario,
   // NOS CONECTAMOS a ESA MISMA ventana (una sola, reusada) en vez de abrir un Chrome nuevo. Así el

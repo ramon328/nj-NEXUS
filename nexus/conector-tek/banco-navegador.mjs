@@ -21,16 +21,25 @@ const PORT = Number(process.env.TEK_CDP_PORT || PORTS[userSlug] || (9410 + (user
 const PROFILE = join(DIR, userSlug === 'ramon' ? 'chrome-profile' : 'chrome-profile-' + userSlug)
 const CDPFILE = join(DATA, `cdp-${userSlug}.txt`)
 const headless = process.env.TEK_HEADLESS !== '0'
+// PROXY (opcional): si TEK_PROXY_URL está seteado, la ventana persistente sale por ese proxy
+// (ej. un túnel SOCKS a una IP residencial/móvil limpia). Así TODO el tráfico al banco —
+// login, corazón y operaciones que reusan esta ventana por CDP — usa la MISMA IP limpia,
+// evitando que el banco vea un cambio de IP a mitad de sesión. Auth de proxy opcional.
+const proxy = process.env.TEK_PROXY_URL
+  ? { server: process.env.TEK_PROXY_URL, ...(process.env.TEK_PROXY_USER ? { username: process.env.TEK_PROXY_USER, password: process.env.TEK_PROXY_PASS } : {}) }
+  : undefined
 const log = (...a) => console.log(new Date().toISOString(), `[nav ${USER}]`, ...a)
 
 mkdirSync(DATA, { recursive: true })
 
 const ctx = await chromium.launchPersistentContext(PROFILE, {
   headless, channel: 'chrome',
+  ...(proxy ? { proxy } : {}),
   args: [`--remote-debugging-port=${PORT}`],
   viewport: { width: 1360, height: 860 }, locale: 'es-CL', timezoneId: 'America/Santiago',
   acceptDownloads: true,
 })
+if (proxy) log(`proxy ON → ${proxy.server}`)
 if (!ctx.pages().length) await ctx.newPage()
 writeFileSync(CDPFILE, `http://127.0.0.1:${PORT}`)
 log(`ventana persistente abierta (CDP :${PORT}) → publicado ${CDPFILE}`)
