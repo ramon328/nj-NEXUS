@@ -2653,6 +2653,31 @@ async function main() {
   if (mapearOn) { ctx.on('request', (r) => regNet(r.method(), r.url())); ctx.on('response', (r) => regNet(r.request().method(), r.url(), r.status())) }
   for (const p of ctx.pages().slice(1)) { try { await p.close() } catch {} }
   const page = ctx.pages()[0] || await ctx.newPage()
+  // LOGGER DE RED (TEK_LOG_XHR=1): caza los endpoints JSON que la web de Office Banking llama por
+  // detrás → para descubrir la API REAL del banco y después llamarla directo (robusto, sin leer
+  // HTML). Vuelca a data/xhr-endpoints.json, deduplicado por método+host+ruta, con una muestra.
+  if (process.env.TEK_LOG_XHR === '1') {
+    const XHR_FILE = join(DATA, 'xhr-endpoints.json')
+    let vistos = {}
+    try { vistos = JSON.parse(readFileSync(XHR_FILE, 'utf8')) } catch { vistos = {} }
+    page.on('response', async (resp) => {
+      try {
+        const url = resp.url()
+        if (!/officebanking\.cl|santander\.cl/i.test(url)) return
+        const ct = (resp.headers()['content-type'] || '')
+        const esJson = /json/i.test(ct)
+        if (!esJson && !/\/api|\.UI\.Web\/|\/rest\/|\/v\d+\/|transactions|movimientos|saldo|account/i.test(url)) return
+        const u = new URL(url)
+        const clave = `${resp.request().method()} ${u.host}${u.pathname}`
+        if (vistos[clave]) { vistos[clave].hits = (vistos[clave].hits || 1) + 1; return }
+        let muestra = null
+        if (esJson) { try { muestra = (await resp.text()).slice(0, 500) } catch { /* */ } }
+        vistos[clave] = { url: u.href.slice(0, 220), method: resp.request().method(), status: resp.status(), content_type: ct, hits: 1, muestra }
+        try { writeFileSync(XHR_FILE, JSON.stringify(vistos, null, 2)) } catch { /* */ }
+      } catch { /* */ }
+    })
+    log('LOGGER DE RED ON → cazando endpoints JSON del banco → data/xhr-endpoints.json')
+  }
   const cerrar = async () => {
     // Guardamos la sesión en el archivo del USUARIO (ramon → session.json; otro →
     // session-<user>.json). En VINCULACIÓN (aislado) no guardamos y borramos el clon /tmp.
