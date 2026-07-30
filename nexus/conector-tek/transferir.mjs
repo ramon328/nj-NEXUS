@@ -87,8 +87,12 @@ function recienteBloquea(huella) {
         : `Ya se ${v.estado === 'creada' ? 'creó' : 'detectó pendiente'} esta misma transferencia hace ${Math.round(edad / 60000)} min. NO se vuelve a enviar (anti-duplicado).`,
     }
   }
-  // CUALQUIER otro resultado reciente (tefun_no_confirmada, modal_sin_aceptar, etc.)
-  // también bloquea 1 h: reintentar a ciegas es lo que duplicó los $1 a Joaquín.
+  // Estados PRE-CREACIÓN: la sesión se cayó, faltó un dato, o no apareció el botón ANTES de
+  // confirmar → el banco NO creó nada → se puede reintentar de inmediato (no bloquear).
+  const RETRYABLE = new Set(['sesion_caida', 'falta_rut', 'sin_form', 'sin_boton_crear', 'tefun_lleno_sin_crear'])
+  if (RETRYABLE.has(v.estado)) return null
+  // CUALQUIER otro resultado reciente AMBIGUO (tefun_no_confirmada, modal_sin_aceptar, sin_resultado…)
+  // sí bloquea 1 h: reintentar a ciegas es lo que duplicó los $1 a Joaquín.
   if (!ok && v.estado !== 'en_curso' && edad < COOLDOWN_FAIL_MS) {
     return {
       ok: false, estado: 'ya_intentada', pendiente: false, ya_intentada: true,

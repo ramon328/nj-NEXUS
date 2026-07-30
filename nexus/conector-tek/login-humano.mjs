@@ -166,6 +166,14 @@ async function textoVisible(page, re) {
 }
 const DEVICE_RE = /revisa tu conexi[oó]n|reinicia tu wifi|no te permitir[aá] ingresar/i
 const MFA_RE = /superclave|clave din[aá]mica|coordenada|tarjeta de coordenad|c[oó]digo de seguridad|segundo factor/i
+// La sesión se CAYÓ/finalizó (expiró, o el banco la botó) — pantalla "SU SESIÓN HA FINALIZADO"
+// o URL de logout/login. Se usa para CORTAR flujos (transferencia/masiva) que si no se cuelgan
+// esperando una confirmación que nunca llega. Devuelve estado claro "no se creó nada".
+const SESION_FIN_RE = /sesi[oó]n ha finalizado|volver a ingresar a la p[aá]gina|debe volver a ingresar/i
+async function sesionCaida(page) {
+  try { if (/error-seguridad|\/logout|\/login(?!-)/i.test(page.url())) return true } catch { /* */ }
+  return await textoVisible(page, SESION_FIN_RE)
+}
 const ERR_RE = /clave.*incorrect|usuario.*incorrect|datos.*inv[aá]lid|no coincide|bloquead|revisa los datos/i
 
 // ── MAPEO (TEK_MAPEAR=1): captura API interna + menú + bundles, SOLO LECTURA ──
@@ -710,6 +718,8 @@ async function crearTransferencia(page, log) {
   writeFileSync(join(DATA, 'crear-destino.json'), JSON.stringify({ paso: 2, url: page.url(), forms: forms2 }, null, 2))
   const nIn = forms2.reduce((a, f) => a + f.inputs.length, 0)
   log(`paso 2 (destino) mapeado: ${nIn} inputs`)
+  // GUARD sesión caída: si el banco finalizó la sesión al pasar al destino, cortar YA (no colgarse).
+  if (await sesionCaida(page)) { log('ABORT: sesión finalizada en paso destino'); return { estado: 'sesion_caida', pendiente: false, nota: 'La sesión del banco se finalizó a mitad de la creación (paso destino). NO se creó nada — reintentar con sesión fresca.', url: page.url() } }
 
   // SCRAPEO de contactos guardados (TEK_SCRAPE_DEST=1): clic "Buscar destinatario" → vuelca la
   // lista de destinatarios inscritos de ESTA empresa. NO llena nada, NO transfiere.
@@ -951,6 +961,8 @@ async function crearTransferencia(page, log) {
       }
       await sleepLargo(rnd(3500, 5500))
       await page.screenshot({ path: join(DATA, 'crear-05a-alerta.png') }).catch(() => {})
+      // GUARD sesión caída tras Crear: si el banco finalizó la sesión, cortar (no se confirmó).
+      if (await sesionCaida(page)) { log('ABORT: sesión finalizada tras Crear'); return { estado: 'sesion_caida', pendiente: false, nota: 'La sesión se finalizó tras apretar Crear. NO se pudo confirmar la creación — reintentar con sesión fresca.', url: page.url() } }
 
       // 2) Modal de aviso (50M/4h, tope, etc.) → SIEMPRE Aceptar si aparece
       let alerta = await leerAlerta()
@@ -1013,6 +1025,9 @@ async function crearTransferencia(page, log) {
         log('TEFUN resultado: CREADA (banner de éxito en pantalla)')
         return { estado: 'creada', pendiente: true, via: 'banner_exito', url: page.url() }
       }
+      // GUARD sesión caída antes de verificar: si murió acá, existePendiente navegaría sobre una
+      // sesión muerta y se COLGARÍA (era la causa del "sin_resultado" de 5 min). Cortar con estado claro.
+      if (await sesionCaida(page)) { log('ABORT: sesión finalizada antes de verificar'); return { estado: 'sesion_caida', pendiente: false, nota: 'La sesión se finalizó antes de poder verificar. Revisá "Por Autorizar" en el banco por las dudas, pero lo más probable es que NO se haya creado. NO reintentar a ciegas.', url: page.url() } }
       const creada = await existePendiente(page, log, process.env.TEK_DEST_RUT, monto, process.env.TEK_DEST_CUENTA)
       log('TEFUN resultado:', creada ? 'CREADA (verificada en Autorización)' : (eraLimitePV ? 'TOPE 1ª vez' : eraLimiteDia ? 'EXCESO límite diario' : 'NO confirmada'))
       if (creada) return { estado: 'creada', pendiente: true, via: 'lista_autorizacion', url: page.url() }
@@ -1752,6 +1767,9 @@ async function masivaImportar(page, log) {
     log(clicImportar ? 'clic Importar' : 'no encontré botón Importar')
     await sleep(8000)
     await page.screenshot({ path: join(DATA, 'masiva-03-importado.png') }).catch(() => {})
+    // GUARD sesión caída: si el banco finalizó la sesión durante la importación, cortar YA con
+    // estado claro (no confirmar a ciegas ni colgarse leyendo una pantalla de "sesión finalizada").
+    if (await sesionCaida(page)) { log('masiva ABORT: sesión finalizada tras importar'); return { estado: 'sesion_caida', creado: false, nota: 'La sesión del banco se finalizó durante la importación del lote. NO se creó nada — reintentar con sesión fresca.', url: page.url() } }
 
     const textoTodo = async () => (await Promise.all(page.frames().map((f) => f.evaluate(() => document.body.innerText || '').catch(() => '')))).join(' ')
 
