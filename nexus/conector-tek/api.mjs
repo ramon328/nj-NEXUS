@@ -38,6 +38,19 @@ const BROWSER_TOKEN = (process.env.TEK_API_TOKEN_BROWSER || '').trim()
 const TOKEN_BUFS = [TOKEN, BROWSER_TOKEN].filter(Boolean).map((t) => Buffer.from(t))
 // CORS: lista blanca de orígenes por env (coma-separada). NUNCA '*' — esto sirve data bancaria.
 const CORS_ORIGINS = (process.env.CORS_ORIGIN || '').split(',').map((s) => s.trim()).filter(Boolean)
+// RATE-LIMIT por IP (hardening para exposición pública): ventana fija, N req/ventana → 429.
+const RL_MAX = Number(process.env.TEK_API_RL_MAX || 60)
+const RL_WIN = Number(process.env.TEK_API_RL_WIN_MS || 60_000)
+const rlHits = new Map()   // ip → { n, reset }
+function ipDe(req) { return (String(req.headers['x-forwarded-for'] || '').split(',')[0].trim()) || req.socket?.remoteAddress || 'x' }
+function rateLimited(req) {
+  const ip = ipDe(req); const now = Date.now()
+  let e = rlHits.get(ip)
+  if (!e || now > e.reset) { e = { n: 0, reset: now + RL_WIN }; rlHits.set(ip, e) }
+  e.n++
+  if (rlHits.size > 5000) { for (const [k, v] of rlHits) if (now > v.reset) rlHits.delete(k) }   // poda
+  return e.n > RL_MAX
+}
 
 const leer = (f) => { try { return JSON.parse(readFileSync(join(DATA, f), 'utf8')) } catch { return null } }
 const edadMin = (f) => { try { return Math.round((Date.now() - statSync(join(DATA, f)).mtimeMs) / 60000) } catch { return null } }
@@ -143,6 +156,8 @@ const manejar = (req, res) => {
   }
   // Preflight: NUNCA lleva credenciales → responde 204 sin exigir token (antes de validar).
   if (req.method === 'OPTIONS') { res.writeHead(204); res.end(); return }
+  // Rate-limit por IP (protege el endpoint público de scraping/abuso).
+  if (rateLimited(req)) return send(res, 429, { error: 'demasiadas solicitudes', reintenta_en_s: Math.ceil(RL_WIN / 1000) })
   const u = new URL(req.url, `http://localhost:${PORT}`)
   const tok = u.searchParams.get('token') || req.headers['x-api-token']
   if (u.pathname === '/health') {
