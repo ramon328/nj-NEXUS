@@ -105,6 +105,18 @@ export async function aplicar({ desde, hasta, minScore = 100, confirmar = false 
   return { ok: true, marcados: ok, de: matches.length, minScore };
 }
 
+// Devuelve, compacto, lo que NO cuadró (para pasarlo a la IA que sugiere categoría/match).
+// Solo egresos del banco sin conciliar (los gastos) y docs de compra sin conciliar.
+export async function pendientes({ desde, hasta, limite = 30 } = {}) {
+  const { fac, mov } = await cargar(desde, hasta);
+  const matches = motorConciliar(aDocs(fac), aMovs(mov));
+  const movUsados = new Set(matches.map((m) => m.mov.id));
+  const egresos = mov.filter((m) => !movUsados.has(m.id) && (Number(m.monto) || 0) < 0)
+    .sort((a, b) => Math.abs(b.monto) - Math.abs(a.monto)).slice(0, limite)
+    .map((m) => ({ id: m.id, fecha: String(m.fecha).slice(0, 10), monto: Number(m.monto) || 0, descripcion: String(m.descripcion || '').slice(0, 60) }));
+  return { rango: { desde, hasta }, egresos_sin_conciliar: egresos };
+}
+
 // Importa a movimientos_banco los movimientos de una cartola ya parseada (importar_cartola.py).
 // Dedup por fecha+monto+descripcion contra lo que ya hay. confirmar:true escribe.
 const keyMov = (m) => `${String(m.fecha).slice(0, 10)}|${Number(m.monto) || 0}|${String(m.descripcion || '').replace(/\s+/g, ' ').trim().toUpperCase()}`;

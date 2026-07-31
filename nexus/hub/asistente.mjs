@@ -2735,7 +2735,7 @@ const HERRAMIENTAS = [
     input_schema: {
       type: 'object',
       properties: {
-        accion: { type: 'string', enum: ['revisar', 'aplicar'], description: 'revisar = informe (no escribe). aplicar = marca los conciliados en la BD (simula si no hay confirmado:true).' },
+        accion: { type: 'string', enum: ['revisar', 'aplicar', 'sugerir'], description: 'revisar = informe (no escribe). aplicar = marca los conciliados al 100% en la BD (simula si no hay confirmado:true). sugerir = usa IA (modelo barato) para proponer, sobre los egresos que NO cuadraron, si son gasto general o por-vehículo y su categoría (solo sugerencia, no escribe).' },
         desde: { type: 'string', description: 'Fecha inicio YYYY-MM-DD (por defecto, inicio del mes en curso).' },
         hasta: { type: 'string', description: 'Fecha fin YYYY-MM-DD (por defecto, hoy).' },
         min_score: { type: 'integer', description: 'Para "aplicar": score mínimo para marcar (por defecto 100 = solo los que coinciden perfecto). Bájalo SOLO si la persona valida y aprueba conciliar matches de menor score.' },
@@ -4015,6 +4015,24 @@ async function ejecutar(nombre, input, ctx = {}) {
           const r = await conciliacion.aplicar({ desde, hasta, minScore: Number(input.min_score) > 0 ? Number(input.min_score) : 100, confirmar: input.confirmado === true })
           if (r.dry_run) return JSON.stringify({ ok: true, modo: 'simulacion', rango: { desde, hasta }, se_marcarian: r.a_marcar, min_score: r.minScore, ejemplos: r.ejemplos, instruccion: `Se marcarían ${r.a_marcar} movimientos como conciliados (score ≥ ${r.minScore}). Muéstraselo y, con el OK de la persona, vuelve a llamar con confirmado:true.` })
           return JSON.stringify({ ok: true, modo: 'aplicado', rango: { desde, hasta }, marcados: r.marcados, de: r.de, instruccion: `Marqué ${r.marcados} movimientos del banco como conciliados en la BD. Confírmaselo corto.` })
+        }
+        if (accion === 'sugerir') {
+          const p = await conciliacion.pendientes({ desde, hasta, limite: 30 })
+          if (!p.egresos_sin_conciliar.length) return JSON.stringify({ ok: true, sugerencias: [], nota: 'No hay egresos sin conciliar en el rango.' })
+          const CATG = 'Generales: Arriendo, Servicios, Sueldos, Marketing, Insumos, Impuestos, Seguros. Por vehículo: Mantenimiento, Documentación, DyP, Repuestos, Transferencia, Seguros, Traslado, Tapicería, Comisión.'
+          const lista = p.egresos_sin_conciliar.map((e, i) => `${i + 1}. ${e.fecha} $${Math.abs(e.monto).toLocaleString('es-CL')} — ${e.descripcion}`).join('\n')
+          const prompt = `Eres un asistente contable de una automotora (MallorcAutos). Para cada MOVIMIENTO DE BANCO (egreso) de abajo, sugiere si es un GASTO GENERAL o un GASTO POR VEHÍCULO, y su categoría. Si la glosa menciona una patente (formato tipo AAAA11 o AA1111), inclúyela. Categorías posibles: ${CATG}. Responde SOLO un JSON array, un objeto por número: {"n":1,"tipo":"general|vehiculo","categoria":"...","patente":"...|null","confianza":"alta|media|baja"}. Sin texto extra.\n\nMOVIMIENTOS:\n${lista}`
+          try {
+            const resp = await anthropic.messages.create({ model: process.env.MODELO_CONCILIA || 'claude-haiku-4-5-20251001', max_tokens: 1500, messages: [{ role: 'user', content: prompt }] })
+            const txt = (resp.content || []).map((b) => b.text || '').join('')
+            const arr = JSON.parse((txt.match(/\[[\s\S]*\]/) || ['[]'])[0])
+            const sug = arr.map((s) => ({ ...(p.egresos_sin_conciliar[Number(s.n) - 1] || {}), tipo: s.tipo, categoria: s.categoria, patente: s.patente || null, confianza: s.confianza })).filter((x) => x.fecha)
+            return JSON.stringify({
+              ok: true, modo: 'sugerencias_ia', total: sug.length,
+              sugerencias: sug.map((s) => ({ fecha: s.fecha, monto: s.monto, desc: s.descripcion, sugerencia: `${s.tipo}${s.categoria ? ' · ' + s.categoria : ''}${s.patente ? ' · ' + s.patente : ''} (${s.confianza})` })),
+              instruccion: 'Son SUGERENCIAS de la IA (modelo barato) para los egresos que no cuadraron: gasto general vs por-vehículo + categoría. Preséntaselas al usuario para que las VALIDE — NO las registres solo. Con su OK, registra cada gasto con el tool gasto.',
+            })
+          } catch (e) { return JSON.stringify({ ok: false, error: 'La IA no pudo sugerir: ' + e.message }) }
         }
         const r = await conciliacion.revisar({ desde, hasta })
         return JSON.stringify({
