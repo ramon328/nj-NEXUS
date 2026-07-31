@@ -2703,7 +2703,7 @@ const HERRAMIENTAS = [
   // ── GASTO · registra un gasto en la BD nueva de MallorcAutos ──────────────────
   {
     name: 'gasto',
-    description: 'REGISTRA UN GASTO de MallorcAutos en la base de datos. Úsalo cuando digan "anota/registra un gasto", "gasté X en Y", "pagué X por Z", "un gasto de la patente ...", "boleta/factura de gasto". FLUJO DE 2 PASOS (simula primero): (1) sin confirmado → arma el gasto y te lo muestra para que la persona lo revise; (2) SOLO con su OK, confirmado:true → lo escribe en la BD. DÓNDE SE GUARDA: si el gasto es de un AUTO (pasas la patente) se asocia a ESE auto; si no es de un auto, queda como gasto GENERAL. CON/SIN FACTURA: si tiene factura, pasa el N° en "documento"; si no tiene, queda "sinfactura" (y si hay que emitir la factura de compra, avísale a la persona — es un paso aparte). PAGO: el gasto queda con su MEDIO DE PAGO (efectivo/transferencia/etc.), pero el banco automático está EN REPOSO → NO se paga solo: dile a la persona que haga el pago ella. Categorías sugeridas de auto: Documentación, Transferencia, Mecánica, Repuestos, Detailing, Traslado, Peritaje. Generales: Arriendo, Sueldos, Servicios, Marketing, Oficina, Impuestos.',
+    description: 'REGISTRA UN GASTO de MallorcAutos en la base de datos. Úsalo cuando digan "anota/registra un gasto", "gasté X en Y", "pagué X por Z", "un gasto de la patente ...", "boleta/factura de gasto". FLUJO DE 2 PASOS (simula primero): (1) sin confirmado → arma el gasto y te lo muestra para que la persona lo revise; (2) SOLO con su OK, confirmado:true → lo escribe en la BD. DÓNDE SE GUARDA: si el gasto es de un AUTO (pasas la patente) se asocia a ESE auto; si no es de un auto, queda como gasto GENERAL. CON/SIN FACTURA: si tiene factura, pasa el N° en "documento"; si no tiene, queda "sinfactura" (y si hay que EMITIR la factura de compra por ese gasto, usa el tool factura_compra sin patente con el RUT del proveedor + monto + glosa → sale con la sesión del SII de Nico, retención 19%, en borrador). PAGO: el gasto queda con su MEDIO DE PAGO (efectivo/transferencia/etc.), pero el banco automático está EN REPOSO → NO se paga solo: dile a la persona que haga el pago ella. Categorías sugeridas de auto: Documentación, Transferencia, Mecánica, Repuestos, Detailing, Traslado, Peritaje. Generales: Arriendo, Sueldos, Servicios, Marketing, Oficina, Impuestos.',
     input_schema: {
       type: 'object',
       properties: {
@@ -2724,19 +2724,22 @@ const HERRAMIENTAS = [
   // ── FACTURA DE COMPRA (DTE 46) · BORRADOR, sin emitir ─────────────────────────
   {
     name: 'factura_compra',
-    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos — para cuando la automotora COMPRA un auto usado a un particular (el que emite el documento es el comprador, no el vendedor). Genera el borrador en el SII con el producto "Productos Usados" (SIN IVA → total = precio) y te MANDA la VISTA PREVIA por WhatsApp. ⛔ NO EMITE nada: se DETIENE en la vista previa (la firma/emisión real NO está habilitada en esta fase). Toma el auto (marca/modelo/motor/chasis/km) y el precio del EXPEDIENTE de compra (el del tool "compra") con solo pasarle la PATENTE; puedes sobreescribir con vendedor/precio explícitos. Necesita el RUT del VENDEDOR (el SII autocompleta su nombre) y el precio de compra. Úsalo en el PASO 5 del flujo de compra, o si piden directamente "hazme/prepara la factura de compra del auto patente XXXX". Es el paso 5 del tool "compra".',
+    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos (el que emite el documento es el comprador, no el proveedor). Se arma con la SESIÓN DEL SII DE NICO y te MANDA la VISTA PREVIA por WhatsApp. ⛔ NO EMITE: se DETIENE en la vista previa (la firma real NO está habilitada en esta fase). DOS CASOS: (A) COMPRA DE AUTO USADO a particular → pásale la PATENTE: saca auto (marca/modelo/motor/chasis/km) + vendedor + precio del EXPEDIENTE de compra; cambio de sujeto "Productos Usados" (SIN IVA, total = precio). (B) GASTO SIN FACTURA (proveedor que no factura, ej. mecánico/repuestos) → NO pases patente; pásale vendedor_rut (del proveedor), monto y glosa: usa el cambio de sujeto GENÉRICO con RETENCIÓN 19%. En ambos el SII autocompleta el nombre desde el RUT. Úsalo en el PASO 5 del flujo de compra, o cuando un GASTO quede "sin factura" y haya que emitir la factura de compra, o si piden "hazme la factura de compra".',
     input_schema: {
       type: 'object',
       properties: {
         accion: { type: 'string', enum: ['borrador'], description: 'Solo "borrador" (vista previa, no emite). Es lo único disponible.' },
-        patente: { type: 'string', description: 'Patente del auto comprado (para sacar auto+precio del expediente de compra).' },
-        vendedor_rut: { type: 'string', description: 'RUT del vendedor (particular). Si no está en el expediente, pásalo acá. El SII autocompleta el nombre.' },
-        vendedor_nombre: { type: 'string', description: 'Nombre/razón social del vendedor (opcional; el SII suele autocompletarlo del RUT).' },
-        vendedor_direccion: { type: 'string', description: 'Dirección del vendedor (opcional).' },
-        vendedor_comuna: { type: 'string', description: 'Comuna del vendedor (opcional).' },
-        precio: { type: 'number', description: 'Precio de compra (CLP). Si no lo pasas, se usa el del expediente.' },
+        patente: { type: 'string', description: 'CASO AUTO: patente del auto comprado (saca auto+precio del expediente). Para un GASTO, OMÍTELA.' },
+        vendedor_rut: { type: 'string', description: 'RUT del vendedor/proveedor. Obligatorio para el caso GASTO; en auto se saca del expediente si no lo pasas. El SII autocompleta el nombre.' },
+        vendedor_nombre: { type: 'string', description: 'Nombre/razón social (opcional; el SII suele autocompletarlo del RUT).' },
+        vendedor_direccion: { type: 'string', description: 'Dirección (opcional).' },
+        vendedor_comuna: { type: 'string', description: 'Comuna (opcional).' },
+        precio: { type: 'number', description: 'Monto/precio (CLP). En auto se usa el del expediente si no lo pasas; en gasto es obligatorio (o usa "monto").' },
+        monto: { type: 'number', description: 'Alias de precio para el caso GASTO.' },
+        glosa: { type: 'string', description: 'CASO GASTO: descripción de lo comprado/servicio (ej. "servicio mecánico", "repuestos").' },
+        cambio_sujeto: { type: 'string', enum: ['usados', 'generico'], description: 'Opcional. Auto = "usados" (default con patente). Gasto = "generico" (default sin patente, retención 19%).' },
       },
-      required: ['accion', 'patente'],
+      required: ['accion'],
     },
   },
   // ── NOVEDADES · qué cambios/mejoras se le hicieron a Nexus (changelog propio) ──
@@ -3859,7 +3862,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       const avisoPago = input.medioPago
         ? `El gasto queda con medio de pago "${input.medioPago}". ⚠️ El banco automático está EN REPOSO: el pago NO se hace solo — dile a la persona que lo pague ella.`
         : '⚠️ No indicaste medio de pago. Pregúntaselo (efectivo, transferencia, tarjeta, cheque…). El pago lo hace la persona (banco en reposo).'
-      const avisoFactura = conFactura ? null : 'Este gasto queda SIN factura ("sinfactura"). Si necesitan emitir la factura de compra por este gasto, avísale a la persona (es un paso aparte).'
+      const avisoFactura = conFactura ? null : 'Este gasto queda SIN factura ("sinfactura"). Si el proveedor no da factura y hay que EMITIR la factura de compra por este gasto, usa el tool factura_compra SIN patente: pásale vendedor_rut = RUT del proveedor, monto y glosa (qué se compró); sale con la sesión del SII de Nico, cambio de sujeto genérico con retención 19%, en borrador (vista previa, no emite). Ofréceselo a la persona.'
       try {
         if (!patente) {
           // GASTO GENERAL
@@ -3878,48 +3881,57 @@ async function ejecutar(nombre, input, ctx = {}) {
     // ── FACTURA DE COMPRA (DTE 46) · BORRADOR (vista previa), NUNCA emite ──────────
     if (nombre === 'factura_compra') {
       const patente = String(input.patente || '').trim().toUpperCase().replace(/[\s.\-]/g, '')
-      if (!patente) return 'Necesito la PATENTE del auto para armar la factura de compra.'
-      // Trae el expediente de compra (auto + vendedor + precio) para esta patente.
-      const CPATH = join(__dirname, '.compras-pendientes.json')
-      const ckey = `${ctx.de || '_anon'}::${patente}`
-      let exp = {}
-      try { exp = (JSON.parse(readFileSync(CPATH, 'utf8')) || {})[ckey] || {} } catch { exp = {} }
-      const a = exp.auto || {}
-      const v = exp.vendedor || {}
-      const rut = String(input.vendedor_rut || v.rut || '').trim()
-      const precio = Number(input.precio) > 0 ? Number(input.precio) : Number(exp.precio_compra) || 0
-      if (!rut) return 'Para la factura de compra necesito el RUT del VENDEDOR (particular). Pídeselo al usuario o guárdalo con el tool compra.'
-      if (!(precio > 0)) return 'Falta el PRECIO de compra para la factura. Pídeselo al usuario o guárdalo con el tool compra.'
-      const detalle = [
-        `Vehiculo usado ${[a.marca, a.modelo, a.anio].filter(Boolean).join(' ')}`.trim(),
-        `Patente ${patente}`,
-        a.motor ? `Nro. Motor ${a.motor}` : '',
-        a.chasis ? `Nro. Chasis ${String(a.chasis).replace(/\s+/g, '')}` : '',
-        exp.km != null ? `${exp.km} km` : '',
-      ].filter(Boolean).join(' · ')
-      // Token del backend SII LOCAL (el navegador usa la sesión que guarda ese backend).
+      // Token del backend SII LOCAL (el navegador usa la sesión de NICO que guarda ese backend).
       let token = ''
       try { token = (readFileSync(join(__dirname, '..', 'sii-web', '.env'), 'utf8').match(/^API_TOKEN=(.+)$/m) || [])[1] || '' } catch { token = '' }
       if (!token) return 'No tengo el token del backend SII local para armar el borrador. Avísale a Nico.'
+      let vendedor, detalle, precio, cambioSujeto, refTxt
+      if (patente) {
+        // CASO AUTO USADO → del expediente de compra; cambio de sujeto "Productos Usados" (sin IVA).
+        const CPATH = join(__dirname, '.compras-pendientes.json')
+        const ckey = `${ctx.de || '_anon'}::${patente}`
+        let exp = {}
+        try { exp = (JSON.parse(readFileSync(CPATH, 'utf8')) || {})[ckey] || {} } catch { exp = {} }
+        const a = exp.auto || {}, v = exp.vendedor || {}
+        const rut = String(input.vendedor_rut || v.rut || '').trim()
+        precio = Number(input.precio) > 0 ? Number(input.precio) : Number(exp.precio_compra) || 0
+        if (!rut) return 'Para la factura de compra del auto necesito el RUT del VENDEDOR (particular). Pídeselo o guárdalo con el tool compra.'
+        if (!(precio > 0)) return 'Falta el PRECIO de compra. Pídeselo o guárdalo con el tool compra.'
+        vendedor = { rut, nombre: input.vendedor_nombre || v.nombre, direccion: input.vendedor_direccion || v.direccion, comuna: input.vendedor_comuna || v.comuna, ciudad: v.ciudad }
+        detalle = [
+          `Vehiculo usado ${[a.marca, a.modelo, a.anio].filter(Boolean).join(' ')}`.trim(), `Patente ${patente}`,
+          a.motor ? `Nro. Motor ${a.motor}` : '', a.chasis ? `Nro. Chasis ${String(a.chasis).replace(/\s+/g, '')}` : '',
+          exp.km != null ? `${exp.km} km` : '',
+        ].filter(Boolean).join(' · ')
+        cambioSujeto = 'usados'; refTxt = `del auto ${patente}`
+      } else {
+        // CASO GASTO (proveedor que no factura) → genérico con retención 19%.
+        const rut = String(input.vendedor_rut || '').trim()
+        precio = Number(input.precio) > 0 ? Number(input.precio) : Number(input.monto) || 0
+        if (!rut) return 'Para la factura de compra del gasto necesito el RUT del PROVEEDOR.'
+        if (!(precio > 0)) return 'Falta el MONTO del gasto para la factura de compra.'
+        vendedor = { rut, nombre: input.vendedor_nombre, direccion: input.vendedor_direccion, comuna: input.vendedor_comuna }
+        detalle = String(input.glosa || input.descripcion || 'Servicio / repuestos (gasto sin factura)').slice(0, 200)
+        cambioSujeto = String(input.cambio_sujeto || '') === 'usados' ? 'usados' : 'generico'
+        refTxt = 'del gasto'
+      }
+      const detIVA = cambioSujeto === 'generico' ? 'con retención 19%' : 'sin IVA'
       try {
         const robot = await import('../conector-sii/factura-navegador.mjs')
-        const out = await robot.generarBorradorCompra({
-          empresaRut: '77271121-2', apiToken: token,
-          vendedor: { rut, nombre: input.vendedor_nombre || v.nombre, direccion: input.vendedor_direccion || v.direccion, comuna: input.vendedor_comuna || v.comuna, ciudad: v.ciudad },
-          item: { detalle, precio, cantidad: 1 },
-        })
+        const out = await robot.generarBorradorCompra({ empresaRut: '77271121-2', apiToken: token, vendedor, item: { detalle, precio, cantidad: 1 }, cambioSujeto })
         if (!out.ok) return JSON.stringify({ ok: false, error: out.error, instruccion: 'El robot no pudo armar el borrador de la factura de compra en el SII. Dile el error al usuario tal cual; NO digas que se emitió.' })
         const archivo = out.archivo || out.pdf || out.captura
         const esPdf = /\.pdf$/i.test(String(archivo || ''))
         let enviado = false, errEnvio = ''
         if (ctx.de && archivo) {
-          try { await enviarMediaWhatsApp(ctx.de, archivo, `🧾 Borrador de la FACTURA DE COMPRA (DTE 46) de ${patente} — total $${precio.toLocaleString('es-CL')}, sin IVA. Vista previa: AÚN NO se ha emitido.`); enviado = true }
+          try { await enviarMediaWhatsApp(ctx.de, archivo, `🧾 Borrador FACTURA DE COMPRA (DTE 46) ${refTxt} — total $${precio.toLocaleString('es-CL')}, ${detIVA}. Vista previa: AÚN NO se ha emitido.`); enviado = true }
           catch (e) { errEnvio = e.message }
         }
         return JSON.stringify({
-          ok: true, modo: 'borrador_compra_enviado', enviado, formato: esPdf ? 'pdf' : 'imagen', total: precio, archivo_local: archivo || null,
+          ok: true, modo: 'borrador_compra_enviado', enviado, caso: patente ? 'auto' : 'gasto', cambio_sujeto: cambioSujeto,
+          formato: esPdf ? 'pdf' : 'imagen', total: precio, archivo_local: archivo || null,
           instruccion: enviado
-            ? `Le MANDÉ la VISTA PREVIA de la factura de compra (DTE 46, sin IVA, total $${precio.toLocaleString('es-CL')}). ⛔ NO está emitida (la emisión real no está habilitada en esta fase): dile que la revise. Si está OK, márcalo en el flujo con compra accion:"paso", paso:"factura".`
+            ? `Le MANDÉ la VISTA PREVIA de la factura de compra (DTE 46, ${detIVA}, total $${precio.toLocaleString('es-CL')}) con la sesión del SII de Nico. ⛔ NO está emitida (la emisión real no está habilitada en esta fase): dile que la revise.${patente ? ' Si está OK, márcalo con compra accion:"paso", paso:"factura".' : ''}`
             : `El borrador SÍ se armó en el SII pero NO se pudo mandar el archivo al WhatsApp (${errEnvio || 'sin archivo'}). No digas que se lo enviaste. NO emitas.`,
         })
       } catch (e) { return `El robot de factura de compra falló: ${e.message}` }

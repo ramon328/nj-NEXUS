@@ -180,29 +180,34 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
   }
 }
 
-// ── FACTURA DE COMPRA (DTE 46) — BORRADOR. Para cuando MallorcAutos/Ana Clara COMPRA
-//    un auto usado a un particular. MISMA mecánica que generarBorrador: llega a la VISTA
-//    PREVIA y SE DETIENE. NUNCA firma. Cambio de sujeto = "PRODUCTOS USADOS Sin IVA"
-//    (radio camsuj 6298 → producto "Productos Usados", cód 1600) ⇒ SIN IVA, total = precio.
-//    El "receptor" del formulario es el VENDEDOR (el particular que vende el auto).
-//    Mapeado en vivo el 2026-07-30 para ANA CLARA (que ya tiene habilitada la fact. de compra).
-const CS_USADOS = '6298'
+// ── FACTURA DE COMPRA (DTE 46) — BORRADOR. Para cuando MallorcAutos/Ana Clara emite el
+//    documento (el que compra emite, no el proveedor). MISMA mecánica que generarBorrador:
+//    llega a la VISTA PREVIA y SE DETIENE. NUNCA firma. El "receptor" del formulario es el
+//    PROVEEDOR/VENDEDOR. Dos cambios de sujeto (mapeados en vivo el 2026-07-30 para ANA CLARA):
+//      • 'usados'   → radio camsuj 6298, producto "Productos Usados"  ⇒ SIN IVA (auto usado).
+//      • 'generico' → radio camsuj 62,   producto "Retención total genérica" ⇒ retención 19%
+//                     (gasto/servicio a proveedor que no factura).
+const CAMBIO_SUJETO = {
+  usados: { camsuj: '6298', producto: 'Productos Usados' },
+  generico: { camsuj: '62', producto: 'Retención total genérica' },
+}
 const LAUNCH_COMPRA = 'https://www1.sii.cl/cgi-bin/Portal001/mipeLaunchPage.cgi?OPCION=46&TIPO=4'
-const FORM_COMPRA = `https://www1.sii.cl/cgi-bin/Portal001/mipeGenFacEx.cgi?AGENTE_RETENEDOR=${CS_USADOS}&PTDC_CODIGO=46`
 
-export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor = {}, empresaRut, apiToken }) {
+export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor = {}, empresaRut, apiToken, cambioSujeto = 'usados' }) {
+  const cs = CAMBIO_SUJETO[cambioSujeto] || CAMBIO_SUJETO.usados
+  const formCompra = `https://www1.sii.cl/cgi-bin/Portal001/mipeGenFacEx.cgi?AGENTE_RETENEDOR=${cs.camsuj}&PTDC_CODIGO=46`
   await inyectarSesion(apiToken)
   // 1) empresa emisora (Ana Clara)
   await ir(PORTAL_SEL); await sleep(1500)
   await nav('/seleccionar', { selector: 'select[name=RUT_EMP]', valor: empresaRut })
   await click('button[type=submit]'); await sleep(2500)
-  // 2) wizard de cambio de sujeto → elegir PRODUCTOS USADOS Sin IVA → "Enviar"
+  // 2) wizard de cambio de sujeto → elegir el radio correcto → "Enviar"
   await ir(LAUNCH_COMPRA); await sleep(3000)
-  await click(`input[name=camsuj][value="${CS_USADOS}"]`); await sleep(600)
+  await click(`input[name=camsuj][value="${cs.camsuj}"]`); await sleep(600)
   // "Enviar" lo bloquea el navegador por palabra sensible → aprobado:true (NO emite, solo avanza el wizard)
   await nav('/click', { selector: 'input[name=BOTON][value="Enviar"]', aprobado: true }); await sleep(5000)
   let est = await nav('/estado')
-  if (!String(est?.url || '').includes('mipeGenFacEx')) { await ir(FORM_COMPRA); await sleep(3000) }
+  if (!String(est?.url || '').includes('mipeGenFacEx')) { await ir(formCompra); await sleep(3000) }
   // 3) RECEPTOR = VENDEDOR (particular). El SII autocompleta razón social/dir/giro desde el RUT.
   const [cuerpo, digito] = dv(vendedor.rut)
   if (cuerpo) await escribir('[name=EFXP_RUT_RECEP]', cuerpo)
@@ -218,8 +223,8 @@ export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor =
     if (vendedor.comuna) await escribir('[name=EFXP_CMNA_RECEP]', vendedor.comuna).catch(() => {})
     await escribir('[name=EFXP_CIUDAD_RECEP]', vendedor.ciudad || vendedor.comuna || 'SANTIAGO').catch(() => {})
   }
-  // 4) ÍTEM: producto "Productos Usados" (select), descripción del auto, cantidad 1, precio
-  await nav('/seleccionar', { selector: '[name=EFXP_NMB_01]', valor: 'Productos Usados' }).catch(() => {})
+  // 4) ÍTEM: producto según el cambio de sujeto (select), descripción, cantidad 1, precio
+  await nav('/seleccionar', { selector: '[name=EFXP_NMB_01]', valor: cs.producto }).catch(() => {})
   if (item.detalle) {
     await click('[name=DESCRIP_01]').catch(() => {}); await sleep(800)
     await escribir('[name=EFXP_DSC_ITEM_01]', item.detalle).catch(() => {})
@@ -236,7 +241,8 @@ export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor =
   if (enVistaPrevia && pdf?.ok && pdf.ruta) {
     return {
       ok: true, pdf: pdf.ruta, archivo: pdf.ruta, en_vista_previa: true, tipo_dte: 46,
-      nota: 'Vista previa de la FACTURA DE COMPRA (DTE 46) generada en el SII (producto "Productos Usados", SIN IVA). NO se emitió: el robot se detiene en la vista previa.',
+      cambio_sujeto: cambioSujeto,
+      nota: `Vista previa de la FACTURA DE COMPRA (DTE 46) generada en el SII (producto "${cs.producto}", ${cambioSujeto === 'generico' ? 'con retención 19%' : 'SIN IVA'}). NO se emitió: el robot se detiene en la vista previa.`,
     }
   }
   const cap = await (await fetch(`${NAV}/captura?full=1`)).json()
