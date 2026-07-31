@@ -1,5 +1,5 @@
 {
-  "estado": "bloqueado",
+  "estado": "error",
   "actualizado": "2026-07-30T20:44:45.091Z",
   "empresa": "ANA CLARA SPA",
   "desde": "2026-05-03",
@@ -9,7 +9,7 @@
   "movimientos": 0,
   "movimientos_anual": null,
   "url": "https://privado.officebanking.cl/logout/error-seguridad",
-  "arranque": "2026-07-30T22:31:19.602Z",
-  "intento": "2026-07-30T22:32:02.644Z",
-  "detalle": "device_trust"
+  "arranque": "2026-07-31T09:21:11.819Z",
+  "intento": "2026-07-31T09:21:18.179Z",
+  "detalle": "login_throttle"
 }
