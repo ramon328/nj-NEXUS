@@ -38,6 +38,8 @@ import { enviarSolicitudTag, documentosRequeridos, validar as validarTag, TIPOS 
 import { conteo as tagConteo, conteoExcel as tagConteoExcel, leerSnapshot as tagSnapshot, esAutoMallorca as tagEsAutoMallorca } from '../tag-web/autos-tag.mjs'
 // AutoRed — generar CAV/informes de un vehículo (carga su propio .env; compra bajo confirmación).
 import * as autored from '../conector-autored/autored.mjs'
+// Gastos — registra gastos en la BD nueva de MallorcAutos (Supabase); carga su propio .env.
+import * as gastosDB from '../conector-gastos/gastos.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -1321,7 +1323,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras', 'factura_compra'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'gasto'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -1577,6 +1579,7 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
 - AGREGAR un GASTO a un auto de MallorcAutos (gasto del vehículo: taller, neumáticos, transferencia, documentación, pintura, repuestos, etc.) = herramienta gasto_goautos (agente "Meme"). SOLO MallorcAutos. Sigue el 🧾 FORMULARIO PARA AGREGAR UN GASTO de más abajo. Sé ÁGIL, no te des vueltas. OBLIGATORIOS = el AUTO + TÍTULO + MONTO + si es CON o SIN FACTURA. Flujo: (1) identifica el auto (si no es evidente, búscalo con consultar_goautos/buscar y confirma cuál); (2) arma el gasto con lo que ya te mandó y, si falta algún obligatorio, PREGUNTA SOLO POR LO QUE FALTA, todo junto en UN mensaje (no de a uno). (3) FACTURA = lo que define el IVA: NO lo asumas. Espera a que Ramón diga si el gasto es con o sin factura; si no lo dijo, PREGÚNTALO. CON factura (es el ~98% de los casos) → factura=true (IVA recuperable: el sistema descuenta el IVA y carga el neto al costo del auto) y además PÍDELE el N° de factura (numero_factura). SIN factura (boleta, contrato, derechos de transferencia) → factura=false. (4) El MONTO es el total que pagó (lo que dice la factura/boleta). (5) categoría, quién asume y descripción son OPCIONALES (no trabes por ellos; por defecto la asume la automotora). (6) con auto+título+monto+factura listos, llama gasto_goautos y confirma corto (auto, título, monto, con/sin factura y N° si aplica). Ej.: "súmale 280 lucas de neumáticos al Musso, con factura 4567" → buscar 'musso' → gasto_goautos id=4810 titulo='Cambio de neumáticos' monto=280000 categoria='Neumáticos' factura=true numero_factura='4567'. Ej. sin dato de factura: "anótale 90 mil de lavado al id 4810" → pregunta "¿ese gasto fue con factura o sin factura? Si fue con factura, pásame el número."
 - SUBIR / INGRESAR / CARGAR / AGREGAR / PUBLICAR un auto NUEVO = herramienta subir_auto (agente "Meme"). SOLO para MallorcAutos (los autos solo se suben a MallorcAutos). NO improvises el flujo: sigue SIEMPRE, paso a paso, el 📋 FORMULARIO ESTÁNDAR PARA PUBLICAR UN AUTO definido más abajo (foto primero → extraer → mostrar el formulario → rellenar conversando → confirmar y subir). El auto entra en estado "Chillan" (ingreso) y "en el local" por defecto; no lo publiques tú.
 - 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → MIRA el campo "pago" del expediente: si modo="manual" (el banco automático está EN REPOSO, es lo actual) NO uses tek_masiva — dile al usuario que TRANSFIERA él al vendedor desde ANA CLARA (beneficiario = nombre+RUT, monto = precio de compra) y cuando confirme marca el paso; si modo="automatico" usa tek_masiva (queda "Por Autorizar", lo libera un humano, nunca autorizas tú); publicar → subir_auto (con o sin foto); TAG → solicitar_tag (el PODER lo genera Nexus solo con la patente y la fecha del día — NO lo pidas; el usuario solo adjunta carnet + factura/contrato); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
+- 💸 REGISTRAR UN GASTO ("anota/registra un gasto", "gasté X en Y", "pagué X por Z", "boleta/factura de gasto") = herramienta gasto (agente "Meme", SOLO MallorcAutos, BD nueva). SIMULA PRIMERO: llámala sin confirmado → muestra el gasto y a qué se asocia; con el OK de la persona, confirmado:true → lo escribe. Si el gasto es de un AUTO pasa la patente (se asocia a ese auto); si no, queda gasto GENERAL. Con factura → pon el N° en "documento"; sin factura → queda "sinfactura" (si hay que emitir la factura de compra, avísale, es aparte). El gasto queda con su MEDIO DE PAGO, pero el banco está EN REPOSO → dile a la persona que el pago lo hace ella (no se paga solo). Pregunta el medio de pago si no lo dan.
 - DATOS FINANCIEROS de Mallorca (COSTO, GASTOS, TOTAL invertido, PV esperado, MARGEN, ventas) = herramienta consultar_mallorca (agente "Meme"). ⚙️ IMPORTANTE: el costo/gastos/total/margen de cada auto ahora salen EN VIVO de GoAutos (Supabase), NO del Excel — compra + consignación + gastos (neto de IVA recuperable) + venta. Ya NO digas "según el Excel" para estos números; son de GoAutos y están al día. (a) MARGEN/COSTO de un auto → consultar_mallorca comando 'auto' con la patente (o el id) de GoAutos; ya devuelve costo, gastos, total, precio publicado y el margen (realizado si está vendido; estimado vs precio publicado si está en stock). (b) STOCK VALORIZADO ("cuánta plata hay en el stock", "stock valorizado") → comando 'stock'. (c) VENTAS y MÁRGENES (por mes o acumulado) → comando 'ventas' (--mes YYYY-MM). (d) ENRIQUECER fichas: al dar el detalle de un auto de MallorcAutos, si te piden o tiene sentido (rentabilidad), agrega su costo/margen (ya vienen de GoAutos). (e) OTRAS hojas del negocio que NO viven en GoAutos (CxC, CxP, flujo, bancos) → comando 'hojas' para verlas y 'hoja' para leer una (esas siguen del Excel). Montos en CLP.
 - 🚗 GoAutos AMPLIADO (agente "Meme", SOLO MallorcAutos) — además del stock/ventas/gastos, Nexus ahora hace TODO lo que hacía la IA "GAIA" de GoAuto Admin. Piensa como GERENTE COMERCIAL, no como buscador:
   · LEADS / prospectos = leads_goautos (interesados de WhatsApp/web/ChileAutos). Cambiar su estado = lead_estado_goautos. Un lead "pending" de +48h es una venta que se puede perder; prioriza los de compra directa. (Ej.: "¿tengo leads nuevos?", "muéstrame los prospectos de venta").
@@ -2695,6 +2698,27 @@ const HERRAMIENTAS = [
         estado_paso: { type: 'string', enum: ['listo', 'pendiente'], description: 'Para accion "paso": listo o pendiente (default listo).' },
       },
       required: ['accion', 'patente'],
+    },
+  },
+  // ── GASTO · registra un gasto en la BD nueva de MallorcAutos ──────────────────
+  {
+    name: 'gasto',
+    description: 'REGISTRA UN GASTO de MallorcAutos en la base de datos. Úsalo cuando digan "anota/registra un gasto", "gasté X en Y", "pagué X por Z", "un gasto de la patente ...", "boleta/factura de gasto". FLUJO DE 2 PASOS (simula primero): (1) sin confirmado → arma el gasto y te lo muestra para que la persona lo revise; (2) SOLO con su OK, confirmado:true → lo escribe en la BD. DÓNDE SE GUARDA: si el gasto es de un AUTO (pasas la patente) se asocia a ESE auto; si no es de un auto, queda como gasto GENERAL. CON/SIN FACTURA: si tiene factura, pasa el N° en "documento"; si no tiene, queda "sinfactura" (y si hay que emitir la factura de compra, avísale a la persona — es un paso aparte). PAGO: el gasto queda con su MEDIO DE PAGO (efectivo/transferencia/etc.), pero el banco automático está EN REPOSO → NO se paga solo: dile a la persona que haga el pago ella. Categorías sugeridas de auto: Documentación, Transferencia, Mecánica, Repuestos, Detailing, Traslado, Peritaje. Generales: Arriendo, Sueldos, Servicios, Marketing, Oficina, Impuestos.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        monto: { type: 'number', description: 'Monto del gasto en CLP (entero > 0).' },
+        categoria: { type: 'string', description: 'Categoría del gasto (ej. Repuestos, Mecánica, Documentación, Arriendo…).' },
+        descripcion: { type: 'string', description: 'Qué se gastó (breve).' },
+        proveedor: { type: 'string', description: 'A quién se le pagó / proveedor (opcional).' },
+        patente: { type: 'string', description: 'Patente del auto al que se asocia el gasto. Si es un gasto general (no de un auto), OMÍTELA.' },
+        documento: { type: 'string', description: 'N° de factura/boleta si tiene. Si no tiene factura, déjalo vacío (queda "sinfactura").' },
+        con_factura: { type: 'boolean', description: 'true si el gasto tiene factura/boleta. Si es false y no hay documento, queda "sinfactura".' },
+        medioPago: { type: 'string', description: 'Medio de pago: efectivo, transferencia, tarjeta, cheque, etc.' },
+        fecha: { type: 'string', description: 'Fecha del gasto YYYY-MM-DD (opcional; por defecto hoy).' },
+        confirmado: { type: 'boolean', description: 'false/omitido = SIMULA (muestra el gasto, no escribe). true = ESCRIBE en la BD. Ponlo true SOLO tras el OK de la persona.' },
+      },
+      required: ['monto'],
     },
   },
   // ── FACTURA DE COMPRA (DTE 46) · BORRADOR, sin emitir ─────────────────────────
@@ -3821,6 +3845,35 @@ async function ejecutar(nombre, input, ctx = {}) {
         avisos: exp.avisos || [], siguiente_paso: sig, pago: pagoSugerido(exp),
         instruccion: `Tablero de la compra de ${patente}. Muéstralo ordenado, di qué falta ("necesito") y cuál es el siguiente paso (${sig || 'ninguno, ya está completo'}). ${pagoAuto ? 'Para el PAGO usa tek_masiva con el beneficiario y monto de "pago" (sale de ANA CLARA; queda Por Autorizar, lo libera un humano).' : 'Para el PAGO el banco automático está EN REPOSO: dile al usuario que TRANSFIERA él al vendedor con los datos de "pago" (beneficiario + monto, desde ANA CLARA); NO uses tek_masiva.'}`,
       })
+    }
+    // ── GASTO · registra un gasto en la BD nueva de MallorcAutos (simula → confirma) ──
+    if (nombre === 'gasto') {
+      const monto = Math.round(Number(input.monto) || 0)
+      if (!(monto > 0)) return 'Necesito el MONTO del gasto (en CLP, mayor a 0).'
+      const patente = String(input.patente || '').trim().toUpperCase().replace(/[\s.\-]/g, '')
+      const conFactura = input.con_factura === true || (!!input.documento && !/sin\s*factura/i.test(String(input.documento)))
+      const g = {
+        monto, categoria: input.categoria, descripcion: input.descripcion, proveedor: input.proveedor,
+        medioPago: input.medioPago, fecha: input.fecha, documento: input.documento, con_factura: conFactura,
+      }
+      const avisoPago = input.medioPago
+        ? `El gasto queda con medio de pago "${input.medioPago}". ⚠️ El banco automático está EN REPOSO: el pago NO se hace solo — dile a la persona que lo pague ella.`
+        : '⚠️ No indicaste medio de pago. Pregúntaselo (efectivo, transferencia, tarjeta, cheque…). El pago lo hace la persona (banco en reposo).'
+      const avisoFactura = conFactura ? null : 'Este gasto queda SIN factura ("sinfactura"). Si necesitan emitir la factura de compra por este gasto, avísale a la persona (es un paso aparte).'
+      try {
+        if (!patente) {
+          // GASTO GENERAL
+          const r = await gastosDB.registrarGastoGeneral({ ...g, confirmar: input.confirmado === true })
+          if (r.dry_run) return JSON.stringify({ ok: true, modo: 'simulacion', destino: 'gasto general (sin auto)', gasto: r.gasto, aviso_pago: avisoPago, aviso_factura: avisoFactura, instruccion: 'Muéstrale el gasto y el medio de pago. Recuérdale que el pago lo hace ella (banco en reposo). Con su OK, vuelve a llamar con confirmado:true.' })
+          if (!r.ok) return JSON.stringify(r)
+          return JSON.stringify({ ok: true, modo: 'registrado', destino: 'gasto general', gasto: r.gasto, aviso_pago: avisoPago, aviso_factura: avisoFactura, instruccion: 'Confírmale que quedó registrado como gasto general, con su medio de pago, y que el pago lo hace ella.' })
+        }
+        // GASTO DE UN AUTO
+        const r = await gastosDB.registrarGastoAuto({ patente, ...g, confirmar: input.confirmado === true })
+        if (r.ok === false) return JSON.stringify(r)
+        if (r.dry_run) return JSON.stringify({ ok: true, modo: 'simulacion', destino: `auto ${r.patente} (${r.vehiculo})`, gasto: r.gasto, aviso_pago: avisoPago, aviso_factura: avisoFactura, instruccion: 'Muéstrale el gasto, a qué auto se asocia y el medio de pago. Recuérdale que el pago lo hace ella (banco en reposo). Con su OK, vuelve a llamar con confirmado:true.' })
+        return JSON.stringify({ ok: true, modo: 'registrado', destino: `auto ${r.patente} (${r.vehiculo})`, gasto: r.gasto, aviso_pago: avisoPago, aviso_factura: avisoFactura, instruccion: `Confírmale que el gasto quedó asociado al auto ${r.patente}, con su medio de pago, y que el pago lo hace ella.` })
+      } catch (e) { return `No pude registrar el gasto: ${e.message}` }
     }
     // ── FACTURA DE COMPRA (DTE 46) · BORRADOR (vista previa), NUNCA emite ──────────
     if (nombre === 'factura_compra') {
@@ -5148,7 +5201,7 @@ function backstopTamano(mensajes) {
 const PERSONAS = [
   { linea: 'Me conecté a *Martes* y me dijo:', tools: ['sii', 'sii_boleta_honorarios'] },
   { linea: 'Le pregunté a *Néstor* y me dijo:', tools: ['correo', 'gmail_documentos'] },
-  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'factura_compra'] },
+  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'factura_compra', 'gasto'] },
   { linea: 'Me conecté con *Ali* y me dijo:', tools: ['aliace_resumen', 'aliace_margen', 'aliace_rpc', 'aliace_sql', 'aliace_mover_nv', 'navegar', 'iniciar_sesion', 'leer_tabla', 'leer_pagina', 'clic', 'esperar', 'guia_aliace', 'escribir_en_campo', 'ver_pestanas', 'cambiar_pestana'] },
   { linea: 'Me comuniqué con *SAI* y me dijo:', tools: ['sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'] },
   { linea: 'Me comuniqué con *Leo* y me dijo:', tools: ['banco'] },
