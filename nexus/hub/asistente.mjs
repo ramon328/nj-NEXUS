@@ -4015,9 +4015,18 @@ async function ejecutar(nombre, input, ctx = {}) {
           }
         } catch { /* si falla el CAV, igual mandamos los datos */ }
         // 2) Mensaje con los datos de la venta para la transferencia.
-        const cuerpo = `Hola Pamela 👋 Transferencia de dominio:\n• Auto: ${autoTxt}\n• Comprador: ${c.nombre || '(falta)'} — RUT ${c.rut || '(falta)'}\n• ${c.direccion || ''} ${c.telefono ? '· ' + c.telefono : ''} ${c.correo ? '· ' + c.correo : ''}\n• Precio: ${Number(exp.precio_venta) > 0 ? '$' + Number(exp.precio_venta).toLocaleString('es-CL') : '(falta)'}\n${cavEnviado ? 'Te adjunté el CAV.' : '(CAV: te lo mando aparte)'} La factura va por separado.`
-        let msgEnviado = false
-        try { await recordatorios.enviarAhora({ canal: 'whatsapp', mensaje: cuerpo, destino: PAMELA_WS, creado_por: usuarioDe(ctx.de)?.nombre || ctx.de || 'nexus' }); msgEnviado = true } catch (e) { /* */ }
+        const cuerpo = `Transferencia de dominio: Auto ${autoTxt}. Comprador ${c.nombre || '(falta)'} RUT ${c.rut || '(falta)'}${c.telefono ? ' · ' + c.telefono : ''}. Precio ${Number(exp.precio_venta) > 0 ? '$' + Number(exp.precio_venta).toLocaleString('es-CL') : '(falta)'}. ${cavEnviado ? 'Adjunté el CAV.' : 'El CAV va aparte.'} La factura por separado.`
+        // Pamela es un CONTACTO EXTERNO (no usuaria de Nexus): se le manda por la vía de externos
+        // (texto si escribió hace <24h, si no plantilla oficial de Meta). enviarAhora(whatsapp) está anti-ban.
+        let msgEnviado = false, viaMsg = ''
+        try {
+          const ce = await import('./contactos-externos.mjs'); const kap = await import('./kapso.mjs')
+          const num = normNum(PAMELA_WS)
+          if (!ce.esContactoExterno(num)) ce.registrarContactoExterno(num, { por: ctx.de, porNombre: usuarioDe(ctx.de)?.nombre, nota: 'Pamela - transferencia de dominio' })
+          if (ce.ventana24hAbierta(num)) { await kap.enviarKapso(num, cuerpo); viaMsg = 'texto' }
+          else { await kap.enviarPlantillaKapso(num, process.env.KAPSO_PLANTILLA_ALERTA || 'alerta_nexus', { nombre: 'Pamela', mensaje: cuerpo }, { idioma: process.env.KAPSO_PLANTILLA_ALERTA_IDIOMA || 'es' }); viaMsg = 'plantilla' }
+          msgEnviado = true
+        } catch (e) { viaMsg = 'error: ' + (e.message || '') }
         exp.pasos = exp.pasos || {}; if (cavEnviado && msgEnviado) exp.pasos.factura = exp.pasos.factura || 'pendiente'
         store[vkey] = exp; guardar(store)
         return JSON.stringify({
