@@ -2782,7 +2782,7 @@ const HERRAMIENTAS = [
   // ── FACTURA DE COMPRA (DTE 46) · BORRADOR, sin emitir ─────────────────────────
   {
     name: 'factura_compra',
-    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos (el que emite el documento es el comprador, no el proveedor). Se arma con la SESIÓN DEL SII DE NICO y te MANDA la VISTA PREVIA por WhatsApp. ⛔ NO EMITE: se DETIENE en la vista previa (la firma real NO está habilitada en esta fase). DOS CASOS: (A) COMPRA DE AUTO USADO a particular → pásale la PATENTE: saca auto (marca/modelo/motor/chasis/km) + vendedor + precio del EXPEDIENTE de compra; cambio de sujeto "Productos Usados" (SIN IVA, total = precio). (B) GASTO SIN FACTURA (proveedor que no factura, ej. mecánico/repuestos) → NO pases patente; pásale vendedor_rut (del proveedor), monto y glosa: usa el cambio de sujeto GENÉRICO con RETENCIÓN 19%. En ambos el SII autocompleta el nombre desde el RUT. Úsalo en el PASO 5 del flujo de compra, o cuando un GASTO quede "sin factura" y haya que emitir la factura de compra, o si piden "hazme la factura de compra". 🔁 CORRECCIONES (IMPORTANTE): si ya mandaste un borrador y la persona pide CAMBIAR algo (precio/monto, glosa/descripción, RUT o dirección del proveedor), DEBES VOLVER A LLAMAR factura_compra pasando el/los campo(s) corregido(s) — esos VALORES OVERRIDEAN lo que haya en el expediente y se genera un borrador NUEVO con el cambio. NO respondas "listo/corregido" sin volver a llamar la herramienta: si no la re-llamas, el borrador NO cambia. Para el caso AUTO, si cambia el precio pásalo en "precio" (o guárdalo antes con compra accion:"guardar"). OJO: el NOMBRE del proveedor lo autocompleta el SII desde el RUT; si el nombre sale mal, el que hay que corregir es el RUT.',
+    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos (el que emite el documento es el comprador, no el proveedor). Se arma con la SESIÓN DEL SII DE NICO y te MANDA la VISTA PREVIA por WhatsApp. ⛔ NO EMITE: se DETIENE en la vista previa (la firma real NO está habilitada en esta fase). DOS CASOS: (A) COMPRA DE AUTO USADO a particular → pásale la PATENTE: saca auto (marca/modelo/motor/chasis/km) + vendedor + precio del EXPEDIENTE de compra; cambio de sujeto "Productos Usados" (SIN IVA, total = precio). (B) GASTO SIN FACTURA (proveedor que no factura, ej. mecánico/repuestos) → NO pases patente; pásale vendedor_rut (del proveedor), monto y glosa: usa el cambio de sujeto GENÉRICO con RETENCIÓN 19%. En ambos el SII autocompleta el nombre desde el RUT. Úsalo en el PASO 5 del flujo de compra, o cuando un GASTO quede "sin factura" y haya que emitir la factura de compra, o si piden "hazme la factura de compra". 🔁 CORRECCIONES / AGREGAR DATOS (IMPORTANTE): si ya mandaste un borrador y la persona pide CAMBIAR o AGREGAR algo, DEBES VOLVER A LLAMAR factura_compra pasando ese dato como parámetro — se regenera el borrador con el cambio. Mapa: precio→"precio"/"monto"; descripción del gasto→"glosa"; RUT/dirección del proveedor→"vendedor_rut"/"vendedor_direccion"; **chasis o VIN del auto→"chasis"; N° de motor→"motor"; cualquier otro texto que quiera agregar→"detalle_extra"**. ⚠️ Si falta el chasis/VIN u otro dato del auto y la persona te lo da, PÁSALO en "chasis"/"motor" a ESTA herramienta — NO basta con guardarlo en GoAutos (factura_compra NO lee GoAutos, lee el expediente y la BD nueva). NO respondas "listo/corregido/agregado" sin volver a llamar la herramienta: si no la re-llamas, el borrador NO cambia. El NOMBRE del proveedor lo autocompleta el SII desde el RUT; si sale mal, corrige el RUT.',
     input_schema: {
       type: 'object',
       properties: {
@@ -2795,6 +2795,9 @@ const HERRAMIENTAS = [
         precio: { type: 'number', description: 'Monto/precio (CLP). En auto se usa el del expediente si no lo pasas; en gasto es obligatorio (o usa "monto").' },
         monto: { type: 'number', description: 'Alias de precio para el caso GASTO.' },
         glosa: { type: 'string', description: 'CASO GASTO: descripción de lo comprado/servicio (ej. "servicio mecánico", "repuestos").' },
+        chasis: { type: 'string', description: 'CASO AUTO: chasis/VIN del auto. PÁSALO si falta en la ficha o si la persona lo da/corrige — se agrega al detalle del borrador.' },
+        motor: { type: 'string', description: 'CASO AUTO: N° de motor. Pásalo si falta o si la persona lo da/corrige.' },
+        detalle_extra: { type: 'string', description: 'Texto LIBRE que la persona quiere AGREGAR al detalle de la factura (ej. "incluye llave adicional", una observación). Se añade tal cual al final de la descripción.' },
         cambio_sujeto: { type: 'string', enum: ['usados', 'generico'], description: 'Opcional. Auto = "usados" (default con patente). Gasto = "generico" (default sin patente, retención 19%).' },
       },
       required: ['accion'],
@@ -4141,7 +4144,12 @@ async function ejecutar(nombre, input, ctx = {}) {
         try { exp = (JSON.parse(readFileSync(CPATH, 'utf8')) || {})[ckey] || {} } catch { exp = {} }
         let a = exp.auto || {}; const v = exp.vendedor || {}
         // Respaldo: si el expediente no trae el detalle del auto, sácalo de la BD (vehiculos).
-        if (!a.motor && !a.chasis) { try { const fv = await gastosDB.fichaVehiculo(patente); if (fv) a = { ...fv, ...a } } catch { /* */ } }
+        // Merge SOLO con valores definidos (que un campo vacío del expediente no pise la ficha).
+        const soloDef = (o) => Object.fromEntries(Object.entries(o || {}).filter(([, x]) => x != null && x !== ''))
+        if (!a.motor || !a.chasis) { try { const fv = await gastosDB.fichaVehiculo(patente); if (fv) a = { ...soloDef(fv), ...soloDef(a) } } catch { /* */ } }
+        // Overrides que da/corrige la persona (chasis/VIN, motor): mandan por sobre todo.
+        if (input.chasis) a.chasis = String(input.chasis).trim()
+        if (input.motor) a.motor = String(input.motor).trim()
         if (exp.km == null && a.km != null) exp.km = a.km
         const rut = String(input.vendedor_rut || v.rut || '').trim()
         precio = Number(input.precio) > 0 ? Number(input.precio) : Number(exp.precio_compra) || 0
@@ -4160,6 +4168,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           a.pbv ? `PBV ${a.pbv}` : '',
           `Patente ${patente}`,
           exp.km != null ? `${exp.km} km` : '',
+          input.detalle_extra ? String(input.detalle_extra).trim() : '',
         ].filter(Boolean).join(' · ')
         cambioSujeto = 'usados'; refTxt = `del auto ${patente}`
       } else {
@@ -4170,6 +4179,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (!(precio > 0)) return 'Falta el MONTO del gasto para la factura de compra.'
         vendedor = { rut, nombre: input.vendedor_nombre, direccion: input.vendedor_direccion, comuna: input.vendedor_comuna }
         detalle = String(input.glosa || input.descripcion || 'Servicio / repuestos (gasto sin factura)').slice(0, 200)
+        if (input.detalle_extra) detalle = (detalle + ' · ' + String(input.detalle_extra).trim()).slice(0, 240)
         cambioSujeto = String(input.cambio_sujeto || '') === 'usados' ? 'usados' : 'generico'
         refTxt = 'del gasto'
       }
