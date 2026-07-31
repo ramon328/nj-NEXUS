@@ -1,1 +1,66 @@
-{ "registros": [] }
+{
+  "registros": [
+    {
+      "id": "TAG-002",
+      "creado": "2026-07-31T22:56:56.718Z",
+      "tipo": "nuevo_propio",
+      "tipo_label": "TAG nuevo — auto propio (Ana Clara)",
+      "patente": null,
+      "cantidad": 4,
+      "es_empresa": false,
+      "solicitante": null,
+      "asunto": "Tag nuevo Ana clara (4)",
+      "estado": "enviado",
+      "modo": "prueba",
+      "correo_id": "19fba651ccba245d",
+      "enviado_desde": "ventas@mallorcautos.cl",
+      "destino": "ramon@dropout.cl",
+      "adjuntos": [
+        "1785538425744_nexus-wa-in-1785538414636.pdf",
+        "1785538425752_nexus-wa-in-1785538416326.pdf",
+        "1785538425753_nexus-wa-in-1785538418121.pdf",
+        "1785538425754_nexus-wa-in-1785538420051.pdf"
+      ],
+      "notas": "Vehículos: TFFH86, SPSG51, SZZG87, TFFC90. Solicitamos que la activación de este TAG sea con fecha efectiva desde el martes 28 de julio de 2026.",
+      "convenio_recibido": false,
+      "eventos": [
+        {
+          "ts": "2026-07-31T22:56:56.718Z",
+          "tipo": "enviado",
+          "detalle": "Solicitud enviada a ramon@dropout.cl"
+        }
+      ]
+    },
+    {
+      "id": "TAG-001",
+      "creado": "2026-07-31T22:56:47.211Z",
+      "tipo": "nuevo_propio",
+      "tipo_label": "TAG nuevo — auto propio (Ana Clara)",
+      "patente": null,
+      "cantidad": 4,
+      "es_empresa": false,
+      "solicitante": null,
+      "asunto": "Tag nuevo Ana clara (4)",
+      "estado": "enviado",
+      "modo": "prueba",
+      "correo_id": "19fba64f6c451e89",
+      "enviado_desde": "ventas@mallorcautos.cl",
+      "destino": "ramon@dropout.cl",
+      "adjuntos": [
+        "1785538425744_nexus-wa-in-1785538414636.pdf",
+        "1785538425752_nexus-wa-in-1785538416326.pdf",
+        "1785538425753_nexus-wa-in-1785538418121.pdf",
+        "1785538425754_nexus-wa-in-1785538420051.pdf"
+      ],
+      "notas": "Vehículos: TFFH86, SPSG51, SZZG87, TFFC90. Solicitamos que la activación de este TAG sea con fecha efectiva desde el martes 28 de julio de 2026.",
+      "convenio_recibido": false,
+      "eventos": [
+        {
+          "ts": "2026-07-31T22:56:47.211Z",
+          "tipo": "enviado",
+          "detalle": "Solicitud enviada a ramon@dropout.cl"
+        }
+      ]
+    }
+  ]
+}
