@@ -4139,15 +4139,26 @@ async function ejecutar(nombre, input, ctx = {}) {
         const ckey = `${ctx.de || '_anon'}::${patente}`
         let exp = {}
         try { exp = (JSON.parse(readFileSync(CPATH, 'utf8')) || {})[ckey] || {} } catch { exp = {} }
-        const a = exp.auto || {}, v = exp.vendedor || {}
+        let a = exp.auto || {}; const v = exp.vendedor || {}
+        // Respaldo: si el expediente no trae el detalle del auto, sácalo de la BD (vehiculos).
+        if (!a.motor && !a.chasis) { try { const fv = await gastosDB.fichaVehiculo(patente); if (fv) a = { ...fv, ...a } } catch { /* */ } }
+        if (exp.km == null && a.km != null) exp.km = a.km
         const rut = String(input.vendedor_rut || v.rut || '').trim()
         precio = Number(input.precio) > 0 ? Number(input.precio) : Number(exp.precio_compra) || 0
         if (!rut) return 'Para la factura de compra del auto necesito el RUT del VENDEDOR (particular). Pídeselo o guárdalo con el tool compra.'
         if (!(precio > 0)) return 'Falta el PRECIO de compra. Pídeselo o guárdalo con el tool compra.'
         vendedor = { rut, nombre: input.vendedor_nombre || v.nombre, direccion: input.vendedor_direccion || v.direccion, comuna: input.vendedor_comuna || v.comuna, ciudad: v.ciudad }
+        // Mismo detalle del vehículo que lleva la factura de VENTA (motor, chasis, color,
+        // combustible, PBV, patente, año, tipo, km) — es factura de COMPRA pero del mismo auto.
         detalle = [
-          `Vehiculo usado ${[a.marca, a.modelo, a.anio].filter(Boolean).join(' ')}`.trim(), `Patente ${patente}`,
-          a.motor ? `Nro. Motor ${a.motor}` : '', a.chasis ? `Nro. Chasis ${String(a.chasis).replace(/\s+/g, '')}` : '',
+          `Vehiculo usado ${[a.marca, a.modelo, a.anio].filter(Boolean).join(' ')}`.trim(),
+          a.tipo ? `Tipo ${a.tipo}` : '',
+          a.motor ? `Nro. Motor ${a.motor}` : '',
+          a.chasis ? `Nro. Chasis ${String(a.chasis).replace(/\s+/g, '')}` : '',
+          a.color ? `Color ${a.color}` : '',
+          a.combustible ? `Combustible ${a.combustible}` : '',
+          a.pbv ? `PBV ${a.pbv}` : '',
+          `Patente ${patente}`,
           exp.km != null ? `${exp.km} km` : '',
         ].filter(Boolean).join(' · ')
         cambioSujeto = 'usados'; refTxt = `del auto ${patente}`

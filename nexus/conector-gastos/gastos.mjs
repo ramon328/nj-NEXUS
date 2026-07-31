@@ -49,6 +49,16 @@ export async function buscarVehiculo(patente) {
   return (Array.isArray(rows) && rows[0]) || null;
 }
 
+// Ficha COMPLETA del vehículo (para la factura de compra: motor, chasis, color, etc.).
+export async function fichaVehiculo(patente) {
+  const pat = String(patente || '').toUpperCase().replace(/[\s.\-]/g, '');
+  if (!pat) return null;
+  const rows = await api(`vehiculos?patente=eq.${encodeURIComponent(pat)}&select=patente,marca,modelo,version,anio,km,color,combustible,vin,motor&limit=1`).catch(() => []);
+  const v = (Array.isArray(rows) && rows[0]) || null;
+  if (!v) return null;
+  return { marca: v.marca, modelo: v.modelo, anio: v.anio, tipo: v.version, motor: v.motor, chasis: v.vin, vin: v.vin, color: v.color, combustible: v.combustible, km: v.km };
+}
+
 // Normaliza el objeto gasto que se guarda (mismo shape que ya usa la BD + extras).
 function armarGasto(g) {
   return {
