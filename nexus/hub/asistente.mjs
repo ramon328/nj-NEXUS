@@ -1323,7 +1323,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras', 'factura_compra'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'gasto'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'venta', 'gasto'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -1579,6 +1579,7 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
 - AGREGAR un GASTO a un auto de MallorcAutos (gasto del vehículo: taller, neumáticos, transferencia, documentación, pintura, repuestos, etc.) = herramienta gasto_goautos (agente "Meme"). SOLO MallorcAutos. Sigue el 🧾 FORMULARIO PARA AGREGAR UN GASTO de más abajo. Sé ÁGIL, no te des vueltas. OBLIGATORIOS = el AUTO + TÍTULO + MONTO + si es CON o SIN FACTURA. Flujo: (1) identifica el auto (si no es evidente, búscalo con consultar_goautos/buscar y confirma cuál); (2) arma el gasto con lo que ya te mandó y, si falta algún obligatorio, PREGUNTA SOLO POR LO QUE FALTA, todo junto en UN mensaje (no de a uno). (3) FACTURA = lo que define el IVA: NO lo asumas. Espera a que Ramón diga si el gasto es con o sin factura; si no lo dijo, PREGÚNTALO. CON factura (es el ~98% de los casos) → factura=true (IVA recuperable: el sistema descuenta el IVA y carga el neto al costo del auto) y además PÍDELE el N° de factura (numero_factura). SIN factura (boleta, contrato, derechos de transferencia) → factura=false. (4) El MONTO es el total que pagó (lo que dice la factura/boleta). (5) categoría, quién asume y descripción son OPCIONALES (no trabes por ellos; por defecto la asume la automotora). (6) con auto+título+monto+factura listos, llama gasto_goautos y confirma corto (auto, título, monto, con/sin factura y N° si aplica). Ej.: "súmale 280 lucas de neumáticos al Musso, con factura 4567" → buscar 'musso' → gasto_goautos id=4810 titulo='Cambio de neumáticos' monto=280000 categoria='Neumáticos' factura=true numero_factura='4567'. Ej. sin dato de factura: "anótale 90 mil de lavado al id 4810" → pregunta "¿ese gasto fue con factura o sin factura? Si fue con factura, pásame el número."
 - SUBIR / INGRESAR / CARGAR / AGREGAR / PUBLICAR un auto NUEVO = herramienta subir_auto (agente "Meme"). SOLO para MallorcAutos (los autos solo se suben a MallorcAutos). NO improvises el flujo: sigue SIEMPRE, paso a paso, el 📋 FORMULARIO ESTÁNDAR PARA PUBLICAR UN AUTO definido más abajo (foto primero → extraer → mostrar el formulario → rellenar conversando → confirmar y subir). El auto entra en estado "Chillan" (ingreso) y "en el local" por defecto; no lo publiques tú.
 - 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → MIRA el campo "pago" del expediente: si modo="manual" (el banco automático está EN REPOSO, es lo actual) NO uses tek_masiva — dile al usuario que TRANSFIERA él al vendedor desde ANA CLARA (beneficiario = nombre+RUT, monto = precio de compra) y cuando confirme marca el paso; si modo="automatico" usa tek_masiva (queda "Por Autorizar", lo libera un humano, nunca autorizas tú); publicar → subir_auto (con o sin foto); TAG → solicitar_tag (el PODER lo genera Nexus solo con la patente y la fecha del día — NO lo pidas; el usuario solo adjunta carnet + factura/contrato); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
+- 💰 VENDÍ UN AUTO / VENTA / SE VENDIÓ ("vendí este auto", "vendí el [patente]", "se vendió el [patente]", "venta del [patente]") = herramienta venta (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo de venta: NO improvises. (1) Apenas lo digan, llama venta accion:"iniciar" con la patente → te da el TABLERO de 4 pasos, lo que hay que pedirle al usuario (datos del comprador — los MISMOS que en compras — y precio de venta) y cuánto tarda. (2) A medida que te pasen datos usa venta accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y marca con venta accion:"paso": nota_venta → vender_goautos; fondos → revisa/confírmale la disponibilidad de la plata (NO contable) en Santander (principal)/Chile/ITAU/Scotiabank; factura → sii accion:"emitir" (factura de venta) + enviar factura y CAV a Pamela (transferencia de dominio); tag → solicitar_tag tipo:"traspaso" (el poder se genera solo; adjunta carnet + factura). ⚠️ NUNCA muevas plata, emitas ni cambies el estado del auto por tu cuenta: cada paso sensible lo confirma el usuario.
 - 💸 REGISTRAR UN GASTO ("anota/registra un gasto", "gasté X en Y", "pagué X por Z", "boleta/factura de gasto") = herramienta gasto (agente "Meme", SOLO MallorcAutos, BD nueva). SIMULA PRIMERO: llámala sin confirmado → muestra el gasto y a qué se asocia; con el OK de la persona, confirmado:true → lo escribe. Si el gasto es de un AUTO pasa la patente (se asocia a ese auto); si no, queda gasto GENERAL. Con factura → pon el N° en "documento"; sin factura → queda "sinfactura" (si hay que emitir la factura de compra, avísale, es aparte). El gasto queda con su MEDIO DE PAGO, pero el banco está EN REPOSO → dile a la persona que el pago lo hace ella (no se paga solo). Pregunta el medio de pago si no lo dan.
 - DATOS FINANCIEROS de Mallorca (COSTO, GASTOS, TOTAL invertido, PV esperado, MARGEN, ventas) = herramienta consultar_mallorca (agente "Meme"). ⚙️ IMPORTANTE: el costo/gastos/total/margen de cada auto ahora salen EN VIVO de GoAutos (Supabase), NO del Excel — compra + consignación + gastos (neto de IVA recuperable) + venta. Ya NO digas "según el Excel" para estos números; son de GoAutos y están al día. (a) MARGEN/COSTO de un auto → consultar_mallorca comando 'auto' con la patente (o el id) de GoAutos; ya devuelve costo, gastos, total, precio publicado y el margen (realizado si está vendido; estimado vs precio publicado si está en stock). (b) STOCK VALORIZADO ("cuánta plata hay en el stock", "stock valorizado") → comando 'stock'. (c) VENTAS y MÁRGENES (por mes o acumulado) → comando 'ventas' (--mes YYYY-MM). (d) ENRIQUECER fichas: al dar el detalle de un auto de MallorcAutos, si te piden o tiene sentido (rentabilidad), agrega su costo/margen (ya vienen de GoAutos). (e) OTRAS hojas del negocio que NO viven en GoAutos (CxC, CxP, flujo, bancos) → comando 'hojas' para verlas y 'hoja' para leer una (esas siguen del Excel). Montos en CLP.
 - 🚗 GoAutos AMPLIADO (agente "Meme", SOLO MallorcAutos) — además del stock/ventas/gastos, Nexus ahora hace TODO lo que hacía la IA "GAIA" de GoAuto Admin. Piensa como GERENTE COMERCIAL, no como buscador:
@@ -2695,6 +2696,29 @@ const HERRAMIENTAS = [
         poder_recibido: { type: 'boolean', description: 'true cuando ya tienes el poder (para el TAG).' },
         carnet_recibido: { type: 'boolean', description: 'true cuando ya tienes la foto del carnet del vendedor.' },
         paso: { type: 'string', enum: ['contrato', 'pago', 'goautos', 'tag', 'factura'], description: 'Para accion "paso": qué paso marcar.' },
+        estado_paso: { type: 'string', enum: ['listo', 'pendiente'], description: 'Para accion "paso": listo o pendiente (default listo).' },
+      },
+      required: ['accion', 'patente'],
+    },
+  },
+  // ── VENTA · flujo completo al vender un auto (orquestador + checklist) ─────────
+  {
+    name: 'venta',
+    description: 'FLUJO DE VENTA DE UN AUTO de MallorcAutos. Gatíllalo cuando digan "vendí este auto", "vendí el [patente]", "se vendió el auto", "venta del [patente]". Es un ORQUESTADOR con CHECKLIST de 4 pasos: (1) Nota de venta en GoAutos [herramienta vender_goautos] con los DATOS DEL COMPRADOR (los mismos que en compras: nombre, RUT, dirección, teléfono, correo + foto del carnet) y el precio de venta; (2) Confirmación de fondos → revisar la DISPONIBILIDAD de la plata (no contable) en los bancos: Santander (principal), Chile, ITAU, Scotiabank; (3) Emisión de la factura de VENTA [herramienta sii accion:emitir] y enviar la factura + CAV a Pamela (que hace la transferencia de dominio); (4) Traspaso del TAG [herramienta solicitar_tag tipo "traspaso"] con los documentos (carnet + poder [se genera solo] + factura). ⚠️ NO mueve plata, NO emite documentos ni cambia el estado del auto por su cuenta: solo abre/guarda el EXPEDIENTE de la venta y te dice el SIGUIENTE paso y qué falta. Al iniciar muéstrale el auto, el TABLERO con tiempos y la lista de lo que necesitas. Acciones: iniciar/estado/guardar/paso.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['iniciar', 'estado', 'guardar', 'paso'], description: 'iniciar = abre el expediente. estado = tablero. guardar = guarda comprador/precio. paso = marca un paso listo/pendiente.' },
+        patente: { type: 'string', description: 'Patente del auto vendido (OBLIGATORIA).' },
+        comprador: {
+          type: 'object', description: 'Datos del COMPRADOR para "guardar" (el carnet es una foto/PDF adjunto, no va acá).',
+          properties: { nombre: { type: 'string' }, rut: { type: 'string' }, direccion: { type: 'string' }, telefono: { type: 'string' }, correo: { type: 'string' } },
+        },
+        precio_venta: { type: 'number', description: 'Precio de venta en CLP (lo que pagó el comprador), para "guardar".' },
+        pago: { type: 'string', description: 'Método de pago del comprador (efectivo/transferencia/tarjeta/crédito/financiamiento/mixto).' },
+        carnet_recibido: { type: 'boolean', description: 'true cuando ya tienes la foto del carnet del comprador.' },
+        fondos_confirmados: { type: 'boolean', description: 'true cuando ya confirmaste que la plata está disponible en el banco.' },
+        paso: { type: 'string', enum: ['nota_venta', 'fondos', 'factura', 'tag'], description: 'Para accion "paso": qué paso marcar.' },
         estado_paso: { type: 'string', enum: ['listo', 'pendiente'], description: 'Para accion "paso": listo o pendiente (default listo).' },
       },
       required: ['accion', 'patente'],
@@ -3847,6 +3871,102 @@ async function ejecutar(nombre, input, ctx = {}) {
         tablero: tb.lines, tarda_aprox: `~${tb.total_min} min`, necesito: faltantes(exp),
         avisos: exp.avisos || [], siguiente_paso: sig, pago: pagoSugerido(exp),
         instruccion: `Tablero de la compra de ${patente}. Muéstralo ordenado, di qué falta ("necesito") y cuál es el siguiente paso (${sig || 'ninguno, ya está completo'}). ${pagoAuto ? 'Para el PAGO usa tek_masiva con el beneficiario y monto de "pago" (sale de ANA CLARA; queda Por Autorizar, lo libera un humano).' : 'Para el PAGO el banco automático está EN REPOSO: dile al usuario que TRANSFIERA él al vendedor con los datos de "pago" (beneficiario + monto, desde ANA CLARA); NO uses tek_masiva.'}`,
+      })
+    }
+    // ── VENTA · orquestador del flujo de venta de un auto (checklist, sin plata) ──
+    if (nombre === 'venta') {
+      const patente = String(input.patente || '').trim().toUpperCase().replace(/[\s.\-]/g, '')
+      if (!patente) return 'Necesito la PATENTE del auto que vendiste para armar el expediente.'
+      const accion = String(input.accion || 'iniciar').toLowerCase()
+      const VPATH = join(__dirname, '.ventas-pendientes.json')
+      const dekey = ctx.de || '_anon'
+      const vkey = `${dekey}::${patente}`
+      const leer = () => { try { return JSON.parse(readFileSync(VPATH, 'utf8')) } catch { return {} } }
+      const guardar = (o) => { try { writeFileSync(VPATH, JSON.stringify(o)) } catch { /* best-effort */ } }
+      const store = leer()
+      let exp = store[vkey]
+      const BANCOS = 'Santander (principal), Chile, ITAU, Scotiabank'
+      const PASOS = [
+        { k: 'nota_venta', t: 'Nota de venta (GoAutos)', min: 2, nota: 'vender_goautos con los datos del comprador y el precio' },
+        { k: 'fondos', t: 'Confirmación de fondos', min: 2, nota: `revisar disponibilidad (no contable) en ${BANCOS}` },
+        { k: 'factura', t: 'Emisión de factura', min: 3, nota: 'factura de venta (sii) + enviar factura y CAV a Pamela (transferencia de dominio)' },
+        { k: 'tag', t: 'Traspaso de TAG', min: 1, nota: 'solicitar_tag tipo traspaso (carnet + poder [se genera solo] + factura)' },
+      ]
+      const faltantes = (e) => {
+        const f = []
+        if (!e.comprador?.nombre || !e.comprador?.rut) f.push('datos del comprador (nombre + RUT)')
+        if (!e.comprador?.direccion) f.push('dirección del comprador')
+        if (!e.comprador?.telefono) f.push('teléfono del comprador')
+        if (!e.comprador?.correo) f.push('correo del comprador')
+        if (!e.carnet_recibido) f.push('foto del carnet del comprador')
+        if (!(Number(e.precio_venta) > 0)) f.push('precio de venta')
+        return f
+      }
+      const tablero = (e) => {
+        const total = PASOS.reduce((a, p) => a + p.min, 0)
+        const lines = PASOS.map((p, i) => `${i + 1}. ${(e.pasos?.[p.k] || 'pendiente') === 'listo' ? '✅' : '⏳'} ${p.t} · ~${p.min} min (${p.nota})`)
+        return { lines, total_min: total }
+      }
+      const siguiente = (e) => { for (const p of PASOS) if ((e.pasos?.[p.k] || 'pendiente') !== 'listo') return p.k; return null }
+      if (!exp && accion !== 'iniciar') return `No hay un expediente de venta abierto para ${patente}. Primero usa accion:"iniciar".`
+
+      if (accion === 'iniciar') {
+        if (!exp) exp = { patente, creado: new Date().toISOString(), pasos: {}, comprador: {} }
+        if (!exp.auto) {
+          try {
+            const v = await gastosDB.buscarVehiculo(patente)
+            if (v) exp.auto = { marca: v.marca, modelo: v.modelo }
+          } catch { /* si no está en la BD, seguimos igual */ }
+        }
+        exp.actualizado = new Date().toISOString()
+        store[vkey] = exp; guardar(store)
+        const tb = tablero(exp)
+        return JSON.stringify({
+          ok: true, patente, auto: exp.auto || null, tablero: tb.lines, tarda_aprox: `~${tb.total_min} min en total`, necesito: faltantes(exp),
+          instruccion: `Es la VENTA de un auto${exp.auto ? ` (${exp.auto.marca || ''} ${exp.auto.modelo || ''})` : ''}. Preséntale al usuario, en tu voz y ordenado: (1) el auto, (2) el TABLERO de los 4 pasos con tiempos, y (3) la lista "necesito" (datos del comprador — los mismos que en compras — y el precio de venta). A medida que te pasen datos usa accion:"guardar". Para avanzar cada paso usa las herramientas reales EN ORDEN y marca con accion:"paso": nota_venta → vender_goautos (busca el id con consultar_goautos, confirma auto+precio, usa simular primero); fondos → revisa/confírmale la disponibilidad de la plata (NO contable) en ${BANCOS}; factura → sii accion:"emitir" (factura de venta) y luego enviar la factura + CAV a Pamela para la transferencia; tag → solicitar_tag tipo:"traspaso" (el poder se genera solo; adjunta carnet + factura). NO muevas plata, no emitas ni cambies el estado del auto por tu cuenta: cada paso sensible lo confirma el usuario.`,
+        })
+      }
+
+      if (accion === 'guardar') {
+        if (input.comprador && typeof input.comprador === 'object') exp.comprador = { ...(exp.comprador || {}), ...input.comprador }
+        if (Number(input.precio_venta) > 0) exp.precio_venta = Number(input.precio_venta)
+        if (input.pago) exp.pago = String(input.pago)
+        if (input.carnet_recibido === true) exp.carnet_recibido = true
+        if (input.fondos_confirmados === true) exp.fondos_confirmados = true
+        exp.actualizado = new Date().toISOString()
+        store[vkey] = exp; guardar(store)
+        const falta = faltantes(exp)
+        return JSON.stringify({
+          ok: true, patente, guardado: true, necesito: falta,
+          instruccion: falta.length ? `Datos guardados. Todavía falta: ${falta.join(', ')}. Pídeselo al usuario.` : 'Ya tienes todo lo necesario para la venta. Confírmaselo y arranca por el paso pendiente (usa accion:"estado").',
+        })
+      }
+
+      if (accion === 'paso') {
+        const pk = String(input.paso || '').toLowerCase()
+        if (!PASOS.some((p) => p.k === pk)) return 'El paso debe ser uno de: nota_venta, fondos, factura, tag.'
+        exp.pasos = exp.pasos || {}
+        exp.pasos[pk] = (String(input.estado_paso || 'listo').toLowerCase() === 'pendiente') ? 'pendiente' : 'listo'
+        exp.actualizado = new Date().toISOString()
+        store[vkey] = exp; guardar(store)
+        const tb = tablero(exp); const sig = siguiente(exp)
+        const guia = {
+          nota_venta: 'registra la nota de venta con vender_goautos (busca el id con consultar_goautos, confirma auto+precio, simula primero)',
+          fondos: `revisa/confírmale que la plata está disponible (NO contable) en ${BANCOS}`,
+          factura: 'emite la factura de venta con sii accion:"emitir" y luego envía la factura + CAV a Pamela para la transferencia de dominio',
+          tag: 'haz el traspaso del TAG con solicitar_tag tipo:"traspaso" (el poder se genera solo; adjunta carnet + factura)',
+        }
+        return JSON.stringify({
+          ok: true, patente, tablero: tb.lines, siguiente_paso: sig ? { paso: sig, que_hacer: guia[sig] } : null,
+          instruccion: sig ? `Paso marcado. El siguiente es "${sig}": ${guia[sig]}.` : '🎉 Todos los pasos de la venta están listos. Felicítalo corto.',
+        })
+      }
+
+      // estado (default)
+      const tb = tablero(exp); const sig = siguiente(exp)
+      return JSON.stringify({
+        ok: true, patente, auto: exp.auto || null, tablero: tb.lines, tarda_aprox: `~${tb.total_min} min`, necesito: faltantes(exp), siguiente_paso: sig,
+        instruccion: `Tablero de la venta de ${patente}. Muéstralo ordenado, di qué falta ("necesito") y cuál es el siguiente paso (${sig || 'ninguno, ya está completa'}).`,
       })
     }
     // ── GASTO · registra un gasto en la BD nueva de MallorcAutos (simula → confirma) ──
@@ -5213,7 +5333,7 @@ function backstopTamano(mensajes) {
 const PERSONAS = [
   { linea: 'Me conecté a *Martes* y me dijo:', tools: ['sii', 'sii_boleta_honorarios'] },
   { linea: 'Le pregunté a *Néstor* y me dijo:', tools: ['correo', 'gmail_documentos'] },
-  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'factura_compra', 'gasto'] },
+  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'venta', 'factura_compra', 'gasto'] },
   { linea: 'Me conecté con *Ali* y me dijo:', tools: ['aliace_resumen', 'aliace_margen', 'aliace_rpc', 'aliace_sql', 'aliace_mover_nv', 'navegar', 'iniciar_sesion', 'leer_tabla', 'leer_pagina', 'clic', 'esperar', 'guia_aliace', 'escribir_en_campo', 'ver_pestanas', 'cambiar_pestana'] },
   { linea: 'Me comuniqué con *SAI* y me dijo:', tools: ['sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'] },
   { linea: 'Me comuniqué con *Leo* y me dijo:', tools: ['banco'] },
