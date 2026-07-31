@@ -40,6 +40,8 @@ import { conteo as tagConteo, conteoExcel as tagConteoExcel, leerSnapshot as tag
 import * as autored from '../conector-autored/autored.mjs'
 // Gastos — registra gastos en la BD nueva de MallorcAutos (Supabase); carga su propio .env.
 import * as gastosDB from '../conector-gastos/gastos.mjs'
+// Conciliación — cruza SII ↔ banco sobre la BD nueva (reusa el motor de match del SAI).
+import * as conciliacion from '../conector-gastos/conciliar.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -1323,7 +1325,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras', 'factura_compra'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'venta', 'gasto'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'venta', 'gasto', 'conciliacion'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -1580,6 +1582,7 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
 - SUBIR / INGRESAR / CARGAR / AGREGAR / PUBLICAR un auto NUEVO = herramienta subir_auto (agente "Meme"). SOLO para MallorcAutos (los autos solo se suben a MallorcAutos). NO improvises el flujo: sigue SIEMPRE, paso a paso, el 📋 FORMULARIO ESTÁNDAR PARA PUBLICAR UN AUTO definido más abajo (foto primero → extraer → mostrar el formulario → rellenar conversando → confirmar y subir). El auto entra en estado "Chillan" (ingreso) y "en el local" por defecto; no lo publiques tú.
 - 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → MIRA el campo "pago" del expediente: si modo="manual" (el banco automático está EN REPOSO, es lo actual) NO uses tek_masiva — dile al usuario que TRANSFIERA él al vendedor desde ANA CLARA (beneficiario = nombre+RUT, monto = precio de compra) y cuando confirme marca el paso; si modo="automatico" usa tek_masiva (queda "Por Autorizar", lo libera un humano, nunca autorizas tú); publicar → subir_auto (con o sin foto); TAG → solicitar_tag (el PODER lo genera Nexus solo con la patente y la fecha del día — NO lo pidas; el usuario solo adjunta carnet + factura/contrato); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
 - 💰 VENDÍ UN AUTO / VENTA / SE VENDIÓ ("vendí este auto", "vendí el [patente]", "se vendió el [patente]", "venta del [patente]") = herramienta venta (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo de venta: NO improvises. (1) Apenas lo digan, llama venta accion:"iniciar" con la patente → te da el TABLERO de 4 pasos, lo que hay que pedirle al usuario (datos del comprador — los MISMOS que en compras — y precio de venta) y cuánto tarda. (2) A medida que te pasen datos usa venta accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y marca con venta accion:"paso": nota_venta → vender_goautos; fondos → revisa/confírmale la disponibilidad de la plata (NO contable) en Santander (principal)/Chile/ITAU/Scotiabank; factura → sii accion:"emitir" (factura de venta) + enviar factura y CAV a Pamela (transferencia de dominio); tag → solicitar_tag tipo:"traspaso" (el poder se genera solo; adjunta carnet + factura). ⚠️ NUNCA muevas plata, emitas ni cambies el estado del auto por tu cuenta: cada paso sensible lo confirma el usuario.
+- 🧮 CONCILIACIÓN ("concilia", "conciliación", "revisión del SII y banco", "¿qué falta conciliar/cuadrar?", "gastos duplicados", "cuadra la plata") = herramienta conciliacion (agente "Meme", SOLO MallorcAutos). Cruza las facturas del SII con los movimientos del banco de la BD nueva. accion:"revisar" (default, no escribe) → informe de cobertura, matches, lo que falta cruzar y DUPLICADOS; accion:"aplicar" (simula, y con confirmado:true marca los conciliados en la BD). Rango por defecto = mes en curso. El banco hoy se carga por cartola (manual). Preséntale el informe ordenado y ofrécele aplicar.
 - 💸 REGISTRAR UN GASTO ("anota/registra un gasto", "gasté X en Y", "pagué X por Z", "boleta/factura de gasto") = herramienta gasto (agente "Meme", SOLO MallorcAutos, BD nueva). SIMULA PRIMERO: llámala sin confirmado → muestra el gasto y a qué se asocia; con el OK de la persona, confirmado:true → lo escribe. Si el gasto es de un AUTO pasa la patente (se asocia a ese auto); si no, queda gasto GENERAL. Con factura → pon el N° en "documento"; sin factura → queda "sinfactura" (si hay que emitir la factura de compra, avísale, es aparte). El gasto queda con su MEDIO DE PAGO, pero el banco está EN REPOSO → dile a la persona que el pago lo hace ella (no se paga solo). Pregunta el medio de pago si no lo dan.
 - DATOS FINANCIEROS de Mallorca (COSTO, GASTOS, TOTAL invertido, PV esperado, MARGEN, ventas) = herramienta consultar_mallorca (agente "Meme"). ⚙️ IMPORTANTE: el costo/gastos/total/margen de cada auto ahora salen EN VIVO de GoAutos (Supabase), NO del Excel — compra + consignación + gastos (neto de IVA recuperable) + venta. Ya NO digas "según el Excel" para estos números; son de GoAutos y están al día. (a) MARGEN/COSTO de un auto → consultar_mallorca comando 'auto' con la patente (o el id) de GoAutos; ya devuelve costo, gastos, total, precio publicado y el margen (realizado si está vendido; estimado vs precio publicado si está en stock). (b) STOCK VALORIZADO ("cuánta plata hay en el stock", "stock valorizado") → comando 'stock'. (c) VENTAS y MÁRGENES (por mes o acumulado) → comando 'ventas' (--mes YYYY-MM). (d) ENRIQUECER fichas: al dar el detalle de un auto de MallorcAutos, si te piden o tiene sentido (rentabilidad), agrega su costo/margen (ya vienen de GoAutos). (e) OTRAS hojas del negocio que NO viven en GoAutos (CxC, CxP, flujo, bancos) → comando 'hojas' para verlas y 'hoja' para leer una (esas siguen del Excel). Montos en CLP.
 - 🚗 GoAutos AMPLIADO (agente "Meme", SOLO MallorcAutos) — además del stock/ventas/gastos, Nexus ahora hace TODO lo que hacía la IA "GAIA" de GoAuto Admin. Piensa como GERENTE COMERCIAL, no como buscador:
@@ -2722,6 +2725,22 @@ const HERRAMIENTAS = [
         estado_paso: { type: 'string', enum: ['listo', 'pendiente'], description: 'Para accion "paso": listo o pendiente (default listo).' },
       },
       required: ['accion', 'patente'],
+    },
+  },
+  // ── CONCILIACIÓN · cruza SII ↔ banco sobre la BD nueva de MallorcAutos ─────────
+  {
+    name: 'conciliacion',
+    description: 'CONCILIACIÓN diaria de MallorcAutos: cruza las FACTURAS DEL SII (ya sincronizadas en la BD) con los MOVIMIENTOS DEL BANCO (tabla movimientos_banco) para ver qué está pagado/cobrado y qué queda sin cruzar. Úsala para "concilia", "revisión del SII y banco", "¿qué falta conciliar?", "gastos duplicados", "cuadra la plata". Motor de match por monto/RUT/nombre/fecha (mismo del SAI). Dos acciones: (1) "revisar" (default, SOLO LECTURA) → informe: cobertura, matches propuestos, documentos y movimientos SIN conciliar, y DUPLICADOS del SII. (2) "aplicar" → marca en la BD los movimientos conciliados (movimientos_banco.conciliado=true + referencia al documento). "aplicar" SIMULA si no pones confirmado:true. Rango por defecto: el mes en curso; puedes pasar desde/hasta (YYYY-MM-DD). NOTA: hoy el banco se carga a la BD por CARTOLA (manual); cuando el banco sea automático esto no cambia. NO diferencia todavía gastos generales vs por-vehículo de forma automática (eso lo revisa la persona).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['revisar', 'aplicar'], description: 'revisar = informe (no escribe). aplicar = marca los conciliados en la BD (simula si no hay confirmado:true).' },
+        desde: { type: 'string', description: 'Fecha inicio YYYY-MM-DD (por defecto, inicio del mes en curso).' },
+        hasta: { type: 'string', description: 'Fecha fin YYYY-MM-DD (por defecto, hoy).' },
+        min_score: { type: 'integer', description: 'Para "aplicar": score mínimo del match para marcar como conciliado (0-100, por defecto 60).' },
+        confirmado: { type: 'boolean', description: 'Para "aplicar": true = escribe en la BD. Ausente/false = simula. Ponlo true solo tras el OK de la persona.' },
+      },
+      required: [],
     },
   },
   // ── GASTO · registra un gasto en la BD nueva de MallorcAutos ──────────────────
@@ -3968,6 +3987,26 @@ async function ejecutar(nombre, input, ctx = {}) {
         ok: true, patente, auto: exp.auto || null, tablero: tb.lines, tarda_aprox: `~${tb.total_min} min`, necesito: faltantes(exp), siguiente_paso: sig,
         instruccion: `Tablero de la venta de ${patente}. Muéstralo ordenado, di qué falta ("necesito") y cuál es el siguiente paso (${sig || 'ninguno, ya está completa'}).`,
       })
+    }
+    // ── CONCILIACIÓN · cruza SII ↔ banco sobre la BD nueva (revisar / aplicar) ──────
+    if (nombre === 'conciliacion') {
+      const hoy = new Date().toISOString().slice(0, 10)
+      const primeroMes = hoy.slice(0, 8) + '01'
+      const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(input.desde)) ? input.desde : primeroMes
+      const hasta = /^\d{4}-\d{2}-\d{2}$/.test(String(input.hasta)) ? input.hasta : hoy
+      const accion = String(input.accion || 'revisar').toLowerCase()
+      try {
+        if (accion === 'aplicar') {
+          const r = await conciliacion.aplicar({ desde, hasta, minScore: Number(input.min_score) > 0 ? Number(input.min_score) : 60, confirmar: input.confirmado === true })
+          if (r.dry_run) return JSON.stringify({ ok: true, modo: 'simulacion', rango: { desde, hasta }, se_marcarian: r.a_marcar, min_score: r.minScore, ejemplos: r.ejemplos, instruccion: `Se marcarían ${r.a_marcar} movimientos como conciliados (score ≥ ${r.minScore}). Muéstraselo y, con el OK de la persona, vuelve a llamar con confirmado:true.` })
+          return JSON.stringify({ ok: true, modo: 'aplicado', rango: { desde, hasta }, marcados: r.marcados, de: r.de, instruccion: `Marqué ${r.marcados} movimientos del banco como conciliados en la BD. Confírmaselo corto.` })
+        }
+        const r = await conciliacion.revisar({ desde, hasta })
+        return JSON.stringify({
+          ...r,
+          instruccion: 'Preséntale la conciliación ordenada: cobertura (cantidad y monto), cuántos matches propuestos, cuántos documentos y movimientos quedan SIN conciliar (con el monto de egresos sin cruzar), y AVÍSALE de los DUPLICADOS del SII si los hay. Ofrécele marcar los conciliados con accion:"aplicar". Recuerda: los gastos generales vs por-vehículo hoy los revisa la persona (aún no es automático).',
+        })
+      } catch (e) { return `No pude hacer la conciliación: ${e.message}` }
     }
     // ── GASTO · registra un gasto en la BD nueva de MallorcAutos (simula → confirma) ──
     if (nombre === 'gasto') {
@@ -5333,7 +5372,7 @@ function backstopTamano(mensajes) {
 const PERSONAS = [
   { linea: 'Me conecté a *Martes* y me dijo:', tools: ['sii', 'sii_boleta_honorarios'] },
   { linea: 'Le pregunté a *Néstor* y me dijo:', tools: ['correo', 'gmail_documentos'] },
-  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'venta', 'factura_compra', 'gasto'] },
+  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'venta', 'factura_compra', 'gasto', 'conciliacion'] },
   { linea: 'Me conecté con *Ali* y me dijo:', tools: ['aliace_resumen', 'aliace_margen', 'aliace_rpc', 'aliace_sql', 'aliace_mover_nv', 'navegar', 'iniciar_sesion', 'leer_tabla', 'leer_pagina', 'clic', 'esperar', 'guia_aliace', 'escribir_en_campo', 'ver_pestanas', 'cambiar_pestana'] },
   { linea: 'Me comuniqué con *SAI* y me dijo:', tools: ['sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'] },
   { linea: 'Me comuniqué con *Leo* y me dijo:', tools: ['banco'] },
