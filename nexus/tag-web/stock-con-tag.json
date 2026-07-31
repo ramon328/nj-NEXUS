@@ -1,9 +1,9 @@
 {
-  "actualizado": "2026-07-31T20:57:03.489Z",
+  "actualizado": "2026-07-31T21:09:22.863Z",
   "fuente": "Excel Mallorca · STOCK VALORIZADO",
-  "total": 42,
+  "total": 41,
   "con_tag": 28,
-  "sin_tag": 14,
+  "sin_tag": 13,
   "autos": [
     {
       "patente": "VFYG69",
@@ -210,12 +210,6 @@
       "tag": false
     },
     {
-      "patente": "VWWC41-9",
-      "marca": "FORD ",
-      "modelo": "MAVERICK",
-      "tag": false
-    },
-    {
       "patente": "RGVG27-1",
       "marca": "SSANGYONG",
       "modelo": "MUSSO",
@@ -261,6 +255,8 @@
   "cambios": {
     "nuevos_con_tag": [],
     "nuevos_en_stock": [],
-    "salieron_del_stock": []
+    "salieron_del_stock": [
+      "VWWC41-9"
+    ]
   }
 }
