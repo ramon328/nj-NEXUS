@@ -234,9 +234,13 @@ export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor =
   await sleep(400)
   // 5) "Validar y visualizar" → VISTA PREVIA. SE DETIENE. NO firma.
   await fetch(`${NAV}/ultimo-pdf?olvidar=1`).catch(() => {})
-  await click('[name=Button_Update]'); await sleep(8000)
+  await click('[name=Button_Update]')
+  // Espera (sondeando) a que aparezca la vista previa — más robusto que un sleep fijo
+  // (a veces el SII demora y antes caía a captura del FORMULARIO como si fuera el borrador).
+  let enVistaPrevia = await esperarUrl('mipeDisplayPreView', 15000)
+  if (!enVistaPrevia) { await click('[name=Button_Update]').catch(() => {}); enVistaPrevia = await esperarUrl('mipeDisplayPreView', 10000) }
+  await sleep(1500)
   est = await nav('/estado')
-  const enVistaPrevia = String(est?.url || '').includes('mipeDisplayPreView')
   const pdf = await (await fetch(`${NAV}/ultimo-pdf`)).json().catch(() => null)
   if (enVistaPrevia && pdf?.ok && pdf.ruta) {
     return {
@@ -245,14 +249,13 @@ export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor =
       nota: `Vista previa de la FACTURA DE COMPRA (DTE 46) generada en el SII (producto "${cs.producto}", ${cambioSujeto === 'generico' ? 'con retención 19%' : 'SIN IVA'}). NO se emitió: el robot se detiene en la vista previa.`,
     }
   }
-  const cap = await (await fetch(`${NAV}/captura?full=1`)).json()
-  if (!cap?.png_base64) return { ok: false, error: 'No pude obtener el borrador de la factura de compra (ni PDF ni captura).' }
-  const ruta = `/tmp/nexus-borrador-compra-${Date.now()}.png`
-  writeFileSync(ruta, Buffer.from(cap.png_base64, 'base64'))
-  return {
-    ok: true, captura: ruta, archivo: ruta, en_vista_previa: enVistaPrevia, tipo_dte: 46,
-    nota: enVistaPrevia ? 'Vista previa generada (va la captura).' : 'Quedó en el formulario (revisa: puede faltar un dato del vendedor).',
-  }
+  const cap = await (await fetch(`${NAV}/captura?full=1`)).json().catch(() => ({}))
+  const ruta = cap?.png_base64 ? `/tmp/nexus-borrador-compra-${Date.now()}.png` : null
+  if (ruta) writeFileSync(ruta, Buffer.from(cap.png_base64, 'base64'))
+  if (enVistaPrevia) return { ok: true, captura: ruta, archivo: ruta, en_vista_previa: true, tipo_dte: 46, cambio_sujeto: cambioSujeto, nota: 'Vista previa generada (va la captura, no pude tomar el PDF).' }
+  // NO llegó a la vista previa: el SII no validó (falta un dato del receptor, ej. dirección).
+  // NO lo hacemos pasar por borrador — devolvemos error para que el asistente lo diga.
+  return { ok: false, en_vista_previa: false, captura: ruta, tipo_dte: 46, error: 'El SII no validó el borrador (probablemente falta un dato del receptor, como la dirección). NO se generó la vista previa.' }
 }
 
 // ⛔⛔ EMISIÓN REAL — IRREVERSIBLE. Consume folio y le llega al receptor. ⛔⛔
