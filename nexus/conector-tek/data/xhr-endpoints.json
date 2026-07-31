@@ -1,0 +1,26 @@
+{
+  "GET privado.officebanking.cl/assets/params.json": {
+    "url": "https://privado.officebanking.cl/assets/params.json?ts=20260727220703",
+    "method": "GET",
+    "status": 200,
+    "content_type": "application/json",
+    "hits": 1,
+    "muestra": "{\n  \"application\": {\n    \"VERSION\": \"2.1.7\",\n    \"LOG_LEVEL\": 6,\n    \"AMBIENTE\": \"Produccion\",\n    \"IS_PRODUCTION\": true,\n    \"IS_LOCAL\": false\n  },\n\n  \"apiConfig\": {\n    \"API_CONNECT_URL\": \"https://apideveloper.santander.cl/\",\n    \"API_GEE_URL\": \"https://api.officebanking.cl/\",\n    \"API_GEE_CLIENT_ID\": \"foswmIcjMiDqueAOqCpNe5b9ASeW2NL6\"\n  },\n\n  \"sitios\": {\n    \"DOMAIN\": \".officebanking.cl\",\n    \"PRIVATE_PORTAL_URL\": \"https://privado.officebanking.cl\",\n    \"PUBLIC_PORTAL_URL\": \"https://empresas."
+  },
+  "POST wup-7b4df495.santander.cl/client/v3/web/wup": {
+    "url": "https://wup-7b4df495.santander.cl/client/v3/web/wup?cid=innoko",
+    "method": "POST",
+    "status": 200,
+    "content_type": "application/json",
+    "hits": 1,
+    "muestra": "{\"sts\":\"gAAAAABqbGvAOvOxUKXhVjzVCJN9YsiZvatf6Cihxe-wmzFI2mh2Xj9ScW5eHLXQQ-TTxGNGA3f8jJNc4T0PTrP-ZgoyHxYLcNLkb3-pY6mo1lAvzPY4alTaL_9sRWHX9SBlJI7WO1JZsr3gXvZC6_1RPRZnx3_aQzMqhp-4R5xoTq66s_hQMwMAvbdKwI4RctXwHR0bY25z6sIlhmQOs_Jx_T0COyyL_dIh27PKO_s3pUH4fV4mbiYacHwvzAwZFhBaxfR-o_Pvxf-_otwzZQQLPptOLihW2qxem2YSbXOR3mB7ZK2rWAhfOayFSjX4u0EOTy1BRLfamGIZZAx6Ls5NJ8EmPK6rNg==\",\"std\":\"gAAAAABqbGvA5RPuSp1YVyqFjrWRH0EaCNZOEXVb4_4E5_5MyFt0_YwwYCbPVX0nnIMci489hHfv4h0bJTEaoxOM6po-OyJSAB7rDQvJsCpaCCCG5gWbSdR_RhGoFeN"
+  },
+  "POST log-7b4df495.santander.cl/api/v1/sendLogs": {
+    "url": "https://log-7b4df495.santander.cl/api/v1/sendLogs?cid=innoko&cdsnum=1785489033591-sjn0000047-9423718c-652e-433d-b14a-02adc7b7fb3f&csid=null&ds=js&sdkVer=2.33.0.1647.05ce1d7",
+    "method": "POST",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "hits": 1,
+    "muestra": "{\"status\":\"success\"}"
+  }
+}
