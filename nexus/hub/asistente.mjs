@@ -2782,11 +2782,12 @@ const HERRAMIENTAS = [
   // ── FACTURA DE COMPRA (DTE 46) · BORRADOR, sin emitir ─────────────────────────
   {
     name: 'factura_compra',
-    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos (el que emite el documento es el comprador, no el proveedor). Se arma con la SESIÓN DEL SII DE NICO y te MANDA la VISTA PREVIA por WhatsApp. ⛔ NO EMITE: se DETIENE en la vista previa (la firma real NO está habilitada en esta fase). DOS CASOS: (A) COMPRA DE AUTO USADO a particular → pásale la PATENTE: saca auto (marca/modelo/motor/chasis/km) + vendedor + precio del EXPEDIENTE de compra; cambio de sujeto "Productos Usados" (SIN IVA, total = precio). (B) GASTO SIN FACTURA (proveedor que no factura, ej. mecánico/repuestos) → NO pases patente; pásale vendedor_rut (del proveedor), monto y glosa: usa el cambio de sujeto GENÉRICO con RETENCIÓN 19%. En ambos el SII autocompleta el nombre desde el RUT. Úsalo en el PASO 5 del flujo de compra, o cuando un GASTO quede "sin factura" y haya que emitir la factura de compra, o si piden "hazme la factura de compra". 🔁 CORRECCIONES / AGREGAR DATOS (IMPORTANTE): si ya mandaste un borrador y la persona pide CAMBIAR o AGREGAR algo, DEBES VOLVER A LLAMAR factura_compra pasando ese dato como parámetro — se regenera el borrador con el cambio. Mapa: precio→"precio"/"monto"; descripción del gasto→"glosa"; RUT/dirección del proveedor→"vendedor_rut"/"vendedor_direccion"; **chasis o VIN del auto→"chasis"; N° de motor→"motor"; cualquier otro texto que quiera agregar→"detalle_extra"**. ⚠️ Si falta el chasis/VIN u otro dato del auto y la persona te lo da, PÁSALO en "chasis"/"motor" a ESTA herramienta — NO basta con guardarlo en GoAutos (factura_compra NO lee GoAutos, lee el expediente y la BD nueva). NO respondas "listo/corregido/agregado" sin volver a llamar la herramienta: si no la re-llamas, el borrador NO cambia. El NOMBRE del proveedor lo autocompleta el SII desde el RUT; si sale mal, corrige el RUT.',
+    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos (el que emite el documento es el comprador, no el proveedor). Se arma con la SESIÓN DEL SII DE NICO. FLUJO DE 2 PASOS: (1) accion:"borrador" → te MANDA la VISTA PREVIA por WhatsApp (NO emite); (2) SOLO tras el "sí, emítela" explícito de la persona, accion:"emitir" + emitir_real:true → FIRMA y EMITE de verdad en el SII (⚠️ IRREVERSIBLE, consume folio) y te manda el PDF oficial. NUNCA pongas emitir_real:true sin que la persona haya visto el borrador y confirmado. DOS CASOS: (A) COMPRA DE AUTO USADO a particular → pásale la PATENTE: saca auto (marca/modelo/motor/chasis/km) + vendedor + precio del EXPEDIENTE de compra; cambio de sujeto "Productos Usados" (SIN IVA, total = precio). (B) GASTO SIN FACTURA (proveedor que no factura, ej. mecánico/repuestos) → NO pases patente; pásale vendedor_rut (del proveedor), monto y glosa: usa el cambio de sujeto GENÉRICO con RETENCIÓN 19%. En ambos el SII autocompleta el nombre desde el RUT. Úsalo en el PASO 5 del flujo de compra, o cuando un GASTO quede "sin factura" y haya que emitir la factura de compra, o si piden "hazme la factura de compra". 🔁 CORRECCIONES / AGREGAR DATOS (IMPORTANTE): si ya mandaste un borrador y la persona pide CAMBIAR o AGREGAR algo, DEBES VOLVER A LLAMAR factura_compra pasando ese dato como parámetro — se regenera el borrador con el cambio. Mapa: precio→"precio"/"monto"; descripción del gasto→"glosa"; RUT/dirección del proveedor→"vendedor_rut"/"vendedor_direccion"; **chasis o VIN del auto→"chasis"; N° de motor→"motor"; cualquier otro texto que quiera agregar→"detalle_extra"**. ⚠️ Si falta el chasis/VIN u otro dato del auto y la persona te lo da, PÁSALO en "chasis"/"motor" a ESTA herramienta — NO basta con guardarlo en GoAutos (factura_compra NO lee GoAutos, lee el expediente y la BD nueva). NO respondas "listo/corregido/agregado" sin volver a llamar la herramienta: si no la re-llamas, el borrador NO cambia. El NOMBRE del proveedor lo autocompleta el SII desde el RUT; si sale mal, corrige el RUT.',
     input_schema: {
       type: 'object',
       properties: {
-        accion: { type: 'string', enum: ['borrador'], description: 'Solo "borrador" (vista previa, no emite). Es lo único disponible.' },
+        accion: { type: 'string', enum: ['borrador', 'emitir'], description: '"borrador" = vista previa (no emite). "emitir" = EMISIÓN REAL (irreversible, consume folio): requiere ADEMÁS emitir_real:true y el OK explícito de la persona.' },
+        emitir_real: { type: 'boolean', description: 'Solo con accion:"emitir": true = firma y EMITE de verdad en el SII (IRREVERSIBLE). Ponlo SOLO tras el "sí, emítela" explícito de la persona (después de haberle mostrado el borrador).' },
         patente: { type: 'string', description: 'CASO AUTO: patente del auto comprado (saca auto+precio del expediente). Para un GASTO, OMÍTELA.' },
         vendedor_rut: { type: 'string', description: 'RUT del vendedor/proveedor. Obligatorio para el caso GASTO; en auto se saca del expediente si no lo pasas. El SII autocompleta el nombre.' },
         vendedor_nombre: { type: 'string', description: 'Nombre/razón social (opcional; el SII suele autocompletarlo del RUT).' },
@@ -4184,9 +4185,21 @@ async function ejecutar(nombre, input, ctx = {}) {
         refTxt = 'del gasto'
       }
       const detIVA = cambioSujeto === 'generico' ? 'con retención 19%' : 'sin IVA'
+      const item = { detalle, precio, cantidad: 1 }
       try {
         const robot = await import('../conector-sii/factura-navegador.mjs')
-        const out = await robot.generarBorradorCompra({ empresaRut: '77271121-2', apiToken: token, vendedor, item: { detalle, precio, cantidad: 1 }, cambioSujeto })
+        // ── EMISIÓN REAL (irreversible): solo con accion:"emitir" + emitir_real:true ──
+        if (String(input.accion) === 'emitir' && input.emitir_real === true) {
+          const em = await robot.firmarYEmitirCompra({ empresaRut: '77271121-2', apiToken: token, vendedor, item, cambioSujeto, CONFIRMO_EMITIR: 'SI_EMITIR_DE_VERDAD' })
+          if (!em.ok) return JSON.stringify({ ok: false, error: em.error || em.motivo, detalle: em.detalle, instruccion: 'La factura de compra NO se emitió. Dile el error a la persona tal cual; NO digas que quedó emitida.' })
+          if (em.pdf && ctx.de) { try { await enviarMediaWhatsApp(ctx.de, em.pdf, `🧾 FACTURA DE COMPRA (DTE 46) N° ${em.folio || ''} EMITIDA ${refTxt} — total $${precio.toLocaleString('es-CL')}, ${detIVA}.`) } catch { /* */ } }
+          return JSON.stringify({ ok: true, modo: 'emitida', emitida: true, folio: em.folio || null, caso: patente ? 'auto' : 'gasto', total: precio, instruccion: `✅ Factura de compra (DTE 46) EMITIDA en el SII, N° ${em.folio || '(sin folio leído)'}${em.pdf ? ' — le mandé el PDF oficial' : ''}. ${patente ? 'Márcalo con compra accion:"paso", paso:"factura".' : ''} Confírmaselo a la persona.` })
+        }
+        // Si pidió "emitir" pero SIN emitir_real → pedir confirmación explícita (no emite).
+        if (String(input.accion) === 'emitir' && input.emitir_real !== true) {
+          return JSON.stringify({ ok: true, modo: 'confirmar_emision', instruccion: `⚠️ Emitir la factura de compra es IRREVERSIBLE (consume folio y queda en el SII). Antes de emitir, asegúrate de que la persona YA revisó el borrador y dijo que sí. Cuando confirme, vuelve a llamar factura_compra con accion:"emitir" y emitir_real:true (mismos datos).` })
+        }
+        const out = await robot.generarBorradorCompra({ empresaRut: '77271121-2', apiToken: token, vendedor, item, cambioSujeto })
         if (!out.ok) return JSON.stringify({ ok: false, error: out.error, instruccion: 'El robot no pudo armar el borrador de la factura de compra en el SII. Dile el error al usuario tal cual; NO digas que se emitió.' })
         const archivo = out.archivo || out.pdf || out.captura
         const esPdf = /\.pdf$/i.test(String(archivo || ''))
@@ -4199,7 +4212,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           ok: true, modo: 'borrador_compra_enviado', enviado, caso: patente ? 'auto' : 'gasto', cambio_sujeto: cambioSujeto,
           formato: esPdf ? 'pdf' : 'imagen', total: precio, archivo_local: archivo || null,
           instruccion: enviado
-            ? `Le MANDÉ la VISTA PREVIA de la factura de compra (DTE 46, ${detIVA}, total $${precio.toLocaleString('es-CL')}) con la sesión del SII de Nico. ⛔ NO está emitida (la emisión real no está habilitada en esta fase): dile que la revise.${patente ? ' Si está OK, márcalo con compra accion:"paso", paso:"factura".' : ''}`
+            ? `Le MANDÉ la VISTA PREVIA de la factura de compra (DTE 46, ${detIVA}, total $${precio.toLocaleString('es-CL')}) con la sesión del SII de Nico. ⛔ AÚN NO está emitida: dile que la revise. Si está OK y quiere EMITIRLA de verdad (⚠️ irreversible, consume folio), pídele confirmación y luego llama factura_compra con accion:"emitir" y emitir_real:true (mismos datos). Si necesita CAMBIAR algo, re-llama con el campo corregido.`
             : `El borrador SÍ se armó en el SII pero NO se pudo mandar el archivo al WhatsApp (${errEnvio || 'sin archivo'}). No digas que se lo enviaste. NO emitas.`,
         })
       } catch (e) { return `El robot de factura de compra falló: ${e.message}` }

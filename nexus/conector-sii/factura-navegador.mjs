@@ -268,82 +268,78 @@ export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor =
 // BLINDADA con freno doble: exige SII_EMISION_HABILITADA=1 Y la llave
 // CONFIRMO_EMITIR==='SI_EMITIR_DE_VERDAD' (que el hub solo pasa tras la 2ª
 // confirmación explícita del usuario). generarBorrador() NUNCA llama esto.
-export async function firmarYEmitir(opts = {}) {
-  const habilitado = process.env.SII_EMISION_HABILITADA === '1'
-  if (!habilitado || opts.CONFIRMO_EMITIR !== 'SI_EMITIR_DE_VERDAD') {
-    return { ok: false, bloqueado: true, motivo: 'Emisión REAL deshabilitada por seguridad (freno doble). No se emitió nada.' }
-  }
-  // Clave del certificado: opción explícita → env del hub → backend (fuente única).
-  const clave = opts.claveCert || process.env.SII_CERT_PASS || await claveCertBackend(opts.apiToken)
-  if (!clave) return { ok: false, error: 'Falta la clave del certificado centralizado (no está en SII_CERT_PASS del hub ni en el backend sii-web).' }
-
-  // 1) VISTA PREVIA FRESCA — ATÓMICO. Firmar depende de estar EXACTAMENTE en la vista
-  //    previa del SII (mipeDisplayPreView), y ese estado del navegador COMPARTIDO expira
-  //    y lo pisa cualquier otra acción (el tiempo que el usuario se demora en confirmar,
-  //    regenerar el borrador de nuevo, otra pestaña...). Depender del generarBorrador
-  //    ANTERIOR era la causa real de "no llegué a la pantalla de firma / no confirmó el
-  //    envío". Solución: si nos pasan el borrador, lo REGENERAMOS aquí mismo (idempotente,
-  //    NO consume folio) y firmamos enseguida. Sin ventana de tiempo para que expire.
-  if (opts.borrador && opts.empresaRut) {
-    const g = await generarBorrador({ borrador: opts.borrador, empresaRut: opts.empresaRut, apiToken: opts.apiToken })
-    if (!g.ok) return { ok: false, error: 'No pude preparar el borrador antes de firmar: ' + (g.error || ''), detalle: g.nota }
-    if (!g.en_vista_previa) return { ok: false, error: 'El borrador se armó pero el SII no llegó a la vista previa (suele faltar un dato obligatorio del receptor). NO se firmó.', detalle: g.nota }
-  }
+// Firma común: ASUME que el navegador ya está en la vista previa (mipeDisplayPreView).
+// Aprieta "Firmar", mete la clave del certificado y confirma el envío. Devuelve el folio + PDF.
+// La usan tanto la factura de VENTA como la de COMPRA (la pantalla de firma del portal es la misma).
+async function firmarEnVistaPrevia({ apiToken, clave }) {
   let est = await nav('/estado')
   if (!String(est?.url || '').includes('mipeDisplayPreView')) {
     return { ok: false, error: 'No estoy en la vista previa del SII. No se firmó (hay que regenerar el borrador y firmar enseguida).' }
   }
-
-  // 2) "Firmar" → pantalla de firma (mipeGenXMLFirma). A veces demora; sondeo hasta 12s
-  //    y reintento el click una vez antes de rendirme.
+  // "Firmar" → pantalla de firma (mipeGenXMLFirma). A veces demora; sondeo y reintento.
   await click('[name=btnSign]')
   let enFirma = await esperarUrl('mipeGenXMLFirma', 12000)
   if (!enFirma) { await click('[name=btnSign]').catch(() => {}); enFirma = await esperarUrl('mipeGenXMLFirma', 8000) }
-  if (!enFirma) {
-    return { ok: false, error: 'No llegué a la pantalla de firma del SII (la vista previa pudo expirar). No se emitió.' }
-  }
-
-  // 3) Clave del certificado centralizado + botón Firmar (ojo: #btnFirma NO tiene name)
+  if (!enFirma) return { ok: false, error: 'No llegué a la pantalla de firma del SII (la vista previa pudo expirar). No se emitió.' }
+  // Clave del certificado centralizado + botón Firmar (#btnFirma NO tiene name).
   await escribir('#myPass', clave)
   await sleep(600)
   await click('#btnFirma')
-
-  // 4) Confirmar que el SII lo recibió. Firmar+enviar demora distinto cada vez → sondeo
-  //    hasta 45s buscando "DOCUMENTO ENVIADO EXITOSAMENTE" en mipeSendXML.
-  let texto = ''
+  // Confirmar recepción del SII: sondeo hasta 45s por "DOCUMENTO ENVIADO EXITOSAMENTE".
+  let texto = '', enviado = false
   const t0 = Date.now()
-  let enviado = false
   while (Date.now() - t0 < 45000) {
     await sleep(3000)
     est = await nav('/estado').catch(() => ({}))
     texto = (await (await fetch(`${NAV}/leer`)).json().catch(() => ({})))?.texto || ''
     if (String(est?.url || '').includes('mipeSendXML') && /ENVIADO\s+EXITOSAMENTE/i.test(texto)) { enviado = true; break }
   }
-  if (!enviado) {
-    return { ok: false, error: 'El SII no confirmó el envío (puede ser la clave del certificado o un rechazo). NO des por emitida la factura.', detalle: texto.slice(0, 300) }
-  }
+  if (!enviado) return { ok: false, error: 'El SII no confirmó el envío (puede ser la clave del certificado o un rechazo). NO des por emitida la factura.', detalle: texto.slice(0, 300) }
   const folio = (texto.match(/N[°º]\s*(\d+)/) || [])[1] || null
-
-  // 5) PDF OFICIAL del DTE emitido (link "Ver Documento"). Se baja con la sesión del
-  //    emisor porque abre en pestaña nueva y no siempre lo pilla el interceptor.
+  // PDF OFICIAL del DTE emitido (link "Ver Documento").
   let pdf = null
   try {
     const h = await (await fetch(`${NAV}/leer?html=1`)).json()
     const m = String(h?.html || '').match(/href="([^"]*mipeDisplayPDF\.cgi[^"]*)"/i)
     if (m) {
       const url = m[1].startsWith('http') ? m[1] : 'https://www1.sii.cl' + m[1]
-      const ck = await cookiesEmisor(opts.apiToken)
+      const ck = await cookiesEmisor(apiToken)
       const r = await fetch(url, { headers: { Cookie: cookieHeader(ck.cookies) } })
       const buf = Buffer.from(await r.arrayBuffer())
-      if (buf.subarray(0, 4).toString('latin1') === '%PDF') {
-        pdf = `/tmp/nexus-factura-emitida-${folio || Date.now()}.pdf`
-        writeFileSync(pdf, buf)
-      }
+      if (buf.subarray(0, 4).toString('latin1') === '%PDF') { pdf = `/tmp/nexus-factura-emitida-${folio || Date.now()}.pdf`; writeFileSync(pdf, buf) }
     }
-  } catch { /* si falla el PDF, la factura igual quedó emitida */ }
+  } catch { /* si falla el PDF, igual quedó emitida */ }
+  return { ok: true, emitida: true, folio, pdf, archivo: pdf, nota: `Documento N° ${folio || '(sin folio leído)'} EMITIDO en el SII${pdf ? ' — PDF oficial descargado.' : ' (no pude bajar el PDF, pero está emitido).'}` }
+}
 
-  return {
-    ok: true, emitida: true, folio, pdf, archivo: pdf,
-    nota: `Factura N° ${folio || '(sin folio leído)'} EMITIDA en el SII${pdf ? ' — PDF oficial descargado.' : ' (no pude bajar el PDF, pero está emitida).'}`,
+export async function firmarYEmitir(opts = {}) {
+  const habilitado = process.env.SII_EMISION_HABILITADA === '1'
+  if (!habilitado || opts.CONFIRMO_EMITIR !== 'SI_EMITIR_DE_VERDAD') {
+    return { ok: false, bloqueado: true, motivo: 'Emisión REAL deshabilitada por seguridad (freno doble). No se emitió nada.' }
   }
+  const clave = opts.claveCert || process.env.SII_CERT_PASS || await claveCertBackend(opts.apiToken)
+  if (!clave) return { ok: false, error: 'Falta la clave del certificado centralizado (no está en SII_CERT_PASS del hub ni en el backend sii-web).' }
+  // VISTA PREVIA FRESCA (idempotente, NO consume folio) y firmar enseguida.
+  if (opts.borrador && opts.empresaRut) {
+    const g = await generarBorrador({ borrador: opts.borrador, empresaRut: opts.empresaRut, apiToken: opts.apiToken })
+    if (!g.ok) return { ok: false, error: 'No pude preparar el borrador antes de firmar: ' + (g.error || ''), detalle: g.nota }
+    if (!g.en_vista_previa) return { ok: false, error: 'El borrador se armó pero el SII no llegó a la vista previa (suele faltar un dato obligatorio del receptor). NO se firmó.', detalle: g.nota }
+  }
+  return firmarEnVistaPrevia({ apiToken: opts.apiToken, clave })
+}
+
+// ⛔⛔ EMISIÓN REAL de la FACTURA DE COMPRA (DTE 46) — IRREVERSIBLE. Consume folio. ⛔⛔
+// Mismo freno doble que la venta (SII_EMISION_HABILITADA=1 + CONFIRMO_EMITIR). Regenera la
+// vista previa de COMPRA (idempotente, NO consume folio) y firma enseguida. generarBorradorCompra() NUNCA llama esto.
+export async function firmarYEmitirCompra(opts = {}) {
+  const habilitado = process.env.SII_EMISION_HABILITADA === '1'
+  if (!habilitado || opts.CONFIRMO_EMITIR !== 'SI_EMITIR_DE_VERDAD') {
+    return { ok: false, bloqueado: true, motivo: 'Emisión REAL de la factura de compra deshabilitada por seguridad (freno doble). No se emitió nada.' }
+  }
+  const clave = opts.claveCert || process.env.SII_CERT_PASS || await claveCertBackend(opts.apiToken)
+  if (!clave) return { ok: false, error: 'Falta la clave del certificado centralizado (no está en SII_CERT_PASS ni en el backend sii-web).' }
+  const g = await generarBorradorCompra({ vendedor: opts.vendedor, item: opts.item, emisor: opts.emisor, empresaRut: opts.empresaRut, apiToken: opts.apiToken, cambioSujeto: opts.cambioSujeto })
+  if (!g.ok) return { ok: false, error: 'No pude preparar el borrador de compra antes de firmar: ' + (g.error || ''), detalle: g.nota }
+  if (!g.en_vista_previa) return { ok: false, error: 'El borrador de compra se armó pero el SII no llegó a la vista previa (falta un dato del receptor). NO se firmó.', detalle: g.nota }
+  return firmarEnVistaPrevia({ apiToken: opts.apiToken, clave })
 }
