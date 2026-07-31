@@ -72,21 +72,25 @@ export async function revisar({ desde, hasta } = {}) {
   const matches = motorConciliar(docs, movs);
   const panel = panelControl(docs, movs, matches);
   const dups = duplicados(fac);
+  const automaticos = matches.filter((m) => m.score >= 100);   // 100% coincide → pasan solos
+  const porValidar = matches.filter((m) => m.score < 100);      // el resto lo valida la persona
+  const fmt = (m) => ({ score: m.score, doc: `${m.doc.operacion} ${m.doc._tipoDoc || ''} folio ${m.doc.folio} · ${m.doc.razon} · ${clp(m.doc.monto)}`, banco: `${m.mov.fecha} ${clp(m.mov.amount)} ${String(m.mov.description || '').slice(0, 30)}`, motivo: m.motivo });
   return {
     ok: true, rango: { desde, hasta },
     totales: { facturas: fac.length, movimientos: mov.length, ya_conciliados: mov.filter((m) => m.conciliado).length },
-    matches_propuestos: matches.length,
     cobertura: { por_cantidad: panel.coberturaCant + '%', por_monto: panel.coberturaMonto + '%' },
+    concilian_automatico: { cantidad: automaticos.length, nota: 'coinciden al 100% → se marcan solos con accion:"aplicar"' },
+    para_validar: { cantidad: porValidar.length, nota: 'NO llegan al 100% → los tiene que revisar la persona', items: porValidar.slice(0, 12).map(fmt) },
     sin_conciliar_docs: panel.docsSinMatch,
     sin_conciliar_banco: panel.movsSinMatch,
     duplicados: dups,
-    top_matches: matches.slice(0, 15).map((m) => ({ score: m.score, doc: `${m.doc.operacion} ${m.doc._tipoDoc || ''} folio ${m.doc.folio} · ${m.doc.razon} · ${clp(m.doc.monto)}`, banco: `${m.mov.fecha} ${clp(m.mov.amount)} ${String(m.mov.description || '').slice(0, 30)}`, motivo: m.motivo })),
+    top_automaticos: automaticos.slice(0, 12).map(fmt),
   };
 }
 
 // Marca en la BD los movimientos conciliados (score >= minScore). Guarda en `referencia`
 // el documento SII con el que casó. Solo con confirmar:true.
-export async function aplicar({ desde, hasta, minScore = 60, confirmar = false } = {}) {
+export async function aplicar({ desde, hasta, minScore = 100, confirmar = false } = {}) {
   const { fac, mov } = await cargar(desde, hasta);
   const matches = motorConciliar(aDocs(fac), aMovs(mov)).filter((m) => m.score >= minScore);
   if (!confirmar) return { dry_run: true, a_marcar: matches.length, minScore, ejemplos: matches.slice(0, 8).map((m) => ({ score: m.score, banco: `${m.mov.fecha} ${clp(m.mov.amount)}`, doc: `folio ${m.doc.folio} ${m.doc.razon}` })) };
@@ -99,6 +103,38 @@ export async function aplicar({ desde, hasta, minScore = 60, confirmar = false }
     } catch { /* sigue con el resto */ }
   }
   return { ok: true, marcados: ok, de: matches.length, minScore };
+}
+
+// Importa a movimientos_banco los movimientos de una cartola ya parseada (importar_cartola.py).
+// Dedup por fecha+monto+descripcion contra lo que ya hay. confirmar:true escribe.
+const keyMov = (m) => `${String(m.fecha).slice(0, 10)}|${Number(m.monto) || 0}|${String(m.descripcion || '').replace(/\s+/g, ' ').trim().toUpperCase()}`;
+export async function importarCartola({ movimientos = [], cuenta = '', confirmar = false } = {}) {
+  const movs = (movimientos || []).filter((m) => m && m.fecha);
+  if (!movs.length) return { ok: false, error: 'La cartola no trajo movimientos legibles.' };
+  const fechas = movs.map((m) => String(m.fecha).slice(0, 10)).sort();
+  const desde = fechas[0], hasta = fechas[fechas.length - 1];
+  const existentes = await api(`movimientos_banco?fecha=gte.${desde}&fecha=lte.${hasta}&select=fecha,monto,descripcion&limit=5000`).catch(() => []);
+  const yaHay = new Set((existentes || []).map(keyMov));
+  const nuevos = [], dup = [];
+  const seen = new Set();
+  for (const m of movs) {
+    const k = keyMov(m);
+    if (yaHay.has(k) || seen.has(k)) { dup.push(m); continue; }
+    seen.add(k); nuevos.push(m);
+  }
+  if (!confirmar) return { dry_run: true, rango: { desde, hasta }, total_cartola: movs.length, nuevos: nuevos.length, duplicados: dup.length, ejemplos: nuevos.slice(0, 6).map((m) => ({ fecha: m.fecha, monto: m.monto, desc: String(m.descripcion || '').slice(0, 40) })) };
+  const ts = new Date().toISOString();
+  const filas = nuevos.map((m, i) => ({
+    id: `ct_${Date.now().toString(36)}${i}`, fecha: String(m.fecha).slice(0, 10), descripcion: String(m.descripcion || '').slice(0, 300),
+    monto: Number(m.monto) || 0, saldo: Number(m.saldo) || 0, documento: String(m.documento || ''), cuenta: cuenta || '',
+    conciliado: false, importadoEl: ts, createdAt: ts, updatedAt: ts,
+  }));
+  let ins = 0;
+  for (let i = 0; i < filas.length; i += 200) {
+    const lote = filas.slice(i, i + 200);
+    try { await api('movimientos_banco', { method: 'POST', headers: { Prefer: 'return=minimal' }, body: JSON.stringify(lote) }); ins += lote.length; } catch (e) { return { ok: false, error: `Inserté ${ins} y falló: ${e.message}` }; }
+  }
+  return { ok: true, insertados: ins, duplicados_omitidos: dup.length, rango: { desde, hasta } };
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) {

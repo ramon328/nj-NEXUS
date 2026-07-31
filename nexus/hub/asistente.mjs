@@ -1325,7 +1325,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras', 'factura_compra'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'venta', 'gasto', 'conciliacion'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'venta', 'gasto', 'conciliacion', 'cartola'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -2730,15 +2730,29 @@ const HERRAMIENTAS = [
   // ── CONCILIACIÓN · cruza SII ↔ banco sobre la BD nueva de MallorcAutos ─────────
   {
     name: 'conciliacion',
-    description: 'CONCILIACIÓN diaria de MallorcAutos: cruza las FACTURAS DEL SII (ya sincronizadas en la BD) con los MOVIMIENTOS DEL BANCO (tabla movimientos_banco) para ver qué está pagado/cobrado y qué queda sin cruzar. Úsala para "concilia", "revisión del SII y banco", "¿qué falta conciliar?", "gastos duplicados", "cuadra la plata". Motor de match por monto/RUT/nombre/fecha (mismo del SAI). Dos acciones: (1) "revisar" (default, SOLO LECTURA) → informe: cobertura, matches propuestos, documentos y movimientos SIN conciliar, y DUPLICADOS del SII. (2) "aplicar" → marca en la BD los movimientos conciliados (movimientos_banco.conciliado=true + referencia al documento). "aplicar" SIMULA si no pones confirmado:true. Rango por defecto: el mes en curso; puedes pasar desde/hasta (YYYY-MM-DD). NOTA: hoy el banco se carga a la BD por CARTOLA (manual); cuando el banco sea automático esto no cambia. NO diferencia todavía gastos generales vs por-vehículo de forma automática (eso lo revisa la persona).',
+    description: 'CONCILIACIÓN diaria de MallorcAutos: cruza las FACTURAS DEL SII (ya sincronizadas en la BD) con los MOVIMIENTOS DEL BANCO (tabla movimientos_banco) para ver qué está pagado/cobrado y qué queda sin cruzar. Úsala para "concilia", "revisión del SII y banco", "¿qué falta conciliar?", "gastos duplicados", "cuadra la plata". Motor de match por monto/RUT/nombre/fecha (mismo del SAI). Dos acciones: (1) "revisar" (default, SOLO LECTURA) → informe: cobertura, cuántos CONCILIAN AUTOMÁTICO (coinciden al 100%), cuántos quedan PARA VALIDAR por la persona (no llegan al 100%), documentos y movimientos SIN conciliar, y DUPLICADOS del SII. (2) "aplicar" → marca en la BD los movimientos conciliados. REGLA: por defecto SOLO marca los que coinciden al 100% (esos pasan solos); los que no llegan al 100% los tiene que VALIDAR una persona (para conciliar esos, la persona baja el min_score con su OK explícito). "aplicar" SIMULA si no pones confirmado:true. Rango por defecto: el mes en curso; puedes pasar desde/hasta (YYYY-MM-DD). NOTA: hoy el banco se carga por CARTOLA que llega por WhatsApp (usa el tool cartola para importarla); cuando el banco sea automático esto no cambia. La diferenciación gastos generales vs por-vehículo se da como SUGERENCIA, no automática.',
     input_schema: {
       type: 'object',
       properties: {
         accion: { type: 'string', enum: ['revisar', 'aplicar'], description: 'revisar = informe (no escribe). aplicar = marca los conciliados en la BD (simula si no hay confirmado:true).' },
         desde: { type: 'string', description: 'Fecha inicio YYYY-MM-DD (por defecto, inicio del mes en curso).' },
         hasta: { type: 'string', description: 'Fecha fin YYYY-MM-DD (por defecto, hoy).' },
-        min_score: { type: 'integer', description: 'Para "aplicar": score mínimo del match para marcar como conciliado (0-100, por defecto 60).' },
+        min_score: { type: 'integer', description: 'Para "aplicar": score mínimo para marcar (por defecto 100 = solo los que coinciden perfecto). Bájalo SOLO si la persona valida y aprueba conciliar matches de menor score.' },
         confirmado: { type: 'boolean', description: 'Para "aplicar": true = escribe en la BD. Ausente/false = simula. Ponlo true solo tras el OK de la persona.' },
+      },
+      required: [],
+    },
+  },
+  // ── CARTOLA · importa la cartola del banco (por WhatsApp) a movimientos_banco ──
+  {
+    name: 'cartola',
+    description: 'IMPORTA una CARTOLA de banco que la persona manda POR WHATSAPP (Excel .xlsx/.xls o PDF, tipo Santander) a la tabla movimientos_banco de la BD nueva, para poder conciliar. Toma el archivo que la persona adjuntó en el chat. FLUJO 2 PASOS: (1) sin confirmado → lee la cartola y te dice cuántos movimientos NUEVOS y cuántos DUPLICADOS trae (no escribe); (2) confirmado:true → los inserta (omite los que ya estaban). Úsalo cuando manden "esta es la cartola", "importa la cartola", "sube los movimientos del banco". Después de importar, OFRÉCELE conciliar (tool conciliacion). NOTA: el acceso automático al banco todavía no está listo; por eso la cartola entra por WhatsApp.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['importar'], description: 'Solo "importar".' },
+        cuenta: { type: 'string', description: 'Opcional: nombre/nº de la cuenta del banco (ej. "Santander").' },
+        confirmado: { type: 'boolean', description: 'false/omitido = SIMULA (dice cuántos nuevos/duplicados). true = INSERTA en la BD. Ponlo true solo tras el OK de la persona.' },
       },
       required: [],
     },
@@ -3997,16 +4011,32 @@ async function ejecutar(nombre, input, ctx = {}) {
       const accion = String(input.accion || 'revisar').toLowerCase()
       try {
         if (accion === 'aplicar') {
-          const r = await conciliacion.aplicar({ desde, hasta, minScore: Number(input.min_score) > 0 ? Number(input.min_score) : 60, confirmar: input.confirmado === true })
+          const r = await conciliacion.aplicar({ desde, hasta, minScore: Number(input.min_score) > 0 ? Number(input.min_score) : 100, confirmar: input.confirmado === true })
           if (r.dry_run) return JSON.stringify({ ok: true, modo: 'simulacion', rango: { desde, hasta }, se_marcarian: r.a_marcar, min_score: r.minScore, ejemplos: r.ejemplos, instruccion: `Se marcarían ${r.a_marcar} movimientos como conciliados (score ≥ ${r.minScore}). Muéstraselo y, con el OK de la persona, vuelve a llamar con confirmado:true.` })
           return JSON.stringify({ ok: true, modo: 'aplicado', rango: { desde, hasta }, marcados: r.marcados, de: r.de, instruccion: `Marqué ${r.marcados} movimientos del banco como conciliados en la BD. Confírmaselo corto.` })
         }
         const r = await conciliacion.revisar({ desde, hasta })
         return JSON.stringify({
           ...r,
-          instruccion: 'Preséntale la conciliación ordenada: cobertura (cantidad y monto), cuántos matches propuestos, cuántos documentos y movimientos quedan SIN conciliar (con el monto de egresos sin cruzar), y AVÍSALE de los DUPLICADOS del SII si los hay. Ofrécele marcar los conciliados con accion:"aplicar". Recuerda: los gastos generales vs por-vehículo hoy los revisa la persona (aún no es automático).',
+          instruccion: 'Preséntale la conciliación ordenada: cobertura (cantidad y monto), cuántos CONCILIAN AUTOMÁTICO (coinciden al 100%) y cuántos quedan PARA VALIDAR por la persona (con la lista para que los revise), cuántos documentos y movimientos quedan SIN conciliar (con el monto de egresos sin cruzar), y AVÍSALE de los DUPLICADOS del SII si los hay. Ofrécele aplicar los del 100% con accion:"aplicar". Los que no llegan al 100% NO se marcan solos: los valida la persona. La diferenciación gastos generales vs por-vehículo dásela como SUGERENCIA (no la escribas sola).',
         })
       } catch (e) { return `No pude hacer la conciliación: ${e.message}` }
+    }
+    // ── CARTOLA · importa la cartola del banco (adjunta por WhatsApp) ──────────────
+    if (nombre === 'cartola') {
+      const adj = (Array.isArray(ctx.media) ? ctx.media : []).filter((p) => /\.(xlsx|xls|pdf)$/i.test(String(p)))
+      if (!adj.length) return 'No veo ninguna cartola adjunta. Pídele a la persona que mande la cartola por WhatsApp en Excel (.xlsx) o PDF.'
+      const archivo = adj[adj.length - 1]
+      try {
+        const script = join(__dirname, '..', 'conector-gastos', 'importar_cartola.py')
+        const { stdout } = await ejecCmd(`python3 ${JSON.stringify(script)} ${JSON.stringify(archivo)}`, { timeout: 60000, maxBuffer: 8 * 1024 * 1024 })
+        const parsed = JSON.parse((stdout.trim().split('\n').filter(Boolean).pop()) || '{}')
+        if (!parsed.ok) return JSON.stringify({ ok: false, error: parsed.error || 'No pude leer la cartola', instruccion: 'Dile a la persona que no pude leer la cartola (formato). Pídele la cartola de Santander en Excel, o un PDF de la cartola.' })
+        const r = await conciliacion.importarCartola({ movimientos: parsed.movimientos, cuenta: input.cuenta, confirmar: input.confirmado === true })
+        if (r.dry_run) return JSON.stringify({ ok: true, modo: 'simulacion', ...r, instruccion: `La cartola trae ${r.total_cartola} movimientos: ${r.nuevos} nuevos y ${r.duplicados} ya estaban. Muéstraselo y, con el OK, vuelve a llamar con confirmado:true para importarlos.` })
+        if (!r.ok) return JSON.stringify(r)
+        return JSON.stringify({ ok: true, modo: 'importado', ...r, instruccion: `Importé ${r.insertados} movimientos nuevos del banco (omití ${r.duplicados_omitidos} duplicados). Ofrécele conciliar ahora con el tool conciliacion.` })
+      } catch (e) { return `No pude importar la cartola: ${e.message}` }
     }
     // ── GASTO · registra un gasto en la BD nueva de MallorcAutos (simula → confirma) ──
     if (nombre === 'gasto') {
@@ -5372,7 +5402,7 @@ function backstopTamano(mensajes) {
 const PERSONAS = [
   { linea: 'Me conecté a *Martes* y me dijo:', tools: ['sii', 'sii_boleta_honorarios'] },
   { linea: 'Le pregunté a *Néstor* y me dijo:', tools: ['correo', 'gmail_documentos'] },
-  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'venta', 'factura_compra', 'gasto', 'conciliacion'] },
+  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'venta', 'factura_compra', 'gasto', 'conciliacion', 'cartola'] },
   { linea: 'Me conecté con *Ali* y me dijo:', tools: ['aliace_resumen', 'aliace_margen', 'aliace_rpc', 'aliace_sql', 'aliace_mover_nv', 'navegar', 'iniciar_sesion', 'leer_tabla', 'leer_pagina', 'clic', 'esperar', 'guia_aliace', 'escribir_en_campo', 'ver_pestanas', 'cambiar_pestana'] },
   { linea: 'Me comuniqué con *SAI* y me dijo:', tools: ['sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'] },
   { linea: 'Me comuniqué con *Leo* y me dijo:', tools: ['banco'] },
