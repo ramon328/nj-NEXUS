@@ -80,17 +80,19 @@ export function documentosRequeridos(tipo, es_empresa) {
 }
 
 function cuerpo(d, tipoLabel, nAdj) {
-  const L = ['Estimados Tag Tico,', '', 'Solicitamos lo siguiente:', '']
-  L.push(`• Tipo: ${tipoLabel}`)
-  if (d.tipo === 'nuevo_propio') L.push(`• Cantidad de TAG: ${d.cantidad || 1}`)
-  if (d.patente) L.push(`• Patente: ${(d.patente || '').toUpperCase()}`)
-  L.push(`• Es empresa: ${d.es_empresa ? 'Sí (se adjunta escritura y e-RUT)' : 'No'}`)
-  if (d.solicitante) L.push(`• Solicitado por: ${d.solicitante}`)
-  if (d.notas) { L.push(''); L.push('Notas:'); L.push(d.notas) }
-  L.push('', `Se adjuntan ${nAdj} documento(s) en formato PDF.`, '')
-  L.push('Quedamos atentos al envío del convenio para confirmar la activación.', '')
-  L.push('Saludos,', 'Equipo MallorcAutos')
-  return L.join('\n')
+  // Línea de solicitud según el caso (patente cuando aplica).
+  const pat = (d.patente || '').toUpperCase()
+  const solicitud = {
+    traspaso: `Traspaso Tag${pat ? ' patente ' + pat : ''}`,
+    nuevo_tercero: `Tag nuevo${pat ? ' patente ' + pat : ''}`,
+    nuevo_propio: `Tag nuevo${pat ? ' patente ' + pat : ''}`,
+  }[d.tipo] || `Tag nuevo${pat ? ' patente ' + pat : ''}`
+  const L = ['Estimado,', '', 'Solicitamos lo siguiente:', '']
+  L.push(solicitud)
+  L.push(`Cantidad: ${d.cantidad || 1}`)
+  L.push('', '')
+  if (d.notas) L.push(d.notas)
+  return L.join('\n').replace(/\n{3,}$/,'\n')
 }
 
 // Valida los datos y devuelve { ok, error? }.
