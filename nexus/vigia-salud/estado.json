@@ -1,5 +1,5 @@
 {
-  "ts": "2026-08-02T13:14:04.033Z",
+  "ts": "2026-08-02T13:26:07.460Z",
   "estado": "AMARILLO",
   "nivel": 1,
   "razones": [
@@ -7,10 +7,10 @@
     "Sugerencia: 2 sesión(es) de chat llevan +6h vivas (~1.1 GB); se pueden reciclar con reciclar-sesiones.sh"
   ],
   "metricas": {
-    "load1": 1.76,
+    "load1": 1.94,
     "nucleos": 6,
-    "loadPorNucleo": 0.29,
-    "ramLibreMB": 9168,
+    "loadPorNucleo": 0.32,
+    "ramLibreMB": 8576,
     "ramTotalMB": 32768,
     "swapUsedMB": 1420,
     "compresorMB": 1727,
