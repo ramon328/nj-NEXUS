@@ -1,23 +1,20 @@
 {
-  "ts": "2026-08-02T17:18:17.929Z",
-  "estado": "AMARILLO",
-  "nivel": 1,
-  "razones": [
-    "Swap subiendo (1420 MB)",
-    "Sugerencia: 2 sesión(es) de chat llevan +6h vivas (~1.1 GB); se pueden reciclar con reciclar-sesiones.sh"
-  ],
+  "ts": "2026-08-02T18:33:41.319Z",
+  "estado": "VERDE",
+  "nivel": 0,
+  "razones": [],
   "metricas": {
-    "load1": 1.55,
+    "load1": 1.4,
     "nucleos": 6,
-    "loadPorNucleo": 0.26,
-    "ramLibreMB": 8807,
+    "loadPorNucleo": 0.23,
+    "ramLibreMB": 10388,
     "ramTotalMB": 32768,
-    "swapUsedMB": 1420,
-    "compresorMB": 1727,
-    "discoPct": 52,
-    "procesos": 708,
-    "sesionesClaude": 2,
-    "sesionesClaudeViejas": 2
+    "swapUsedMB": 0,
+    "compresorMB": 0,
+    "discoPct": 51,
+    "procesos": 615,
+    "sesionesClaude": 0,
+    "sesionesClaudeViejas": 0
   },
-  "ultimaAlerta": "2026-07-30T20:21:42.766Z"
+  "ultimaAlerta": "2026-08-02T18:24:37.238Z"
 }
