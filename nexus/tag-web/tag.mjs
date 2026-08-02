@@ -47,16 +47,16 @@ async function avisar(txt) {
 export const TIPOS = {
   nuevo_propio: {
     label: 'TAG nuevo — auto propio (Ana Clara)',
-    asunto: (d) => `Tag nuevo Ana clara (${d.cantidad || 1})`,
+    asunto: (d) => { const p = listaPatentes(d); return p.length > 1 ? `Tag nuevo (${p.length} patentes)` : p.length ? `Tag nuevo patente ${p[0]}` : `Tag nuevo Ana clara (${d.cantidad || 1})` },
     // Propios: basta poder + CAV (no exige contrato firmado).
   },
   traspaso: {
     label: 'Traspaso de TAG — auto con tag nuestro que se vende',
-    asunto: (d) => `Traspaso Tag patente ${(d.patente || '').toUpperCase()}`,
+    asunto: (d) => { const p = listaPatentes(d); return p.length > 1 ? `Traspaso Tag (${p.length} patentes)` : `Traspaso Tag patente ${p[0] || ''}` },
   },
   nuevo_tercero: {
     label: 'TAG nuevo — auto de tercero / consignación',
-    asunto: (d) => `Tag nuevo patente ${(d.patente || '').toUpperCase()}`,
+    asunto: (d) => { const p = listaPatentes(d); return p.length > 1 ? `Tag nuevo (${p.length} patentes)` : `Tag nuevo patente ${p[0] || ''}` },
   },
 }
 
@@ -79,28 +79,30 @@ export function documentosRequeridos(tipo, es_empresa) {
   return docs
 }
 
+// Lista de patentes normalizadas (soporta d.patentes[] o d.patente único).
+export function listaPatentes(d) {
+  const raw = Array.isArray(d.patentes) && d.patentes.length ? d.patentes : (d.patente ? [d.patente] : [])
+  return [...new Set(raw.map((p) => String(p || '').toUpperCase().replace(/[\s.\-]/g, '')).filter(Boolean))]
+}
+
 function cuerpo(d, tipoLabel, nAdj) {
-  // Línea de solicitud según el caso (patente cuando aplica).
-  const pat = (d.patente || '').toUpperCase()
-  const solicitud = {
-    traspaso: `Traspaso Tag${pat ? ' patente ' + pat : ''}`,
-    nuevo_tercero: `Tag nuevo${pat ? ' patente ' + pat : ''}`,
-    nuevo_propio: `Tag nuevo${pat ? ' patente ' + pat : ''}`,
-  }[d.tipo] || `Tag nuevo${pat ? ' patente ' + pat : ''}`
+  const pats = listaPatentes(d)
+  const verbo = d.tipo === 'traspaso' ? 'Traspaso Tag' : 'Tag nuevo'
   const L = ['Estimado,', '', 'Solicitamos lo siguiente:', '']
-  L.push(solicitud)
-  L.push(`Cantidad: ${d.cantidad || 1}`)
+  if (pats.length) { for (const p of pats) L.push(`${verbo} patente ${p}`) }
+  else L.push(verbo)
+  L.push(`Cantidad: ${d.cantidad || pats.length || 1}`)
   L.push('', '')
   if (d.notas) L.push(d.notas)
-  return L.join('\n').replace(/\n{3,}$/,'\n')
+  return L.join('\n').replace(/\n{3,}$/, '\n')
 }
 
 // Valida los datos y devuelve { ok, error? }.
 export function validar(d) {
   const t = TIPOS[d.tipo]
   if (!t) return { ok: false, error: 'Tipo inválido (usa nuevo_propio, traspaso o nuevo_tercero).' }
-  if ((d.tipo === 'traspaso' || d.tipo === 'nuevo_tercero') && !String(d.patente || '').trim())
-    return { ok: false, error: 'Falta la patente del vehículo.' }
+  if ((d.tipo === 'traspaso' || d.tipo === 'nuevo_tercero') && !listaPatentes(d).length)
+    return { ok: false, error: 'Falta la patente del vehículo (puedes mandar varias).' }
   const adj = d.adjuntos || []
   if (!adj.length) return { ok: false, error: 'Debes adjuntar al menos un documento PDF.' }
   for (const a of adj) {
@@ -138,7 +140,7 @@ export async function enviarSolicitudTag(d) {
     try {
       registro = crearRegistro({
         tipo: d.tipo, tipo_label: t.label,
-        patente: d.patente, cantidad: d.cantidad, es_empresa: d.es_empresa,
+        patente: listaPatentes(d).join(', ') || d.patente, cantidad: d.cantidad || listaPatentes(d).length, es_empresa: d.es_empresa,
         solicitante: d.solicitante, asunto,
         correo_id: r.id, enviado_desde: r.cuenta, destino: destinoTxt,
         modo: prueba ? 'prueba' : 'real',
@@ -147,7 +149,7 @@ export async function enviarSolicitudTag(d) {
     } catch { /* el envío ya salió; no bloquear por el registro */ }
     // Aviso interno: solo en modo real (evita spamear en pruebas).
     if (!prueba && process.env.TAG_AVISAR_ON_SEND !== '0') {
-      const p = d.patente ? String(d.patente).toUpperCase() : ''
+      const p = listaPatentes(d).join(', ')
       const id = registro?.id ? ` · ${registro.id}` : ''
       const desde = cuenta.mallorca ? 'correo Mallorca' : 'cuenta base'
       await avisar(`📨 TAG enviado (${t.label}${p ? ` · ${p}` : ''})${id}. Desde: ${desde}. Asunto: "${String(asunto).slice(0, 80)}"`)
