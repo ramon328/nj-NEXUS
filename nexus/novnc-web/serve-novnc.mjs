@@ -32,6 +32,12 @@ const CERT = process.env.NOVNC_CERT, KEY = process.env.NOVNC_KEY;
 const PIN_FILE = process.env.NOVNC_PIN_FILE || '';
 const PIN_STATIC = process.env.NOVNC_PIN || '';
 const REQUIRE_PIN = !!(PIN_FILE || PIN_STATIC);
+// Montado bajo un subpath del Funnel (ej. /vnc): Tailscale NO quita el prefijo, así que lo
+// recibimos y lo sacamos nosotros; y TODAS las URLs que emitimos (form, redirect, WS) tienen
+// que llevar el prefijo, si no el POST/redirect se escapa a la raíz (= el hub, nicojuri.ai).
+const PREFIX = (process.env.NOVNC_PREFIX || '').replace(/\/+$/, '');
+const WSPATH = (PREFIX ? PREFIX.replace(/^\//, '') + '/' : '') + 'websockify';   // ej. "vnc/websockify"
+const VNC_VIEW = `${PREFIX}/vnc_lite.html?path=${encodeURIComponent(WSPATH)}&autoconnect=true&resize=scale&reconnect=true`;
 function currentPin() {
   if (PIN_FILE) { try { const v = fs.readFileSync(PIN_FILE, 'utf8').trim(); return v || null; } catch { return null; } }
   return PIN_STATIC || null;
@@ -47,7 +53,7 @@ function authed(req) {
   const pin = currentPin(); if (!pin) return false;   // sin sesión activa → nadie entra
   return cookies(req).nvauth === tokenFor(pin);
 }
-const PINPAGE = `<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Acceso</title></head><body style="font-family:system-ui,-apple-system,sans-serif;background:#0f1115;color:#e8e8ea;display:grid;place-items:center;min-height:100vh;margin:0"><form method=POST action="__pin" style="text-align:center;max-width:280px"><div style="font-size:34px">🔐</div><h3 style="font-weight:600">PIN de acceso</h3><input name=pin type=password inputmode=numeric autocomplete=off autofocus placeholder="••••••" style="font-size:22px;letter-spacing:4px;padding:12px;border-radius:10px;border:1px solid #333;background:#1a1d24;color:#fff;text-align:center;width:180px"><br><br><button style="font-size:16px;padding:11px 30px;border-radius:10px;border:0;background:#e0322f;color:#fff;font-weight:600;cursor:pointer">Entrar</button></form></body></html>`;
+const PINPAGE = `<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Acceso</title></head><body style="font-family:system-ui,-apple-system,sans-serif;background:#0f1115;color:#e8e8ea;display:grid;place-items:center;min-height:100vh;margin:0"><form method=POST action="${PREFIX}/__pin" style="text-align:center;max-width:280px"><div style="font-size:34px">🔐</div><h3 style="font-weight:600">PIN de acceso</h3><input name=pin type=password inputmode=numeric autocomplete=off autofocus placeholder="••••••" style="font-size:22px;letter-spacing:4px;padding:12px;border-radius:10px;border:1px solid #333;background:#1a1d24;color:#fff;text-align:center;width:180px"><br><br><button style="font-size:16px;padding:11px 30px;border-radius:10px;border:0;background:#e0322f;color:#fff;font-weight:600;cursor:pointer">Entrar</button></form></body></html>`;
 const NOSESSION = `<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Sin sesión</title></head><body style="font-family:system-ui,-apple-system,sans-serif;background:#0f1115;color:#9aa0aa;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center"><div><div style="font-size:34px">🔒</div><h3 style="color:#e8e8ea;font-weight:600">No hay una sesión de ingreso activa</h3><p>Pedí una operación que necesite el banco y te llega un PIN nuevo por WhatsApp.</p></div></body></html>`;
 
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript',
@@ -56,7 +62,8 @@ const MIME = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javasc
 
 const useTls = CERT && KEY && fs.existsSync(CERT) && fs.existsSync(KEY);
 const handler = (req, res) => {
-  const urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+  let urlPath = decodeURIComponent((req.url || '/').split('?')[0]);
+  if (PREFIX && (urlPath === PREFIX || urlPath.startsWith(PREFIX + '/'))) urlPath = urlPath.slice(PREFIX.length) || '/';
   // POST del PIN
   if (REQUIRE_PIN && req.method === 'POST' && urlPath === '/__pin') {
     let b = ''; req.on('data', (d) => { b += d; if (b.length > 2000) req.destroy(); });
@@ -64,7 +71,7 @@ const handler = (req, res) => {
       const pin = currentPin();
       const m = /(?:^|&)pin=([^&]*)/.exec(b); const got = decodeURIComponent((m ? m[1] : '').replace(/\+/g, ' '));
       if (pin && got && got === pin) {
-        res.writeHead(302, { 'set-cookie': `nvauth=${tokenFor(pin)}; Path=/; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`, location: '/' });
+        res.writeHead(302, { 'set-cookie': `nvauth=${tokenFor(pin)}; Path=${PREFIX || '/'}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`, location: VNC_VIEW });
         res.end();
       } else { res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' }); res.end(pin ? PINPAGE : NOSESSION); }
     });
@@ -75,9 +82,9 @@ const handler = (req, res) => {
     const body = (REQUIRE_PIN && !currentPin()) ? NOSESSION : PINPAGE;
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(body);
   }
-  // Estáticos
+  // Estáticos (ya autenticado). La raíz → la vista noVNC con autoconnect (bajo el prefijo).
+  if (urlPath === '/' || urlPath === '') { res.writeHead(302, { location: VNC_VIEW }); return res.end(); }
   let p = urlPath;
-  if (p === '/' || p === '') p = '/vnc.html';
   const file = path.normalize(path.join(ROOT, p));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
   fs.readFile(file, (err, buf) => {
