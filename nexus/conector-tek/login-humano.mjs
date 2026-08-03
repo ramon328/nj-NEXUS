@@ -125,11 +125,25 @@ async function typeHumano(page, loc, texto) {
 
 // Tecleo con dwell (down→up), pausas irregulares y algún typo+backspace.
 async function humanType(page, text) {
+  // Tecleo con teclas REALES (isTrusted vía keyboard.press — NUNCA .value/inyección) para que
+  // BioCatch lo vea como humano. Modelamos DWELL (keydown→keyup) + FLIGHT (gap entre teclas) con
+  // distribución variable y un "ritmo" por-sesión (cada login teclea a distinta velocidad → no la
+  // MISMA huella siempre). Dígitos algo más rápidos, repetir tecla más lento, ráfagas y pausas.
+  const speed = rnd(0.8, 1.35)          // <1 rápido, >1 lento (varía por sesión)
+  let prev = ''
   for (const ch of text) {
-    if (chance(0.035)) { await page.keyboard.press('asdfgh'[ri(0, 6)], { delay: ri(45, 95) }).catch(() => {}); await sleep(rnd(140, 320)); await page.keyboard.press('Backspace').catch(() => {}); await sleep(rnd(90, 210)) }
-    await page.keyboard.press(ch, { delay: ri(45, 120) }).catch(async () => { await page.keyboard.type(ch).catch(() => {}) })
-    await sleep(rnd(55, 175))
-    if (chance(0.07)) await sleep(rnd(300, 820))   // pausa de "pensar"
+    if (chance(0.03)) { // typo + corrección (tecla vecina, luego backspace)
+      await page.keyboard.press('asdfghjkl'[ri(0, 8)], { delay: ri(45, 95) }).catch(() => {}); await sleep(rnd(140, 320)); await page.keyboard.press('Backspace').catch(() => {}); await sleep(rnd(90, 210))
+    }
+    const dwell = Math.round(ri(48, 120) * speed)   // cuánto mantiene apretada la tecla
+    await page.keyboard.press(ch, { delay: dwell }).catch(async () => { await page.keyboard.type(ch).catch(() => {}) })
+    let flight = rnd(55, 165) * speed               // gap hasta la próxima tecla
+    if (ch === prev) flight *= 1.25                 // repetir la misma tecla = más lento
+    if (/\d/.test(ch)) flight *= 0.9                // dígitos (RUT) un pelín más rápidos
+    await sleep(Math.round(flight))
+    if (chance(0.08)) await sleep(rnd(280, 820))         // pausa de "pensar"
+    else if (chance(0.10)) await sleep(rnd(20, 60))      // micro-ráfaga (tecleo rápido)
+    prev = ch
   }
 }
 

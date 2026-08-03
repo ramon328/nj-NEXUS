@@ -108,7 +108,7 @@ wss.on('connection', (ws) => {
 
 function log(m){ process.stdout.write(`[${new Date().toISOString()}] ${m}\n`); }
 function start(){
-  server.listen(PORT, BIND, () => log(`noVNC en ${useTls?'https':'http'}://${BIND}:${PORT}  (VNC ${VNC_HOST}:${VNC_PORT})${PIN ? ' · PIN ON' : ''}`));
+  server.listen(PORT, BIND, () => log(`noVNC en ${useTls?'https':'http'}://${BIND}:${PORT}  (VNC ${VNC_HOST}:${VNC_PORT})${REQUIRE_PIN ? (PIN_FILE ? ' · PIN one-shot (archivo)' : ' · PIN ON') : ''}`));
 }
 // si Tailscale aún no asignó la IP al arrancar, reintenta hasta que la interfaz exista
 server.on('error', (e) => {
