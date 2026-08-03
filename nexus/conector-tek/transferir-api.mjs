@@ -42,18 +42,44 @@ function leerMapa() {
   try { return JSON.parse(readFileSync(MAP_FILE, 'utf8')) } catch { return null }
 }
 
-// Construye el body nuevo a partir del molde grabado, reemplazando los valores
-// EXACTOS de la captura (monto/cuenta/rut) por los pedidos. Robusto: no depende
-// de conocer los nombres de los campos internos del banco.
-function armarBody(moldePost, mapa, { monto, cuenta, rut }) {
+// RUT chileno con puntos y guión (formato que usa el banco en RutDestinatario).
+function formatRut(r) {
+  const d = String(r || '').replace(/[^0-9kK]/g, '')
+  if (d.length < 2) return String(r || '')
+  const c = d.slice(-1)
+  const n = d.slice(0, -1).replace(/\B(?=(\d{3})+(?!\d))/g, '.')
+  return n + '-' + c
+}
+
+// Construye el body nuevo a partir del molde grabado. PREFERIDO: el molde es JSON
+// con campos NOMBRADOS (CuentaOrigen/Monto/CuentaDestino/RutDestinatario/…) → reemplazo
+// POR CAMPO. Robusto y seguro: no rompe cuando el monto de la captura es un valor trivial
+// como "1" (que por texto se comería los "1" del RUT/cuenta y corrompería el payload).
+// FALLBACK: si el molde no es JSON, string-sub con el mapa (lo viejo), solo entonces.
+function armarBody(moldePost, mapa, campos) {
+  const { monto, cuenta, rut, nombre, email, codigoBanco, motivo } = campos
+  let obj = null
+  try { obj = JSON.parse(String(moldePost || '')) } catch { obj = null }
+  if (obj && typeof obj === 'object') {
+    if (monto != null && 'Monto' in obj) obj.Monto = String(monto)
+    if (cuenta != null && 'CuentaDestino' in obj) obj.CuentaDestino = String(cuenta)
+    if (rut != null && 'RutDestinatario' in obj) obj.RutDestinatario = formatRut(rut)
+    if (nombre != null && nombre !== '' && 'NombreDestinatario' in obj) obj.NombreDestinatario = String(nombre)
+    if (email != null && 'EmailDestino' in obj) obj.EmailDestino = String(email)
+    if (codigoBanco != null && codigoBanco !== '' && 'CodigoBancoDestino' in obj) obj.CodigoBancoDestino = String(codigoBanco)
+    if (motivo != null && motivo !== '') { if ('Motivo' in obj) obj.Motivo = String(motivo); if ('MotivoDestino' in obj) obj.MotivoDestino = String(motivo) }
+    return JSON.stringify(obj)
+  }
+  // Fallback texto (molde no-JSON): requiere el mapa con los valores exactos de la captura.
+  if (!mapa) return null
   let s = String(moldePost || '')
   if (!s) return null
   const reps = [
-    [mapa.monto, String(monto)],
     [mapa.cuenta, String(cuenta)],
     [soloDigitos(mapa.cuenta), soloDigitos(cuenta)],
-    [mapa.rut, String(rut)],
+    [mapa.rut, formatRut(rut)],
     [soloDigitos(mapa.rut), soloDigitos(rut)],
+    [mapa.monto, String(monto)],   // monto AL FINAL (mínimo daño si es trivial)
   ]
   for (const [de, a] of reps) {
     if (!de || de === a) continue
@@ -69,7 +95,7 @@ function armarBody(moldePost, mapa, { monto, cuenta, rut }) {
  * @returns {Promise<object>} resultado normalizado
  */
 export async function transferirDirecto(page, opts = {}) {
-  const { empresa = '', monto, cuenta, rut } = opts
+  const { empresa = '', monto, cuenta, rut, nombre, email, codigoBanco, motivo } = opts
   const dry = opts.dry !== false   // dry-run por defecto
 
   // ── candados ──
@@ -89,11 +115,15 @@ export async function transferirDirecto(page, opts = {}) {
   if (!molde || !molde.postData) {
     return { estado: 'sin_molde', ok: false, nota: 'No hay molde grabado. Hacé UNA transferencia $1 por formulario con TEK_LOG_XHR=1 para grabar data/xhr-payloads.json, y anotá los valores en transfer-api-map.json.' }
   }
-  if (!mapa || !mapa.monto || !mapa.cuenta || !mapa.rut) {
-    return { estado: 'sin_mapa', ok: false, nota: 'Falta data/transfer-api-map.json con {monto,cuenta,rut} usados en la captura, para poder reemplazar bien.' }
+  // El molde nuevo es JSON con campos nombrados → NO hace falta mapa (reemplazo por campo).
+  // Solo exigimos el mapa como fallback cuando el molde NO es JSON parseable.
+  let moldeEsJson = false
+  try { JSON.parse(molde.postData); moldeEsJson = true } catch { moldeEsJson = false }
+  if (!moldeEsJson && (!mapa || !mapa.monto || !mapa.cuenta || !mapa.rut)) {
+    return { estado: 'sin_mapa', ok: false, nota: 'El molde no es JSON y falta data/transfer-api-map.json con {monto,cuenta,rut} de la captura, para poder reemplazar bien.' }
   }
 
-  const body = armarBody(molde.postData, mapa, { monto: montoNum, cuenta, rut })
+  const body = armarBody(molde.postData, mapa, { monto: montoNum, cuenta, rut, nombre, email, codigoBanco, motivo })
   if (!body || body === molde.postData) {
     return { estado: 'no_sustituido', ok: false, nota: 'No se pudo reemplazar los valores en el molde (¿el mapa no coincide con lo grabado?). No mando nada por seguridad.' }
   }

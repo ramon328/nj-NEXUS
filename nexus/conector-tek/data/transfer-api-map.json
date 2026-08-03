@@ -1,0 +1,9 @@
+{
+  "_nota": "Valores EXACTOS usados en la captura del molde (data/xhr-payloads.json, crearTransferencia) el 03-ago-2026. Sirven de fallback string-sub si el molde dejara de ser JSON. Con el molde JSON actual, transferir-api.mjs reemplaza POR CAMPO y no necesita esto.",
+  "monto": "1",
+  "cuenta": "0-070-31-42297-8",
+  "rut": "19.689.228-1",
+  "cuentaOrigen": "000080280939",
+  "codigoBancoDestino": "0037",
+  "capturado": "2026-08-03"
+}
