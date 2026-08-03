@@ -2678,12 +2678,18 @@ async function main() {
     } catch (e) { log('navegador: no pude conectar al daemon → abro el mío. ' + e.message); conectado = false; ctx = null; browserCDP = null }
   }
   if (!ctx) {
+    // KIOSCO: en la reconexión asistida on-demand (TEK_OTP_FILE) abrimos el banco en PANTALLA
+    // COMPLETA → así la vista VNC muestra SOLO el banco (sin escritorio ni otras ventanas), sin
+    // cambiar el modelo de seguridad (sigue siendo VNC con input real). No aplica a los flujos
+    // automáticos (keepalive, etc.), que conservan el viewport probado.
+    const kiosco = !!process.env.TEK_OTP_FILE || process.env.TEK_KIOSCO === '1'
+    const baseArgs = perfilReal ? ['--profile-directory=Default', '--disable-background-networking', '--disable-sync', '--no-first-run'] : []
     // Patchright recomienda mínimos args (nada de --no-sandbox/UA: son señales de bot).
     ctx = await chromium.launchPersistentContext(profileDir, {
       headless, channel: 'chrome',
       ...(proxy ? { proxy } : {}),
-      args: perfilReal ? ['--profile-directory=Default', '--disable-background-networking', '--disable-sync', '--no-first-run'] : [],
-      viewport: { width: 1360, height: 860 }, locale: 'es-CL', timezoneId: 'America/Santiago',
+      args: kiosco ? [...baseArgs, '--start-fullscreen', '--window-position=0,0'] : baseArgs,
+      viewport: kiosco ? null : { width: 1360, height: 860 }, locale: 'es-CL', timezoneId: 'America/Santiago',
       acceptDownloads: true,   // para bajar los PDF de la cartola histórica
     })
   }

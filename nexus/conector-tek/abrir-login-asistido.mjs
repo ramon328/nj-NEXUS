@@ -34,6 +34,10 @@ export async function abrirLoginAsistido(opts = {}) {
   const empresa = opts.empresa || process.env.TEK_EMPRESA || 'ANA CLARA'
   const motivo = opts.motivo || process.env.TEK_MOTIVO || ''
   const manual = opts.manual ?? (process.env.TEK_ASSIST_MANUAL === '1')
+  // Usuario/sesión: ANA CLARA/Mallorca es SIEMPRE ramon (único dispositivo confiado por el banco).
+  // Otras empresas → la sesión de quien pide. Ver [[tek-anaclara-siempre-ramon]].
+  const esAnaClara = /ana\s*clara|mallorca/i.test(empresa)
+  const tekUser = esAnaClara ? 'ramon' : ((opts.user || '').toLowerCase().trim() || 'ramon')
 
   // 1) PIN nuevo de un solo uso + reset del flag de estado (la página /vnc espera conexión fresca)
   const pin = String(crypto.randomInt(10_000_000, 100_000_000))   // 8 dígitos
@@ -48,6 +52,7 @@ export async function abrirLoginAsistido(opts = {}) {
     TEK_ASSIST: '1',
     ...(manual ? { TEK_ASSIST_MANUAL: '1' } : {}),
     TEK_EMPRESA: empresa,
+    TEK_USER: tekUser,
     ...(motivo ? { TEK_MOTIVO: motivo } : {}),
     TEK_OTP_FILE: OTP_FILE,
   }
