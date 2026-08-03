@@ -35,10 +35,11 @@ export async function abrirLoginAsistido(opts = {}) {
   const motivo = opts.motivo || process.env.TEK_MOTIVO || ''
   const manual = opts.manual ?? (process.env.TEK_ASSIST_MANUAL === '1')
 
-  // 1) PIN nuevo de un solo uso
+  // 1) PIN nuevo de un solo uso + reset del flag de estado (la página /vnc espera conexión fresca)
   const pin = String(crypto.randomInt(10_000_000, 100_000_000))   // 8 dígitos
   writeFileSync(OTP_FILE, pin, { mode: 0o600 })
   try { chmodSync(OTP_FILE, 0o600) } catch { /* */ }
+  try { writeFileSync(OTP_FILE.replace(/[^/]*$/, '.novnc-estado'), JSON.stringify({ ok: false, estado: 'esperando', ts: Date.now() })) } catch { /* */ }
 
   // 2) Abrir el login asistido (form real del banco en el mini). Detached: corre solo; el
   //    humano lo maneja por /vnc. TEK_OTP_FILE hace que login-humano vacíe el PIN al terminar.

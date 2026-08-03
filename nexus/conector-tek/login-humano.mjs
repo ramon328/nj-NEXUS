@@ -2757,6 +2757,13 @@ async function main() {
   const fin = async (estado, extra = {}) => {
     // Registrar device_trust/error_seguridad para el cooldown del throttle (no re-machacar la cuenta).
     if (/device_trust|error_seguridad/.test(estado)) { try { registrarDeviceTrust(userSlug) } catch { /* */ } }
+    // Flag de RECONEXIÓN (para la página /vnc): avisa si conectó bien → la web muestra "✅ conectado".
+    if (process.env.TEK_OTP_FILE) {
+      try {
+        const ok = /^(logueado|keepalive_ok)$/.test(estado)
+        writeFileSync(process.env.TEK_OTP_FILE.replace(/[^/]*$/, '.novnc-estado'), JSON.stringify({ ok, estado, ts: Date.now() }))
+      } catch { /* */ }
+    }
     await shot(`fin-${estado}.png`); console.log('RESULTADO:', JSON.stringify({ estado, url: page.url(), ...extra })); await cerrar()
   }
 

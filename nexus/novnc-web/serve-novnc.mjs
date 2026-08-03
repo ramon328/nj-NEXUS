@@ -54,6 +54,9 @@ const WSPATH = (PREFIX ? PREFIX.replace(/^\//, '') + '/' : '') + 'websockify';  
 // teclee). Se lee POR-REQUEST del archivo (creado con kickstart) → si no existe, no se inyecta
 // y noVNC pedirá la clave (comportamiento viejo). Va SIEMPRE detrás del PIN de un solo uso.
 const VNCPASS_FILE = process.env.NOVNC_VNCPASS_FILE || (PIN_FILE ? path.join(path.dirname(PIN_FILE), '.vnc-pass') : '');
+// Estado de la reconexión (lo escribe login-humano al terminar): la página lo consulta para
+// avisar "✅ conectado" y cerrarse. Vive junto al archivo del PIN.
+const ESTADO_FILE = process.env.NOVNC_ESTADO_FILE || (PIN_FILE ? path.join(path.dirname(PIN_FILE), '.novnc-estado') : '');
 function vncPass() { try { return VNCPASS_FILE ? fs.readFileSync(VNCPASS_FILE, 'utf8').trim() : ''; } catch { return ''; } }
 function vncView() {
   let u = `${PREFIX}/vnc_lite.html?path=${encodeURIComponent(WSPATH)}&autoconnect=true&resize=scale&reconnect=true`;
@@ -77,6 +80,30 @@ function authed(req) {
 }
 const PINPAGE = `<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Acceso</title></head><body style="font-family:system-ui,-apple-system,sans-serif;background:#0f1115;color:#e8e8ea;display:grid;place-items:center;min-height:100vh;margin:0"><form method=POST action="${PREFIX}/__pin" style="text-align:center;max-width:280px"><div style="font-size:34px">🔐</div><h3 style="font-weight:600">PIN de acceso</h3><input name=pin type=password inputmode=numeric autocomplete=off autofocus placeholder="••••••" style="font-size:22px;letter-spacing:4px;padding:12px;border-radius:10px;border:1px solid #333;background:#1a1d24;color:#fff;text-align:center;width:180px"><br><br><button style="font-size:16px;padding:11px 30px;border-radius:10px;border:0;background:#e0322f;color:#fff;font-weight:600;cursor:pointer">Entrar</button></form></body></html>`;
 const NOSESSION = `<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Sin sesión</title></head><body style="font-family:system-ui,-apple-system,sans-serif;background:#0f1115;color:#9aa0aa;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center"><div><div style="font-size:34px">🔒</div><h3 style="color:#e8e8ea;font-weight:600">No hay una sesión de ingreso activa</h3><p>Pedí una operación que necesite el banco y te llega un PIN nuevo por WhatsApp.</p></div></body></html>`;
+
+// Se inyecta en la vista noVNC: viewport móvil (teléfono/PC) + barra que consulta /estado y avisa
+// "✅ conectado" (y cierra la pestaña) cuando el login terminó. El botón Aceptar SIGUE siendo el
+// del banco dentro de la pantalla — esto es solo la envoltura de aviso, no reemplaza el gesto real.
+const OVERLAY_JS = `
+(function(){
+  try{var vp=document.querySelector('meta[name=viewport]');if(!vp){vp=document.createElement('meta');vp.name='viewport';vp.content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no';document.head.appendChild(vp);}}catch(e){}
+  var base=location.pathname.substring(0,location.pathname.lastIndexOf('/'));
+  var hint=document.createElement('div');
+  hint.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99998;font:600 13px system-ui,sans-serif;text-align:center;padding:9px;background:rgba(0,0,0,.72);color:#fff';
+  hint.textContent='Dale Aceptar + Superclave en la pantalla — al conectar se avisa acá';
+  var bar=document.createElement('div');
+  bar.style.cssText='position:fixed;left:0;right:0;top:0;z-index:99999;font:700 15px system-ui,sans-serif;text-align:center;padding:12px;background:#1b8e3a;color:#fff;display:none';
+  function ready(){document.body.appendChild(hint);document.body.appendChild(bar);}
+  if(document.body)ready();else document.addEventListener('DOMContentLoaded',ready);
+  var done=false;
+  setInterval(function(){
+    if(done)return;
+    fetch(base+'/estado',{cache:'no-store'}).then(function(r){return r.json();}).then(function(s){
+      if(s&&s.ok){done=true;bar.textContent='✅ Banco conectado — ya podés cerrar esta pestaña';bar.style.display='block';hint.style.display='none';setTimeout(function(){try{window.close();}catch(e){}},1500);}
+    }).catch(function(){});
+  },2500);
+})();
+`;
 
 const MIME = { '.html':'text/html', '.js':'text/javascript', '.mjs':'text/javascript',
   '.css':'text/css', '.png':'image/png', '.svg':'image/svg+xml', '.ico':'image/x-icon',
@@ -104,13 +131,23 @@ const handler = (req, res) => {
     const body = (REQUIRE_PIN && !currentPin()) ? NOSESSION : PINPAGE;
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(body);
   }
+  // Estado de la reconexión (la página lo consulta para avisar "✅ conectado" y cerrarse).
+  if (urlPath === '/estado') {
+    let body = '{"ok":false,"estado":"desconocido"}';
+    try { if (ESTADO_FILE) body = fs.readFileSync(ESTADO_FILE, 'utf8').trim() || body; } catch { /* */ }
+    res.writeHead(200, { 'content-type': 'application/json', 'cache-control': 'no-store' }); return res.end(body);
+  }
   // Estáticos (ya autenticado). La raíz → la vista noVNC con autoconnect (bajo el prefijo).
   if (urlPath === '/' || urlPath === '') { res.writeHead(302, { location: vncView() }); return res.end(); }
-  let p = urlPath;
-  const file = path.normalize(path.join(ROOT, p));
+  const file = path.normalize(path.join(ROOT, urlPath));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
   fs.readFile(file, (err, buf) => {
     if (err) { res.writeHead(404); return res.end('not found'); }
+    // A la vista noVNC le inyectamos viewport móvil + barra de "conectado" que consulta /estado.
+    if (/vnc_lite\.html$/.test(file)) {
+      const html = buf.toString('utf8').replace('</body>', `<script>${OVERLAY_JS}</script></body>`);
+      res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(html);
+    }
     res.writeHead(200, { 'content-type': MIME[path.extname(file)] || 'application/octet-stream' });
     res.end(buf);
   });
