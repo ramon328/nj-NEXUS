@@ -1329,7 +1329,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'tek_sesion', 'vincular_banco', 'mis_bancos_conectados'],
+  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'tek_sesion', 'reconectar_banco', 'vincular_banco', 'mis_bancos_conectados'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -1750,6 +1750,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 🏦 "¿QUÉ BANCOS/EMPRESAS TENGO CONECTADAS?" (herramienta **mis_bancos_conectados**) — cuando el usuario pregunte qué bancos/empresas/cuentas tiene conectadas o vinculadas, usa SIEMPRE mis_bancos_conectados y dile las empresas de SU cuenta (las que ÉL vinculó por el widget). ⛔ NO respondas con el tool "banco" (Leo) ni con las conexiones de Ramón u otros — cada usuario ve LO SUYO. El tool "banco" (Leo) es solo para SALDOS/MOVIMIENTOS ("cuánta plata hay"), NO para "qué tengo conectado".
 
 🏦 CONECTAR/VINCULAR UN BANCO (herramienta **vincular_banco**) — cuando el usuario diga "quiero agregar/conectar/vincular una cuenta de banco", "conectar mi banco", "dar las credenciales del banco", etc., llama vincular_banco y **mándale el LINK del widget seguro + el PIN** que devuelve. ⛔ JAMÁS le pidas el usuario/clave del banco por el chat (queda expuesto en WhatsApp): las credenciales se ingresan SOLO en esa página cifrada, que además —si el RUT tiene varias empresas— lo deja elegir cuál. NO le hables de "Rail" ni "login asistido": el camino es el link de vincular_banco.
+
+🔁 RECONECTAR EL BANCO (login asistido on-demand, herramienta **reconectar_banco**) — cuando una operación de banco (transferir, movimientos, comprobantes, pendientes) responda estado **sesion_caida** / **sesion_muerta**, o el usuario diga "reconecta el banco", "el banco está caído/dormido, ábrelo", "necesito entrar al banco", llama **reconectar_banco**. Abre el login REAL del banco en el equipo y te devuelve una **URL + PIN de un solo uso**: pásaselos al usuario TAL CUAL para que entre desde su teléfono, teclee su clave y pase la Superclave (el login HUMANO sí pasa la seguridad del banco; el automático la rebota). Cuando el usuario confirme que entró, reintenta la operación/lectura UNA vez. ⛔ NUNCA le pidas la clave por el chat; la URL y el PIN son de un solo uso (no los inventes ni los cambies). Esto es DISTINTO de vincular_banco (ese AGREGA una empresa nueva); reconectar_banco es para VOLVER A ENTRAR a una que ya está conectada pero se durmió.
 
 📨 ESCRIBIRLE A UN NÚMERO EXTERNO (que NO es usuario de Nexus: un lead, un cliente, un tercero) — herramientas **enviar_mensaje_externo**, **ver_respuestas_externo**, **listar_externos**. Cuando un usuario diga "mándale a +569… que…", "escríbele a este número…", "avísale a <número> que…" y ese número NO es un usuario dado de alta, usa enviar_mensaje_externo (numero, mensaje, y nombre si lo sabes). Le llega SOLO ese texto (con la plantilla oficial si está fuera de las 24h). ⚠️ IMPORTANTE: Nexus NO conversa con ese externo ni le da datos del negocio — solo GUARDA lo que responda. Cuando el usuario pregunte "¿qué respondió el +569…?" usa ver_respuestas_externo; para ver a qué externos se ha escrito, listar_externos. Nunca inventes la respuesta del externo: sácala de la herramienta.
 
@@ -2923,6 +2925,12 @@ const HERRAMIENTAS = [
     description: 'ESTADO DE LA SESIÓN DEL BANCO (sistema "tek"). SOLO LECTURA e INSTANTÁNEO: NO entra al banco, lee el estado que mantiene el "corazón". Úsalo cuando pregunten "¿está viva/conectada la sesión del banco?", "¿puedo transferir ahora?", "¿está caído el banco?", "cuánto dura la sesión del banco", "está operativo el banco". Devuelve si la sesión de ANA CLARA está VIVA o MUERTA, hace cuántos minutos está viva y cuánto le queda (el banco la cae sola al tope de ~95 min). Respondé corto y claro. ⛔ Si está MUERTA: avisá que hay que esperar a que se reestablezca (se reactiva sola al operar, o en la ventana fría 5-10 AM) — NO se puede forzar con reintentos.',
     input_schema: { type: 'object', properties: { empresa: { type: 'string', description: 'Opcional: de qué empresa (por defecto ANA CLARA).' } } },
   },
+  // ── tek · RECONECTAR el banco con LOGIN ASISTIDO on-demand (URL /vnc + PIN de un solo uso) ──
+  {
+    name: 'reconectar_banco',
+    description: 'RECONECTAR la sesión del banco con LOGIN ASISTIDO (sistema "tek"). Úsalo cuando una operación de banco devuelva estado "sesion_caida" / "sesion_muerta", o cuando el usuario diga "reconecta el banco", "el banco está caído, ábrelo", "necesito entrar al banco". Abre el login REAL del banco en el equipo, genera un PIN NUEVO de un solo uso, y te devuelve una URL + PIN para que el USUARIO entre desde el teléfono, teclee su clave y pase la seguridad (el login automático NO pasa el antifraude; el humano SÍ). Devuélvele al usuario la URL y el PIN TAL CUAL y dile que, al terminar de entrar, la operación sigue sola. El PIN se invalida solo al cerrar el login. Corre para la empresa de la persona (por defecto ANA CLARA).',
+    input_schema: { type: 'object', properties: { empresa: { type: 'string', description: 'Opcional: de qué empresa reconectar (por defecto la 1ª de la persona / ANA CLARA).' }, motivo: { type: 'string', description: 'Opcional: para qué es (ej "transferencia", "movimientos") — solo para el aviso.' } } },
+  },
   // ── tek · VINCULAR un banco: manda el LINK del widget seguro (NO pedir clave por chat) ──
   {
     name: 'vincular_banco',
@@ -3672,6 +3680,20 @@ async function ejecutar(nombre, input, ctx = {}) {
       } catch (e) {
         return JSON.stringify({ ok: false, error: 'No pude leer el estado de la sesión del banco: ' + e.message })
       }
+    }
+    // ── tek · RECONECTAR el banco con LOGIN ASISTIDO on-demand (URL /vnc + PIN de un solo uso) ──
+    if (nombre === 'reconectar_banco') {
+      if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
+      const uidR = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
+      let empR = input.empresa
+      if (!empR) { try { const cr = await import('../conector-tek/credenciales.mjs'); empR = (cr.listar(uidR) || [])[0]?.empresa } catch { /* */ } }
+      try {
+        const mod = await import('../conector-tek/abrir-login-asistido.mjs')
+        const r = await mod.abrirLoginAsistido({ empresa: empR || 'ANA CLARA', motivo: input.motivo || '' })
+        return JSON.stringify({ ok: true, url: r.url, pin: r.pin, empresa: r.empresa,
+          texto: `Abrí el login del banco (${r.empresa}). Entrá desde el teléfono a:\n${r.url}\nPIN (un solo uso): ${r.pin}\n\nTecleá tu clave y pasá la Superclave. Cuando entres, la operación sigue sola. 🏦`,
+          instruccion: 'Pásale al usuario la URL y el PIN TAL CUAL (son de un solo uso; NO los inventes ni cambies). Recuérdale que el PIN vence al terminar el login, y que él debe teclear su clave + Superclave (por eso pasa la seguridad).' })
+      } catch (e) { return JSON.stringify({ ok: false, error: 'No pude abrir el login asistido del banco: ' + e.message }) }
     }
     // ── tek · PENDIENTES DE APROBACIÓN ("Por Autorizar") — SOLO LECTURA, por persona ──
     if (nombre === 'tek_pendientes') {
