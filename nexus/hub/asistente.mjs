@@ -1738,12 +1738,17 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 4) 🔴 EMITIR DE VERDAD (firmar): SOLO después de haberle mandado la imagen/PDF del borrador oficial (paso 3) y de que el usuario, ADVERTIDO de que es IRREVERSIBLE (consume folio y le llega al cliente), confirme de nuevo. Ahí llamas sii(accion:'emitir', ...) con los MISMOS datos y **emitir_real=true**. Eso firma en el SII y te devuelve el comprobante. NUNCA pongas emitir_real=true en la MISMA vuelta que generas el borrador.
    ⚠️ **ANTI-LOOP (importante, es el error que hay que evitar):** una vez que YA mandaste el borrador OFICIAL (la herramienta respondió modo:'borrador_sii_enviado'), NO lo vuelvas a generar — NO llames confirmado=true otra vez — aunque el usuario REPITA "emítela", "emite la factura", "sí", "dale", "hazla". Esa repetición ES la 2ª confirmación → llama **emitir_real=true** con los MISMOS datos. Regenerar el borrador en lugar de emitir es JUSTO lo que NO debes hacer. Revisa el historial de la conversación: si ya aparece que mandaste el borrador oficial/PDF, el siguiente "emítela" es para FIRMAR, no para rehacer el borrador. ⚠️ El anti-loop vale SOLO si NO cambió ningún dato: si el usuario CORRIGIÓ algo, manda la regla de edición de abajo (5), que es más fuerte.
    Si responde modo:'emision_bloqueada', la emisión está apagada: dilo, NO afirmes que se emitió. Si la firma falla (modo distinto de 'emitida'), di el error TAL CUAL y NO regeneres el borrador como si nada: NO afirmes que se emitió.
+4.b) 🧠 **LA HERRAMIENTA RECUERDA LA FACTURA EN CURSO (no repitas los datos):** una vez que armaste el documento, queda guardado por 6 horas. En las llamadas siguientes manda SOLO lo que cambia (o solo el flag): "confirmado=true" a secas genera el borrador oficial del documento en curso, y "emitir_real=true" a secas lo firma. Lo que no mandes se hereda; si mandas un RUT de receptor distinto, se entiende que es una factura NUEVA y no se hereda nada.
+   · ⛔ **NUNCA le pidas al usuario que te repita la factura entera** ("se me cayó el estado", "pásame de nuevo el RUT y el detalle"): el sistema tiene el documento. Si de verdad falta UN dato, pide SOLO ese.
+   · ⛔ **No "mejores" el documento por tu cuenta entre llamadas**: no reescribas el detalle, el giro ni el nombre si el usuario no lo pidió. Cambiar texto porque sí hace que el sistema lo tome como una EDICIÓN y rehaga el borrador en vez de emitir — es lo que hacía que cada "emítela" respondiera con otro borrador.
 5) ✏️ **EDITAR / CORREGIR EL DOCUMENTO (regla dura — se puede cambiar TODO):** el usuario puede modificar CUALQUIER dato del documento las veces que quiera, antes de firmar: tipo (afecta/exenta/boleta), RUT, razón social, giro, DIRECCIÓN, comuna, ciudad, contacto, fecha de emisión, forma de pago, y del detalle: nombre del ítem, descripción, cantidad, precio, unidad, % de descuento, agregar líneas, sacar líneas. Cuando pida un cambio ("edita la dirección", "que diga X", "quita la comuna", "cámbiale el precio", "agrega una línea", "debe salir así: …"):
    · **VUELVE A LLAMAR sii accion:'emitir' con confirmado=true y el documento COMPLETO ya corregido** (todos los campos, no solo el que cambia). Eso regenera el borrador oficial en el SII y le manda el PDF nuevo.
    · ⛔ **PROHIBIDO responder "listo", "corregido", "quedó así" o "ya está" sin haber vuelto a llamar la herramienta y recibido modo:'borrador_sii_enviado'.** Si no la llamas, el cambio existe SOLO en tu mensaje: en el SII sigue el documento viejo y el usuario firma algo distinto a lo que cree. Es el peor error posible de este flujo.
    · Si te responde modo:'borrador_editado' o modo:'contenido_cambiado', significa exactamente eso: detectó la edición y te está diciendo que regeneres con confirmado=true. Hazlo en esa misma vuelta.
    · Si la respuesta trae **no_aplicados**, hubo campos que el formulario del SII NO aceptó: díselos textualmente al usuario ("la fecha no me la tomó el SII") en vez de dar el cambio por hecho.
+   · Para corregir, basta mandar EL CAMPO QUE CAMBIA (el resto se hereda del documento en curso). Ej.: "que la comuna sea Vitacura" → receptor:{comuna:"Vitacura"} + confirmado=true.
    · Después de una edición el documento vuelve a necesitar su OK: mándale el borrador corregido y pregunta de nuevo antes de emitir_real.
+6) ❌ **CUANDO EL SII RECHAZA (no inventes la causa):** si la herramienta responde con un error del SII, viene el texto REAL en "motivo_sii" / "error". Repíteselo al usuario TAL CUAL. ⛔ PROHIBIDO adivinar qué campo falta ("debe ser el contacto", "faltará el teléfono") — el 03-ago se le pidió a Joaquín un "contacto" que nunca fue el problema (en realidad el robot se rendía antes de tiempo). Si el error dice que no se sabe qué rechazó el SII, dile eso mismo y que revise el borrador. Y si un intento falla, NO repitas el mismo intento a ciegas más de una vez: cuéntale qué pasó.
 
 💸 PAGAR UNA FACTURA DE COMPRA de ANA CLARA (sistema "tek", herramienta tek_pago) — paga a un proveedor desde la cuenta de ANA CLARA en Santander Empresa. ⚠️ HOY EN SIMULACIÓN: arma el borrador y "paga" en modo prueba, pero NO mueve plata (el canal real con el banco aún no está listo). Va SIEMPRE en 2 pasos: (a) con la factura de compra (proveedor, RUT, monto en CLP, folio) llama tek_pago accion:'preparar' → te da el BORRADOR (a quién, cuánto, desde qué cuenta). Muéstraselo y pregúntale CLARO por WhatsApp: "¿emito el pago de $X a [proveedor]?". (b) SOLO con su OK, llama tek_pago accion:'emitir' con los MISMOS datos → hoy responde SIMULACIÓN (te dice qué se transferiría, sin ejecutar). NUNCA emitas sin confirmación. Cuando en el futuro toque pagar de verdad, se pedirá tu segundo factor (Superclave). Si detectas una factura de compra por pagar, ofrécele armar el pago.
 
@@ -2319,7 +2324,7 @@ const HERRAMIENTAS = [
         fecha: { type: 'string', description: 'emitir: fecha de emisión YYYY-MM-DD (default hoy). Editable: si el usuario pide otra fecha, pásala acá.' },
         observaciones: { type: 'string', description: 'emitir: glosa/observaciones opcionales. OJO: el formulario gratuito del SII no tiene glosa libre — si va texto acá, la herramienta lo devuelve en "no_aplicados". El texto que debe SALIR en el documento va en items[].detalle.' },
         confirmado: { type: 'boolean', description: 'emitir: déjalo FALSO/omitido para SOLO simular (borrador de texto). Ponlo true cuando el usuario pida ver/generar el borrador en el SII → genera el borrador OFICIAL en imagen (NO emite). ✏️ TAMBIÉN es lo que usas para APLICAR UNA CORRECCIÓN: si el usuario editó cualquier dato, llama con confirmado=true y el documento completo corregido — el sistema detecta el cambio y rehace el borrador. Sin esa llamada la corrección NO existe.' },
-        emitir_real: { type: 'boolean', description: 'emitir: FIRMA Y EMITE la factura DE VERDAD (irreversible). Ponlo true SOLO tras haber generado el borrador (confirmado=true) Y una 2ª confirmación explícita del usuario para emitir. Nunca junto con confirmado en la misma llamada.' },
+        emitir_real: { type: 'boolean', description: 'emitir: FIRMA Y EMITE la factura DE VERDAD (irreversible). Ponlo true SOLO tras haber generado el borrador (confirmado=true) Y una 2ª confirmación explícita del usuario para emitir. Nunca junto con confirmado en la misma llamada. 🧠 Puedes mandarlo SOLO (sin receptor ni items): el sistema recuerda la factura en curso y firma ESA.' },
       },
       required: ['accion'],
     },
@@ -5054,20 +5059,48 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (input.accion === 'emitir') {
           const empresaId = input.empresa_id || 3 // ANA CLARA SPA
           if (empresaBloqueada(empresaId)) return '🔒 No puedes emitir facturas de esa empresa; solo de la(s) tuya(s).'
+          // 📌 DOCUMENTO EN CURSO (memoria de la factura que se está armando).
+          // El modelo NO reenvía siempre todos los datos: manda "confirmado=true" pelado, o
+          // repite solo la mitad. Cuando la herramienta era 100% sin memoria eso terminaba en
+          // "faltan datos" y Nexus le pedía a Joaquín dictar la factura entera de nuevo
+          // (03-ago 17:21), o rehacía el borrador una y otra vez en vez de emitir. Ahora la
+          // factura en curso se guarda por usuario y las llamadas siguientes se MEZCLAN sobre
+          // ella: lo que venga en la llamada manda, lo que no venga se hereda.
+          const PEND_PATH_DOC = join(__dirname, '.factura-pendiente.json')
+          const dekeyDoc = ctx.de || '_anon'
+          const leerPendDoc = () => { try { return JSON.parse(readFileSync(PEND_PATH_DOC, 'utf8')) } catch { return {} } }
+          const prevEntrada = leerPendDoc()[dekeyDoc] || null
+          const rutDe = (o) => String(o?.rut || '').replace(/[.\-\s]/g, '').toLowerCase()
+          const traeReceptor = input.receptor && typeof input.receptor === 'object' && Object.keys(input.receptor).length > 0
+          const traeItems = Array.isArray(input.items) && input.items.length > 0
+          // Se continúa el mismo documento si hay uno guardado, es reciente (6 h) y la llamada
+          // no apunta a OTRO receptor. Si cambia el RUT, es una factura nueva: no se hereda nada.
+          const docGuardado = (prevEntrada && prevEntrada.doc && (Date.now() - Number(prevEntrada.ts_doc || 0)) < 6 * 60 * 60 * 1000)
+            ? prevEntrada.doc : null
+          const mismoReceptor = !traeReceptor || !input.receptor.rut || !docGuardado
+            || rutDe(input.receptor) === rutDe(docGuardado.receptor)
+          const heredar = docGuardado && mismoReceptor
+          const previo = heredar ? docGuardado : {}
           const body = {
-            tipo_dte: input.tipo_dte || 33,
-            receptor: (input.receptor && typeof input.receptor === 'object') ? input.receptor : {},
-            items: Array.isArray(input.items) ? input.items : [],
-            forma_pago: input.forma_pago || 'contado',
-            fecha: input.fecha || null,
-            observaciones: input.observaciones || '',
+            tipo_dte: input.tipo_dte || previo.tipo_dte || 33,
+            receptor: { ...(previo.receptor || {}), ...(traeReceptor ? input.receptor : {}) },
+            items: traeItems ? input.items : (previo.items || []),
+            forma_pago: input.forma_pago || previo.forma_pago || 'contado',
+            fecha: input.fecha || previo.fecha || null,
+            observaciones: input.observaciones ?? previo.observaciones ?? '',
             confirmar: false, // el borrador SIEMPRE se calcula; el robot corre aparte
           }
           let r
           try {
             r = await (await fetch(`${base}/api/empresas/${empresaId}/emitir`, { method: 'POST', headers: H, body: JSON.stringify(body) })).json()
           } catch (e) { return `No pude contactar el sistema de emisión: ${e.message}` }
-          if (r.modo === 'error_datos') return JSON.stringify({ ok: false, faltan_datos: r.mensaje, nota: 'Pídele al usuario ESE dato y no emitas hasta tenerlo.' })
+          if (r.modo === 'error_datos') return JSON.stringify({ ok: false, faltan_datos: r.mensaje, nota: 'Pídele al usuario ESE dato y no emitas hasta tenerlo. ⛔ NO le pidas que te repita la factura entera: solo ESE dato.' })
+          // Guardar/actualizar el documento en curso para las llamadas siguientes.
+          try {
+            const p = leerPendDoc()
+            p[dekeyDoc] = { ...(p[dekeyDoc] || {}), doc: { ...body, confirmar: undefined }, ts_doc: Date.now() }
+            writeFileSync(PEND_PATH_DOC, JSON.stringify(p))
+          } catch { /* best-effort */ }
           const b = r.borrador || {}, t = b.totales || {}
           const clp = (n) => '$' + Number(n || 0).toLocaleString('es-CL')
           const rec = b.receptor || {}
@@ -5139,12 +5172,16 @@ async function ejecutar(nombre, input, ctx = {}) {
           const guardarPend = (o) => { try { writeFileSync(PEND_PATH, JSON.stringify(o)) } catch { /* best-effort */ } }
           const _pend = leerPend()
           const prev = _pend[dekey] || null
-          const mismoDoc = !!prev && prev.sig === sig
+          // OJO: `prev` puede existir solo porque se guardó el documento en curso, SIN que
+          // se haya mandado ningún borrador oficial todavía. Solo hay "edición" si antes se
+          // le envió un borrador (prev.sig) y ahora el contenido es distinto.
+          const huboBorradorOficial = !!(prev && prev.sig)
+          const mismoDoc = huboBorradorOficial && prev.sig === sig
           const borradorYaEnviado = mismoDoc && (Date.now() - Number(prev.ts || 0)) < 30 * 60 * 1000
           // ¿El usuario editó algo respecto del borrador oficial que ya recibió?
           let cambios = []
-          if (prev && !mismoDoc) { try { cambios = queCambio(JSON.parse(prev.sig), contenido) } catch { cambios = ['algún dato del documento'] } }
-          const hayEdicion = !!prev && !mismoDoc
+          if (huboBorradorOficial && !mismoDoc) { try { cambios = queCambio(JSON.parse(prev.sig), contenido) } catch { cambios = ['algún dato del documento'] } }
+          const hayEdicion = huboBorradorOficial && !mismoDoc
 
           // Paso 3 (emitir_real): FIRMAR y EMITIR de verdad. IRREVERSIBLE. Requiere que
           // el borrador ya se haya generado (el navegador queda en la vista previa) y una
@@ -5162,7 +5199,12 @@ async function ejecutar(nombre, input, ctx = {}) {
             try {
               const em = await robot.firmarYEmitir({ CONFIRMO_EMITIR: 'SI_EMITIR_DE_VERDAD', apiToken: token, borrador: r.borrador, empresaRut })
               if (em.bloqueado) return JSON.stringify({ ok: false, modo: 'emision_bloqueada', motivo: em.motivo, instruccion: 'La emisión real está deshabilitada por seguridad. Dile al usuario que la factura NO se emitió y que Ramón debe habilitarla.' })
-              if (!em.ok) return JSON.stringify({ ok: false, error: em.error, detalle: em.detalle, instruccion: 'NO se emitió. Dile al usuario el error TAL CUAL y ofrécele REINTENTAR. Para reintentar, vuelve a llamar emitir con **emitir_real=true** (el sistema regenera el borrador solo y firma; NO uses confirmado=true, no hace falta rehacer el borrador aparte). NUNCA afirmes que se emitió.' })
+              // ⚠️ La firma quedó en duda: pudo haber salido el folio. Prohibido reintentar.
+              if (!em.ok && em.indeterminado) return JSON.stringify({
+                ok: false, modo: 'emision_indeterminada', error: em.error, detalle: em.detalle,
+                instruccion: '⚠️ NO SE SABE si la factura se emitió o no (la firma quedó a medias). ⛔ NO vuelvas a llamar emitir_real bajo ningún concepto: si el folio ya salió, un reintento emite una factura DUPLICADA al mismo cliente. Dile al usuario EXACTAMENTE eso: que hay que revisar en el SII si el documento ya quedó emitido antes de intentar de nuevo. No afirmes que se emitió ni que no se emitió.',
+              })
+              if (!em.ok) return JSON.stringify({ ok: false, error: em.error, motivo_sii: em.motivo_sii, detalle: em.detalle, instruccion: 'NO se emitió. Dile al usuario el error TAL CUAL (si viene "motivo_sii", ese es el texto REAL del SII: repítelo, ⛔ NO inventes qué campo falta). Puedes ofrecerle UN reintento con emitir_real=true (el sistema regenera el borrador solo y firma; NO uses confirmado=true). Si el reintento falla igual, NO sigas reintentando: dilo y que lo revise. NUNCA afirmes que se emitió.' })
               // Emitida OK → limpiar el pendiente de este usuario.
               try { const p = leerPend(); delete p[dekey]; guardarPend(p) } catch { /* */ }
               if (ctx.de && em.pdf) { try { await enviarMediaWhatsApp(ctx.de, em.pdf, `✅ *Factura N° ${em.folio || ''} EMITIDA* en el SII.`, { forceDocument: true }) } catch { /* best-effort */ } }
@@ -5221,7 +5263,8 @@ async function ejecutar(nombre, input, ctx = {}) {
             })
             // Marca este documento como "borrador oficial ya enviado" para este usuario
             // (persistente). El próximo "emítela" del MISMO doc irá directo a firmar.
-            try { const p = leerPend(); p[dekey] = { sig, ts: Date.now() }; guardarPend(p) } catch { /* */ }
+            // Se conserva el documento en curso (doc/ts_doc): solo se marca qué versión se envió.
+            try { const p = leerPend(); p[dekey] = { ...(p[dekey] || {}), sig, ts: Date.now() }; guardarPend(p) } catch { /* */ }
             // Campos que el usuario pidió y el formulario del SII no aceptó: se dicen,
             // no se dan por hechos (mentir sobre una corrección es peor que no hacerla).
             const noAplicados = Array.isArray(out.no_aplicados) ? out.no_aplicados : []

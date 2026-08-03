@@ -98,13 +98,20 @@ export async function valorDe(name, c) {
 }
 
 // Escribe y comprueba. Devuelve true si el campo quedó con el valor pedido.
-export async function escribirVerificado(name, valor) {
+// `intentos` > 1 para los campos que el JS del SII repuebla solo después de escribir
+// (comuna y ciudad: modDir() los reescribe desde la dirección elegida, de forma
+// asíncrona, y pisaba lo que acabábamos de poner → salía "Indepen" por "Independencia").
+export async function escribirVerificado(name, valor, intentos = 1) {
   const txt = String(valor ?? '').trim()
   if (!txt) return true
-  try { await escribir(`[name=${name}]`, txt) } catch { /* sigue: igual verificamos */ }
-  const quedo = await valorDe(name)
-  if (quedo == null) return false                      // el campo no existe en el form
-  return quedo.trim().toLowerCase() === txt.toLowerCase()
+  for (let i = 0; i < Math.max(1, intentos); i++) {
+    if (i > 0) await sleep(700)                        // dejar que el SII termine de repoblar
+    try { await escribir(`[name=${name}]`, txt) } catch { /* sigue: igual verificamos */ }
+    const quedo = await valorDe(name)
+    if (quedo == null) return false                    // el campo no existe en el form
+    if (quedo.trim().toLowerCase() === txt.trim().toLowerCase()) return true
+  }
+  return false
 }
 
 // La fecha del SII viene pre-llenada; respetamos el formato que ya usa el campo
@@ -135,6 +142,34 @@ export async function ponerFormaPago(formaPago) {
   if (!op) return false
   try { await nav('/seleccionar', { selector: `[name=${sel.name}]`, valor: op.v }); return true }
   catch { return false }
+}
+
+// Lee el MOTIVO REAL por el que el formulario no pasó a la vista previa. El SII escribe
+// el error en la propia página ("Debe ingresar…", "El campo … es obligatorio"). Antes se
+// devolvía un texto genérico ("suele faltar un dato del receptor") y el agente terminaba
+// inventando explicaciones —le pidió a Joaquín un "contacto" que nunca fue el problema.
+async function motivoDelRechazo() {
+  try {
+    const r = await (await fetch(`${NAV}/leer`)).json()
+    const txt = String(r?.texto || '')
+    const lineas = txt.split('\n').map((l) => l.trim()).filter(Boolean)
+    const pistas = lineas.filter((l) =>
+      /debe (ingresar|indicar|seleccionar)|es obligatorio|obligatoria|falta|no v[aá]lid|incorrect|err[oó]r/i.test(l) && l.length < 200)
+    if (pistas.length) return [...new Set(pistas)].slice(0, 4).join(' · ')
+    return ''
+  } catch { return '' }
+}
+
+// Espera a que el SII deje listo el PDF de la vista previa (lo baja en un iframe, tarda
+// distinto cada vez). Sondear es mucho más fiable que un sleep fijo.
+async function esperarPdf(timeoutMs = 15000) {
+  const t0 = Date.now()
+  while (Date.now() - t0 < timeoutMs) {
+    const pdf = await (await fetch(`${NAV}/ultimo-pdf`)).json().catch(() => null)
+    if (pdf?.ok && pdf.ruta) return pdf
+    await sleep(900)
+  }
+  return null
 }
 
 /**
@@ -200,20 +235,25 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
       selector: '[name=EFXP_DIR_RECEP]', valor: rec.direccion,
       hidden: '[name=EFXP_DIR_RECEP_DEFUALT]',
     }).catch(() => {})
-    // modDir() puede repoblar comuna/ciudad desde la dirección elegida → reafirmarlas.
-    if (rec.comuna) await escribir('[name=EFXP_CMNA_RECEP]', rec.comuna).catch(() => {})
-    await escribir('[name=EFXP_CIUDAD_RECEP]', rec.ciudad || rec.comuna || 'SANTIAGO').catch(() => {})
-    // Verificación explícita: la dirección es el campo que más pelea (se convierte en
-    // select y se repuebla sola). Si quedó otra, hay que AVISARLO, no asumir el cambio.
+    // modDir() repuebla comuna/ciudad desde la dirección elegida, y lo hace DESPUÉS de
+    // que escribimos → pisaba el valor bueno y la comuna salía a medias ("Indepen" por
+    // "Independencia"). Por eso se reafirman con reintentos hasta que queden.
+    if (rec.comuna) {
+      if (!await escribirVerificado('EFXP_CMNA_RECEP', rec.comuna, 3)) {
+        const cmQuedo = (await valorDe('EFXP_CMNA_RECEP') || '').trim()
+        noAplicados.push(`comuna (pedida "${rec.comuna}"${cmQuedo ? `, quedó "${cmQuedo}"` : ''})`)
+      }
+    }
+    const ciudadRec = rec.ciudad || rec.comuna || 'SANTIAGO'
+    if (!await escribirVerificado('EFXP_CIUDAD_RECEP', ciudadRec, 3)) {
+      const cdQuedo = (await valorDe('EFXP_CIUDAD_RECEP') || '').trim()
+      noAplicados.push(`ciudad (pedida "${ciudadRec}"${cdQuedo ? `, quedó "${cdQuedo}"` : ''})`)
+    }
+    // La dirección es el campo que más pelea (se convierte en select y se repuebla sola).
+    // Si quedó otra, hay que AVISARLO, no asumir el cambio.
     const dirQuedo = (await valorDe('EFXP_DIR_RECEP') || '').trim()
     if (dirQuedo && dirQuedo.toLowerCase() !== String(rec.direccion).trim().toLowerCase()) {
       noAplicados.push(`dirección (pedida "${rec.direccion}", quedó "${dirQuedo}")`)
-    }
-    if (rec.comuna) {
-      const cmQuedo = (await valorDe('EFXP_CMNA_RECEP') || '').trim()
-      if (cmQuedo && cmQuedo.toLowerCase() !== String(rec.comuna).trim().toLowerCase()) {
-        noAplicados.push(`comuna (pedida "${rec.comuna}", quedó "${cmQuedo}")`)
-      }
     }
   }
 
@@ -253,16 +293,18 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
   // tributario renderizado con los botones "Firmar" (emite) y "Corregir" (vuelve).
   // El robot LLEGA a la vista previa y SE DETIENE. NO aprieta "Firmar".
   await fetch(`${NAV}/ultimo-pdf?olvidar=1`).catch(() => {})   // no reusar un PDF viejo
-  await click('[name=Button_Update]'); await sleep(8000)
-
-  const est = await nav('/estado')
-  const enVistaPrevia = String(est?.url || '').includes('mipeDisplayPreView')
+  await click('[name=Button_Update]')
+  // ⏱️ ESPERAR POR CONDICIÓN, NO POR RELOJ. Antes había un `sleep(8000)` fijo: cuando el
+  // SII se demoraba más, el robot concluía "no llegó a la vista previa" y la emisión se
+  // abortaba con un documento que en realidad estaba perfecto (le pasó a Joaquín el
+  // 03-ago dos veces seguidas). Ahora se sondea hasta 40s la llegada a la vista previa.
+  const enVistaPrevia = await esperarUrl('mipeDisplayPreView', 40000)
 
   // 6) El SII genera la vista previa como un PDF REAL dentro de un iframe (POST a
   // mipePreView.cgi). El navegador lo descarga y lo capturamos: mandamos ESE PDF
   // (se ve completo y nítido), no una captura de pantalla. Si no hubo PDF, caemos
   // a la captura para no quedar sin nada.
-  const pdf = await (await fetch(`${NAV}/ultimo-pdf`)).json().catch(() => null)
+  const pdf = enVistaPrevia ? await esperarPdf(15000) : null
   if (enVistaPrevia && pdf?.ok && pdf.ruta) {
     return {
       ok: true, pdf: pdf.ruta, archivo: pdf.ruta, borrador, en_vista_previa: true,
@@ -270,16 +312,21 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
       nota: 'Vista previa del DTE generada en el SII (PDF oficial). NO se emitió: el robot se detiene acá. Revisa el PDF y, si está OK, confirma para firmar.',
     }
   }
+  // Sin vista previa = el SII rechazó el formulario. Se lee el motivo REAL que escribió
+  // el SII en la página, en vez de adivinar qué campo falta.
+  const motivo = enVistaPrevia ? '' : await motivoDelRechazo()
   const cap = await (await fetch(`${NAV}/captura?full=1`)).json()
-  if (!cap?.png_base64) return { ok: false, error: 'No pude obtener el borrador (ni PDF ni captura).' }
+  if (!cap?.png_base64) return { ok: false, error: 'No pude obtener el borrador (ni PDF ni captura).' + (motivo ? ` El SII dice: ${motivo}` : '') }
   const ruta = `/tmp/nexus-borrador-sii-${Date.now()}.png`
   writeFileSync(ruta, Buffer.from(cap.png_base64, 'base64'))
   return {
     ok: true, captura: ruta, archivo: ruta, borrador, en_vista_previa: enVistaPrevia,
-    no_aplicados: noAplicados,
+    no_aplicados: noAplicados, motivo_sii: motivo || undefined,
     nota: enVistaPrevia
       ? 'Vista previa generada (no pude tomar el PDF, va la captura).'
-      : 'Quedó en el formulario (faltó validar algún dato). Revisa la imagen: puede faltar un campo del receptor.',
+      : (motivo
+        ? `El SII NO aceptó el formulario. Dice textualmente: "${motivo}". Repítele ESO al usuario, no inventes otra causa.`
+        : 'El SII no llegó a la vista previa y no dejó un mensaje de error legible. Muéstrale la imagen al usuario y dile que revise qué campo rechazó; NO inventes cuál es.'),
   }
 }
 
@@ -340,11 +387,10 @@ export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor =
   await click('[name=Button_Update]')
   // Espera (sondeando) a que aparezca la vista previa — más robusto que un sleep fijo
   // (a veces el SII demora y antes caía a captura del FORMULARIO como si fuera el borrador).
-  let enVistaPrevia = await esperarUrl('mipeDisplayPreView', 15000)
-  if (!enVistaPrevia) { await click('[name=Button_Update]').catch(() => {}); enVistaPrevia = await esperarUrl('mipeDisplayPreView', 10000) }
-  await sleep(1500)
+  let enVistaPrevia = await esperarUrl('mipeDisplayPreView', 40000)
+  if (!enVistaPrevia) { await click('[name=Button_Update]').catch(() => {}); enVistaPrevia = await esperarUrl('mipeDisplayPreView', 20000) }
   est = await nav('/estado')
-  const pdf = await (await fetch(`${NAV}/ultimo-pdf`)).json().catch(() => null)
+  const pdf = enVistaPrevia ? await esperarPdf(15000) : null
   if (enVistaPrevia && pdf?.ok && pdf.ruta) {
     return {
       ok: true, pdf: pdf.ruta, archivo: pdf.ruta, en_vista_previa: true, tipo_dte: 46,
@@ -356,9 +402,15 @@ export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor =
   const ruta = cap?.png_base64 ? `/tmp/nexus-borrador-compra-${Date.now()}.png` : null
   if (ruta) writeFileSync(ruta, Buffer.from(cap.png_base64, 'base64'))
   if (enVistaPrevia) return { ok: true, captura: ruta, archivo: ruta, en_vista_previa: true, tipo_dte: 46, cambio_sujeto: cambioSujeto, nota: 'Vista previa generada (va la captura, no pude tomar el PDF).' }
-  // NO llegó a la vista previa: el SII no validó (falta un dato del receptor, ej. dirección).
-  // NO lo hacemos pasar por borrador — devolvemos error para que el asistente lo diga.
-  return { ok: false, en_vista_previa: false, captura: ruta, tipo_dte: 46, error: 'El SII no validó el borrador (probablemente falta un dato del receptor, como la dirección). NO se generó la vista previa.' }
+  // NO llegó a la vista previa: el SII no validó. Se lee el motivo REAL de la página en
+  // vez de adivinarlo. NO lo hacemos pasar por borrador — error para que el asistente lo diga.
+  const motivoC = await motivoDelRechazo()
+  return {
+    ok: false, en_vista_previa: false, captura: ruta, tipo_dte: 46, motivo_sii: motivoC || undefined,
+    error: motivoC
+      ? `El SII no validó el borrador de compra. Dice: "${motivoC}". NO se generó la vista previa.`
+      : 'El SII no validó el borrador de compra y no dejó un mensaje legible. NO se generó la vista previa y NO sé qué campo rechazó: no inventes una causa.',
+  }
 }
 
 // ⛔⛔ EMISIÓN REAL — IRREVERSIBLE. Consume folio y le llega al receptor. ⛔⛔
@@ -383,7 +435,8 @@ async function firmarEnVistaPrevia({ apiToken, clave }) {
   await click('[name=btnSign]')
   let enFirma = await esperarUrl('mipeGenXMLFirma', 12000)
   if (!enFirma) { await click('[name=btnSign]').catch(() => {}); enFirma = await esperarUrl('mipeGenXMLFirma', 8000) }
-  if (!enFirma) return { ok: false, error: 'No llegué a la pantalla de firma del SII (la vista previa pudo expirar). No se emitió.' }
+  // Nunca se llegó a la pantalla de firma ⇒ NO se firmó nada: reintentar es seguro.
+  if (!enFirma) return { ok: false, reintentable: true, error: 'No llegué a la pantalla de firma del SII (la vista previa pudo expirar). No se emitió nada, se puede reintentar.' }
   // Clave del certificado centralizado + botón Firmar (#btnFirma NO tiene name).
   await escribir('#myPass', clave)
   await sleep(600)
@@ -397,7 +450,20 @@ async function firmarEnVistaPrevia({ apiToken, clave }) {
     texto = (await (await fetch(`${NAV}/leer`)).json().catch(() => ({})))?.texto || ''
     if (String(est?.url || '').includes('mipeSendXML') && /ENVIADO\s+EXITOSAMENTE/i.test(texto)) { enviado = true; break }
   }
-  if (!enviado) return { ok: false, error: 'El SII no confirmó el envío (puede ser la clave del certificado o un rechazo). NO des por emitida la factura.', detalle: texto.slice(0, 300) }
+  if (!enviado) {
+    // ⚠️ ZONA GRIS: ya se apretó Firmar. Si la página quedó en la pantalla de envío (o el
+    // texto habla de folio/envío), el DTE PUDO haber salido. Reintentar acá emitiría un
+    // SEGUNDO folio al mismo cliente — el peor error posible. Se marca como INDETERMINADO
+    // y se prohíbe el reintento automático: primero hay que mirar el SII.
+    const urlFin = String(est?.url || '')
+    const indeterminado = urlFin.includes('mipeSendXML') || /ENVIADO|EXITOSAMENTE|folio/i.test(texto)
+    if (indeterminado) return {
+      ok: false, indeterminado: true, reintentable: false,
+      error: '⚠️ No pude confirmar el resultado de la firma y ES POSIBLE QUE LA FACTURA SÍ SE HAYA EMITIDO. ⛔ NO reintentar: primero hay que revisar en el SII si ya salió el folio, o se emite un documento duplicado.',
+      detalle: texto.slice(0, 300),
+    }
+    return { ok: false, reintentable: true, error: 'El SII no confirmó el envío (puede ser la clave del certificado o un rechazo). NO des por emitida la factura.', detalle: texto.slice(0, 300) }
+  }
   const folio = (texto.match(/N[°º]\s*(\d+)/) || [])[1] || null
   // PDF OFICIAL del DTE emitido (link "Ver Documento").
   let pdf = null
@@ -426,7 +492,18 @@ export async function firmarYEmitir(opts = {}) {
   if (opts.borrador && opts.empresaRut) {
     const g = await generarBorrador({ borrador: opts.borrador, empresaRut: opts.empresaRut, apiToken: opts.apiToken })
     if (!g.ok) return { ok: false, error: 'No pude preparar el borrador antes de firmar: ' + (g.error || ''), detalle: g.nota }
-    if (!g.en_vista_previa) return { ok: false, error: 'El borrador se armó pero el SII no llegó a la vista previa (suele faltar un dato obligatorio del receptor). NO se firmó.', detalle: g.nota }
+    if (!g.en_vista_previa) {
+      // ⚠️ NO adivinar la causa. Si el SII dejó un mensaje, ese es el error; si no, se
+      // dice que no se sabe. El texto viejo ("suele faltar un dato del receptor") hizo
+      // que el agente le pidiera a Joaquín un "contacto" que jamás fue el problema.
+      return {
+        ok: false, motivo_sii: g.motivo_sii,
+        error: g.motivo_sii
+          ? `El SII rechazó el formulario al validar. Dice: "${g.motivo_sii}". NO se firmó.`
+          : 'El SII no llegó a la vista previa al validar el formulario y no dejó un mensaje legible. NO se firmó y NO sé qué campo rechazó: no inventes una causa, muéstrale el borrador al usuario para que lo revise.',
+        detalle: g.nota,
+      }
+    }
   }
   return firmarEnVistaPrevia({ apiToken: opts.apiToken, clave })
 }
@@ -443,6 +520,12 @@ export async function firmarYEmitirCompra(opts = {}) {
   if (!clave) return { ok: false, error: 'Falta la clave del certificado centralizado (no está en SII_CERT_PASS ni en el backend sii-web).' }
   const g = await generarBorradorCompra({ vendedor: opts.vendedor, item: opts.item, emisor: opts.emisor, empresaRut: opts.empresaRut, apiToken: opts.apiToken, cambioSujeto: opts.cambioSujeto })
   if (!g.ok) return { ok: false, error: 'No pude preparar el borrador de compra antes de firmar: ' + (g.error || ''), detalle: g.nota }
-  if (!g.en_vista_previa) return { ok: false, error: 'El borrador de compra se armó pero el SII no llegó a la vista previa (falta un dato del receptor). NO se firmó.', detalle: g.nota }
+  if (!g.en_vista_previa) return {
+    ok: false, motivo_sii: g.motivo_sii,
+    error: g.motivo_sii
+      ? `El SII rechazó el formulario de la factura de compra. Dice: "${g.motivo_sii}". NO se firmó.`
+      : 'El SII no llegó a la vista previa de la factura de compra y no dejó un mensaje legible. NO se firmó y NO sé qué campo rechazó: no inventes una causa.',
+    detalle: g.nota,
+  }
   return firmarEnVistaPrevia({ apiToken: opts.apiToken, clave })
 }
