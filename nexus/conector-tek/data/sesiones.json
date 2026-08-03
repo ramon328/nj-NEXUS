@@ -1,14 +1,14 @@
 {
-  "actualizado": "2026-08-03T02:41:02.068Z",
+  "actualizado": "2026-08-03T20:30:46.732Z",
   "sesiones": {
     "ramon": {
-      "viva": false,
-      "estado": "muerta",
-      "desde": null,
-      "viva_seg": 0,
-      "viva_min": 0,
-      "ultimo_latido": null,
-      "restante_min": 0,
+      "viva": true,
+      "estado": "viva",
+      "desde": "2026-08-03T20:28:32.192Z",
+      "viva_seg": 135,
+      "viva_min": 2,
+      "ultimo_latido": "2026-08-03T20:28:32.192Z",
+      "restante_min": 93,
       "vida_max_min": 95,
       "muerta_hasta": null
     },
@@ -18,10 +18,10 @@
       "desde": null,
       "viva_seg": 0,
       "viva_min": 0,
-      "ultimo_latido": null,
+      "ultimo_latido": "2026-08-03T20:28:51.465Z",
       "restante_min": 0,
       "vida_max_min": 95,
-      "muerta_hasta": null
+      "muerta_hasta": "2026-08-03T20:43:51.465Z"
     },
     "nico": {
       "viva": false,
@@ -29,10 +29,10 @@
       "desde": null,
       "viva_seg": 0,
       "viva_min": 0,
-      "ultimo_latido": null,
+      "ultimo_latido": "2026-08-03T20:28:58.805Z",
       "restante_min": 0,
       "vida_max_min": 95,
-      "muerta_hasta": null
+      "muerta_hasta": "2026-08-03T20:43:58.805Z"
     }
   }
 }
