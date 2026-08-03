@@ -104,12 +104,19 @@ export async function valorDe(name, c) {
 export async function escribirVerificado(name, valor, intentos = 1) {
   const txt = String(valor ?? '').trim()
   if (!txt) return true
+  const igual = (v) => v != null && v.trim().toLowerCase() === txt.toLowerCase()
   for (let i = 0; i < Math.max(1, intentos); i++) {
-    if (i > 0) await sleep(700)                        // dejar que el SII termine de repoblar
     try { await escribir(`[name=${name}]`, txt) } catch { /* sigue: igual verificamos */ }
-    const quedo = await valorDe(name)
+    // ⏱️ Verificar DESPUÉS de darle tiempo al JS del SII: modDir() y compañía repueblan
+    // el campo unos cientos de ms más tarde. Leer al tiro daba un falso "quedó bien" y
+    // el valor terminaba pisado igual (así se colaba "Indepen" por "Independencia").
+    await sleep(700)
+    let quedo = await valorDe(name)
     if (quedo == null) return false                    // el campo no existe en el form
-    if (quedo.trim().toLowerCase() === txt.trim().toLowerCase()) return true
+    if (!igual(quedo)) continue                        // lo pisaron: se reintenta
+    await sleep(500)                                   // 2ª lectura: que haya quedado firme
+    quedo = await valorDe(name)
+    if (igual(quedo)) return true
   }
   return false
 }
@@ -148,7 +155,7 @@ export async function ponerFormaPago(formaPago) {
 // el error en la propia página ("Debe ingresar…", "El campo … es obligatorio"). Antes se
 // devolvía un texto genérico ("suele faltar un dato del receptor") y el agente terminaba
 // inventando explicaciones —le pidió a Joaquín un "contacto" que nunca fue el problema.
-async function motivoDelRechazo() {
+export async function motivoDelRechazo() {
   try {
     const r = await (await fetch(`${NAV}/leer`)).json()
     const txt = String(r?.texto || '')
