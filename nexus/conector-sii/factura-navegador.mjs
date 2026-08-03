@@ -86,9 +86,9 @@ const solo = (rut) => dv(rut)[0]
 // corregido" y el borrador salía igual), acá cada campo se escribe y se VERIFICA
 // contra lo que quedó en el formulario. Lo que no se pudo aplicar se devuelve en
 // `no_aplicados` para decírselo al usuario en vez de dar por hecho el cambio.
-async function campos() { try { return await nav('/campos') } catch { return {} } }
+export async function campos() { try { return await nav('/campos') } catch { return {} } }
 
-async function valorDe(name, c) {
+export async function valorDe(name, c) {
   const data = c || await campos()
   // Un mismo campo puede ser <input> o <select> según el estado del form (la
   // dirección del receptor, por ejemplo, muta a select si el SII ya conoce otras).
@@ -98,7 +98,7 @@ async function valorDe(name, c) {
 }
 
 // Escribe y comprueba. Devuelve true si el campo quedó con el valor pedido.
-async function escribirVerificado(name, valor) {
+export async function escribirVerificado(name, valor) {
   const txt = String(valor ?? '').trim()
   if (!txt) return true
   try { await escribir(`[name=${name}]`, txt) } catch { /* sigue: igual verificamos */ }
@@ -109,7 +109,7 @@ async function escribirVerificado(name, valor) {
 
 // La fecha del SII viene pre-llenada; respetamos el formato que ya usa el campo
 // en vez de imponer uno (escribir "2026-08-03" en un campo DD-MM-AAAA corrompe el DTE).
-function fechaComoElCampo(iso, muestra) {
+export function fechaComoElCampo(iso, muestra) {
   const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''))
   if (!m) return null
   const [, Y, M, D] = m
@@ -121,7 +121,7 @@ function fechaComoElCampo(iso, muestra) {
 
 // Forma de pago: es un <select> cuyo `name` no está documentado, así que se ubica
 // por sus opciones (Contado / Crédito) en vez de adivinar un selector.
-async function ponerFormaPago(formaPago) {
+export async function ponerFormaPago(formaPago) {
   const fp = String(formaPago || '').trim()
   if (!fp) return true
   const buscada = /^cr/i.test(fp) ? /cr[eé]dito/i : /contado/i
@@ -238,7 +238,10 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
 
   // 4.b) Forma de pago (contado / crédito) y observaciones.
   if (borrador.forma_pago) {
-    if (!await ponerFormaPago(borrador.forma_pago)) noAplicados.push(`forma de pago (${borrador.forma_pago})`)
+    const puesta = await ponerFormaPago(borrador.forma_pago)
+    // "Contado" es lo que el SII trae por defecto: si no se encontró el select no hay
+    // nada que avisar. Solo se reporta cuando se pidió algo distinto y no se pudo poner.
+    if (!puesta && !/^contado$/i.test(String(borrador.forma_pago))) noAplicados.push(`forma de pago (${borrador.forma_pago})`)
   }
   // El formulario gratuito del SII no tiene campo de glosa/observaciones libre: si el
   // usuario escribió una, se avisa en vez de tragársela (puede ir en la descripción del ítem).
