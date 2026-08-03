@@ -434,8 +434,14 @@ app.get('/campos', async (_req, res) => {
     const soloVisibles = _req.query.visibles === '1'
     const data = await p.evaluate((vis) => {
       const ver = (e) => !vis || (e.offsetParent !== null)
-      const inp = [...document.querySelectorAll('input, textarea')].filter(ver).map(e => ({ name: e.name, id: e.id, type: e.type || e.tagName.toLowerCase(), placeholder: e.placeholder }))
-      const sel = [...document.querySelectorAll('select')].filter(ver).map(e => ({ name: e.name, id: e.id, opciones: [...e.options].slice(0, 12).map(o => ({ v: o.value, t: (o.textContent || '').trim().slice(0, 40) })) }))
+      // `valor` = lo que el campo trae AHORA. Sirve para verificar que un cambio
+      // realmente se escribió (el SII repuebla campos solo) y para respetar el
+      // formato que ya usa el campo (ej. la fecha). NUNCA se expone un password.
+      const inp = [...document.querySelectorAll('input, textarea')].filter(ver).map(e => ({
+        name: e.name, id: e.id, type: e.type || e.tagName.toLowerCase(), placeholder: e.placeholder,
+        valor: (e.type === 'password' ? null : String(e.value ?? '').slice(0, 300)),
+      }))
+      const sel = [...document.querySelectorAll('select')].filter(ver).map(e => ({ name: e.name, id: e.id, valor: e.value, opciones: [...e.options].slice(0, 12).map(o => ({ v: o.value, t: (o.textContent || '').trim().slice(0, 40) })) }))
       const btn = [...document.querySelectorAll('button, input[type=button], input[type=submit], a.btn')].filter(ver).map(e => ({ txt: (e.textContent || e.value || '').trim().slice(0, 40), id: e.id, name: e.name }))
       return { inputs: inp, selects: sel, botones: btn }
     }, soloVisibles)

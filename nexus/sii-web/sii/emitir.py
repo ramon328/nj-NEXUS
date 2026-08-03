@@ -79,6 +79,11 @@ def _validar_receptor(receptor: dict, tipo_dte: int) -> dict:
             out["rut"] = rututil.clean(r_rut)
         if r_nombre:
             out["nombre"] = r_nombre
+        # Todo lo demás es opcional en boleta, pero si el usuario lo edita se respeta.
+        for campo in ("giro", "direccion", "comuna", "ciudad", "contacto"):
+            valor = str(receptor.get(campo) or "").strip()
+            if valor:
+                out[campo] = valor
         return out
 
     # Facturas y notas: receptor formal obligatorio.
@@ -100,13 +105,23 @@ def _validar_receptor(receptor: dict, tipo_dte: int) -> dict:
             "Para la factura falta la DIRECCIÓN del receptor. Pídesela al usuario: "
             "con el carnet (RUT + nombre) y la dirección basta (el giro queda como PARTICULAR)."
         )
-    return {
+    out = {
         "rut": rututil.clean(r_rut),
         "nombre": r_nombre,
         "giro": giro,
         "direccion": direccion,
         "comuna": comuna,
     }
+    # CIUDAD y CONTACTO son campos REALES del formulario del SII (EFXP_CIUDAD_RECEP /
+    # EFXP_CONTACTO). Antes se descartaban acá, así que si el usuario pedía cambiarlos
+    # el dato moría en el backend y el borrador salía igual. Ahora viajan al robot.
+    ciudad = str(receptor.get("ciudad") or "").strip()
+    if ciudad:
+        out["ciudad"] = ciudad
+    contacto = str(receptor.get("contacto") or "").strip()
+    if contacto:
+        out["contacto"] = contacto
+    return out
 
 
 def _validar_items(items: list, tipo_dte: int) -> list[dict]:
@@ -129,7 +144,13 @@ def _validar_items(items: list, tipo_dte: int) -> list[dict]:
         # En factura afecta (33) un ítem puede marcarse exento individualmente;
         # en factura exenta (34) todo es exento por definición.
         exento = bool(it.get("exento")) or tipo_exento
-        monto = round(cantidad * precio)
+        # UNIDAD (EFXP_UNMD_0N) y % DESCUENTO (EFXP_PCTD_0N): columnas reales del
+        # detalle en el portal del SII. Son editables como cualquier otro campo.
+        unidad = str(it.get("unidad") or "").strip()
+        descuento = _num(it.get("descuento") or 0, f"ítem {i}.descuento")
+        if descuento < 0 or descuento >= 100:
+            raise ErrorEmision(f"El descuento del ítem {i} ('{nombre}') debe estar entre 0 y 99%.")
+        monto = round(cantidad * precio * (1 - descuento / 100))
         # Descripción larga (campo "Descrip." del SII). Para autos: el detalle del
         # vehículo sacado del CAV (tipo, marca, modelo, motor, chasis, color,
         # combustible, PBV, patente, año). Puede venir como texto ya armado en
@@ -152,6 +173,10 @@ def _validar_items(items: list, tipo_dte: int) -> list[dict]:
         }
         if detalle:
             item["detalle"] = detalle
+        if unidad:
+            item["unidad"] = unidad
+        if descuento:
+            item["descuento"] = descuento
         limpios.append(item)
     return limpios
 

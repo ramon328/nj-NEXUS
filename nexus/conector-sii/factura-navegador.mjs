@@ -80,6 +80,63 @@ async function inyectarSesion(apiToken) {
 const dv = (rut) => String(rut || '').replace(/[.\s]/g, '').split('-')
 const solo = (rut) => dv(rut)[0]
 
+// ── EDICIÓN DE CAMPOS ─────────────────────────────────────────────────────────
+// El usuario puede corregir CUALQUIER dato del documento antes de firmar. Para que
+// una corrección no se pierda en silencio (el bug que había: se decía "listo,
+// corregido" y el borrador salía igual), acá cada campo se escribe y se VERIFICA
+// contra lo que quedó en el formulario. Lo que no se pudo aplicar se devuelve en
+// `no_aplicados` para decírselo al usuario en vez de dar por hecho el cambio.
+async function campos() { try { return await nav('/campos') } catch { return {} } }
+
+async function valorDe(name, c) {
+  const data = c || await campos()
+  // Un mismo campo puede ser <input> o <select> según el estado del form (la
+  // dirección del receptor, por ejemplo, muta a select si el SII ya conoce otras).
+  const f = (data.inputs || []).find((i) => i.name === name)
+        || (data.selects || []).find((s) => s.name === name)
+  return f ? String(f.valor ?? '') : null
+}
+
+// Escribe y comprueba. Devuelve true si el campo quedó con el valor pedido.
+async function escribirVerificado(name, valor) {
+  const txt = String(valor ?? '').trim()
+  if (!txt) return true
+  try { await escribir(`[name=${name}]`, txt) } catch { /* sigue: igual verificamos */ }
+  const quedo = await valorDe(name)
+  if (quedo == null) return false                      // el campo no existe en el form
+  return quedo.trim().toLowerCase() === txt.toLowerCase()
+}
+
+// La fecha del SII viene pre-llenada; respetamos el formato que ya usa el campo
+// en vez de imponer uno (escribir "2026-08-03" en un campo DD-MM-AAAA corrompe el DTE).
+function fechaComoElCampo(iso, muestra) {
+  const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(String(iso || ''))
+  if (!m) return null
+  const [, Y, M, D] = m
+  const s = String(muestra || '')
+  const sep = (s.match(/[-/.]/) || ['-'])[0]
+  if (/^\d{2}[-/.]\d{2}[-/.]\d{4}$/.test(s)) return `${D}${sep}${M}${sep}${Y}`
+  return `${Y}${sep}${M}${sep}${D}`   // el form del SII usa AAAA-MM-DD
+}
+
+// Forma de pago: es un <select> cuyo `name` no está documentado, así que se ubica
+// por sus opciones (Contado / Crédito) en vez de adivinar un selector.
+async function ponerFormaPago(formaPago) {
+  const fp = String(formaPago || '').trim()
+  if (!fp) return true
+  const buscada = /^cr/i.test(fp) ? /cr[eé]dito/i : /contado/i
+  const c = await campos()
+  const sel = (c.selects || []).find((s) => {
+    const ops = (s.opciones || []).map((o) => `${o.t || ''} ${o.v || ''}`)
+    return ops.some((o) => /contado/i.test(o)) && ops.some((o) => /cr[eé]dito/i.test(o))
+  })
+  if (!sel?.name) return false
+  const op = (sel.opciones || []).find((o) => buscada.test(o.t || '') || buscada.test(o.v || ''))
+  if (!op) return false
+  try { await nav('/seleccionar', { selector: `[name=${sel.name}]`, valor: op.v }); return true }
+  catch { return false }
+}
+
 /**
  * Genera el BORRADOR de una factura en el SII y devuelve la captura.
  * @param borrador  el objeto que arma sii-web/emitir.py (emisor, tipo_dte, receptor, items[])
@@ -101,6 +158,21 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
   // 2) Abrir el formulario del tipo correcto
   await ir(FORM_URL(cod)); await sleep(3000)
 
+  // Campos que el usuario pidió cambiar y el formulario NO aceptó. Se reportan
+  // hacia arriba: es preferible decirle "esto no lo pude cambiar" a que crea que
+  // quedó corregido y firme un documento con el dato viejo.
+  const noAplicados = []
+
+  // 2.b) FECHA DE EMISIÓN (editable). Solo se toca si la pedida difiere de la que
+  // trae el formulario, y se escribe en el mismo formato que ya usa el campo.
+  if (borrador.fecha) {
+    const actual = await valorDe('EFXP_FCH_EMIS')
+    const pedida = fechaComoElCampo(borrador.fecha, actual)
+    if (pedida && actual != null && pedida !== actual.trim()) {
+      if (!await escribirVerificado('EFXP_FCH_EMIS', pedida)) noAplicados.push(`fecha de emisión (${borrador.fecha})`)
+    }
+  }
+
   // 3) Receptor: basta RUT+DV, el SII autocompleta razón social/dirección/giro.
   const rec = borrador.receptor || {}
   const [cuerpo, digito] = dv(rec.rut)
@@ -110,6 +182,7 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
   // Complementos por si el SII no los trae (no pisa lo que ya autocompletó si va vacío)
   if (rec.nombre) await escribir('[name=EFXP_RZN_SOC_RECEP]', rec.nombre).catch(() => {})
   if (rec.giro) await escribir('[name=EFXP_GIRO_RECEP]', rec.giro).catch(() => {})
+  if (rec.contacto) { if (!await escribirVerificado('EFXP_CONTACTO', rec.contacto)) noAplicados.push(`contacto (${rec.contacto})`) }
   // CIUDAD es OBLIGATORIA para pasar la validación y llegar a la vista previa; el
   // SII no la autocompleta. Emisor: default configurable (ANA CLARA = Santiago).
   // Receptor: ciudad dada, o la comuna como fallback.
@@ -130,6 +203,18 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
     // modDir() puede repoblar comuna/ciudad desde la dirección elegida → reafirmarlas.
     if (rec.comuna) await escribir('[name=EFXP_CMNA_RECEP]', rec.comuna).catch(() => {})
     await escribir('[name=EFXP_CIUDAD_RECEP]', rec.ciudad || rec.comuna || 'SANTIAGO').catch(() => {})
+    // Verificación explícita: la dirección es el campo que más pelea (se convierte en
+    // select y se repuebla sola). Si quedó otra, hay que AVISARLO, no asumir el cambio.
+    const dirQuedo = (await valorDe('EFXP_DIR_RECEP') || '').trim()
+    if (dirQuedo && dirQuedo.toLowerCase() !== String(rec.direccion).trim().toLowerCase()) {
+      noAplicados.push(`dirección (pedida "${rec.direccion}", quedó "${dirQuedo}")`)
+    }
+    if (rec.comuna) {
+      const cmQuedo = (await valorDe('EFXP_CMNA_RECEP') || '').trim()
+      if (cmQuedo && cmQuedo.toLowerCase() !== String(rec.comuna).trim().toLowerCase()) {
+        noAplicados.push(`comuna (pedida "${rec.comuna}", quedó "${cmQuedo}")`)
+      }
+    }
   }
 
   // 4) Detalle: una línea por ítem (la 01 ya existe; para más, botón AGREGA_DETALLE).
@@ -145,7 +230,20 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
     }
     await escribir(`[name=EFXP_QTY_${n}]`, it.cantidad || 1)
     await escribir(`[name=EFXP_PRC_${n}]`, it.precio)
+    // Unidad y % de descuento: columnas del detalle, editables como el resto.
+    if (it.unidad) { if (!await escribirVerificado(`EFXP_UNMD_${n}`, it.unidad)) noAplicados.push(`unidad del ítem ${i + 1} (${it.unidad})`) }
+    if (it.descuento) { if (!await escribirVerificado(`EFXP_PCTD_${n}`, it.descuento)) noAplicados.push(`descuento del ítem ${i + 1} (${it.descuento}%)`) }
     await sleep(400)
+  }
+
+  // 4.b) Forma de pago (contado / crédito) y observaciones.
+  if (borrador.forma_pago) {
+    if (!await ponerFormaPago(borrador.forma_pago)) noAplicados.push(`forma de pago (${borrador.forma_pago})`)
+  }
+  // El formulario gratuito del SII no tiene campo de glosa/observaciones libre: si el
+  // usuario escribió una, se avisa en vez de tragársela (puede ir en la descripción del ítem).
+  if (String(borrador.observaciones || '').trim()) {
+    noAplicados.push('observaciones (el formulario del SII no tiene glosa libre; van en la descripción del ítem)')
   }
 
   // 5) "Validar y visualizar" → VISTA PREVIA (mipeDisplayPreView.cgi): el documento
@@ -165,6 +263,7 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
   if (enVistaPrevia && pdf?.ok && pdf.ruta) {
     return {
       ok: true, pdf: pdf.ruta, archivo: pdf.ruta, borrador, en_vista_previa: true,
+      no_aplicados: noAplicados,
       nota: 'Vista previa del DTE generada en el SII (PDF oficial). NO se emitió: el robot se detiene acá. Revisa el PDF y, si está OK, confirma para firmar.',
     }
   }
@@ -174,6 +273,7 @@ export async function generarBorrador({ borrador, empresaRut, apiToken }) {
   writeFileSync(ruta, Buffer.from(cap.png_base64, 'base64'))
   return {
     ok: true, captura: ruta, archivo: ruta, borrador, en_vista_previa: enVistaPrevia,
+    no_aplicados: noAplicados,
     nota: enVistaPrevia
       ? 'Vista previa generada (no pude tomar el PDF, va la captura).'
       : 'Quedó en el formulario (faltó validar algún dato). Revisa la imagen: puede faltar un campo del receptor.',

@@ -1736,8 +1736,14 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 2) Llama sii(accion:'emitir', ...) SIN confirmado → te devuelve el campo borrador_texto (la factura armada con neto/IVA/total y la descripción del auto). MUÉSTRASELO TAL CUAL al usuario y pregúntale: "¿te genero el borrador oficial en el SII?".
 3) 🖼️ CUANDO EL USUARIO CONFIRME —dice "sí", "dale", "emítela", "hazla", "genérala", o pide **"muéstrame el borrador en imagen / PDF"**— vuelve a llamar sii(accion:'emitir', ...) con los MISMOS datos y **confirmado=true**. Eso NO emite: corre un ROBOT que arma el borrador OFICIAL en el portal del SII y **le manda la IMAGEN del borrador por WhatsApp** (tú NO adjuntas nada, el sistema lo envía). ⛔ NUNCA le digas "no puedo generar el borrador en imagen/PDF": SÍ PUEDES, es exactamente esto (confirmado=true). Cuando la herramienta responda modo:'borrador_sii_enviado', dile al usuario que le mandaste el borrador en imagen para que lo revise; que el EMITIR final (firmar) queda para hacerlo supervisado. NUNCA pongas confirmado=true sin que el usuario haya pedido el borrador/emitir en el mensaje anterior.
 4) 🔴 EMITIR DE VERDAD (firmar): SOLO después de haberle mandado la imagen/PDF del borrador oficial (paso 3) y de que el usuario, ADVERTIDO de que es IRREVERSIBLE (consume folio y le llega al cliente), confirme de nuevo. Ahí llamas sii(accion:'emitir', ...) con los MISMOS datos y **emitir_real=true**. Eso firma en el SII y te devuelve el comprobante. NUNCA pongas emitir_real=true en la MISMA vuelta que generas el borrador.
-   ⚠️ **ANTI-LOOP (importante, es el error que hay que evitar):** una vez que YA mandaste el borrador OFICIAL (la herramienta respondió modo:'borrador_sii_enviado'), NO lo vuelvas a generar — NO llames confirmado=true otra vez — aunque el usuario REPITA "emítela", "emite la factura", "sí", "dale", "hazla". Esa repetición ES la 2ª confirmación → llama **emitir_real=true** con los MISMOS datos. Regenerar el borrador en lugar de emitir es JUSTO lo que NO debes hacer. Revisa el historial de la conversación: si ya aparece que mandaste el borrador oficial/PDF, el siguiente "emítela" es para FIRMAR, no para rehacer el borrador. (Solo vuelve a generar el borrador si el usuario CAMBIÓ un dato de la factura o pide EXPRESAMENTE verlo otra vez.)
+   ⚠️ **ANTI-LOOP (importante, es el error que hay que evitar):** una vez que YA mandaste el borrador OFICIAL (la herramienta respondió modo:'borrador_sii_enviado'), NO lo vuelvas a generar — NO llames confirmado=true otra vez — aunque el usuario REPITA "emítela", "emite la factura", "sí", "dale", "hazla". Esa repetición ES la 2ª confirmación → llama **emitir_real=true** con los MISMOS datos. Regenerar el borrador en lugar de emitir es JUSTO lo que NO debes hacer. Revisa el historial de la conversación: si ya aparece que mandaste el borrador oficial/PDF, el siguiente "emítela" es para FIRMAR, no para rehacer el borrador. ⚠️ El anti-loop vale SOLO si NO cambió ningún dato: si el usuario CORRIGIÓ algo, manda la regla de edición de abajo (5), que es más fuerte.
    Si responde modo:'emision_bloqueada', la emisión está apagada: dilo, NO afirmes que se emitió. Si la firma falla (modo distinto de 'emitida'), di el error TAL CUAL y NO regeneres el borrador como si nada: NO afirmes que se emitió.
+5) ✏️ **EDITAR / CORREGIR EL DOCUMENTO (regla dura — se puede cambiar TODO):** el usuario puede modificar CUALQUIER dato del documento las veces que quiera, antes de firmar: tipo (afecta/exenta/boleta), RUT, razón social, giro, DIRECCIÓN, comuna, ciudad, contacto, fecha de emisión, forma de pago, y del detalle: nombre del ítem, descripción, cantidad, precio, unidad, % de descuento, agregar líneas, sacar líneas. Cuando pida un cambio ("edita la dirección", "que diga X", "quita la comuna", "cámbiale el precio", "agrega una línea", "debe salir así: …"):
+   · **VUELVE A LLAMAR sii accion:'emitir' con confirmado=true y el documento COMPLETO ya corregido** (todos los campos, no solo el que cambia). Eso regenera el borrador oficial en el SII y le manda el PDF nuevo.
+   · ⛔ **PROHIBIDO responder "listo", "corregido", "quedó así" o "ya está" sin haber vuelto a llamar la herramienta y recibido modo:'borrador_sii_enviado'.** Si no la llamas, el cambio existe SOLO en tu mensaje: en el SII sigue el documento viejo y el usuario firma algo distinto a lo que cree. Es el peor error posible de este flujo.
+   · Si te responde modo:'borrador_editado' o modo:'contenido_cambiado', significa exactamente eso: detectó la edición y te está diciendo que regeneres con confirmado=true. Hazlo en esa misma vuelta.
+   · Si la respuesta trae **no_aplicados**, hubo campos que el formulario del SII NO aceptó: díselos textualmente al usuario ("la fecha no me la tomó el SII") en vez de dar el cambio por hecho.
+   · Después de una edición el documento vuelve a necesitar su OK: mándale el borrador corregido y pregunta de nuevo antes de emitir_real.
 
 💸 PAGAR UNA FACTURA DE COMPRA de ANA CLARA (sistema "tek", herramienta tek_pago) — paga a un proveedor desde la cuenta de ANA CLARA en Santander Empresa. ⚠️ HOY EN SIMULACIÓN: arma el borrador y "paga" en modo prueba, pero NO mueve plata (el canal real con el banco aún no está listo). Va SIEMPRE en 2 pasos: (a) con la factura de compra (proveedor, RUT, monto en CLP, folio) llama tek_pago accion:'preparar' → te da el BORRADOR (a quién, cuánto, desde qué cuenta). Muéstraselo y pregúntale CLARO por WhatsApp: "¿emito el pago de $X a [proveedor]?". (b) SOLO con su OK, llama tek_pago accion:'emitir' con los MISMOS datos → hoy responde SIMULACIÓN (te dice qué se transferiría, sin ejecutar). NUNCA emitas sin confirmación. Cuando en el futuro toque pagar de verdad, se pedirá tu segundo factor (Superclave). Si detectas una factura de compra por pagar, ofrécele armar el pago.
 
@@ -2307,12 +2313,12 @@ const HERRAMIENTAS = [
         ruta: { type: 'string', description: 'para "enviar": la ruta del archivo tal cual sale en accion:documentos' },
         titulo: { type: 'string', description: 'para "enviar": texto/caption opcional junto al archivo' },
         tipo_dte: { type: 'integer', description: 'emitir: 33=factura electrónica (afecta IVA), 34=factura exenta, 39=boleta. Default 33.' },
-        receptor: { type: 'object', description: 'emitir: a quién se factura. Para factura (33/34) lo OBLIGATORIO es {rut, nombre (razón social), direccion} — con el carnet sacas rut+nombre y solo pides la DIRECCIÓN. giro es OPCIONAL (por defecto "PARTICULAR"); comuna OPCIONAL (extráela de la dirección si viene). El SII autocompleta razón social/dirección/giro desde el RUT. Para boleta (39) todo opcional.' },
-        items: { type: 'array', items: { type: 'object' }, description: 'emitir: detalle [{nombre, cantidad, precio, detalle?, vehiculo?}] con precio NETO (sin IVA). Marca exento:true si un ítem no lleva IVA. Para un AUTO: nombre = "Marca Modelo Año" y pasa "vehiculo" con los datos del CAV {tipo, marca, modelo, motor, chasis, color, combustible, pbv, patente, anio} — se arma solo la descripción que va en el campo "Descrip." del SII. (O pasa "detalle" con la descripción ya escrita.)' },
-        forma_pago: { type: 'string', description: 'emitir: contado | credito (default contado)' },
-        fecha: { type: 'string', description: 'emitir: fecha de emisión YYYY-MM-DD (default hoy)' },
-        observaciones: { type: 'string', description: 'emitir: glosa/observaciones opcionales' },
-        confirmado: { type: 'boolean', description: 'emitir: déjalo FALSO/omitido para SOLO simular (borrador de texto). Ponlo true cuando el usuario pida ver/generar el borrador en el SII → genera el borrador OFICIAL en imagen (NO emite).' },
+        receptor: { type: 'object', description: 'emitir: a quién se factura. Para factura (33/34) lo OBLIGATORIO es {rut, nombre (razón social), direccion} — con el carnet sacas rut+nombre y solo pides la DIRECCIÓN. OPCIONALES y TODOS EDITABLES: giro (por defecto "PARTICULAR"), comuna, ciudad, contacto. El SII autocompleta razón social/dirección/giro desde el RUT. Para boleta (39) todo opcional. ✏️ Si el usuario corrige cualquiera de estos campos, vuelve a llamar con el receptor COMPLETO ya corregido.' },
+        items: { type: 'array', items: { type: 'object' }, description: 'emitir: detalle [{nombre, cantidad, precio, detalle?, unidad?, descuento?, exento?, vehiculo?}] con precio NETO (sin IVA). "detalle" = la descripción que va bajo el ítem (campo "Descrip." del SII); "unidad" = unidad de medida (ej. "UN"); "descuento" = % de descuento de esa línea (0-99). Marca exento:true si un ítem no lleva IVA. Para un AUTO: nombre = "Venta" y pasa "vehiculo" con los datos del CAV {tipo, marca, modelo, motor, chasis, color, combustible, pbv, patente, anio} — se arma solo la descripción. ✏️ Para EDITAR el detalle (cambiar texto/precio/cantidad, agregar o quitar líneas) manda el array COMPLETO como debe quedar.' },
+        forma_pago: { type: 'string', description: 'emitir: contado | credito (default contado). Editable.' },
+        fecha: { type: 'string', description: 'emitir: fecha de emisión YYYY-MM-DD (default hoy). Editable: si el usuario pide otra fecha, pásala acá.' },
+        observaciones: { type: 'string', description: 'emitir: glosa/observaciones opcionales. OJO: el formulario gratuito del SII no tiene glosa libre — si va texto acá, la herramienta lo devuelve en "no_aplicados". El texto que debe SALIR en el documento va en items[].detalle.' },
+        confirmado: { type: 'boolean', description: 'emitir: déjalo FALSO/omitido para SOLO simular (borrador de texto). Ponlo true cuando el usuario pida ver/generar el borrador en el SII → genera el borrador OFICIAL en imagen (NO emite). ✏️ TAMBIÉN es lo que usas para APLICAR UNA CORRECCIÓN: si el usuario editó cualquier dato, llama con confirmado=true y el documento completo corregido — el sistema detecta el cambio y rehace el borrador. Sin esa llamada la corrección NO existe.' },
         emitir_real: { type: 'boolean', description: 'emitir: FIRMA Y EMITE la factura DE VERDAD (irreversible). Ponlo true SOLO tras haber generado el borrador (confirmado=true) Y una 2ª confirmación explícita del usuario para emitir. Nunca junto con confirmado en la misma llamada.' },
       },
       required: ['accion'],
@@ -5085,17 +5091,74 @@ async function ejecutar(nombre, input, ctx = {}) {
           // MISMO documento NO regenera, va directo a firmar. La firma que hace el trabajo es
           // atómica (regenera el borrador y firma sola), así que no perdemos nada.
           const PEND_PATH = join(__dirname, '.factura-pendiente.json')
-          const sig = `${b.tipo_dte || input.tipo_dte || 33}|${String(rec.rut || '').replace(/[.\-\s]/g, '')}|${t.total || 0}`
           const dekey = ctx.de || '_anon'
+          // 🔑 FIRMA DE CONTENIDO — cubre TODO lo que el usuario puede editar.
+          // Antes era `tipo|rut|total`: una corrección de dirección, de nombre, de la
+          // descripción o de la fecha NO cambiaba la firma, así que el guard anti-loop
+          // la daba por "la misma factura ya enviada" y NO regeneraba el borrador. El
+          // usuario escuchaba "listo, corregido" y en el SII seguía el dato viejo (le
+          // pasó a Joaquín el 03-ago con la dirección de Kartek). Cualquier cambio en
+          // cualquier campo cambia la firma ⇒ el borrador se rehace de verdad.
+          const nrm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
+          const contenido = {
+            tipo: Number(b.tipo_dte || input.tipo_dte || 33),
+            receptor: {
+              rut: nrm(rec.rut).replace(/[.\-]/g, ''), nombre: nrm(rec.nombre), giro: nrm(rec.giro),
+              direccion: nrm(rec.direccion), comuna: nrm(rec.comuna), ciudad: nrm(rec.ciudad), contacto: nrm(rec.contacto),
+            },
+            items: (b.items || []).map((it) => ({
+              nombre: nrm(it.nombre), detalle: nrm(it.detalle), cantidad: Number(it.cantidad || 0),
+              precio: Number(it.precio || 0), unidad: nrm(it.unidad), descuento: Number(it.descuento || 0), exento: !!it.exento,
+            })),
+            fecha: String(b.fecha || ''), forma_pago: nrm(b.forma_pago),
+            observaciones: nrm(b.observaciones), total: Number(t.total || 0),
+          }
+          const sig = JSON.stringify(contenido)
+          // Lista, en castellano, de QUÉ cambió respecto del borrador que el usuario
+          // ya tiene en la mano. Es lo que se le muestra y lo que justifica rehacerlo.
+          const queCambio = (antes, ahora) => {
+            if (!antes || typeof antes !== 'object') return []
+            const out = []
+            const et = { rut: 'RUT', nombre: 'razón social', giro: 'giro', direccion: 'dirección', comuna: 'comuna', ciudad: 'ciudad', contacto: 'contacto' }
+            for (const k of Object.keys(et)) {
+              if (nrm(antes.receptor?.[k]) !== nrm(ahora.receptor?.[k])) out.push(`${et[k]} del receptor`)
+            }
+            if (Number(antes.tipo) !== Number(ahora.tipo)) out.push('tipo de documento')
+            if (String(antes.fecha) !== String(ahora.fecha)) out.push('fecha de emisión')
+            if (nrm(antes.forma_pago) !== nrm(ahora.forma_pago)) out.push('forma de pago')
+            if (nrm(antes.observaciones) !== nrm(ahora.observaciones)) out.push('observaciones')
+            const ia = antes.items || [], ib = ahora.items || []
+            if (ia.length !== ib.length) out.push(`cantidad de líneas del detalle (${ia.length} → ${ib.length})`)
+            else for (let i = 0; i < ib.length; i++) {
+              if (JSON.stringify(ia[i]) !== JSON.stringify(ib[i])) out.push(`el detalle de la línea ${i + 1}`)
+            }
+            if (Number(antes.total) !== Number(ahora.total)) out.push(`el total ($${Number(antes.total).toLocaleString('es-CL')} → $${Number(ahora.total).toLocaleString('es-CL')})`)
+            return out
+          }
           const leerPend = () => { try { return JSON.parse(readFileSync(PEND_PATH, 'utf8')) } catch { return {} } }
           const guardarPend = (o) => { try { writeFileSync(PEND_PATH, JSON.stringify(o)) } catch { /* best-effort */ } }
           const _pend = leerPend()
-          const borradorYaEnviado = _pend[dekey] && _pend[dekey].sig === sig && (Date.now() - Number(_pend[dekey].ts || 0)) < 30 * 60 * 1000
+          const prev = _pend[dekey] || null
+          const mismoDoc = !!prev && prev.sig === sig
+          const borradorYaEnviado = mismoDoc && (Date.now() - Number(prev.ts || 0)) < 30 * 60 * 1000
+          // ¿El usuario editó algo respecto del borrador oficial que ya recibió?
+          let cambios = []
+          if (prev && !mismoDoc) { try { cambios = queCambio(JSON.parse(prev.sig), contenido) } catch { cambios = ['algún dato del documento'] } }
+          const hayEdicion = !!prev && !mismoDoc
 
           // Paso 3 (emitir_real): FIRMAR y EMITIR de verdad. IRREVERSIBLE. Requiere que
           // el borrador ya se haya generado (el navegador queda en la vista previa) y una
           // 2ª confirmación explícita del usuario. firmarYEmitir tiene freno propio.
           if (input.emitir_real === true) {
+            // 🛡️ CANDADO DE EDICIÓN: no se firma un documento distinto al que el usuario
+            // revisó. Si cambió algo después del último borrador enviado, primero se
+            // rehace el borrador con la corrección y se pide OK de nuevo.
+            if (hayEdicion) {
+              return JSON.stringify({
+                ok: false, modo: 'contenido_cambiado', cambios,
+                instruccion: `⛔ NO emití nada: los datos cambiaron respecto del borrador que el usuario tiene en la mano (cambió ${cambios.join(', ') || 'algún dato'}). Emitir ahora firmaría un documento que él nunca vio. Primero REGENERA el borrador oficial con los datos corregidos: vuelve a llamar sii accion:"emitir" con **confirmado=true** y los mismos datos nuevos. Cuando le llegue el PDF corregido y confirme, recién ahí emitir_real=true. Dile que le estás mandando el borrador corregido.`,
+              })
+            }
             try {
               const em = await robot.firmarYEmitir({ CONFIRMO_EMITIR: 'SI_EMITIR_DE_VERDAD', apiToken: token, borrador: r.borrador, empresaRut })
               if (em.bloqueado) return JSON.stringify({ ok: false, modo: 'emision_bloqueada', motivo: em.motivo, instruccion: 'La emisión real está deshabilitada por seguridad. Dile al usuario que la factura NO se emitió y que Ramón debe habilitarla.' })
@@ -5110,8 +5173,14 @@ async function ejecutar(nombre, input, ctx = {}) {
           // Paso 1 (sin confirmado): mostrar el borrador de TEXTO y pedir OK.
           if (input.confirmado !== true) {
             return JSON.stringify({
-              ok: true, modo: 'borrador', borrador_texto: preview,
-              instruccion: 'MUÉSTRALE este borrador TAL CUAL al usuario y pídele el OK ("¿te genero el borrador en el SII?"). Cuando confirme, vuelve a llamar emitir con confirmado=true (eso NO emite: arma el borrador oficial y se lo manda en imagen).',
+              ok: true, modo: hayEdicion ? 'borrador_editado' : 'borrador', borrador_texto: preview,
+              cambios: hayEdicion ? cambios : undefined,
+              instruccion: hayEdicion
+                // El usuario está CORRIGIENDO un documento cuyo borrador oficial ya recibió.
+                // No hay nada que preguntarle: quiere el borrador corregido, y hasta que la
+                // herramienta no lo rehaga, en el SII sigue el dato viejo.
+                ? `✏️ El usuario EDITÓ el documento (cambió ${cambios.join(', ') || 'algún dato'}) después de haber recibido el borrador oficial. En el SII TODAVÍA está la versión vieja. Vuelve a llamar AHORA MISMO sii accion:"emitir" con **confirmado=true** y estos mismos datos corregidos para regenerar el borrador oficial y mandárselo. ⛔ PROHIBIDO decirle "listo", "corregido" o "quedó así" antes de que la herramienta responda modo:'borrador_sii_enviado': si no la vuelves a llamar, el cambio NO existe.`
+                : 'MUÉSTRALE este borrador TAL CUAL al usuario y pídele el OK ("¿te genero el borrador en el SII?"). Cuando confirme, vuelve a llamar emitir con confirmado=true (eso NO emite: arma el borrador oficial y se lo manda en imagen).',
               listo_para_emitir: r.listo_para_emitir,
             })
           }
@@ -5119,10 +5188,13 @@ async function ejecutar(nombre, input, ctx = {}) {
           // ya se le mandó al usuario hace poco y ahora vuelve a llegar confirmado=true, el
           // usuario está CONFIRMANDO la emisión, no pidiendo otro borrador. NO lo regeneres:
           // manda a firmar. Esto rompe el loop donde cada "emítela" rehacía el borrador.
+          // ⚠️ El guard SOLO frena cuando el contenido es IDÉNTICO (misma firma). Si el
+          // usuario editó cualquier campo, `borradorYaEnviado` es falso y se cae al paso 2,
+          // que rehace el borrador con la corrección. Ese es el arreglo de fondo.
           if (input.confirmado === true && borradorYaEnviado) {
             return JSON.stringify({
-              ok: true, modo: 'listo_para_firmar',
-              instruccion: 'El borrador OFICIAL de ESTA factura YA se le envió al usuario hace un rato y ahora está confirmando la emisión. ⛔ NO generes el borrador de nuevo (NO uses confirmado=true otra vez). Para EMITIRLA de verdad, vuelve a llamar sii accion:emitir con los MISMOS datos y **emitir_real=true**. Si aún no le advertiste que es IRREVERSIBLE (consume folio y le llega al cliente), dilo en la misma respuesta. Si el usuario cambió algún dato de la factura, entonces sí regenera con confirmado=true.',
+              ok: true, modo: 'listo_para_firmar', borrador_texto: preview,
+              instruccion: 'El borrador OFICIAL de ESTA factura (con EXACTAMENTE estos datos) YA se le envió al usuario hace un rato y ahora está confirmando la emisión. ⛔ NO generes el borrador de nuevo (NO uses confirmado=true otra vez). Para EMITIRLA de verdad, vuelve a llamar sii accion:emitir con los MISMOS datos y **emitir_real=true**. Si aún no le advertiste que es IRREVERSIBLE (consume folio y le llega al cliente), dilo en la misma respuesta.',
             })
           }
 
@@ -5138,8 +5210,9 @@ async function ejecutar(nombre, input, ctx = {}) {
             const archivo = out.archivo || out.pdf || out.captura
             const esPdf = /\.pdf$/i.test(String(archivo || ''))
             let enviado = false, errEnvio = ''
+            const pie = hayEdicion ? ` Corregido: ${cambios.join(', ')}.` : ''
             if (ctx.de && archivo) {
-              try { await enviarMediaWhatsApp(ctx.de, archivo, `🧾 Borrador ${esPdf ? '(PDF oficial)' : ''} de la factura en el SII — revísalo. AÚN NO se ha emitido.`); enviado = true }
+              try { await enviarMediaWhatsApp(ctx.de, archivo, `🧾 Borrador ${esPdf ? '(PDF oficial)' : ''} de la factura en el SII — revísalo. AÚN NO se ha emitido.${pie}`); enviado = true }
               catch (e) { errEnvio = e.message }
             }
             if (!enviado) return JSON.stringify({
@@ -5149,9 +5222,14 @@ async function ejecutar(nombre, input, ctx = {}) {
             // Marca este documento como "borrador oficial ya enviado" para este usuario
             // (persistente). El próximo "emítela" del MISMO doc irá directo a firmar.
             try { const p = leerPend(); p[dekey] = { sig, ts: Date.now() }; guardarPend(p) } catch { /* */ }
+            // Campos que el usuario pidió y el formulario del SII no aceptó: se dicen,
+            // no se dan por hechos (mentir sobre una corrección es peor que no hacerla).
+            const noAplicados = Array.isArray(out.no_aplicados) ? out.no_aplicados : []
             return JSON.stringify({
               ok: true, modo: 'borrador_sii_enviado', formato: esPdf ? 'pdf' : 'imagen', total: (r.borrador?.totales?.total),
-              instruccion: `Le MANDÉ el borrador OFICIAL del SII en ${esPdf ? 'PDF' : 'imagen'}. Dile que lo revise y ADVIÉRTELE que emitir es IRREVERSIBLE (consume folio y le llega al cliente): "¿la firmo y emito de verdad?". Cuando confirme (un "sí"/"emítela"/"dale" basta), vuelve a llamar emitir con **emitir_real=true** y los MISMOS datos. ⛔ NO vuelvas a llamar confirmado=true para esta misma factura: el borrador ya está enviado; repetir el borrador en vez de emitir es el error a evitar.`,
+              cambios_aplicados: hayEdicion ? cambios : undefined,
+              no_aplicados: noAplicados.length ? noAplicados : undefined,
+              instruccion: `Le MANDÉ el borrador OFICIAL del SII en ${esPdf ? 'PDF' : 'imagen'}${hayEdicion ? `, ya con la corrección (${cambios.join(', ')})` : ''}.${noAplicados.length ? ` ⚠️ OJO: estos campos NO se pudieron aplicar en el formulario del SII: ${noAplicados.join('; ')}. DÍSELO explícitamente al usuario — no des por hecho ese cambio.` : ''} Dile que lo revise y ADVIÉRTELE que emitir es IRREVERSIBLE (consume folio y le llega al cliente): "¿la firmo y emito de verdad?". Cuando confirme (un "sí"/"emítela"/"dale" basta), vuelve a llamar emitir con **emitir_real=true** y los MISMOS datos. ⛔ NO vuelvas a llamar confirmado=true para esta misma factura MIENTRAS NO CAMBIE NINGÚN DATO: el borrador ya está enviado; repetir el borrador idéntico en vez de emitir es el error a evitar. Si el usuario corrige algo, SÍ vuelve a llamar con confirmado=true y el dato nuevo.`,
             })
           } catch (e) { return `El robot de facturación falló: ${e.message}` }
         }
