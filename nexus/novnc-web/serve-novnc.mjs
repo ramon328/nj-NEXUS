@@ -37,7 +37,16 @@ const REQUIRE_PIN = !!(PIN_FILE || PIN_STATIC);
 // que llevar el prefijo, si no el POST/redirect se escapa a la raíz (= el hub, nicojuri.ai).
 const PREFIX = (process.env.NOVNC_PREFIX || '').replace(/\/+$/, '');
 const WSPATH = (PREFIX ? PREFIX.replace(/^\//, '') + '/' : '') + 'websockify';   // ej. "vnc/websockify"
-const VNC_VIEW = `${PREFIX}/vnc_lite.html?path=${encodeURIComponent(WSPATH)}&autoconnect=true&resize=scale&reconnect=true`;
+// Clave VNC dedicada (para auto-autenticar la pantalla detrás del PIN, sin que el usuario la
+// teclee). Se lee POR-REQUEST del archivo (creado con kickstart) → si no existe, no se inyecta
+// y noVNC pedirá la clave (comportamiento viejo). Va SIEMPRE detrás del PIN de un solo uso.
+const VNCPASS_FILE = process.env.NOVNC_VNCPASS_FILE || (PIN_FILE ? path.join(path.dirname(PIN_FILE), '.vnc-pass') : '');
+function vncPass() { try { return VNCPASS_FILE ? fs.readFileSync(VNCPASS_FILE, 'utf8').trim() : ''; } catch { return ''; } }
+function vncView() {
+  let u = `${PREFIX}/vnc_lite.html?path=${encodeURIComponent(WSPATH)}&autoconnect=true&resize=scale&reconnect=true`;
+  const pw = vncPass(); if (pw) u += `&password=${encodeURIComponent(pw)}`;
+  return u;
+}
 function currentPin() {
   if (PIN_FILE) { try { const v = fs.readFileSync(PIN_FILE, 'utf8').trim(); return v || null; } catch { return null; } }
   return PIN_STATIC || null;
@@ -71,7 +80,7 @@ const handler = (req, res) => {
       const pin = currentPin();
       const m = /(?:^|&)pin=([^&]*)/.exec(b); const got = decodeURIComponent((m ? m[1] : '').replace(/\+/g, ' '));
       if (pin && got && got === pin) {
-        res.writeHead(302, { 'set-cookie': `nvauth=${tokenFor(pin)}; Path=${PREFIX || '/'}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`, location: VNC_VIEW });
+        res.writeHead(302, { 'set-cookie': `nvauth=${tokenFor(pin)}; Path=${PREFIX || '/'}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`, location: vncView() });
         res.end();
       } else { res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' }); res.end(pin ? PINPAGE : NOSESSION); }
     });
@@ -83,7 +92,7 @@ const handler = (req, res) => {
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8' }); return res.end(body);
   }
   // Estáticos (ya autenticado). La raíz → la vista noVNC con autoconnect (bajo el prefijo).
-  if (urlPath === '/' || urlPath === '') { res.writeHead(302, { location: VNC_VIEW }); return res.end(); }
+  if (urlPath === '/' || urlPath === '') { res.writeHead(302, { location: vncView() }); return res.end(); }
   let p = urlPath;
   const file = path.normalize(path.join(ROOT, p));
   if (!file.startsWith(ROOT)) { res.writeHead(403); return res.end(); }
