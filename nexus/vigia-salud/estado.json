@@ -1,20 +1,18 @@
 {
-  "ts": "2026-08-03T22:31:47.431Z",
-  "estado": "ROJO",
-  "nivel": 2,
-  "razones": [
-    "RAM libre muy baja (268 MB)"
-  ],
+  "ts": "2026-08-03T22:40:49.864Z",
+  "estado": "VERDE",
+  "nivel": 0,
+  "razones": [],
   "metricas": {
-    "load1": 2.21,
+    "load1": 1.66,
     "nucleos": 6,
-    "loadPorNucleo": 0.37,
-    "ramLibreMB": 268,
+    "loadPorNucleo": 0.28,
+    "ramLibreMB": 2184,
     "ramTotalMB": 32768,
     "swapUsedMB": 0,
-    "compresorMB": 0,
+    "compresorMB": 22,
     "discoPct": 52,
-    "procesos": 736,
+    "procesos": 716,
     "sesionesClaude": 2,
     "sesionesClaudeViejas": 0
   },

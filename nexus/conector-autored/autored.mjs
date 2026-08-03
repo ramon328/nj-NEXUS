@@ -117,10 +117,24 @@ export function listarTransferencias(opts = {}) {
   });
 }
 
-// estado detallado de UNA transferencia (por id numérico interno de proceso)
+// estado detallado de UNA transferencia. OJO: va el publicId (UUID), NO el id numérico
+// (con el id numérico la API responde 404 "Transfer not found").
 export const estadoTransferencia = (id) => api(`${API_TR}/business/transfers/${id}/status`);
 export const impuestosVehiculo = (id) => api(`${API_TR}/business/transfers/${id}/vehicle-taxation`);
 export const firmantes = (id, tipo) => api(`${API_TR}/business/transfers/${id}/signers`, { params: { type: tipo } });
+
+// catálogo de comunas (id + nombre + región) — necesario para el domicilio del vendedor
+export const comunas = () => api(`${API_TR}/info/regions`);
+
+// busca una comuna por nombre y devuelve {id, name, region:{name}} listo para el payload
+export async function buscarComuna(nombre) {
+  const n = String(nombre || '').trim().toLowerCase();
+  const lista = await comunas();
+  const c = lista.find((x) => String(x.name).toLowerCase() === n)
+        || lista.find((x) => String(x.name).toLowerCase().includes(n));
+  if (!c) return null;
+  return { id: String(c.id), name: c.name, region: { name: c['region.name'] } };
+}
 
 // buscar datos de un vehículo por patente (prellenado, sin costo)
 export const infoVehiculo = (params) => api(`${API_TR}/business/transfers/vehicle-info`, { params });
@@ -185,6 +199,83 @@ export async function abortarSolicitud(id, { confirmar = false } = {}) {
   const g = guardia('abort', { id }, confirmar);
   if (g) return g;
   return api(`${API_TR}/business/transfers/${id}/abort`, { method: 'POST' });
+}
+
+// ============================================================
+//  CONTRATO ABIERTO (B2B_OC) — flujo verificado end-to-end 03-08-2026 (solicitud 45851)
+// ============================================================
+// Paso A: crea la solicitud. COBRA 1 crédito Y compra el CAV del vehículo (el front avisa
+//   "Al hacer click en Solicitar se comprará un CAV"). Doble candado.
+//   `prohibicion` = {name, rut} del acreedor si el contrato lleva prohibición de enajenar
+//   (radio "Sí"); por defecto va sin prohibición (creditor vacío).
+export async function crearContratoAbierto(patente, { prohibicion = null, forzar = false, confirmar = false } = {}) {
+  const pat = String(patente || '').toUpperCase().replace(/[\s.\-]/g, '');
+  const payload = {
+    email: EMAIL,
+    licensePlate: pat,
+    phone: '',
+    clientType: 'openContract',
+    kind: 'B2B_OC',
+    creditor: { name: prohibicion?.name || '', rut: prohibicion?.rut || '' },
+    forceCreation: Boolean(forzar),
+  };
+  const g = guardia('initialize', payload, confirmar);
+  if (g) return { ...g, nota: 'Crea el Contrato Abierto: 1 crédito + compra del CAV.' };
+  return api(`${API_TR}/business/transfers/initialize`, { method: 'POST', body: payload });
+}
+
+// Paso B: datos del vendedor. La API espera multipart/form-data con claves planas
+//   `sellers.0.<campo>` (NO JSON). Al guardarlo, el proceso genera solo el MANDATO
+//   (ENTER_SELLER_INFO -> GENERATING_MANDATE -> SIGN_MANDATE) y le manda el mail de firma.
+//   Teléfono: formato 56XXXXXXXXX (con código país, sin +); el front rechaza 9XXXXXXXX.
+export async function ingresarVendedorOC(publicId, vendedor, { confirmar = false } = {}) {
+  const v = vendedor || {};
+  const plano = {
+    'sellers.0.name': v.nombres || '',
+    'sellers.0.fLastName': v.apellidoPaterno || '',
+    'sellers.0.mLastName': v.apellidoMaterno || '',
+    'sellers.0.rut': v.rut || '',
+    'sellers.0.email': v.email || '',
+    'sellers.0.phone': v.telefono || '',
+    'sellers.0.street': v.calle || '',
+    'sellers.0.houseNumber': v.numero || '',
+    'sellers.0.dpto': v.depto || '',
+    'sellers.0.commune.id': String(v.comuna?.id || ''),
+    'sellers.0.commune.name': v.comuna?.name || '',
+    'sellers.0.commune.region.name': v.comuna?.region?.name || '',
+    'sellers.0.hasUnion': String(Boolean(v.conyuge)),
+    'sellers.0.hasRepresentative': String(Boolean(v.representante)),
+    'sellers.0.isBeneficiary': 'false',
+  };
+  const g = guardia('enterInfo', { publicId, ...plano }, confirmar);
+  if (g) return g;
+  const fd = new FormData();
+  for (const [k, val] of Object.entries(plano)) fd.append(k, val);
+  const r = await fetch(`${API_TR}/business/transfers/${publicId}/enter-seller-info`, {
+    method: 'POST',
+    headers: { accept: 'application/json', cookie: `authorization=${await jwt()}` },
+    body: fd,
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status} enter-seller-info: ${(await r.text()).slice(0, 200)}`);
+  return { ok: true, publicId };
+}
+
+// Paso C (lectura): link de firma del mandato + estado del firmante.
+export async function firmaMandato(publicId) {
+  const f = await firmantes(publicId, 'OC_MANDATE');
+  return {
+    documento: f.documentUrl,
+    firmantes: (f.signers || []).map((s) => ({
+      nombre: [s.name, s.fLastName, s.mLastName].filter(Boolean).join(' '),
+      rut: s.rut, email: s.email, estado: s.status, linkFirma: s.signUrl,
+    })),
+  };
+}
+
+// Documentos de una solicitud (CAV_INITIAL, OC_MANDATE, CONTRACT_AUTOMATIC, ...). Bajar es GRATIS.
+export async function documentosSolicitud(publicId) {
+  const s = await estadoTransferencia(publicId);
+  return (s.documents || []).map((d) => ({ tipo: d.type, estado: d.status, nombre: d.originalName, url: d.publicUrl }));
 }
 
 // validar deuda de pensiones (POST pero es una consulta previa; también tras el candado por precaución)
@@ -254,6 +345,41 @@ export async function fichaCompra(patente) {
   return { ok: true, patente: campos.patente || pat, campos, informe_id: nmp.id, informe_fecha: nmp.createdAt, pdf: dest };
 }
 
+// REVISIÓN A FONDO de los documentos de un auto (para el flujo de compra). GRATIS: usa el
+// informe YA comprado (prefiere el Informe Completo NMP porque revisa 12 puntos; el CAV solo
+// alcanza para limitaciones/anotaciones) y lo pasa por revisar_informe.py.
+// Devuelve {ok, formato, resumen:{alertas,revisar,ok,apto}, chequeos:[{clave,titulo,estado,detalle}]}.
+// NO compra nada: si no hay informe devuelve {sin_informe:true}.
+export async function revisarDocumentos(patente) {
+  const pat = String(patente || '').toUpperCase().replace(/[\s.\-]/g, '');
+  if (!pat) return { ok: false, error: 'Falta la patente.' };
+  const lst = await listarInformes({ patente: pat, filas: 30 }).catch(() => ({}));
+  const rows = (lst.rows || lst || []).filter?.((r) => r) || [];
+  const listos = rows.filter((r) => String(r.ready) === 'true' && (r.url || r.publicUrl));
+  // NMP primero (revisa todo), después Informe Autored, y el CAV como último recurso.
+  const orden = { NMP: 0, CAV: 1, CAV_RAW: 2 };
+  const elegido = listos.sort((a, b) =>
+    (orden[a.reportType] ?? 9) - (orden[b.reportType] ?? 9) ||
+    String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+  if (!elegido) {
+    return { ok: false, sin_informe: true, patente: pat,
+      nota: 'No hay ningún informe comprado de esta patente, así que no puedo revisar los documentos. No se compra automáticamente.' };
+  }
+  const dest = path.join('/tmp', `revision_${pat}.pdf`);
+  await descargarInforme(elegido.url || elegido.publicUrl, dest);
+  let rev;
+  try {
+    const out = execFileSync('python3', [path.join(__dirname, 'revisar_informe.py'), dest], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+    rev = JSON.parse(out);
+  } catch (e) {
+    return { ok: false, error: `No pude revisar el informe: ${e.message}`, informe_id: elegido.id, pdf: dest };
+  }
+  if (!rev.ok) return { ok: false, error: rev.error, informe_id: elegido.id, pdf: dest };
+  return { ...rev, informe_id: elegido.id, informe_tipo: elegido.reportType,
+    informe_nombre: NOMBRE_INFORME[elegido.reportType] || elegido.reportType,
+    informe_fecha: elegido.createdAt, pdf: dest };
+}
+
 // COMPRA un informe/CAV (COBRA) -> doble candado. tipo: clave de TIPOS_INFORME o reportType directo.
 export async function comprarInforme(patente, tipo = 'CAV', { confirmar = false, esperar = true, timeoutMs = 180000 } = {}) {
   const reportType = TIPOS_INFORME[tipo] || tipo;
@@ -304,9 +430,13 @@ async function cli() {
       case 'vehiculo': out(await infoVehiculo({ licensePlate: args[0] })); break;
       case 'informes': out(await listarInformes({ patente: args[0] || '' })); break;
       case 'repetidos': out(await informesRepetidos(args[0])); break;
+      case 'comuna': out(await buscarComuna(args[0])); break;
+      case 'revisar': out(await revisarDocumentos(args[0])); break;
+      case 'firma': out(await firmaMandato(args[0])); break;
+      case 'docs': out(await documentosSolicitud(args[0])); break;
       case 'login': out(await login().then(() => ({ ok: true, msg: 'sesión renovada' }))); break;
       default:
-        console.log(`Comandos: quien | creditos | resumen | rc | lista [patente] | estado <id> | impuestos <id> | vehiculo <patente> | informes [patente] | repetidos <patente> | login
+        console.log(`Comandos: quien | creditos | resumen | rc | lista [patente] | estado <publicId> | impuestos <publicId> | vehiculo <patente> | informes [patente] | repetidos <patente> | comuna <nombre> | revisar <patente> | firma <publicId> | docs <publicId> | login
 Escritura (cobra) solo vía import + AUTORED_PERMITIR_ESCRITURA=1 + { confirmar:true }.`);
     }
   } catch (e) { console.error('ERROR:', e.message); process.exit(1); }

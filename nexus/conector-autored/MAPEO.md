@@ -56,13 +56,96 @@ Cuenta mapeada: **Joaquin Elias** / empresa **Mallorcautos — ANA CLARA SPA** (
 
 **Descarga de documentos/CAV:** `GET /transferencias/api/documents/{uuid}/download`.
 
-## Flujo de creación (para armar la función de Meme más adelante)
+> ⚠️ **`{id}` en las rutas de una solicitud = `publicId` (UUID), NO el id numérico.** Con el id
+> numérico la API responde `404 {"error":"Transfer not found"}`. Tampoco es el "Número de
+> Solicitud" que muestra la UI (ej. 45851): son tres identificadores distintos por proceso
+> (nº UI 45851 · id interno 489 · publicId `b899b207-…`).
+
+## CONTRATO ABIERTO (B2B_OC) — flujo COMPLETO, verificado end-to-end
+Probado el **03-08-2026** creando la solicitud real **45851** (SWPV28, vendedora Xiaoyan Chen).
+Ruta UI: `Transferencias` → **Nueva solicitud** → `/transferencias/crear-solicitud`.
+
+### Paso 1 — Crear la solicitud (⚠️ COBRA: 1 crédito **+ CAV**)
+Formulario: 4 radios de tipo (`sellers` / `buyers` / **`openContract`** / `automotiveManages`),
+input `licensePlate`, radio `prohibitAlienation` (Sí/No) y checkbox de términos.
+El front avisa: *"Al hacer click en Solicitar se comprará un CAV del vehículo"* → el costo real es
+**1 crédito + el CAV**, no solo el crédito.
+
+Al apretar "Solicitar transferencia" sale un modal **"Verifica los datos"** con patente/marca/modelo/año
+(lo trae de `GET /vehicle-info?licensePlate=`, gratis) y botones Cancelar/**Confirmar**. Hasta acá no se cobró nada.
+"Confirmar" dispara:
+
+```
+POST /transferencias/api/business/transfers/initialize
+{"email":"jelias@mallorcautos.cl","licensePlate":"SWPV28","phone":"",
+ "clientType":"openContract","kind":"B2B_OC","creditor":{"name":"","rut":""},"forceCreation":false}
+```
+- `clientType` = el `value` del radio; `kind` = `B2B_OC`. Ambos van juntos.
+- `creditor` = acreedor de la **prohibición de enajenar**; vacío si el radio fue "No".
+- `forceCreation:true` = crear igual si ya existe otra solicitud para esa patente.
+- Respuesta: `{publicId, id, statusId:3, kind:"B2B_OC", paidService:true, publicUrl, ...}` y
+  redirige a `/transferencias/proceso/{publicId}`. Estado inicial: **`ENTER_SELLER_INFO`**.
+  El CAV ya queda comprado como documento `CAV_INITIAL` (`READY`).
+
+### Paso 2 — Datos del vendedor (wizard de 5 pasos, no cobra)
+1. **Persona / Empresa** (Xiaoyan Chen = Persona).
+2. **Datos**: `rut`, `name` (todos los nombres), `fLastName`, `mLastName`, checkbox `fLastNameOnly`
+   ("Tengo solo un apellido" → deshabilita apellido materno, sirve para extranjeros),
+   checkbox `hasRepresentative`. Al pasar de paso corre solo:
+   - `GET /info/person?rut=25492965-4` → dio **400** (no bloquea el flujo, se ignora).
+   - `POST /business/transfers/validate-pension-debt {rut,name,fLastName,mLastName}` → `{"valid":true}`.
+     Si sale `false` la transferencia se rechaza por Ley 21.389.
+3. **Domicilio**: comuna (botón `#commune`, buscador "Buscar comuna…", catálogo de `GET /info/regions`),
+   `street`, `houseNumber`, `dpto` (opcional).
+4. **Contacto**: `email` y `phone`. ⚠️ **El teléfono debe ir `56XXXXXXXXX`** (código país sin `+`);
+   con `9XXXXXXXX` o `9 7700 3114` marca "El teléfono es inválido".
+5. **Revisión** → botón **Enviar**:
+
+```
+POST /transferencias/api/business/transfers/{publicId}/enter-seller-info
+Content-Type: multipart/form-data      ← NO es JSON
+sellers.0.name / .fLastName / .mLastName / .rut / .email / .phone
+sellers.0.street / .houseNumber / .dpto
+sellers.0.commune.id / .commune.name / .commune.region.name
+sellers.0.hasUnion / .hasRepresentative / .isBeneficiary
+```
+Índice `0` = primer vendedor (soporta varios: `sellers.1.*`). Los sub-objetos van con clave plana
+punteada. `union` = cónyuge, `representative` = representante legal (mismos campos anidados).
+
+### Paso 3 — Mandato y firma (automático, no cobra)
+Al guardar el vendedor el estado avanza solo:
+`ENTER_SELLER_INFO` → **`GENERATING_MANDATE`** → **`SIGN_MANDATE`** (~10 s).
+Se genera el documento **`OC_MANDATE`** (`Mandato.pdf`, 2 págs) y AutoRed le manda el mail de firma al vendedor.
+
+```
+GET /business/transfers/{publicId}/signers?type=OC_MANDATE
+→ {documentUrl, signers:[{status:"PENDING", name, fLastName, email, rut,
+     signUrl:"https://firmas.autosafe.cl/solicitud/<uuid>"}]}
+```
+`signUrl` es el link de firma (el mismo del botón "Ir a firmar" / "Copiar enlace") → **se le puede
+mandar por WhatsApp al vendedor**, no hace falta que abra el correo.
+
+Contenido del mandato: *MANDATO ESPECIAL E IRREVOCABLE* del vendedor a **PRESTADORA DE SERVICIOS
+JAVERIM SpA (Autosafe)**, RUT 76.324.632-9, para que firme la promesa/compraventa del vehículo en su
+representación. Eso es lo que hace "abierto" al contrato: el comprador final se completa después.
+
+### Paso 4 — Cierre (pendiente de mapear: exige un contrato abierto ya firmado)
+Firmado el mandato sigue: subir docs → `VERIFYING_DOCUMENTS` → datos del comprador
+(`enter-buyer-info`) → `vehicle-taxation` → `new-payment` (**impuestos, plata real**) →
+`CREATING_CONTRACT` (`CONTRACT_AUTOMATIC`) → `NOTARY` → `CIVIL_REGISTRY` → `COMPLETED`.
+
+### Documentos que aparecen en un B2B_OC completado
+`CAV_INITIAL`, `OC_MANDATE`, `DNI`, `TRANSFER_CERTIFICATE`, `CIRCULATION_PERMIT`,
+`SOCIETY_CONSTITUTION`, `CONTRACT_AUTOMATIC`, `CAV_OTHER`. Bajarlos es **gratis** con su `publicUrl`
+(`/transferencias/api/documents/{uuid}/download`).
+
+## Flujo de creación (otros tipos)
 1. `GET /vehicle-info?licensePlate=` → prellena datos del auto. (gratis)
-2. `POST /initialize` con `{kind, createdBy/value, vehicle, ...}` → **crea (cobra 1 crédito)**.
-3. `POST /{id}/enter-seller-info` y/o `/enter-buyer-info` → RUT, nombres, comuna, etc.
-4. `POST /{id}/upload-documents` → permiso de circulación, eRUT, estatutos…
-5. `GET /{id}/signers` + firma.
-6. `GET /{id}/vehicle-taxation` (lee monto) → `POST /{id}/new-payment` → **paga impuestos**.
+2. `POST /initialize` con `{clientType, kind, licensePlate, email, creditor, forceCreation}` → **crea (1 crédito + CAV)**.
+3. `POST /{publicId}/enter-seller-info` y/o `/enter-buyer-info` (multipart) → RUT, nombres, comuna, etc.
+4. `POST /{publicId}/upload-documents` → permiso de circulación, eRUT, estatutos…
+5. `GET /{publicId}/signers` + firma.
+6. `GET /{publicId}/vehicle-taxation` (lee monto) → `POST /{publicId}/new-payment` → **paga impuestos**.
 7. `POST /buy-cav {id, subType:"CAV_INITIAL"}` si corresponde CAV.
 
 ## Informes / CAV — `/api/v2/reports` (PROBADO ✓)
@@ -91,6 +174,18 @@ node autored.mjs quien|creditos|resumen|rc|lista [patente]|estado <id>|impuestos
 ```
 Escritura solo por import + `AUTORED_PERMITIR_ESCRITURA=1` en `.env` **y** `{confirmar:true}` en la llamada. Falta cualquiera → dry-run.
 
-## Pendiente (cuando Ramón dé el OK para una prueba real)
-- Payload exacto de `initialize` y `enter-*-info` (campos obligatorios) — se confirma con UNA creación real controlada (gasta 1 crédito) o pidiendo créditos de prueba.
+## Funciones de Contrato Abierto en `autored.mjs`
+```
+crearContratoAbierto(patente, {prohibicion:{name,rut}, forzar, confirmar})  // COBRA, doble candado
+ingresarVendedorOC(publicId, {nombres, apellidoPaterno, apellidoMaterno, rut, email,
+                              telefono:'56XXXXXXXXX', calle, numero, depto, comuna}, {confirmar})
+firmaMandato(publicId)        // link de firma + estado del firmante (gratis)
+documentosSolicitud(publicId) // lista de docs con su url de descarga (gratis)
+buscarComuna(nombre)          // -> {id, name, region:{name}} para el payload del domicilio
+```
+CLI nuevo: `comuna <nombre> | firma <publicId> | docs <publicId>`.
+
+## Pendiente
+- Cierre del Contrato Abierto (paso 4): `enter-buyer-info`, `upload-documents` y `new-payment` — se
+  mapean cuando haya un contrato abierto con el mandato ya firmado (el 45851 sirve).
 - Wire del tool en `asistente.mjs` de Meme (leer siempre; crear con confirmación explícita por WhatsApp).
