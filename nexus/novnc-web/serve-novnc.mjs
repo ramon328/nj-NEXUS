@@ -15,6 +15,19 @@ import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import { WebSocketServer } from 'ws';
 
+// La VNC-auth usa DES, que Node (OpenSSL 3) trae APAGADO salvo con --openssl-legacy-provider.
+// Para no depender del plist, si NO arrancamos con la bandera nos RE-LANZAMOS a nosotros mismos
+// CON la bandera. El padre queda de wrapper y reenvía la señal de apagado al hijo (no huérfanos).
+if (!process.execArgv.includes('--openssl-legacy-provider') && !process.env.__NOVNC_LEGACY) {
+  const { spawn } = await import('node:child_process');
+  const child = spawn(process.execPath, ['--openssl-legacy-provider', ...process.argv.slice(1)],
+    { stdio: 'inherit', env: { ...process.env, __NOVNC_LEGACY: '1' } });
+  const killChild = () => { try { child.kill('SIGTERM'); } catch { /* */ } };
+  process.on('SIGTERM', killChild); process.on('SIGINT', killChild); process.on('exit', killChild);
+  child.on('exit', (code) => process.exit(code == null ? 0 : code));
+  await new Promise(() => {});   // el padre espera para siempre; el server corre en el hijo (con DES)
+}
+
 const ROOT = path.dirname(fileURLToPath(import.meta.url));
 const PORT = Number(process.env.NOVNC_PORT || 6080);
 const BIND = process.env.NOVNC_BIND || '127.0.0.1'; // solo esta interfaz (IP de Tailscale = solo tailnet)
