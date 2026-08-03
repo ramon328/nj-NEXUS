@@ -107,6 +107,62 @@ const server = useTls
   ? https.createServer({ cert: fs.readFileSync(CERT), key: fs.readFileSync(KEY) }, handler)
   : http.createServer(handler);
 
+// VNC auth (RFB security type 2): respuesta DES al challenge de 16 bytes. La clave VNC va con
+// los BITS de cada byte INVERTIDOS (particularidad de VNC), null-padded a 8, como key DES-ECB.
+function vncDesResponse(challenge, password) {
+  const key = Buffer.alloc(8, 0);
+  const pw = Buffer.from(String(password || '').slice(0, 8), 'latin1');
+  for (let i = 0; i < pw.length; i++) { let b = pw[i], r = 0; for (let j = 0; j < 8; j++) { r = (r << 1) | (b & 1); b >>= 1; } key[i] = r & 0xff; }
+  const cipher = crypto.createCipheriv('des-ecb', key, null);
+  cipher.setAutoPadding(false);
+  return Buffer.concat([cipher.update(challenge), cipher.final()]);
+}
+
+// PUENTE con AUTH DEL LADO DEL SERVIDOR: el bridge se autentica contra macOS (RFB type 2) con la
+// clave VNC, y le presenta a noVNC "sin auth" (type 1) → el navegador NUNCA pide clave. Resuelve
+// el choque noVNC↔macOS (macOS negocia su auth de cuenta y rebota la clave VNC pasada por URL).
+async function authProxy(ws, tcp, password, log) {
+  const mk = (emitter, evt, wrap) => {
+    const st = { buf: Buffer.alloc(0), q: [] };
+    st.on = (d) => { st.buf = Buffer.concat([st.buf, wrap ? (Buffer.isBuffer(d) ? d : Buffer.from(d)) : d]); pump(st); };
+    emitter.on(evt, st.on); return st;
+  };
+  const pump = (st) => { while (st.q.length && st.buf.length >= st.q[0].n) { const w = st.q.shift(); const out = st.buf.subarray(0, w.n); st.buf = st.buf.subarray(w.n); w.res(out); } };
+  const read = (st, n) => new Promise((res) => { st.q.push({ n, res }); pump(st); });
+
+  await new Promise((res, rej) => { if (!tcp.connecting) return res(); tcp.once('connect', res); tcp.once('error', rej); });
+  const M = mk(tcp, 'data', false);   // macOS (server)
+  const N = mk(ws, 'message', true);  // noVNC (client)
+
+  // ── handshake con macOS (nosotros = cliente VNC) ──
+  await read(M, 12);                                              // ProtocolVersion del server
+  tcp.write(Buffer.from('RFB 003.008\n'));
+  const nSec = (await read(M, 1))[0];
+  if (nSec === 0) { const rl = (await read(M, 4)).readUInt32BE(0); throw new Error('macOS rechazó: ' + (await read(M, rl)).toString()); }
+  const types = [...(await read(M, nSec))];
+  if (!types.includes(2)) throw new Error('macOS no ofrece VNC-auth (type 2). Tipos: ' + types.join(','));
+  tcp.write(Buffer.from([2]));
+  const challenge = await read(M, 16);
+  tcp.write(vncDesResponse(challenge, password));
+  if ((await read(M, 4)).readUInt32BE(0) !== 0) throw new Error('clave VNC incorrecta (macOS rechazó la auth)');
+
+  // ── handshake con noVNC (nosotros = server, SIN auth) ──
+  ws.send(Buffer.from('RFB 003.008\n'));
+  await read(N, 12);                                              // versión de noVNC
+  ws.send(Buffer.from([1, 1]));                                   // 1 tipo de seguridad: None(1)
+  await read(N, 1);                                               // elección de noVNC
+  ws.send(Buffer.from([0, 0, 0, 0]));                             // SecurityResult = OK
+
+  // ── detach lectores, flush de lo buffereado, y puente crudo de acá en más ──
+  tcp.removeListener('data', M.on);
+  ws.removeListener('message', N.on);
+  if (M.buf.length) ws.send(M.buf);
+  if (N.buf.length) tcp.write(N.buf);
+  ws.on('message', (d) => { try { tcp.write(Buffer.isBuffer(d) ? d : Buffer.from(d)); } catch {} });
+  tcp.on('data', (d) => { try { ws.send(d); } catch {} });
+  log('auth-proxy OK → pantalla autenticada sola, puente activo');
+}
+
 // verifyClient: sin PIN válido NO se abre el puente WS (si no, se saltaban el muro por el WS)
 const wss = new WebSocketServer({ server, verifyClient: (info, cb) => {
   if (authed(info.req)) return cb(true);
@@ -114,12 +170,19 @@ const wss = new WebSocketServer({ server, verifyClient: (info, cb) => {
 } });
 wss.on('connection', (ws) => {
   const tcp = net.connect(VNC_PORT, VNC_HOST);
-  tcp.on('connect', () => log(`cliente conectado → puente a ${VNC_HOST}:${VNC_PORT}`));
-  ws.on('message', (data) => { try { tcp.write(data); } catch {} });
-  tcp.on('data', (data) => { try { ws.send(data); } catch {} });
   const bye = () => { try { ws.close(); } catch {}; try { tcp.destroy(); } catch {}; };
   ws.on('close', bye); ws.on('error', bye);
   tcp.on('close', bye); tcp.on('error', (e) => { log('err VNC: ' + e.message); bye(); });
+  const pass = vncPass();
+  if (pass) {
+    // Con clave VNC → el puente autentica solo contra macOS (navegador no pide nada).
+    authProxy(ws, tcp, pass, log).catch((e) => { log('auth-proxy: ' + e.message); bye(); });
+  } else {
+    // Sin clave (tailnet / no seteada) → puente crudo: noVNC hace su propia auth.
+    tcp.on('connect', () => log(`cliente conectado → puente crudo a ${VNC_HOST}:${VNC_PORT}`));
+    ws.on('message', (d) => { try { tcp.write(Buffer.isBuffer(d) ? d : Buffer.from(d)); } catch {} });
+    tcp.on('data', (d) => { try { ws.send(d); } catch {} });
+  }
 });
 
 function log(m){ process.stdout.write(`[${new Date().toISOString()}] ${m}\n`); }
