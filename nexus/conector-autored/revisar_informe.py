@@ -35,8 +35,14 @@ def seccion_cav(T, titulo, siguientes):
     return resto[:fin].strip()
 
 
-def chk(clave, titulo, estado, detalle):
-    return {"clave": clave, "titulo": titulo, "estado": estado, "detalle": detalle}
+def chk(clave, titulo, estado, detalle, actos=None):
+    # `actos` = tipos de anotación IDENTIFICADOS (PRENDA, EMBARGO, …). Va aparte del `detalle`
+    # a propósito: el detalle es prosa y quien lea "prenda" ahí puede volver a caer en el
+    # falso positivo que este módulo existe para evitar. Para decidir, usar `actos`.
+    d = {"clave": clave, "titulo": titulo, "estado": estado, "detalle": detalle}
+    if actos is not None:
+        d["actos"] = actos
+    return d
 
 
 # ---------------------------------------------------------------- NMP (informe AutoRed)
@@ -54,12 +60,17 @@ def revisar_nmp(T):
                     return out.append(chk(clave, titulo, estado, det))
         out.append(chk(clave, titulo, REVISAR, sin_match or "El informe no lo dice con claridad; revísalo a mano."))
 
-    frase([
-        (r"El veh[ií]culo no registra limitaciones al dominio", OK, "Sin limitaciones al dominio."),
-        (r"El veh[ií]culo registra limitaciones al dominio", ALERTA,
-         "REGISTRA limitaciones al dominio: hay que ver qué anotación es (prenda, prohibición, embargo) y alzarla antes de transferir."),
-        (r"no tiene anotaciones vigentes", OK, "Sin anotaciones vigentes."),
-    ], "limitaciones_dominio", "Limitaciones al dominio")
+    # El NMP dice SI hay limitaciones pero no siempre QUÉ tipo: `actos` queda vacío y quien
+    # decida (¿es prenda?) debe tratarlo como "no se sabe", no como prenda confirmada.
+    if re.search(r"El veh[ií]culo no registra limitaciones al dominio", T, re.I) or re.search(r"no tiene anotaciones vigentes", T, re.I):
+        out.append(chk("limitaciones_dominio", "Limitaciones al dominio", OK, "Sin limitaciones al dominio.", actos=[]))
+    elif re.search(r"El veh[ií]culo registra limitaciones al dominio", T, re.I):
+        out.append(chk("limitaciones_dominio", "Limitaciones al dominio", ALERTA,
+                       "REGISTRA limitaciones al dominio. El informe no dice de qué tipo: hay que pedir el CAV "
+                       "para ver la anotación exacta y alzarla antes de transferir.", actos=[]))
+    else:
+        out.append(chk("limitaciones_dominio", "Limitaciones al dominio", REVISAR,
+                       "El informe no lo dice con claridad; revísalo a mano.", actos=[]))
 
     frase([
         (r"El veh[ií]culo no registra p[eé]rdida total", OK, "Sin pérdida total."),
@@ -137,9 +148,9 @@ def revisar_cav(T):
     lim = seccion_cav(T, r"LIMITACIONES AL DOMINIO", ENC_CAV)
     if lim is None:
         out.append(chk("limitaciones_dominio", "Limitaciones al dominio", REVISAR,
-                       "No encontré la sección de limitaciones en el CAV; revísalo a mano."))
+                       "No encontré la sección de limitaciones en el CAV; revísalo a mano.", actos=[]))
     elif re.search(r"NO TIENE ANOTACIONES VIGENTES", lim, re.I):
-        out.append(chk("limitaciones_dominio", "Limitaciones al dominio", OK, "Sin anotaciones vigentes."))
+        out.append(chk("limitaciones_dominio", "Limitaciones al dominio", OK, "Sin anotaciones vigentes.", actos=[]))
     else:
         # Dentro de la sección: qué acto es. Acá sí vale buscar PRENDA/PROHIBICIÓN.
         actos = []
@@ -153,7 +164,7 @@ def revisar_cav(T):
         if fecha:
             det += f" (fecha {fecha.group(1)})"
         det += ". Hay que ALZARLA antes de poder transferir."
-        out.append(chk("limitaciones_dominio", "Limitaciones al dominio", ALERTA, det))
+        out.append(chk("limitaciones_dominio", "Limitaciones al dominio", ALERTA, det, actos=actos))
 
     obs = seccion_cav(T, r"OBSERVACIONES", ENC_CAV)
     if obs and re.search(r"Registra Solicitud de anotacion en tramite", obs, re.I):

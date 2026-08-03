@@ -189,3 +189,42 @@ CLI nuevo: `comuna <nombre> | firma <publicId> | docs <publicId>`.
 - Cierre del Contrato Abierto (paso 4): `enter-buyer-info`, `upload-documents` y `new-payment` — se
   mapean cuando haya un contrato abierto con el mandato ya firmado (el 45851 sirve).
 - Wire del tool en `asistente.mjs` de Meme (leer siempre; crear con confirmación explícita por WhatsApp).
+
+## REVISIÓN A FONDO DE DOCUMENTOS — `revisar_informe.py`
+Revisor de informes de vehículo para el **flujo de compra**. GRATIS: corre sobre un informe YA
+comprado. Entrada: PDF (CAV crudo o Informe Completo NMP). Salida JSON:
+`{ok, formato, patente, resumen:{alertas,revisar,ok,apto}, chequeos:[{clave,titulo,estado,detalle,actos?}]}`
+
+**Estados:** `ok` (el informe lo afirma) · `alerta` (problema real) · `revisar` (**no se puede
+determinar** — se dice "no me consta", nunca se inventa).
+
+**12 chequeos** (los que trae el NMP; el CAV solo alcanza para los primeros):
+limitaciones al dominio / prenda · anotación en trámite · pérdida total · encargo por robo ·
+transporte público · multas heredables · infracciones en riesgo de anotación · dueños anteriores ·
+revisión técnica · SOAP · permiso de circulación · subinscripciones.
+
+### ⚠️ El bug que originó este módulo (no repetirlo)
+La detección vieja hacía `re.search(r"PRENDA|GRAVAMEN|PROHIBICI", texto_completo)`. Los informes NMP
+traen **subtítulos explicativos** como *"Limitaciones al dominio — Revisa si existe una prohibición
+legal para transferir el auto a un tercero"*, así que un auto **limpio** salía marcado con prenda.
+Verificado en **SWPV28**: única aparición de "prohibici" = ese subtítulo, y el informe dice
+"El vehículo no registra limitaciones al dominio" → el parser reportaba prenda igual.
+
+**Reglas para no recaer:**
+1. Nunca decidir por una PALABRA sobre el texto completo: usar **frases explícitas** y, en el CAV,
+   recortar la **sección** (`seccion_cav`) antes de buscar.
+2. Los tipos de anotación identificados van en el campo **`actos`** (lista), NO se leen del
+   `detalle`. El `detalle` es prosa y puede contener la palabra "prenda" como ejemplo — leerlo para
+   decidir reproduce el mismo falso positivo (pasó durante el desarrollo con LDGG73).
+3. Si no matchea ninguna frase conocida → `revisar`, nunca `ok` ni `alerta`.
+
+`tiene_prenda` en `leer_cav.py` / `leer_nmp.py` ahora es de **tres estados**: `true` (prenda
+confirmada en `actos`), `false` (informe dice que no hay limitaciones), **`null` = no se sabe**
+(hay limitación pero el informe no dice de qué tipo → hay que pedir el CAV).
+
+Casos reales verificados: SWPV28 limpio + 4 infracciones en riesgo · SWDZ79 PRENDA + PROHIBICIÓN
+(08-06-2023) · LDGG73 registra limitaciones sin tipo (`null`) + 5 dueños · PDFD74 anotación en
+trámite · SZPV13 limpio · TDCX40 permiso no verificable (`revisar`).
+
+Función: `revisarDocumentos(patente)` en `autored.mjs` (elige el mejor informe comprado —NMP antes
+que CAV—, lo baja gratis y lo pasa por el revisor). CLI: `node autored.mjs revisar <patente>`.

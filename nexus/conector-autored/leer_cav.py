@@ -26,12 +26,38 @@ def main():
         "propietario": buscar(r"Nombre\s*:\s*([^\n]+)"),
         "rut_propietario": buscar(r"R\.?U\.?T\.?\s*:\s*([0-9.\-kK]+)"),
     }
-    # limitaciones al dominio / prenda
-    sin_lim = re.search(r"NO\s+TIENE\s+ANOTACIONES\s+VIGENTES", texto, re.IGNORECASE)
-    campos["limitaciones_al_dominio"] = (not bool(sin_lim))
-    campos["tiene_prenda"] = bool(re.search(r"PRENDA|GRAVAMEN|PROHIBICI", texto, re.IGNORECASE))
+    # Limitaciones al dominio / prenda. NO se busca la palabra "PRENDA|PROHIBICI" en todo el
+    # PDF: los informes traen subtítulos explicativos ("Revisa si existe una prohibición legal
+    # para transferir el auto…") y eso marcaba prenda en autos limpios. Se delega en
+    # revisar_informe.py, que mira SOLO la sección de limitaciones.
+    from revisar_informe import revisar_cav, revisar_nmp, norm
+    T = norm(texto)
+    es_nmp = bool(re.search(r"INFORME HISTORIAL DEL VEH[IÍ]CULO|Resumen del veh[ií]culo", T, re.IGNORECASE))
+    chequeos = revisar_nmp(T) if es_nmp else revisar_cav(T)
+    lim = next((c for c in chequeos if c["clave"] == "limitaciones_dominio"), None)
 
-    print(json.dumps({"ok": True, "campos": campos, "texto": texto[:4000]}, ensure_ascii=False))
+    campos["limitaciones_al_dominio"] = bool(lim and lim["estado"] == "alerta")
+    if lim and lim["estado"] == "alerta":
+        # true solo si la anotación es efectivamente una prenda; si no se puede saber, None.
+        campos["tiene_prenda"] = True if "PRENDA" in (lim.get("actos") or []) else None
+    elif lim and lim["estado"] == "ok":
+        campos["tiene_prenda"] = False
+    else:
+        campos["tiene_prenda"] = None          # no concluyente: NO afirmar ni negar
+    campos["limitaciones_detalle"] = lim["detalle"] if lim else None
+
+    alertas = [c for c in chequeos if c["estado"] == "alerta"]
+    revisar = [c for c in chequeos if c["estado"] == "revisar"]
+    print(json.dumps({
+        "ok": True, "campos": campos,
+        "revision": {
+            "formato": "NMP" if es_nmp else "CAV",
+            "resumen": {"alertas": len(alertas), "revisar": len(revisar),
+                        "ok": len(chequeos) - len(alertas) - len(revisar), "apto": len(alertas) == 0},
+            "chequeos": chequeos,
+        },
+        "texto": texto[:4000],
+    }, ensure_ascii=False))
 
 if __name__ == "__main__":
     try:
