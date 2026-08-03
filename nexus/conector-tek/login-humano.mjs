@@ -2760,7 +2760,17 @@ async function main() {
     if (leerSaldos) { try { lectura = await leerSaldosTodas(ctx, page, log) } catch (e) { log('lector falló:', e.message) } }
     let pendientes = null
     if (process.env.TEK_VER_PENDIENTES === '1') { try { pendientes = await verPendientes(page, log) } catch (e) { log('ver pendientes falló:', e.message) } }
-    return fin('logueado', { via, nota: `home de privado (${via}).`, ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(nomina ? { nomina } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}), ...(lectura ? { lectura } : {}), ...(pendientes ? { pendientes } : {}) })
+    const extras = { ...(mapa ? { mapa } : {}), ...(cap ? { cap } : {}), ...(transf ? { transf } : {}), ...(crear ? { crear } : {}), ...(nomina ? { nomina } : {}), ...(masiva ? { masiva } : {}), ...(carthist ? { carthist } : {}), ...(comprob ? { comprob } : {}), ...(vincular ? { vincular } : {}), ...(lectura ? { lectura } : {}), ...(pendientes ? { pendientes } : {}) }
+    // FIX: si la sesión murió al muro antifraude DURANTE las acciones (ej. la transferencia
+    // rebotó a error-seguridad), NO reportar 'logueado' (falseaba el estado y el throttle NO
+    // registraba el device_trust → seguía re-machacando la cuenta). fin('error_seguridad')
+    // registra el device_trust para el cooldown. Conservamos los resultados parciales.
+    try {
+      if (await sesionCaida(page)) {
+        return fin('error_seguridad', { via, nota: `la sesión se cayó al muro antifraude durante "${via}" (device_trust registrado para el cooldown).`, ...extras })
+      }
+    } catch { /* */ }
+    return fin('logueado', { via, nota: `home de privado (${via}).`, ...extras })
   }
 
   // ── REUSO DE SESIÓN (lo que pidió Ramón): antes de loguear, probar si la sesión
