@@ -1,32 +1,53 @@
 {
-  "url": "https://empresas.officebanking.cl/",
+  "paso": 1,
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1785767997224",
   "forms": [
     {
-      "url": "https://empresas.officebanking.cl/",
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1785767997224",
       "inputs": [],
       "botones": [
-        "Ingresar",
-        "Conoce más aquí",
-        "Conoce más aquí",
-        "Conoce aquí",
-        "Conocer más"
+        "Accesibilidad",
+        "Empresa / Rol",
+        "logout"
+      ],
+      "titulos": []
+    },
+    {
+      "url": "https://eob.officebanking.cl/TEFUN.UI.Web/TransferenciaUnitaria/creacionTransferenciaUnitaria/?servicioId=TEF_UNIF_C",
+      "inputs": [
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "montoTEFinput",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "correoOrigenInput",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "60",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "motivoInputText",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "100",
+          "label": ""
+        }
+      ],
+      "botones": [
+        "Seleccione cuenta"
       ],
       "titulos": [
-        "Financiamiento pensado para entregar liquidez inmediata, con\n\nhasta 3 meses de gracia y tasa preferencial.",
-        "Enciende la llama que hay en ti",
-        "Descubre todos los beneficios del mes\n\npara tu negocio",
-        "Conoce todas las tarjetas\n\nque tenemos",
-        "Santander Fogape Impulsa",
-        "App Office Banking",
-        "Beneficios Empresas",
-        "Tarjeta de Crédito Empresas",
-        "Work/Café",
-        "Toda la gestión de tu empresa\n\nen tu mano",
-        "Disponible en:",
-        "Factoring Santander",
-        "Comienza a operar con nosotros y usa tus facturas pendientes para obtener capital de trabajo",
-        "Más soluciones para apoyarte",
-        "Mandatos PAC"
+        "Transferencia Express"
       ]
     }
   ]

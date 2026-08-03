@@ -2553,6 +2553,10 @@ async function main() {
   }
   const headless = process.env.TEK_HEADLESS === '1'
   const assist = process.env.TEK_ASSIST === '1'
+  // ASISTIDO MANUAL: además de no clickear Aceptar, NO pre-rellenamos RUT/clave →
+  // el humano teclea TODO (login 100% humano = mejor pasada de BioCatch, y evita el
+  // bug de la máscara comiéndose un dígito del RUT). Se usa con TEK_ASSIST=1.
+  const assistManual = process.env.TEK_ASSIST_MANUAL === '1'
   const perfilReal = process.env.TEK_PROFILE_REAL === '1'
   // VINCULACIÓN (probar creds de un usuario para leer sus empresas): CLONAMOS el perfil
   // CONFIABLE (chrome-profile) a un dir temporal. Así heredamos la CONFIANZA DEL DISPOSITIVO
@@ -2874,16 +2878,21 @@ async function main() {
   log('form de login visible ✓')
 
   // Llenar humano: mover, clic real, tipear con dwell, blur natural.
-  await moveToLoc(page, rutLoc); await clickReal(page); await sleep(rnd(200, 500)); await humanType(page, rut)
-  await ensureValue(page, rutLoc, rut, 'RUT')          // 🔧 la máscara se comía un dígito → verifico y corrijo
-  await idle(page, rnd(500, 1200))
-  await moveToLoc(page, passLoc); await clickReal(page); await sleep(rnd(200, 500)); await humanType(page, password)
-  // clave: sin máscara, verifico exacto (no normalizado) y re-tipeo completo si hiciera falta.
-  for (let i = 0; i < 3 && (await passLoc.inputValue().catch(() => '')) !== password; i++) {
-    await passLoc.click().catch(() => {}); await page.keyboard.press('Meta+A').catch(() => {}); await page.keyboard.press('Backspace').catch(() => {})
-    await sleep(rnd(200, 400)); await humanType(page, password)
+  // En ASISTIDO MANUAL saltamos el relleno: el form queda VACÍO para que lo teclee el humano.
+  if (!assistManual) {
+    await moveToLoc(page, rutLoc); await clickReal(page); await sleep(rnd(200, 500)); await humanType(page, rut)
+    await ensureValue(page, rutLoc, rut, 'RUT')          // 🔧 la máscara se comía un dígito → verifico y corrijo
+    await idle(page, rnd(500, 1200))
+    await moveToLoc(page, passLoc); await clickReal(page); await sleep(rnd(200, 500)); await humanType(page, password)
+    // clave: sin máscara, verifico exacto (no normalizado) y re-tipeo completo si hiciera falta.
+    for (let i = 0; i < 3 && (await passLoc.inputValue().catch(() => '')) !== password; i++) {
+      await passLoc.click().catch(() => {}); await page.keyboard.press('Meta+A').catch(() => {}); await page.keyboard.press('Backspace').catch(() => {})
+      await sleep(rnd(200, 400)); await humanType(page, password)
+    }
+    await shot('h03-lleno.png')
+  } else {
+    log('MODO ASISTIDO MANUAL: form VACÍO → tecleá RUT + clave vos (por VNC), luego Aceptar + Superclave')
   }
-  await shot('h03-lleno.png')
   await idle(page, rnd(1200, 2600))   // que BioCatch acumule comportamiento
 
   if (assist) {
