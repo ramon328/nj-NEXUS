@@ -175,6 +175,24 @@ async function sesionCaida(page) {
   return await textoVisible(page, SESION_FIN_RE)
 }
 
+// ── HIGIENE DE COOKIES ANTI-BOT (Incapsula/Imperva) ──────────────────────────────────────
+// Tras rebotar por bot, las cookies de reputación (_abck/bm_*) quedan con MAL score y el
+// perfil llega "fichado". Las borramos ANTES de un login fresco → Incapsula mintea unas
+// nuevas y NEUTRAS al cargar la página (corriendo su JS en el navegador real). Se conservan
+// las cookies de SESIÓN y device-trust del banco (NO tocamos las de officebanking auth).
+const ANTIBOT_COOKIE_RE = /^(_abck|bm_sv|bm_mi|bm_s|bm_sz|ak_bmsc|_px|_pxvid|_pxhd|incap_ses|visid_incap|nlbi_|reese84|TS[0-9a-f]{6,})/i
+async function limpiarCookiesAntibot(ctx, log) {
+  try {
+    const todas = await ctx.cookies()
+    const quemadas = todas.filter((c) => ANTIBOT_COOKIE_RE.test(c.name))
+    if (!quemadas.length) { log('higiene: sin cookies antibot que limpiar'); return 0 }
+    for (const c of quemadas) { try { await ctx.clearCookies({ name: c.name, domain: c.domain }) } catch { /* */ } }
+    const nombres = [...new Set(quemadas.map((c) => c.name))].slice(0, 8).join(', ')
+    log(`higiene: limpiadas ${quemadas.length} cookies antibot (${nombres}) — device-trust y sesión intactos`)
+    return quemadas.length
+  } catch (e) { log('higiene cookies falló:', e.message); return 0 }
+}
+
 // ── THROTTLE DE LOGIN (anti-quemado de cuenta) ────────────────────────────────────────────
 // Santander marca la CUENTA tras ~7 logins en poco rato. Este es el ÚNICO lugar por donde pasan
 // los logins reales → ningún llamador (API, tools, un bug, o un humano dale-que-dale) puede
@@ -2847,6 +2865,10 @@ async function main() {
     await sleep(rnd(2500, 4000))
     log('aislado/sembrado: cerré la sesión heredada (device-trust intacto), voy al login limpio')
   }
+
+  // HIGIENE: antes de un login FRESCO, limpiar las cookies antibot quemadas para no llegar
+  // fichado (ver limpiarCookiesAntibot). Solo en login real; el reuso de sesión no pasa por acá.
+  if (process.env.TEK_NO_HIGIENE !== '1') { await limpiarCookiesAntibot(ctx, log) }
 
   await page.goto(LANDING, { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch((e) => log('goto:', e.message))
   await sleep(rnd(3500, 5500))
