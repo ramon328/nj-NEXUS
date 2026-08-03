@@ -13,6 +13,7 @@ const { chromium } = patchright
 import { writeFileSync, mkdirSync, chmodSync } from 'node:fs'
 import { join } from 'node:path'
 import { crearCandado } from '/Users/AIagenteia/nexus/conector-tek/candado.mjs'
+import { HOSTS, URLS, MATCH } from '/Users/AIagenteia/nexus/conector-tek/endpoints.mjs'
 
 const DIR = '/Users/AIagenteia/nexus/conector-tek'
 const PROFILE = join(DIR, 'chrome-profile')
@@ -20,8 +21,8 @@ const DATA = join(DIR, 'data')
 mkdirSync(DATA, { recursive: true })
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const log = (...a) => console.log('·', ...a)
-const PRIVADO = 'privado.officebanking.cl'
-const CARTOLA = 'https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCNA_SDOCTACTE'
+const PRIVADO = HOSTS.PRIVADO
+const CARTOLA = URLS.CARTOLA
 
 // rango: banco tope 90 días. desde = max(TEK_DESDE, hoy-88) para no exceder.
 const hoy = new Date()
@@ -78,11 +79,11 @@ async function main() {
   ctx.on('response', async (r) => {
     try {
       const url = r.url()
-      if (/ObtenerMovimientos/i.test(url)) {
+      if (MATCH.MOVIMIENTOS.test(url)) {
         const b = JSON.parse(await r.text())
         const det = b?.Result?.Detalle || b?.Detalle || []
         if (Array.isArray(det) && det.length) { movsPorLote.push(det); log(`  ↯ ObtenerMovimientos: ${det.length} filas`) }
-      } else if (/account_summary/i.test(url)) {
+      } else if (MATCH.ACCOUNT_SUMMARY.test(url)) {
         const b = JSON.parse(await r.text())
         if (b?.listCustAccount) saldos = b.listCustAccount
       }
