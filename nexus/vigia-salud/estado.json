@@ -1,18 +1,18 @@
 {
-  "ts": "2026-08-03T04:00:17.081Z",
+  "ts": "2026-08-03T04:12:20.608Z",
   "estado": "VERDE",
   "nivel": 0,
   "razones": [],
   "metricas": {
-    "load1": 2.27,
+    "load1": 1.81,
     "nucleos": 6,
-    "loadPorNucleo": 0.38,
-    "ramLibreMB": 6196,
+    "loadPorNucleo": 0.3,
+    "ramLibreMB": 6145,
     "ramTotalMB": 32768,
     "swapUsedMB": 0,
     "compresorMB": 0,
     "discoPct": 52,
-    "procesos": 650,
+    "procesos": 649,
     "sesionesClaude": 1,
     "sesionesClaudeViejas": 0
   },
