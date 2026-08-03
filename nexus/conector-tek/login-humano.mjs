@@ -32,6 +32,10 @@ mkdirSync(SHOTS, { recursive: true })
 mkdirSync(PROFILE_TEK, { recursive: true })
 const LANDING = 'https://empresas.officebanking.cl/'
 const PRIVADO = 'privado.officebanking.cl'
+// PIN one-shot de la URL /vnc: al TERMINAR este login (éxito o timeout, como sea que salga),
+// vaciar el archivo del PIN → la URL pública queda inútil hasta el próximo pedido. Atado a la
+// vida del proceso de login, no a un timer frágil.
+if (process.env.TEK_OTP_FILE) { process.on('exit', () => { try { writeFileSync(process.env.TEK_OTP_FILE, '') } catch { /* */ } }) }
 const log = (...a) => console.log('·', ...a)
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const rnd = (a, b) => a + Math.random() * (b - a)
