@@ -1,12 +1,8 @@
 {
-  "estado": "ok",
-  "actualizado": "2026-08-03T03:20:39.654Z",
-  "empresa": "ANA CLARA SPA",
-  "desde": "2026-05-07",
+  "estado": "sesion_expirada",
+  "actualizado": "2026-08-03T03:29:57.890Z",
+  "desde": "2026-01-01",
   "hasta": "2026-08-03",
-  "limite_banco_dias": 90,
-  "saldos": 0,
-  "movimientos": 0,
-  "movimientos_anual": null,
-  "url": "https://privado.officebanking.cl/logout/error-seguridad"
+  "url": "https://privado.officebanking.cl/logout/error-seguridad",
+  "nota": "no hay sesión viva; correr login-humano.mjs primero"
 }
