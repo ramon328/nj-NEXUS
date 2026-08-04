@@ -2770,7 +2770,14 @@ async function main() {
         writeFileSync(process.env.TEK_OTP_FILE.replace(/[^/]*$/, '.novnc-estado'), JSON.stringify({ ok, estado, ts: Date.now() }))
       } catch { /* */ }
     }
-    await shot(`fin-${estado}.png`); console.log('RESULTADO:', JSON.stringify({ estado, url: page.url(), ...extra })); await cerrar()
+    const resultado = { estado, url: page.url(), ...extra }
+    // RESULTADO EN ARCHIVO: cuando el proceso corre SUELTO (login asistido con una operación
+    // enganchada), nadie está leyendo el stdout. Con TEK_RESULTADO_FILE dejamos el resultado
+    // en disco para que el hub lo levante y le avise a la persona cómo quedó.
+    if (process.env.TEK_RESULTADO_FILE) {
+      try { writeFileSync(process.env.TEK_RESULTADO_FILE, JSON.stringify({ ...resultado, ts: Date.now() }), { mode: 0o600 }) } catch { /* */ }
+    }
+    await shot(`fin-${estado}.png`); console.log('RESULTADO:', JSON.stringify(resultado)); await cerrar()
   }
 
   // Acciones post-login (mapear/capturar/transferir) — reutilizables tanto si
@@ -2828,7 +2835,10 @@ async function main() {
   const keepAlive = process.env.TEK_KEEPALIVE === '1'
   // recienSembrado = perfil nuevo que HEREDÓ la sesión de ANA CLARA → NO reusar (sería la
   // sesión equivocada); hay que logout-first + login como el usuario real.
-  if (!assist && process.env.TEK_FORZAR_LOGIN !== '1' && !recienSembrado) {
+  // ASISTIDO: también probamos la sesión ANTES de pedirle nada al humano. Si sigue viva,
+  // la operación corre sola y el PIN que se mandó no hace falta (mejor que quemar un login
+  // al pedo). Si no está viva, seguimos al form y esperamos al humano como siempre.
+  if (process.env.TEK_FORZAR_LOGIN !== '1' && !recienSembrado) {
     await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
     await sleep(rnd(4000, 6000))
     const u = page.url()
@@ -2877,7 +2887,9 @@ async function main() {
     // CANDADO ANTI-QUEMADO: antes de un login REAL, chequear el throttle por cuenta. Si se pasó
     // (device_trust reciente / gap mínimo / tope por hora) NO logueamos → así no se marca la cuenta.
     // TEK_IGNORAR_THROTTLE=1 lo salta (solo para un login asistido/deliberado puntual).
-    if (process.env.TEK_IGNORAR_THROTTLE !== '1') {
+    // El ASISTIDO no pasa por el candado: lo teclea una persona (es el login que SÍ pasa el
+    // antifraude) y ya viene pedido a mano — frenarlo dejaría al usuario con un link muerto.
+    if (!assist && process.env.TEK_IGNORAR_THROTTLE !== '1') {
       const bloqueo = chequearThrottleLogin(userSlug)
       if (bloqueo) {
         log(`THROTTLE: NO logueo (${bloqueo.motivo}), esperar ~${bloqueo.esperaMin} min`)

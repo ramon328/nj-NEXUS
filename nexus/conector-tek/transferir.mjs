@@ -12,6 +12,7 @@ import { fileURLToPath } from 'node:url'
 import { readFileSync, writeFileSync, existsSync, unlinkSync, mkdirSync } from 'node:fs'
 import * as beneficiarios from './beneficiarios.mjs'
 import * as credenciales from './credenciales.mjs'
+import * as puerta from './puerta.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 const DATA = join(DIR, 'data')
@@ -248,24 +249,108 @@ export function textoBorrador(borrador) {
 }
 
 /**
+ * Traduce el RESULTADO crudo de login-humano al veredicto de la transferencia, registra el
+ * anti-duplicado y guarda la "última". Se usa igual venga el resultado por stdout (envío
+ * normal) o por archivo (login asistido que corrió suelto).
+ */
+function interpretarCreacion(resultado, { huella, borrador, empresa }) {
+  const b = borrador.beneficiario || {}
+  // El estado real de la creación va anidado en `crear`. SOLO 'creada' cuenta como
+  // éxito (el banco confirmó la solicitud). 'no_creada' / 'crear_click' NO son éxito:
+  // antes se daba por bueno con solo apretar "Crear" → falso positivo (no llegaba nada).
+  const crear = resultado.crear || null
+  const estado = crear?.estado || resultado.estado
+  // 'creada' = se creó (por autorizar). 'ya_pendiente' = YA existía una a este beneficiario,
+  // NO se duplicó (también es un resultado OK: la transferencia ya está en el banco).
+  const yaPendiente = estado === 'ya_pendiente'
+  const ok = estado === 'creada' || yaPendiente
+  const limitePV = estado === 'limite_primera_vez'
+  const limiteDia = estado === 'limite_diario'
+  // Falso negativo histórico: aviso $50M + verificación fallida aunque el banco SÍ creó.
+  // Marcamos posible_creada → mismo anti-duplicado que creada (no reenviar 1 h).
+  let estadoReg = estado || 'desconocido'
+  if (estado === 'tefun_no_confirmada' && (crear?.aviso_info || /50[.\s]?000[.\s]?000|por su seguridad/i.test(crear?.alerta_banco || ''))) {
+    estadoReg = 'posible_creada'
+  }
+  registrarReciente(huella, estadoReg)
+  if (ok || estadoReg === 'posible_creada') {
+    guardarUltima({
+      huella, estado: ok ? estado : 'posible_creada',
+      empresa, monto: borrador.monto,
+      beneficiario: b.nombre, rut: b.rut, cuenta: b.cuenta, banco: b.banco,
+      nota: ok
+        ? 'Transferencia CREADA — queda pendiente por liberar (no movió plata).'
+        : 'Probable creación (banner/aviso); verificar Por Autorizar. NO reenviar.',
+    })
+  }
+  return {
+    ok: ok || estadoReg === 'posible_creada',
+    estado: estadoReg === 'posible_creada' ? 'creada' : estado,
+    resultado,
+    pendiente: ok || estadoReg === 'posible_creada',
+    ya_pendiente: yaPendiente,
+    posible_creada: estadoReg === 'posible_creada',
+    limite_primera_vez: limitePV,
+    limite_diario: limiteDia,
+    limite_monto: limitePV || limiteDia,
+    aviso_info: !!(crear?.aviso_info),
+    alerta_banco: crear?.alerta_banco || null,
+    nota: crear?.nota || (estadoReg === 'posible_creada'
+      ? 'El banco probablemente YA creó esta transferencia; la verificación automática falló antes. Revisá Por Autorizar. NO se reenvía.'
+      : null),
+    motivo: crear?.pista || crear?.motivo || (crear?.faltan ? `faltan campos: ${crear.faltan.join(', ')}` : null),
+  }
+}
+
+/**
+ * Cierra un job de transferencia que corrió ENGANCHADO a un login asistido: lee el
+ * resultado que dejó login-humano en disco y lo interpreta igual que un envío normal.
+ * @returns {null|object} null si todavía no terminó
+ */
+export function leerResultadoAsistido({ jobFile, borrador, empresa }) {
+  let resultado = null
+  try { resultado = JSON.parse(readFileSync(jobFile, 'utf8')) } catch { return null }
+  if (!resultado || !resultado.estado) return null
+  const huella = huellaEnvio(borrador, empresa)
+  return interpretarCreacion(resultado, { huella, borrador, empresa })
+}
+
+/**
  * EJECUTA el borrador: lanza login-humano.mjs (TEK_CREAR=crear) que loguea, navega, llena
  * el form y aprieta "Crear" → deja la transferencia PENDIENTE. NO libera, NO mueve plata.
  * Devuelve { ok, estado, resultado } parseando el último `RESULTADO: {json}` del stdout.
  */
-export function ejecutar(borrador, { userId, empresa } = {}) {
+export function ejecutar(borrador, { userId, empresa, asistido = true } = {}) {
   return new Promise((resolve) => {
     if (!borrador || !borrador.beneficiario) {
       return resolve({ ok: false, error: 'Borrador inválido.' })
     }
-    // ANA CLARA / Mallorca: se opera SIEMPRE con la sesión de ramon (único dispositivo confiado
-    // por el banco). Quien pida (nico/joaquin) transfiere desde la sesión de ramon, no la suya.
-    if (/ana\s*clara|mallorca/i.test(empresa || '')) { userId = 'ramon'; empresa = 'ANA CLARA SPA' }
+    // SESIÓN POR PERSONA (03-ago-2026): quien pide transfiere con SU propio login del banco,
+    // también en ANA CLARA. Antes se forzaba ramon y, si esa sesión dormía, Joaquín se quedaba
+    // sin poder transferir. La elección la hace la puerta (puerta.elegirSesion) en el hub; acá
+    // solo respetamos el kill-switch de emergencia.
+    if (process.env.TEK_ANACLARA_SOLO_RAMON === '1' && /ana\s*clara|mallorca/i.test(empresa || '')) {
+      userId = 'ramon'; empresa = 'ANA CLARA SPA'
+    }
     // Chequeo previo: el usuario tiene que tener el banco conectado (creds cifradas).
     if (!credenciales.tieneConexion(userId, empresa)) {
       return resolve({ ok: false, error: `"${userId}" no tiene banco conectado${empresa ? ` para "${empresa}"` : ''}.` })
     }
 
     const huella = huellaEnvio(borrador, empresa)
+
+    // ¿Ya le mandamos el link del login asistido para ESTA misma transferencia y sigue abierto?
+    // Entonces no es "ocupado": es la MISMA operación esperando que la persona entre. Le
+    // devolvemos el MISMO link y el MISMO PIN (uno nuevo invalidaría el que ya tiene).
+    const yaAbierto = puerta.asistidoEnVuelo()
+    if (yaAbierto && yaAbierto.etiqueta === `transferencia:${huella}`) {
+      return resolve({
+        ok: false, estado: 'necesita_login', necesita_login: true, ocupado: false,
+        url: puerta.URL_VNC, pin: yaAbierto.pin, userId: yaAbierto.userId, empresa,
+        nota: 'El login del banco para esta transferencia YA está abierto esperándote. Es el mismo link y el mismo PIN.',
+      })
+    }
+
     // Misma transferencia ya creada / ya intentada hace poco → NO abrir el banco otra vez.
     const bloqueo = recienteBloquea(huella)
     if (bloqueo) return resolve(bloqueo)
@@ -311,6 +396,34 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
     if (empresa) env.TEK_EMPRESA = empresa
     if (userId) env.TEK_USER = userId
 
+    // ── SESIÓN DORMIDA → LOGIN ASISTIDO CON LA TRANSFERENCIA ENGANCHADA ──────────
+    // Si la sesión de esta persona no está fresca, el login automático no pasa el antifraude
+    // (ver [[tek-login-asistido-ondemand]]): en vez de gastar 3 min para fallar, abrimos el
+    // login humano por /vnc y le MANDAMOS la transferencia en el mismo proceso. Cuando la
+    // persona entra, login-humano sigue solo hasta crear la pendiente. Devolvemos YA el
+    // link + PIN (sin bloquear el turno del chat).
+    const sesion = puerta.estadoSesion(userId)
+    if (asistido && !sesion.viva) {
+      // El proceso corre suelto (el humano tarda lo que tarda): que deje el resultado en
+      // disco para poder contarle a la persona cómo quedó sin adivinar.
+      const jobFile = join(DATA, `.job-transf-${Date.now().toString(36)}.json`)
+      const ab = puerta.abrirAsistido({
+        userId, empresa, motivo: `transferir $${Number(borrador.monto).toLocaleString('es-CL')} a ${b.nombre}`,
+        env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `transferencia:${huella}`,
+      })
+      if (ab.ocupado) {
+        soltarEnvioLock()
+        registrarReciente(huella, 'sesion_caida')   // pre-creación: se puede reintentar ya
+        return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
+      }
+      actualizarEnvioLock({ childPid: ab.pid })
+      return resolve({
+        ok: false, estado: 'necesita_login', necesita_login: true, pendiente: false,
+        url: ab.url, pin: ab.pin, userId, empresa, job: jobFile,
+        nota: 'La sesión del banco está dormida: le abrí el login para que entre. La transferencia queda enganchada y se crea sola apenas entre.',
+      })
+    }
+
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     actualizarEnvioLock({ childPid: hijo.pid })
 
@@ -337,51 +450,7 @@ export function ejecutar(borrador, { userId, empresa } = {}) {
         registrarReciente(huella, 'sin_resultado')
         return resolve({ ok: false, estado: 'sin_resultado', error: `login-humano no devolvió RESULTADO (code ${code}).`, stderr: err.slice(-500) })
       }
-      // El estado real de la creación va anidado en `crear`. SOLO 'creada' cuenta como
-      // éxito (el banco confirmó la solicitud). 'no_creada' / 'crear_click' NO son éxito:
-      // antes se daba por bueno con solo apretar "Crear" → falso positivo (no llegaba nada).
-      const crear = resultado.crear || null
-      const estado = crear?.estado || resultado.estado
-      // 'creada' = se creó (por autorizar). 'ya_pendiente' = YA existía una a este beneficiario,
-      // NO se duplicó (también es un resultado OK: la transferencia ya está en el banco).
-      const yaPendiente = estado === 'ya_pendiente'
-      const ok = estado === 'creada' || yaPendiente
-      const limitePV = estado === 'limite_primera_vez'
-      const limiteDia = estado === 'limite_diario'
-      // Falso negativo histórico: aviso $50M + verificación fallida aunque el banco SÍ creó.
-      // Marcamos posible_creada → mismo anti-duplicado que creada (no reenviar 1 h).
-      let estadoReg = estado || 'desconocido'
-      if (estado === 'tefun_no_confirmada' && (crear?.aviso_info || /50[.\s]?000[.\s]?000|por su seguridad/i.test(crear?.alerta_banco || ''))) {
-        estadoReg = 'posible_creada'
-      }
-      registrarReciente(huella, estadoReg)
-      if (ok || estadoReg === 'posible_creada') {
-        guardarUltima({
-          huella, estado: ok ? estado : 'posible_creada',
-          empresa, monto: borrador.monto,
-          beneficiario: b.nombre, rut: b.rut, cuenta: b.cuenta, banco: b.banco,
-          nota: ok
-            ? 'Transferencia CREADA — queda pendiente por liberar (no movió plata).'
-            : 'Probable creación (banner/aviso); verificar Por Autorizar. NO reenviar.',
-        })
-      }
-      resolve({
-        ok: ok || estadoReg === 'posible_creada',
-        estado: estadoReg === 'posible_creada' ? 'creada' : estado,
-        resultado,
-        pendiente: ok || estadoReg === 'posible_creada',
-        ya_pendiente: yaPendiente,
-        posible_creada: estadoReg === 'posible_creada',
-        limite_primera_vez: limitePV,
-        limite_diario: limiteDia,
-        limite_monto: limitePV || limiteDia,
-        aviso_info: !!(crear?.aviso_info),
-        alerta_banco: crear?.alerta_banco || null,
-        nota: crear?.nota || (estadoReg === 'posible_creada'
-          ? 'El banco probablemente YA creó esta transferencia; la verificación automática falló antes. Revisá Por Autorizar. NO se reenvía.'
-          : null),
-        motivo: crear?.pista || crear?.motivo || (crear?.faltan ? `faltan campos: ${crear.faltan.join(', ')}` : null),
-      })
+      resolve(interpretarCreacion(resultado, { huella, borrador, empresa }))
     }
 
     hijo.on('close', terminar)
