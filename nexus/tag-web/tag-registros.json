@@ -10,7 +10,7 @@
       "es_empresa": false,
       "solicitante": "Joaquin",
       "asunto": "Tag nuevo patente SWPV28",
-      "estado": "enviado",
+      "estado": "convenio_recibido",
       "modo": "real",
       "correo_id": "19fcd529107a3bb9",
       "enviado_desde": "ventas@mallorcautos.cl",
@@ -20,12 +20,17 @@
         "1785856103002_nexus-wa-in-1785856097732.pdf"
       ],
       "notas": null,
-      "convenio_recibido": false,
+      "convenio_recibido": true,
       "eventos": [
         {
           "ts": "2026-08-04T15:09:28.384Z",
           "tipo": "enviado",
           "detalle": "Solicitud enviada a contacto@tagtico.cl (copia: ventas@mallorcautos.cl)"
+        },
+        {
+          "ts": "2026-08-04T16:15:11.279Z",
+          "tipo": "convenio_recibido",
+          "detalle": "Convenio recibido de Tag Tico (auto): \"Re: Tag nuevo patente SWPV28\""
         }
       ]
     },
