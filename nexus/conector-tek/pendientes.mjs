@@ -65,7 +65,11 @@ export function listarPendientes({ userId, empresa, asistido = true } = {}) {
       if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
       return resolve({
         ok: false, estado: 'necesita_login', necesita_login: true,
-        url: ab.url, pin: ab.pin, userId, empresa, job: jobFile,
+        url: ab.url, pin: ab.pin, userId, empresa,
+        // Si el login ya estaba abierto (en_vuelo), la consulta viaja con AQUEL proceso y
+        // escribe en SU archivo: este jobFile no lo va a escribir nadie. Sin este guard, a los
+        // 13 min le avisaríamos "no alcanzaste a entrar" aunque hubiera entrado perfecto.
+        job: ab.en_vuelo ? null : jobFile,
         nota: 'La sesión del banco está dormida: le abrí el login. Apenas entre, leo las pendientes solo.',
       })
     }

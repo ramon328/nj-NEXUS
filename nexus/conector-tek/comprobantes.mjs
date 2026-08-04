@@ -53,7 +53,10 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
       if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
       return resolve({
         ok: false, estado: 'necesita_login', necesita_login: true,
-        url: ab.url, pin: ab.pin, userId, empresa, job: jobFile,
+        url: ab.url, pin: ab.pin, userId, empresa,
+        // en_vuelo = el login ya estaba abierto con OTRA operación enganchada: este jobFile
+        // no lo escribe nadie (ver el mismo guard en pendientes.mjs).
+        job: ab.en_vuelo ? null : jobFile,
         nota: 'La sesión del banco está dormida: le abrí el login. Apenas entre, sigo con los comprobantes solo.',
       })
     }

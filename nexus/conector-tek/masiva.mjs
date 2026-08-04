@@ -244,7 +244,9 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
       if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
       return resolve({
         ok: false, estado: 'necesita_login', necesita_login: true,
-        url: ab.url, pin: ab.pin, userId, empresa, job: jobFile,
+        url: ab.url, pin: ab.pin, userId, empresa,
+        // en_vuelo = ya había un login abierto: este jobFile no lo escribe nadie (ver pendientes.mjs).
+        job: ab.en_vuelo ? null : jobFile,
         archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total, concepto: concepto || null,
         nota: 'La sesión del banco está dormida: le abrí el login para que entre. El lote queda enganchado y sube solo apenas entre.',
       })

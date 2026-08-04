@@ -419,7 +419,9 @@ export function ejecutar(borrador, { userId, empresa, asistido = true } = {}) {
       actualizarEnvioLock({ childPid: ab.pid })
       return resolve({
         ok: false, estado: 'necesita_login', necesita_login: true, pendiente: false,
-        url: ab.url, pin: ab.pin, userId, empresa, job: jobFile,
+        // en_vuelo (carrera: el mismo envío pedido dos veces a la vez) = la transferencia
+        // viaja con AQUEL proceso y escribe en SU archivo; este no lo escribe nadie.
+        url: ab.url, pin: ab.pin, userId, empresa, job: ab.en_vuelo ? null : jobFile,
         nota: 'La sesión del banco está dormida: le abrí el login para que entre. La transferencia queda enganchada y se crea sola apenas entre.',
       })
     }
