@@ -63,10 +63,14 @@ export const TIPOS = {
 // Documentos típicos por caso. OJO: en MallorcAutos NO se exige el contrato de
 // compraventa firmado — basta poder + CAV/factura + carnet. Es una GUÍA, no un bloqueo:
 // si la persona manda sus documentos y confirma, se adjuntan TODOS y se envía.
+// Respaldos válidos para un auto PROPIO de Ana Clara: basta UNO de los tres.
+export const RESPALDOS_PROPIO = ['contrato de compraventa', 'factura de compra', 'informe / CAV del vehículo']
+
 export function documentosRequeridos(tipo, es_empresa) {
   let docs
   if (tipo === 'nuevo_propio') {
-    docs = ['Poder', 'CAV (Certificado de Anotaciones Vigentes)']
+    // Auto de Ana Clara: el poder (lo generamos nosotros) + UNO de los tres respaldos.
+    docs = ['Poder', `UNO de estos 3: ${RESPALDOS_PROPIO.join(', o ')}`]
   } else {
     // traspaso / tercero: carnet nuevo dueño + poder de gestión + CAV o factura de venta.
     docs = [
@@ -122,6 +126,12 @@ export function validar(d) {
     return { ok: false, error: 'Falta la patente del vehículo (puedes mandar varias: "AABB11-CCDD22"). Sin patente no se puede generar el poder, y el correo saldría sin él.' }
   const adj = d.adjuntos || []
   if (!adj.length) return { ok: false, error: 'Debes adjuntar al menos un documento PDF.' }
+  // Autos PROPIOS de Ana Clara: además del poder (que generamos nosotros) tiene que ir UN
+  // respaldo del vehículo. Antes el poder solo ya pasaba la validación y el correo se enviaba
+  // sin ningún respaldo (así salieron TAG-003/TAG-004: un único adjunto).
+  if (d.tipo === 'nuevo_propio' && !adj.some((a) => !a.es_poder)) {
+    return { ok: false, error: `Falta el respaldo del vehículo: además del poder hay que adjuntar UNO de estos 3 (en PDF): ${RESPALDOS_PROPIO.join(', o ')}.` }
+  }
   for (const a of adj) {
     if (!/pdf/i.test(a.mime || '') && !/\.pdf$/i.test(a.filename || ''))
       return { ok: false, error: `El archivo "${a.filename}" no es PDF. Todos los documentos deben ir en PDF.` }

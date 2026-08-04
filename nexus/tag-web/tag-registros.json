@@ -1,6 +1,35 @@
 {
   "registros": [
     {
+      "id": "TAG-005",
+      "creado": "2026-08-04T14:52:47.893Z",
+      "tipo": "nuevo_propio",
+      "tipo_label": "TAG nuevo — auto propio (Ana Clara)",
+      "patente": "SWPV28, TDCX40",
+      "cantidad": 2,
+      "es_empresa": false,
+      "solicitante": null,
+      "asunto": "Tag nuevo (2 patentes)",
+      "estado": "enviado",
+      "modo": "prueba",
+      "correo_id": "19fcd434ccfd5eaa",
+      "enviado_desde": "ventas@mallorcautos.cl",
+      "destino": "ramon@dropout.cl",
+      "adjuntos": [
+        "Poder_Tag_SWPV28-TDCX40.pdf",
+        "CAV_SWPV28.pdf"
+      ],
+      "notas": null,
+      "convenio_recibido": false,
+      "eventos": [
+        {
+          "ts": "2026-08-04T14:52:47.893Z",
+          "tipo": "enviado",
+          "detalle": "Solicitud enviada a ramon@dropout.cl"
+        }
+      ]
+    },
+    {
       "id": "TAG-004",
       "creado": "2026-08-04T14:47:13.272Z",
       "tipo": "nuevo_propio",
