@@ -228,3 +228,42 @@ trámite · SZPV13 limpio · TDCX40 permiso no verificable (`revisar`).
 
 Función: `revisarDocumentos(patente)` en `autored.mjs` (elige el mejor informe comprado —NMP antes
 que CAV—, lo baja gratis y lo pasa por el revisor). CLI: `node autored.mjs revisar <patente>`.
+
+## FLUJO DE COMPRA DE AUTO — auditoría 04-08-2026
+Estado real de los 5 pasos del tool `compra` (probado en vivo por `/api/chat` como Joaquín):
+
+| # | Paso | Estado | Herramienta |
+|---|---|---|---|
+| 0 | Identificar auto + km | ✅ automático | `autored.fichaCompra` (informe ya comprado; NMP trae km, CAV no) |
+| 0b | Revisión de documentos (12 puntos) | ✅ automático | `autored.revisarDocumentos` |
+| 1 | Contrato / transferencia AutoRed | 🖐️ **MANUAL a propósito** | `compra accion:"contrato"` da el paquete de datos |
+| 2 | Pago al vendedor | 🖐️ manual (banco tek en reposo) | `tek_masiva` si `TEK_COMPRA_AUTO=1` |
+| 3 | Publicar en GoAutos | ✅ automático | `compra accion:"publicar"` → `subir_auto` |
+| 4 | Solicitar TAG | ✅ automático | `solicitar_tag` tipo **`nuevo_propio`** (poder autogenerado) |
+| 5 | Factura de compra DTE 46 | ✅ automático (borrador; emisión con doble confirmación) | `factura_compra` |
+
+La **transferencia de dominio** queda MANUAL por decisión de negocio (firma, notaría y Registro
+Civil son del proceso de AutoRed/Autosafe). El Contrato Abierto está mapeado (ver sección B2B_OC) y
+se puede automatizar si algún día se quiere, pero hoy NO se dispara desde el flujo de compra.
+
+### Huecos encontrados y cerrados en esta auditoría
+1. **El poder del TAG se pedía dos veces.** `faltantes()` exigía "el poder (para el TAG)" mientras
+   `solicitar_tag` lo GENERA solo y explícitamente no lo pide → el expediente nunca se completaba.
+   Quitado de `faltantes()`.
+2. **Tipo de TAG equivocado.** Nada le decía que un auto COMPRADO es propio de Ana Clara: elegía
+   `nuevo_tercero` (consignación) y llamaba "nuevo dueño" al VENDEDOR. Ahora la regla de decisión
+   está en el tool (`compró` → `nuevo_propio`; consignación → `nuevo_tercero`) y en la guía del paso.
+3. **Sin Informe Completo el flujo quedaba ciego.** `fichaCompra` exigía NMP y devolvía
+   `sin_informe`, pese a que la revisión de documentos sí lee el CAV. Ahora cae al CAV (identifica el
+   auto; marca `solo_cav`/`sin_km` porque el CAV no trae kilometraje).
+4. **Datos del informe que se perdían.** `revisar_informe.py` ahora devuelve un bloque `datos` con
+   `rev_tecnica_hasta`, `permiso_ultimo_anio`, `permiso_fecha_pago`, `permiso_comuna` y `duenos`, y
+   la nueva acción `compra accion:"publicar"` arma el paquete de `subir_auto` con eso ya prellenado.
+   Antes se los volvía a preguntar al usuario aunque estuvieran en el PDF.
+5. **Fallo mudo del DTE 46.** Sin `item.detalle` el SII rechaza el borrador sin mensaje legible
+   (checkbox de descripción marcado + textarea vacío). Verificado en A/B. `generarBorradorCompra`
+   ahora valida `detalle` y `precio` antes de abrir el navegador y dice la causa.
+
+Lo único que el informe NO puede dar para publicar: **fecha de vencimiento del permiso de
+circulación** (solo trae el año pagado y la comuna) y **revisión de gases** (no viene). Esos dos se
+le piden al usuario — es correcto pedirlos.

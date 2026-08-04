@@ -352,6 +352,16 @@ const LAUNCH_COMPRA = 'https://www1.sii.cl/cgi-bin/Portal001/mipeLaunchPage.cgi?
 
 export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor = {}, empresaRut, apiToken, cambioSujeto = 'usados' }) {
   const cs = CAMBIO_SUJETO[cambioSujeto] || CAMBIO_SUJETO.usados
+  // Guardia: sin detalle el SII rechaza el borrador SIN mensaje legible (el checkbox de
+  // descripción queda marcado con el textarea vacío) y el error sale como "no sé qué campo
+  // rechazó". Verificado en A/B el 04-08-2026: mismo payload sin detalle falla, con detalle
+  // llega a vista previa. Cortamos antes de gastar 2 min de navegador.
+  if (!String(item.detalle || '').trim()) {
+    return { ok: false, tipo_dte: 46, error: 'Falta el DETALLE del ítem (item.detalle): sin descripción el SII rechaza el borrador sin decir por qué. Pasa la descripción del vehículo o la glosa del gasto.' }
+  }
+  if (!(Number(item.precio) > 0)) {
+    return { ok: false, tipo_dte: 46, error: 'Falta el PRECIO del ítem (item.precio) o no es mayor que 0.' }
+  }
   const formCompra = `https://www1.sii.cl/cgi-bin/Portal001/mipeGenFacEx.cgi?AGENTE_RETENEDOR=${cs.camsuj}&PTDC_CODIGO=46`
   await inyectarSesion(apiToken)
   // 1) empresa emisora (Ana Clara)
