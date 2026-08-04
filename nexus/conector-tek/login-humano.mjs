@@ -2563,6 +2563,37 @@ async function explorarNomina(page, log) {
   return { estado: 'nomina_mapeada', clic, submenu: sub, file_inputs: fileInputs, url: page.url() }
 }
 
+/**
+ * Deja la pantalla del mini USABLE DESDE UN TELÉFONO antes de pedirle a la persona que entre:
+ * el banco al frente y a pantalla completa, el botón "Aceptar" centrado, y la pantalla despierta.
+ * Todo best-effort: si algo falla, el login asistido sigue funcionando igual.
+ */
+async function prepararPantallaAsistida(page, log) {
+  // 1) Que no se duerma la pantalla (ni salte el protector) durante la ventana de ingreso.
+  try {
+    const seg = Math.ceil((Number(process.env.TEK_ASSIST_ESPERA_MS || 600_000) || 600_000) / 1000) + 120
+    spawn('/usr/bin/caffeinate', ['-dimsu', '-t', String(seg)], { detached: true, stdio: 'ignore' }).unref()
+  } catch { /* */ }
+
+  // 2) El banco AL FRENTE: la pestaña (CDP) y la ventana de macOS. Si el mini tiene otras
+  //    ventanas abiertas, la vista VNC mostraba esas y no el banco.
+  try { await page.bringToFront() } catch { /* */ }
+  try {
+    await new Promise((res) => {
+      const p = spawn('/usr/bin/osascript', ['-e', 'tell application "System Events" to set frontmost of first process whose unix id is ' + process.pid + ' to true'], { stdio: 'ignore' })
+      p.on('close', res); p.on('error', res); setTimeout(res, 3000)
+    })
+  } catch { /* necesita permisos de accesibilidad; el fullscreen igual tapa casi todo */ }
+
+  // 3) El botón "Aceptar" CENTRADO: sin scroll y sin buscarlo. NO lo clickeamos (eso lo tiene
+  //    que hacer la persona: el clic real es lo que pasa BioCatch), solo lo dejamos a tiro.
+  try {
+    const btn = await firstVisible(page, ['#doLoginButton', '#office-banking-login button[type="submit"]', 'button:has-text("Aceptar")'])
+    if (btn) { await btn.scrollIntoViewIfNeeded({ timeout: 4000 }).catch(() => {}); log('botón Aceptar a la vista ✓') }
+    else log('no encontré el botón Aceptar para centrarlo (sigue igual, la persona lo ve en pantalla)')
+  } catch { /* */ }
+}
+
 async function main() {
   setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, 600_000).unref?.()
   // Credenciales: primero la BÓVEDA cifrada (por usuario+empresa), con fallback al
@@ -2688,11 +2719,18 @@ async function main() {
     // automáticos (keepalive, etc.), que conservan el viewport probado.
     const kiosco = !!process.env.TEK_OTP_FILE || process.env.TEK_KIOSCO === '1'
     const baseArgs = perfilReal ? ['--profile-directory=Default', '--disable-background-networking', '--disable-sync', '--no-first-run'] : []
+    // PARA EL TELÉFONO: el que mira por /vnc ve la pantalla del mini (1920x1080) escalada a un
+    // celular → el form del banco quedaba diminuto. Con device-scale-factor 2 la página se
+    // dibuja al DOBLE, así el botón "Aceptar" es un blanco grande y se toca a la primera.
+    // Ajustable con TEK_ASSIST_ZOOM (2 = default; 1 = como antes).
+    const zoom = Number(process.env.TEK_ASSIST_ZOOM || 2) || 2
     // Patchright recomienda mínimos args (nada de --no-sandbox/UA: son señales de bot).
     ctx = await chromium.launchPersistentContext(profileDir, {
       headless, channel: 'chrome',
       ...(proxy ? { proxy } : {}),
-      args: kiosco ? [...baseArgs, '--start-fullscreen', '--window-position=0,0'] : baseArgs,
+      args: kiosco
+        ? [...baseArgs, '--start-fullscreen', '--window-position=0,0', `--force-device-scale-factor=${zoom}`]
+        : baseArgs,
       viewport: kiosco ? null : { width: 1360, height: 860 }, locale: 'es-CL', timezoneId: 'America/Santiago',
       acceptDownloads: true,   // para bajar los PDF de la cartola histórica
     })
@@ -2977,8 +3015,17 @@ async function main() {
   if (assist) {
     // MODO ASISTIDO: NO clickeamos Aceptar. Esperamos a que el humano (por VNC) lo haga
     // + Superclave. Polleamos hasta aterrizar en privado; guardamos la sesión.
-    log('MODO ASISTIDO: hacé el clic en "Aceptar" + Superclave por VNC. Esperando…')
-    const deadline = Date.now() + 300_000
+    //
+    // ANTES DE ESPERAR, dejamos la pantalla LISTA PARA UN TELÉFONO (03-ago: Ramón abrió el
+    // link y vio el escritorio del mini con ventanas encima, peleó con eso y se le venció):
+    //   1. el banco al frente y a pantalla completa (tapa todo lo demás)
+    //   2. el botón "Aceptar" centrado en la pantalla, sin scroll
+    //   3. la pantalla despierta mientras dure la ventana
+    await prepararPantallaAsistida(page, log)
+    // 5 min era poco: entre abrir WhatsApp, el link, el PIN y loguear se vencía. 10 por defecto.
+    const esperaMs = Number(process.env.TEK_ASSIST_ESPERA_MS || 10 * 60_000) || 10 * 60_000
+    log(`MODO ASISTIDO: hacé el clic en "Aceptar" + Superclave por VNC. Esperando hasta ${Math.round(esperaMs / 60000)} min…`)
+    const deadline = Date.now() + esperaMs
     while (Date.now() < deadline) {
       if (page.isClosed()) break
       let onHome = false; try { const u = new URL(page.url()); onHome = u.host.includes(PRIVADO) && !/^\/(login|logout)|error-seguridad/i.test(u.pathname) } catch {}
