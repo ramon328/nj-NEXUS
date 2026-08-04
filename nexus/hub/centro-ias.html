@@ -3,6 +3,11 @@
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+<!-- iPhone: si se agrega a la pantalla de inicio, abre sin barra del navegador -->
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+<meta name="apple-mobile-web-app-title" content="Centro de IAs" />
 <title>Centro de IAs · Nexus</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -87,6 +92,7 @@
   .ghostbtn{display:inline-flex;align-items:center;gap:6px;font-size:12px;font-weight:600;color:var(--ink);
     background:rgba(20,44,86,.6);border:1px solid var(--line);border-radius:999px;padding:7px 13px;cursor:pointer}
   .ghostbtn:hover{border-color:rgba(120,170,255,.5)}
+  #btn-fs{padding:7px 11px;font-size:15px;line-height:1}
   .hamb{display:none}
 
   /* ── Constelación ───────────────────────────────────────────── */
@@ -378,6 +384,7 @@
   }
   @media(max-width:520px){
     .top{padding:12px 14px}
+    .top .live{display:none}
     .voicebar{width:96vw}
     .node .lbl small{display:none}
   }
@@ -437,6 +444,7 @@
       <div class="right">
         <div class="live"><i></i><span id="live-txt">en vivo</span></div>
         <button class="ghostbtn" id="btn-hist">＋ Actividad</button>
+        <button class="ghostbtn" id="btn-fs" title="Pantalla completa" aria-label="Pantalla completa">⛶</button>
       </div>
     </div>
 
@@ -1492,6 +1500,32 @@ $('#btn-nico').onclick=async()=>{
   }catch(e){ b.classList.remove('busy'); lbl.textContent=orig; }
 };
 $('#hamb').onclick=()=>$('#side').classList.toggle('open');
+
+/* ── Pantalla completa (oculta la barra del navegador) ─────────── */
+(function(){
+  const b=$('#btn-fs'); if(!b) return;
+  const el=document.documentElement;
+  const enter = el.requestFullscreen || el.webkitRequestFullscreen || el.webkitRequestFullScreen;
+  const exit  = document.exitFullscreen || document.webkitExitFullscreen;
+  // iPhone Safari no tiene Fullscreen API: ahí no sirve el botón
+  if(!enter){ b.style.display='none'; return; }
+  const activo=()=>!!(document.fullscreenElement||document.webkitFullscreenElement);
+  function pinta(){ const f=activo(); b.textContent=f?'⤡':'⛶'; b.title=f?'Salir de pantalla completa':'Pantalla completa'; }
+  b.onclick=async()=>{
+    try{ activo() ? await exit.call(document) : await enter.call(el); }catch(e){}
+    setTimeout(pinta,60);
+  };
+  document.addEventListener('fullscreenchange',pinta);
+  document.addEventListener('webkitfullscreenchange',pinta);
+  // F para entrar/salir, como en un player
+  addEventListener('keydown',e=>{
+    if((e.key==='f'||e.key==='F') && !e.metaKey && !e.ctrlKey && !e.altKey
+       && !/^(INPUT|TEXTAREA)$/.test(document.activeElement?.tagName||'')
+       && !document.activeElement?.isContentEditable){ e.preventDefault(); b.click(); }
+  });
+  pinta();
+})();
+
 $('#btn-hist').onclick=openDrawer;
 $('#dr-close').onclick=closeDrawer;
 $('#drawer-bg').onclick=e=>{ if(e.target===$('#drawer-bg')) closeDrawer(); };
