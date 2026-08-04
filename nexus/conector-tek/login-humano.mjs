@@ -2858,9 +2858,16 @@ async function main() {
     if (aislado && profileDir.startsWith('/tmp/tek-vinc-')) { try { rmSync(profileDir, { recursive: true, force: true }) } catch {} }
   }
   const shot = (n) => page.screenshot({ path: join(SHOTS, n) }).catch(() => {})
+  // ¿Enviamos de verdad un login (clic en Aceptar con credenciales)? Solo entonces un rebote a
+  // "sesión finalizada" (error_seguridad) es un GOLPE de dispositivo real. Si la sesión ya
+  // estaba terminada / se cayó a mitad SIN que hayamos logueado, NO es device_trust — contarlo
+  // inflaba el "reposo" falsamente (lo cazó Ramón el 04-ago: 2 de 3 golpes de hoy eran esto).
+  let loginIntentado = false
   const fin = async (estado, extra = {}) => {
-    // Registrar device_trust/error_seguridad para el cooldown del throttle (no re-machacar la cuenta).
-    if (/device_trust|error_seguridad/.test(estado)) { try { registrarDeviceTrust(userSlug) } catch { /* */ } }
+    // device_trust real (muro Incapsula) SIEMPRE cuenta. error_seguridad SOLO si veníamos de
+    // enviar un login (rebote real); si no, es una sesión que terminó normal → no es golpe.
+    const esGolpe = /device_trust/.test(estado) || (/error_seguridad/.test(estado) && loginIntentado)
+    if (esGolpe) { try { registrarDeviceTrust(userSlug) } catch { /* */ } }
     // Flag de RECONEXIÓN (para la página /vnc): avisa si conectó bien → la web muestra "✅ conectado".
     if (process.env.TEK_OTP_FILE) {
       try {
@@ -3092,6 +3099,9 @@ async function main() {
   await idle(page, rnd(1200, 2600))   // que BioCatch acumule comportamiento
 
   if (assist) {
+    // El humano va a enviar el login (Aceptar + Superclave): desde acá un rebote a error_seguridad
+    // SÍ es un golpe real de dispositivo.
+    loginIntentado = true
     // MODO ASISTIDO: NO clickeamos Aceptar. Esperamos a que el humano (por VNC) lo haga
     // + Superclave. Polleamos hasta aterrizar en privado; guardamos la sesión.
     //
@@ -3133,6 +3143,7 @@ async function main() {
   const aceptar = await firstVisible(page, ['#doLoginButton', '#office-banking-login button[type="submit"]', 'button:has-text("Aceptar")'])
   if (!aceptar) return fin('sin_boton_aceptar')
   await moveToLoc(page, aceptar); await sleep(rnd(220, 560)); await clickReal(page)
+  loginIntentado = true   // desde acá, un rebote a error_seguridad SÍ es un golpe de dispositivo real
   log('Aceptar clickeado (humano)')
 
   let deadline = Date.now() + 80_000
