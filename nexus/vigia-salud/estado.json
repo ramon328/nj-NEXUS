@@ -1,20 +1,20 @@
 {
-  "ts": "2026-08-04T02:27:11.285Z",
+  "ts": "2026-08-04T02:36:13.851Z",
   "estado": "AMARILLO",
   "nivel": 1,
   "razones": [
-    "RAM libre baja (924 MB)"
+    "RAM libre baja (933 MB)"
   ],
   "metricas": {
-    "load1": 2.5,
+    "load1": 2.4,
     "nucleos": 6,
-    "loadPorNucleo": 0.42,
-    "ramLibreMB": 924,
+    "loadPorNucleo": 0.4,
+    "ramLibreMB": 933,
     "ramTotalMB": 32768,
     "swapUsedMB": 0,
     "compresorMB": 44,
     "discoPct": 52,
-    "procesos": 770,
+    "procesos": 760,
     "sesionesClaude": 3,
     "sesionesClaudeViejas": 0
   },
