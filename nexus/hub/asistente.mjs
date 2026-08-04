@@ -2829,6 +2829,20 @@ const HERRAMIENTAS = [
     description: 'CAMBIOS Y MEJORAS que se le hicieron a NEXUS (a TI mismo). Úsala SIEMPRE que pregunten "¿qué cambios/mejoras se te hicieron?", "¿qué hay de nuevo?", "¿qué aprendiste/qué sabes hacer nuevo?", "¿qué se actualizó?", "¿en qué avanzaste?". Devuelve el changelog REAL (fecha, área, título, detalle), lo nuevo primero. ⚠️ NO uses buscar_cerebro para esto (eso es el segundo cerebro de Nico, no tu registro de cambios) ni lo inventes: esta es la única fuente. Después preséntalo ordenado y agrupado por área, en tu voz, sin pegar el JSON. Con "desde" (YYYY-MM-DD) filtras solo lo posterior a esa fecha.',
     input_schema: { type: 'object', properties: { desde: { type: 'string', description: 'Opcional: solo novedades desde esta fecha YYYY-MM-DD.' } }, required: [] },
   },
+  // ── CONVERSACIÓN · recuperar lo que YA se habló con esta persona ──────────────
+  {
+    name: 'recordar_conversacion',
+    description: 'BUSCA EN LO QUE YA CONVERSASTE con esta persona (historial real de mensajes, más allá de los últimos turnos que traes en contexto). Úsala SIEMPRE que la persona se refiera a algo anterior y tú no lo tengas a mano: "¿te acuerdas de…?", "lo que te dije ayer", "el auto que te pasé la semana pasada", "ya te lo mandé", "tú lo hiciste/creaste antes", "¿qué habíamos quedado?", o cuando la persona te CORRIJA diciendo que algo sí existe o que ya lo hablaron. ⛔ NUNCA le digas "no me acuerdo", "no lo tengo registrado" ni "no existe" por algo que pudo haber salido en una conversación anterior SIN haber buscado acá primero. Con "texto" filtras por palabra o patente (ej. "SWPV28"); sin "texto" te trae los últimos mensajes del período. "dias" limita cuánto atrás (por defecto 30). Devuelve los mensajes con fecha y quién lo dijo (tú o la persona).',
+    input_schema: {
+      type: 'object',
+      properties: {
+        texto: { type: 'string', description: 'Palabra, patente, nombre o frase a buscar en la conversación (opcional).' },
+        dias: { type: 'number', description: 'Cuántos días atrás buscar. Por defecto 30; usa 0 para buscar en TODO el historial.' },
+        limite: { type: 'number', description: 'Máximo de mensajes a devolver (por defecto 40).' },
+      },
+      required: [],
+    },
+  },
   // ── RECORDATORIOS · lista personal en el Segundo Cerebro (por persona) ────────
   {
     name: 'guardar_recordatorio',
@@ -3398,6 +3412,28 @@ async function ejecutar(nombre, input, ctx = {}) {
       } catch (e) { return JSON.stringify({ ok: false, error: e.message }) }
     }
     // ── NOVEDADES · changelog propio de Nexus (mismo resultado en web y WhatsApp) ──
+    if (nombre === 'recordar_conversacion') {
+      if (!ctx.de) return JSON.stringify({ ok: false, error: 'No sé con quién estoy hablando, así que no puedo buscar la conversación.' })
+      const dias = input.dias === 0 ? 0 : (Number(input.dias) > 0 ? Number(input.dias) : 30)
+      const filas = historial.buscar({
+        contraparte: ctx.de, texto: String(input.texto || '').trim(),
+        dias, limite: Math.min(Number(input.limite) > 0 ? Number(input.limite) : 40, 120),
+      })
+      if (!filas.length) {
+        return JSON.stringify({
+          ok: true, encontrados: 0,
+          instruccion: `No hay mensajes con "${input.texto || ''}" en los últimos ${dias || 'todos los'} días. Si la persona insiste en que existe, prueba con otras palabras o con dias:0 (todo el historial) antes de decirle que no lo encuentras.`,
+        })
+      }
+      return JSON.stringify({
+        ok: true, encontrados: filas.length,
+        mensajes: filas.map((f) => ({
+          cuando: f.ts, quien: f.direccion === 'saliente' ? 'yo (Nexus)' : 'la persona',
+          canal: f.canal, texto: String(f.texto || '').slice(0, 600),
+        })),
+        instruccion: 'Esto es lo que REALMENTE se habló. Úsalo para responder sin volver a preguntar lo que ya te dijeron, y si antes le dijiste algo equivocado, corrígelo sin dar vueltas.',
+      })
+    }
     if (nombre === 'novedades_nexus') {
       const data = leerNovedades()
       let lista = Array.isArray(data.novedades) ? data.novedades : []

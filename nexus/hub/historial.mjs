@@ -135,6 +135,35 @@ export function hilo({ canal, contraparte, limite = 500 }) {
   `).all(canal, clave(canal, contraparte), limite)
 }
 
+// BUSCA en TODO lo que se habló con una persona (no solo la ventana reciente que va en el
+// prompt). La usa el tool `recordar_conversacion` para que Nexus pueda contestar "¿qué
+// hablamos ayer del SWPV28?" en vez de decir que no se acuerda.
+// Sin `texto` devuelve los últimos mensajes del rango de días indicado.
+export function buscar({ contraparte, texto = '', canal = null, dias = 0, limite = 40 }) {
+  const cond = []
+  const args = []
+  if (contraparte) {
+    // el mismo número puede estar guardado con y sin "+": comparamos solo por dígitos
+    cond.push(`replace(contraparte, '+', '') = ?`)
+    args.push(String(contraparte).replace(/[^0-9]/g, '') || String(contraparte))
+  }
+  if (canal) { cond.push('canal = ?'); args.push(canal) }
+  if (texto) { cond.push('texto LIKE ?'); args.push('%' + String(texto) + '%') }
+  if (dias > 0) {
+    cond.push('ts >= ?')
+    args.push(new Date(Date.now() - dias * 24 * 60 * 60 * 1000).toISOString())
+  }
+  args.push(limite)
+  const filas = db().prepare(`
+    SELECT ts, canal, direccion, contraparte, texto
+    FROM mensajes
+    ${cond.length ? 'WHERE ' + cond.join(' AND ') : ''}
+    ORDER BY ts DESC
+    LIMIT ?
+  `).all(...args)
+  return filas.reverse()
+}
+
 // Últimos N mensajes de una conversación, en orden CRONOLÓGICO. Eficiente (usa el índice
 // contraparte,ts): trae los más recientes y los devuelve del más viejo al más nuevo.
 // Se usa para REHIDRATAR la memoria en RAM del hub tras un reinicio (así un "emítela"
