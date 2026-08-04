@@ -2628,7 +2628,7 @@ const HERRAMIENTAS = [
   // ── TAG · solicitud / traspaso de TAG (MallorcAutos → Tag Tico) ──────────────
   {
     name: 'solicitar_tag',
-    description: 'SOLICITA o TRASPASA un TAG (peaje) de MallorcAutos a Tag Tico. El correo SALE desde el buzón de Mallorca (ventas@mallorcautos.cl) a contacto@tagtico.cl con copia a ventas@mallorcautos.cl, y queda registrado como "lead" con seguimiento. FLUJO DE 2 PASOS (obligatorio, es un correo real hacia afuera): (1) accion:"preparar" → NO envía: valida, arma el ASUNTO oficial, te dice qué DOCUMENTOS faltan y cuántos PDF adjuntos hay. Con eso PÍDELE a la persona los documentos que falten EN PDF por WhatsApp, y muéstrale el resumen para confirmar. (2) accion:"enviar" → SOLO tras el OK de la persona y con los PDF ya adjuntos: manda el correo y registra el lead. Los 3 CASOS: "nuevo_propio" = auto propio recién llegado (Ana Clara), asunto "Tag nuevo Ana clara (X)" (X=cantidad); basta poder + CAV. "traspaso" = auto con tag nuestro que se vende, asunto "Traspaso Tag patente XXXX". "nuevo_tercero" = auto de un tercero/consignación, asunto "Tag nuevo patente XXXX". 🧭 CÓMO ELEGIR EL TIPO (no lo adivines): si MallorcAutos/Ana Clara **COMPRÓ** el auto (el usuario dijo "compré", viene de un expediente de compra, o la adquisición es "comprado") el auto es PROPIO → **nuevo_propio**. Usa nuevo_tercero SOLO si el auto es en CONSIGNACIÓN (sigue siendo de un tercero). Si el auto se VENDIÓ y hay que pasar nuestro tag al comprador → traspaso. ⚠️ En un auto comprado, el nuevo dueño es ANA CLARA, NO el vendedor: no pidas "el carnet del nuevo dueño" refiriéndote al vendedor. Si no te queda claro si fue compra o consignación, PREGÚNTALO antes de elegir. Los PDF los toma de TODOS los que la persona mandó por WhatsApp en la conversación (llegan en mensajes separados y se acumulan). 🔑 EL PODER SE GENERA SOLO: Nexus arma automáticamente el poder de gestión del TAG desde una plantilla fija de Ana Clara, cambiando SOLO la patente y la fecha del día, y lo adjunta al correo. NO le pidas el poder al usuario ni esperes que lo mande. ⚠️ NO seas rígido con los documentos: la lista de "documentos_requeridos" es solo una GUÍA (y ya viene SIN el poder). En MallorcAutos NO se exige el contrato de compraventa firmado; basta con lo que el vendedor mande (carnet + CAV/factura) + el poder que genero yo. Si la persona ya mandó sus documentos y confirma que con esos se puede (ej. "con esos 3 se puede"), NO le sigas pidiendo contrato ni otros papeles: adjunta TODOS los PDF que mandó y envía. Tampoco digas "es el mismo documento que ya me mandaste" salvo que de verdad sobre; confía en lo que el vendedor te manda. 📋 VARIAS PATENTES EN UN CORREO: si quieren más de un TAG a la vez, pásalas TODAS juntas en "patentes" (array) — se manda UN solo correo con todas listadas y Nexus genera y adjunta UN poder por cada patente. Más eficiente que un correo por auto. Por defecto ENVÍA DE VERDAD (a Tag Tico); usa prueba:true para que llegue solo a Ramón mientras pruebas.',
+    description: 'SOLICITA o TRASPASA un TAG (peaje) de MallorcAutos a Tag Tico. El correo SALE desde el buzón de Mallorca (ventas@mallorcautos.cl) a contacto@tagtico.cl con copia a ventas@mallorcautos.cl, y queda registrado como "lead" con seguimiento. FLUJO DE 2 PASOS (obligatorio, es un correo real hacia afuera): (1) accion:"preparar" → NO envía: valida, arma el ASUNTO oficial, te dice qué DOCUMENTOS faltan y cuántos PDF adjuntos hay. Con eso PÍDELE a la persona los documentos que falten EN PDF por WhatsApp, y muéstrale el resumen para confirmar. (2) accion:"enviar" → SOLO tras el OK de la persona y con los PDF ya adjuntos: manda el correo y registra el lead. Los 3 CASOS: "nuevo_propio" = auto propio recién llegado (Ana Clara), asunto "Tag nuevo Ana clara (X)" (X=cantidad); basta poder + CAV. "traspaso" = auto con tag nuestro que se vende, asunto "Traspaso Tag patente XXXX". "nuevo_tercero" = auto de un tercero/consignación, asunto "Tag nuevo patente XXXX". 🧭 CÓMO ELEGIR EL TIPO (no lo adivines): si MallorcAutos/Ana Clara **COMPRÓ** el auto (el usuario dijo "compré", viene de un expediente de compra, o la adquisición es "comprado") el auto es PROPIO → **nuevo_propio**. Usa nuevo_tercero SOLO si el auto es en CONSIGNACIÓN (sigue siendo de un tercero). Si el auto se VENDIÓ y hay que pasar nuestro tag al comprador → traspaso. ⚠️ En un auto comprado, el nuevo dueño es ANA CLARA, NO el vendedor: no pidas "el carnet del nuevo dueño" refiriéndote al vendedor. Si no te queda claro si fue compra o consignación, PREGÚNTALO antes de elegir. Los PDF los toma de TODOS los que la persona mandó por WhatsApp en la conversación (llegan en mensajes separados y se acumulan). 🔑 EL PODER SE GENERA SOLO: Nexus arma automáticamente el poder de gestión del TAG desde una plantilla fija de Ana Clara, cambiando SOLO la patente y la fecha del día, y lo adjunta al correo. NO le pidas el poder al usuario ni esperes que lo mande. ⚠️ NO seas rígido con los documentos: la lista de "documentos_requeridos" es solo una GUÍA (y ya viene SIN el poder). En MallorcAutos NO se exige el contrato de compraventa firmado; basta con lo que el vendedor mande (carnet + CAV/factura) + el poder que genero yo. Si la persona ya mandó sus documentos y confirma que con esos se puede (ej. "con esos 3 se puede"), NO le sigas pidiendo contrato ni otros papeles: adjunta TODOS los PDF que mandó y envía. Tampoco digas "es el mismo documento que ya me mandaste" salvo que de verdad sobre; confía en lo que el vendedor te manda. 📋 VARIAS PATENTES EN UN CORREO: si quieren más de un TAG a la vez, pásalas TODAS juntas en "patentes" (array) — se manda UN solo correo con todas listadas y Nexus genera **UN SOLO poder con todas las patentes dentro** (queda "Placa Patente Única AABB11 - CCDD22"). También acepta varias en un mismo texto ("AABB11-CCDD22", con coma o con espacio). Más eficiente que un correo por auto. ⚠️ LA PATENTE ES OBLIGATORIA SIEMPRE, en los 3 casos (también en nuevo_propio): el poder nombra la Placa Patente Única, así que sin patente NO se puede generar y el correo NO se envía. Si no te la dieron, PÍDESELA antes de llamar accion:"enviar". Por defecto ENVÍA DE VERDAD (a Tag Tico); usa prueba:true para que llegue solo a Ramón mientras pruebas.',
     input_schema: {
       type: 'object',
       properties: {
@@ -3298,17 +3298,31 @@ async function ejecutar(nombre, input, ctx = {}) {
         const { readFileSync } = await import('node:fs')
         const { basename } = await import('node:path')
         // 🔑 EL PODER SE GENERA SOLO: plantilla fija de Ana Clara (poder-plantilla.docx),
-        // cambiando únicamente la PATENTE y la FECHA (hoy). UNO por cada patente. No se pide al usuario.
+        // cambiando únicamente la(s) PATENTE(S) y la FECHA (hoy). No se pide al usuario.
+        // UN SOLO poder con TODAS las patentes ("SWPV28 - TDCX40"), como pidió Ramón.
         const poderAdjs = []
-        for (const p of patentes) {
+        let poderError = ''
+        if (!patentes.length) {
+          // Sin patente no existe poder posible: así salieron TAG-001/TAG-002 sin él.
+          poderError = 'no me dieron ninguna patente, y el poder nombra la Placa Patente Única'
+        } else {
           try {
             const script = join(__dirname, '..', 'tag-web', 'generar_poder.py')
-            const outP = join('/tmp', `poder-tag-${p.replace(/[^A-Z0-9]/g, '')}-${Date.now()}.pdf`)
+            const outP = join('/tmp', `poder-tag-${patentes.join('-').replace(/[^A-Z0-9-]/g, '')}-${Date.now()}.pdf`)
             const hoy = new Date().toISOString().slice(0, 10)
-            await ejecCmd(`python3 ${JSON.stringify(script)} ${JSON.stringify(p)} ${JSON.stringify(outP)} ${hoy}`, { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })
+            await ejecCmd(`python3 ${JSON.stringify(script)} ${JSON.stringify(patentes.join('-'))} ${JSON.stringify(outP)} ${hoy}`, { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })
             const buf = readFileSync(outP)
-            if (buf && buf.length > 800) poderAdjs.push({ filename: `Poder_Tag_${p}.pdf`, mime: 'application/pdf', buffer: buf })
-          } catch { /* si falla el poder de una patente, seguimos con las demás */ }
+            if (buf && buf.length > 800) poderAdjs.push({ filename: `Poder_Tag_${patentes.join('-')}.pdf`, mime: 'application/pdf', buffer: buf })
+            else poderError = 'el PDF salió vacío'
+          } catch (e) { poderError = String(e.message || e).slice(0, 300) }
+        }
+        // El poder es el documento que Tag Tico exige: si no se pudo generar, NO se manda el
+        // correo a medias. Antes el error se tragaba en silencio y el correo salía sin poder.
+        if (poderError) {
+          return JSON.stringify({
+            ok: false, error: `No pude generar el PODER: ${poderError}`,
+            instruccion: 'NO se envió el correo (sin el poder la solicitud sale incompleta a Tag Tico). Dile el motivo al usuario tal cual. Si falta la patente, pídesela (puede dar varias y van en UN solo poder).',
+          })
         }
         if (pdfs.length === 0 && !poderAdjs.length)
           return JSON.stringify({ ok: false, error: `No hay PDF adjuntos. Pídele a la persona los documentos EN PDF por WhatsApp: ${docsSinPoder.join('; ') || docs.join('; ')}.` })
@@ -3325,7 +3339,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           ok: true, paso: 'enviado', modo: r.modo, asunto: r.asunto,
           destino: r.destino, enviado_desde: r.enviado_desde, adjuntos: r.adjuntos,
           patentes, poderes_generados: poderAdjs.length, lead: r.registro_id,
-          nota: `${poderAdjs.length ? `Se generaron y adjuntaron ${poderAdjs.length} poder(es) automático(s)${patentes.length > 1 ? ' (uno por patente: ' + patentes.join(', ') + ')' : ''}. ` : ''}Registrado en el seguimiento de TAG. Recuerda confirmar la recepción del convenio el mismo día (si no, el auto queda sin tag y caen multas).`,
+          nota: `${poderAdjs.length ? `Se generó y adjuntó el poder automático${patentes.length > 1 ? ` con las ${patentes.length} patentes en un solo documento (${patentes.join(' - ')})` : ` de la patente ${patentes[0]}`}. ` : ''}Registrado en el seguimiento de TAG. Recuerda confirmar la recepción del convenio el mismo día (si no, el auto queda sin tag y caen multas).`,
         })
       }
       return JSON.stringify({ ok: false, error: 'accion debe ser "preparar" o "enviar".' })

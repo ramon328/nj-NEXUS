@@ -80,9 +80,22 @@ export function documentosRequeridos(tipo, es_empresa) {
 }
 
 // Lista de patentes normalizadas (soporta d.patentes[] o d.patente único).
+// Un mismo string puede traer VARIAS patentes separadas por guión, coma, "/" o espacio
+// ("SWPV28-TDCX40"). Antes se limpiaban los separadores y quedaban PEGADAS en una patente
+// inexistente ("SWPV28TDCX40"), que además terminaba impresa en el poder.
+// Ojo: un guión seguido de UN solo carácter es el dígito verificador ("SWPV28-0"), no otra patente.
+const RX_PATENTE = /^[A-Z]{2,4}\d{2,4}$/
 export function listaPatentes(d) {
   const raw = Array.isArray(d.patentes) && d.patentes.length ? d.patentes : (d.patente ? [d.patente] : [])
-  return [...new Set(raw.map((p) => String(p || '').toUpperCase().replace(/[\s.\-]/g, '')).filter(Boolean))]
+  const out = []
+  for (const item of raw) {
+    for (const trozo of String(item || '').toUpperCase().replace(/\./g, '').split(/[,\s/]+|-/)) {
+      const t = trozo.trim()
+      if (!t || /^[\dK]$/.test(t)) continue          // vacío o dígito verificador
+      if (RX_PATENTE.test(t) && !out.includes(t)) out.push(t)
+    }
+  }
+  return out
 }
 
 function cuerpo(d, tipoLabel, nAdj) {
@@ -101,8 +114,12 @@ function cuerpo(d, tipoLabel, nAdj) {
 export function validar(d) {
   const t = TIPOS[d.tipo]
   if (!t) return { ok: false, error: 'Tipo inválido (usa nuevo_propio, traspaso o nuevo_tercero).' }
-  if ((d.tipo === 'traspaso' || d.tipo === 'nuevo_tercero') && !listaPatentes(d).length)
-    return { ok: false, error: 'Falta la patente del vehículo (puedes mandar varias).' }
+  // La patente es OBLIGATORIA en los TRES casos: el poder que generamos nombra la
+  // "Placa Patente Única", así que sin patente NO hay poder y el correo salía sin él.
+  // Pasó de verdad (TAG-001 y TAG-002 del 31-07-2026: nuevo_propio sin patente → se enviaron
+  // solo con los PDF del usuario, sin ningún Poder_Tag adjunto, y nadie se enteró).
+  if (!listaPatentes(d).length)
+    return { ok: false, error: 'Falta la patente del vehículo (puedes mandar varias: "AABB11-CCDD22"). Sin patente no se puede generar el poder, y el correo saldría sin él.' }
   const adj = d.adjuntos || []
   if (!adj.length) return { ok: false, error: 'Debes adjuntar al menos un documento PDF.' }
   for (const a of adj) {

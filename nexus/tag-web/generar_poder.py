@@ -4,9 +4,35 @@
 # FECHA (el día en que se solicita el TAG). Todo lo demás (Ana Clara, gestor, firma
 # de Nico 16142580-K) es fijo. No re-escribe el texto legal: lo toma de la plantilla.
 #
-# Uso: python3 generar_poder.py <PATENTE> <salida.pdf> [YYYY-MM-DD]
+# Uso: python3 generar_poder.py <PATENTE(S)> <salida.pdf> [YYYY-MM-DD]
 #   la fecha es opcional; si no se pasa, usa la fecha de hoy.
+#   PATENTE(S) admite VARIAS en un mismo poder, separadas por guión, coma, "/" o espacio:
+#     "SWPV28-TDCX40"  "SWPV28, TDCX40"  "SWPV28 TDCX40"   -> quedan como "SWPV28 - TDCX40"
+#   Un guión seguido de UN solo dígito es el dígito verificador, no otra patente:
+#     "SWPV28-0" -> una sola patente (SWPV28).
 import sys, os, re, zipfile, datetime
+
+# Patente chilena: 2-4 letras + 2-4 dígitos (LLLL99, LL9999, LLL99...).
+PAT = re.compile(r'^[A-Z]{2,4}\d{2,4}$')
+
+
+def normalizar_patentes(texto):
+    """'SWPV28-TDCX40' -> ['SWPV28','TDCX40'] · 'SWPV28-0' -> ['SWPV28'] (el 0 es el DV)."""
+    t = str(texto or '').upper().replace('.', '')
+    trozos = [x.strip() for x in re.split(r'[,\s/]+|-', t) if x.strip()]
+    pats = []
+    for x in trozos:
+        if PAT.match(x):
+            if x not in pats:
+                pats.append(x)
+        # trozos de 1 dígito = dígito verificador de la patente anterior -> se ignoran
+        elif re.fullmatch(r'[\dkK]', x):
+            continue
+        else:
+            raise ValueError(f'"{x}" no parece una patente válida (formato LL9999 / LLLL99)')
+    if not pats:
+        raise ValueError('No se reconoció ninguna patente válida en: ' + str(texto))
+    return pats
 
 DIR = os.path.dirname(os.path.abspath(__file__))
 TPL = os.path.join(DIR, 'poder-plantilla.docx')
@@ -59,7 +85,8 @@ def render_pdf(parras, salida):
 
 
 def main():
-    patente = re.sub(r'[\s.\-]', '', sys.argv[1]).upper()
+    patentes = normalizar_patentes(sys.argv[1])
+    patente = ' - '.join(patentes)          # varias patentes en el MISMO poder
     salida = sys.argv[2]
     if len(sys.argv) > 3 and re.match(r'\d{4}-\d{2}-\d{2}', sys.argv[3]):
         y, m, d = map(int, sys.argv[3].split('-'))
@@ -70,12 +97,29 @@ def main():
 
     parras = parrafos_de_docx(TPL)
     out = []
+    puso_patente = False
+    puso_fecha = False
     for p in parras:
-        p = re.sub(r'a\s+\d{1,2}\s+de\s+[A-ZÁÉÍÓÚ]+\s+de\s+\d{4}', 'a ' + fecha_txt, p)
-        p = re.sub(r'(Placa Patente Única\s+)[A-Z]{2,4}\d{2,4}(\s*,)', r'\g<1>' + patente + r'\g<2>', p, count=1)
+        p, nf = re.subn(r'a\s+\d{1,2}\s+de\s+[A-ZÁÉÍÓÚ]+\s+de\s+\d{4}', 'a ' + fecha_txt, p)
+        if nf:
+            puso_fecha = True
+        if not puso_patente:
+            p, np_ = re.subn(r'(Placa Patente Única\s+)[A-Z]{2,4}\d{2,4}(?:-[\dkK])?(\s*,)',
+                             r'\g<1>' + patente + r'\g<2>', p, count=1)
+            if np_:
+                puso_patente = True
         out.append(p)
+    # Si la plantilla cambió y el reemplazo no ocurrió, el PDF saldría con la patente de la
+    # PLANTILLA (la de otro auto) y antes eso pasaba en silencio: un poder legalmente errado.
+    # Preferimos fallar y que el flujo avise, no mandar un poder equivocado a Tag Tico.
+    if not puso_patente:
+        raise ValueError('No pude escribir la patente en el poder: la plantilla '
+                         'poder-plantilla.docx no trae el texto "Placa Patente Única <PATENTE>,". '
+                         'NO se genera el PDF para no mandar un poder con la patente equivocada.')
+    if not puso_fecha:
+        raise ValueError('No pude escribir la fecha en el poder (la plantilla no trae "a <D> de <MES> de <AAAA>").')
     render_pdf(out, salida)
-    print('OK ' + salida + ' | patente=' + patente + ' | fecha=' + fecha_txt)
+    print('OK ' + salida + ' | patentes=' + patente + ' | fecha=' + fecha_txt)
 
 
 if __name__ == '__main__':

@@ -61,40 +61,63 @@ let mx = 680, my = 430
 const easeInOut = (t) => (t < 0.5 ? 2 * t * t : 1 - Math.pow(-2 * t + 2, 2) / 2)
 
 // Un tramo de curva Bézier cúbica con ease-in-out + micro-jitter + velocidad variable.
+// Realismo (04-ago): el paso de tiempo es log-normal (no uniforme, que es huella de bot),
+// el temblor escala con la lentitud (más tembloroso al desacelerar cerca del objetivo), y en
+// tramos largos hay alguna micro-pausa a mitad de camino (el humano no viaja de un tirón).
 async function curve(page, x1, y1) {
   const x0 = mx, y0 = my
   const dist = Math.hypot(x1 - x0, y1 - y0)
-  const jitter = Math.min(2.5, dist / 120)
+  const jitter = Math.min(3.2, dist / 110)
   const cx1 = x0 + (x1 - x0) * rnd(0.2, 0.45) + rnd(-70, 70)
   const cy1 = y0 + (y1 - y0) * rnd(0.2, 0.45) + rnd(-70, 70)
   const cx2 = x0 + (x1 - x0) * rnd(0.55, 0.85) + rnd(-70, 70)
   const cy2 = y0 + (y1 - y0) * rnd(0.55, 0.85) + rnd(-70, 70)
-  const steps = ri(24, 44)
+  const steps = Math.max(18, Math.min(70, Math.round(dist / rnd(9, 16)) + ri(10, 22)))
+  const pausaEn = dist > 260 && chance(0.5) ? ri(Math.round(steps * 0.35), Math.round(steps * 0.6)) : -1
   for (let i = 1; i <= steps; i++) {
     const t = easeInOut(i / steps)
     const mt = 1 - t
-    const bx = mt * mt * mt * x0 + 3 * mt * mt * t * cx1 + 3 * mt * t * t * cx2 + t * t * t * x1 + rnd(-jitter, jitter)
-    const by = mt * mt * mt * y0 + 3 * mt * mt * t * cy1 + 3 * mt * t * t * cy2 + t * t * t * y1 + rnd(-jitter, jitter)
+    // el temblor crece al frenar (fase final): la mano corrige fino cerca del blanco
+    const tr = jitter * (0.5 + (1 - Math.min(i, steps - i) / steps) * 0.9)
+    const bx = mt * mt * mt * x0 + 3 * mt * mt * t * cx1 + 3 * mt * t * t * cx2 + t * t * t * x1 + rnd(-tr, tr)
+    const by = mt * mt * mt * y0 + 3 * mt * mt * t * cy1 + 3 * mt * t * t * cy2 + t * t * t * y1 + rnd(-tr, tr)
     await page.mouse.move(bx, by).catch(() => {})
-    // más lento cerca de los extremos (aceleración/desaceleración)
     const edge = Math.min(i, steps - i) / steps
-    await sleep(rnd(5, 12) + (1 - edge) * rnd(2, 10))
+    // paso de tiempo tipo log-normal: la mayoría cortos, algunos largos (no uniforme = humano)
+    const base = Math.exp(rnd(1.4, 2.5)) / 6
+    await sleep(base + (1 - edge) * rnd(2, 9))
+    if (i === pausaEn) await sleep(rnd(60, 180))   // duda a mitad de camino
   }
   mx = x1; my = y1
 }
-// Mover con overshoot + corrección (humano sobrepasa el objetivo y corrige).
+// Mover con overshoot + corrección (humano sobrepasa el objetivo y corrige). En objetivos
+// lejanos casi siempre hay overshoot; en cercanos, a veces.
 async function moveTo(page, x, y) {
-  if (chance(0.6)) { await curve(page, x + rnd(-22, 22), y + rnd(-16, 16)); await sleep(rnd(40, 120)); await curve(page, x, y) }
-  else await curve(page, x, y)
+  const dist = Math.hypot(x - mx, y - my)
+  const pOver = dist > 200 ? 0.75 : 0.45
+  if (chance(pOver)) {
+    const k = Math.min(30, 8 + dist / 20)
+    await curve(page, x + rnd(-k, k), y + rnd(-k * 0.7, k * 0.7)); await sleep(rnd(40, 130)); await curve(page, x, y)
+  } else await curve(page, x, y)
 }
 async function moveToLoc(page, loc) {
+  // Si el botón está fuera de vista, primero lo traemos (si no, no hay caja y cae a click crudo).
+  try { await loc.scrollIntoViewIfNeeded({ timeout: 2500 }) } catch { /* */ }
   const box = await loc.boundingBox().catch(() => null)
   if (!box) return false
-  await moveTo(page, box.x + box.width * rnd(0.3, 0.7), box.y + box.height * rnd(0.35, 0.65))
+  // Apuntamos a un punto interior con sesgo al centro (no siempre al mismo píxel = humano).
+  await moveTo(page, box.x + box.width * rnd(0.32, 0.68), box.y + box.height * rnd(0.34, 0.66))
   await sleep(rnd(90, 280))
   return true
 }
-async function clickReal(page) { await page.mouse.down(); await sleep(rnd(45, 115)); await page.mouse.up() }
+// Clic real con settle previo: micro-ajuste antes de apretar (la mano se asienta), down→up
+// con dwell variable, y de vez en cuando un temblor mínimo bajo el dedo.
+async function clickReal(page) {
+  if (chance(0.7)) { await page.mouse.move(mx + rnd(-1.5, 1.5), my + rnd(-1.5, 1.5)).catch(() => {}); await sleep(rnd(30, 90)) }
+  await page.mouse.down()
+  await sleep(rnd(45, 130))
+  await page.mouse.up()
+}
 // Micro-drift del mouse mientras "lee".
 async function idle(page, ms) { const end = Date.now() + ms; while (Date.now() < end) { await page.mouse.move(mx + rnd(-5, 5), my + rnd(-4, 4)).catch(() => {}); await sleep(rnd(220, 620)) } }
 // Pulso DENTRO del mismo navegador (misma pestaña del form). Resetea el idle del banco
@@ -941,23 +964,16 @@ async function crearTransferencia(page, log) {
         for (const fr of frames) {
           const b = fr.getByRole('button', { name: re }).first()
           if (await b.isVisible({ timeout: 500 }).catch(() => false)) {
+            // HUMANO PRIMERO: el mouse viaja hasta el botón (curva + overshoot) y clic real.
+            // Este es el clic que CREA la transferencia → el que más mira BioCatch. Solo si el
+            // movimiento humano falla caemos al click() directo (teleport), como red de seguridad.
+            if (await clickHumano(page, b)) return true
             try { await b.click({ timeout: 3000 }); return true } catch { /* */ }
-            const bb = await b.boundingBox().catch(() => null)
-            if (bb) {
-              await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 10 })
-              await sleep(rnd(250, 500)); await page.mouse.down(); await sleep(60); await page.mouse.up()
-              return true
-            }
           }
           const t = fr.getByText(re).first()
           if (await t.isVisible({ timeout: 400 }).catch(() => false)) {
+            if (await clickHumano(page, t)) return true
             try { await t.click({ timeout: 3000 }); return true } catch { /* */ }
-            const bb = await t.boundingBox().catch(() => null)
-            if (bb) {
-              await page.mouse.move(bb.x + bb.width / 2, bb.y + bb.height / 2, { steps: 10 })
-              await sleep(rnd(250, 500)); await page.mouse.down(); await sleep(60); await page.mouse.up()
-              return true
-            }
           }
         }
         // Fallback DOM: botón visible cuyo texto calza
