@@ -2759,13 +2759,19 @@ async function main() {
   // no está, abrimos la nuestra como siempre (fallback seguro).
   let ctx, conectado = false, browserCDP = null
   const cdpFile = join(DIR, 'data', `cdp-${userSlug}.txt`)
-  if (!aislado && !perfilReal && existsSync(cdpFile)) {
+  // ⛔ NO reusar la ventana CDP por defecto (04-ago, lo cazó Ramón): esa ventana abre Chrome con
+  //   --remote-debugging-port, que Incapsula/BioCatch detectan como AUTOMATIZACIÓN → muestran el
+  //   muro "usa otra conexión" AUNQUE la IP esté limpia. Prueba: el login de las 10:39 (sin la
+  //   ventana CDP, Chrome propio de Patchright) PASÓ; los de después (conectados al CDP) rebotaron
+  //   al muro. Patchright oculta su propio control; el puerto de debug expuesto NO. Por eso el
+  //   login SIEMPRE abre su propio Chrome stealth. TEK_USAR_CDP=1 lo reactiva (solo para depurar).
+  if (process.env.TEK_USAR_CDP === '1' && !aislado && !perfilReal && existsSync(cdpFile)) {
     try {
       const ep = readFileSync(cdpFile, 'utf8').trim()
       browserCDP = await chromium.connectOverCDP(ep, { timeout: 8000 })
       ctx = browserCDP.contexts()[0] || (await browserCDP.newContext())
       conectado = true
-      log('navegador: CONECTADO a la ventana persistente (reuso, no abro otro Chrome)')
+      log('navegador: CONECTADO a la ventana persistente (TEK_USAR_CDP=1) — OJO: puerto debug detectable')
     } catch (e) { log('navegador: no pude conectar al daemon → abro el mío. ' + e.message); conectado = false; ctx = null; browserCDP = null }
   }
   if (!ctx) {
