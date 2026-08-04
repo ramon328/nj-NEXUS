@@ -3001,10 +3001,14 @@ async function main() {
   // VINCULACIÓN: el clon hereda la sesión de ANA CLARA. La CERRAMOS (logout) para que el login
   // del usuario sea LIMPIO y no dispare la re-validación (login?reason=validate_user). El logout
   // NO borra la confianza del dispositivo (cookies Incapsula/BioCatch persisten en el perfil).
-  if (aislado || recienSembrado) {
+  // SESIÓN FINALIZADA (pedido de Ramón, 04-ago): si la ventana quedó pegada en "sesión finalizada"
+  // (error-seguridad/logout), NO la arrastramos — cerramos limpio para SIEMPRE llegar al formulario
+  // de login fresco. Antes se operaba desde esa página muerta y parecía un bloqueo.
+  const enPaginaFinalizada = /error-seguridad|\/logout/i.test(page.url())
+  if (aislado || recienSembrado || enPaginaFinalizada) {
     await page.goto('https://privado.officebanking.cl/logout', { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => {})
-    await sleep(rnd(2500, 4000))
-    log('aislado/sembrado: cerré la sesión heredada (device-trust intacto), voy al login limpio')
+    await sleep(rnd(2000, 3500))
+    log(enPaginaFinalizada ? 'sesión finalizada detectada → cerré limpio, voy al formulario de login' : 'aislado/sembrado: cerré la sesión heredada (device-trust intacto), voy al login limpio')
   }
 
   // HIGIENE: antes de un login FRESCO, limpiar las cookies antibot quemadas para no llegar
@@ -3026,7 +3030,26 @@ async function main() {
   else await alb.click({ force: true, timeout: 4000 }).catch(() => {})
   await sleep(rnd(3500, 5200))
   await shot('h02-modal.png')
-  if (await textoVisible(page, DEVICE_RE)) return fin('device_trust', { nota: 'Incapsula flageó la conexión/dispositivo (IP quemada o perfil sin confianza)' })
+  if (await textoVisible(page, DEVICE_RE)) {
+    // MURO de Incapsula ("revisa tu conexión"). En AUTO cortamos (perfil/IP caliente). En
+    // ASISTIDO NO abandonamos al humano: limpiamos cookies antibot + reintentamos el formulario
+    // UNA vez, así siempre le damos la mejor chance de ver el login (el humano es el que pasa).
+    if (assist) {
+      log('muro Incapsula en asistido → limpio cookies y reintento el formulario 1 vez')
+      try { await limpiarCookiesAntibot(ctx, log) } catch { /* */ }
+      await page.goto('https://privado.officebanking.cl/logout', { waitUntil: 'domcontentloaded', timeout: 20_000 }).catch(() => {})
+      await sleep(rnd(1500, 2500))
+      await page.goto(LANDING, { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+      await sleep(rnd(3000, 4500))
+      const albR = page.locator('app-login-button').first()
+      if (await moveToLoc(page, albR)) { await sleep(rnd(120, 320)); await clickReal(page) }
+      else await albR.click({ force: true, timeout: 4000 }).catch(() => {})
+      await sleep(rnd(3000, 4500))
+      if (await textoVisible(page, DEVICE_RE)) return fin('device_trust', { nota: 'El banco muestra el muro "revisa tu conexión" aún tras limpiar. Es un bloqueo de IP/dispositivo (caliente): hay que dejarlo enfriar. NO es un login normal.' })
+    } else {
+      return fin('device_trust', { nota: 'Incapsula flageó la conexión/dispositivo (IP quemada o perfil sin confianza)' })
+    }
+  }
 
   // El form del modal puede tardar en renderizar (latencia de proxy/red): el modal abre pero
   // los campos RUT/clave aparecen unos segundos después. Polleamos hasta ~22s en vez de un
