@@ -2,6 +2,15 @@
 // para intentar pasar Incapsula + BioCatch. Perfil de Chrome PROPIO de tek que
 // persiste (acumula cookies de confianza), Chrome real vía Patchright.
 //
+// ★★★ REGLA DE ORO DEL BANCO (verificado 04-ago-2026 en producción) ★★★
+//   TODO clic en el banco tiene que ser un CLIC REAL: el mouse VIAJA hasta el elemento
+//   (curva humana + overshoot + temblor) y recién ahí down→up. NUNCA teleport-click
+//   (loc.click() directo), NUNCA el.click() por DOM, NUNCA dispatchEvent en botones.
+//   BioCatch puntúa el MOVIMIENTO, no solo el clic — un clic sin viaje del mouse es la
+//   huella de bot. Esa es LA CLAVE por la que el login automático pasó. Usar SIEMPRE
+//   clickHumano()/moveToLoc()+clickReal(); el .click() crudo solo como último fallback.
+//   (Los .click() de FOCO de campos de texto son tolerables; los de BOTONES, jamás.)
+//
 // Humanización: mouse Bézier con ease-in-out + overshoot + micro-jitter + drift de
 // "lectura"; tecleo con dwell (down→up), pausas irregulares y algún typo+corrección;
 // warmup (mover, scrollear, hover) antes de tocar el form; espera a que la red asiente
@@ -135,6 +144,9 @@ async function pulsoSesion(page, ms) {
 }
 // CLICK HUMANO sobre un locator: mueve el mouse con curva hasta el elemento, hover breve
 // y clic real (down→up). Si no consigue la caja, cae a un click normal. Devuelve bool.
+// ★ ESTA es la forma canónica de clickear en el banco (ver REGLA DE ORO arriba): el mouse
+//   VIAJA al botón y hace clic real. Todo botón sensible (Aceptar, Crear, Continuar,
+//   Confirmar, Superclave) DEBE pasar por acá — nunca por loc.click() directo.
 async function clickHumano(page, loc) {
   try {
     if (await moveToLoc(page, loc)) { await sleep(rnd(140, 380)); await clickReal(page); return true }

@@ -55,7 +55,8 @@ export function stockGoautos({ limite = 500 } = {}) {
 
 // Todas las patentes de MallorcAutos en GoAutos (disponibles + vendidos), cacheadas 5 min.
 let _patMallorca = { set: null, ts: 0 }
-export function patentesMallorca() {
+export function patentesMallorca({ refrescar = false } = {}) {
+  if (refrescar) _patMallorca = { set: null, ts: 0 }
   if (_patMallorca.set && Date.now() - _patMallorca.ts < 5 * 60 * 1000) return Promise.resolve(_patMallorca.set)
   return new Promise((resolve, reject) => {
     const dir = join(process.env.HOME || '', 'nexus', 'conector-goautos')
@@ -74,10 +75,17 @@ export function patentesMallorca() {
 }
 
 // ¿La patente es de un auto de MallorcAutos? (para permitir solicitar/traspasar TAG)
+// Si NO está en el listado cacheado, se RECONSULTA GoAutos antes de decir que no: el caché
+// dura 5 min y un auto recién creado quedaba "inexistente" durante ese rato. Pasó de verdad
+// (04-08-2026): Joaquín pidió el TAG del SWPV28 —comprado y ya cargado en GoAutos— y Nexus le
+// dijo "no encuentro la patente en el stock" porque el caché era anterior a la creación.
 export async function esAutoMallorca(patente) {
   const p = normPatente(patente)
   if (p.length < 5) return false
-  try { return (await patentesMallorca()).has(p) } catch { return true } // si GoAutos falla, no bloquear
+  try {
+    if ((await patentesMallorca()).has(p)) return true
+    return (await patentesMallorca({ refrescar: true })).has(p)
+  } catch { return true } // si GoAutos falla, no bloquear
 }
 
 // Patentes que YA tienen TAG (según los leads), con su estado más reciente.

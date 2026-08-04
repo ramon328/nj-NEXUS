@@ -3270,9 +3270,22 @@ async function ejecutar(nombre, input, ctx = {}) {
       if ((tipo === 'traspaso' || tipo === 'nuevo_tercero') && !patentes.length)
         return JSON.stringify({ ok: false, error: 'Falta la patente del vehículo (obligatoria para traspaso y tercero; puedes mandar varias).' })
       // GUARDA: CADA patente debe ser de MallorcAutos (en su stock/inventario).
+      // Un auto RECIÉN COMPRADO puede no estar publicado en GoAutos todavía (publicar es el
+      // paso 3 del flujo de compra y el TAG es el 4), pero SÍ es de Mallorca: si hay un
+      // expediente de compra abierto para esa patente, vale igual.
+      const conExpedienteCompra = (pat) => {
+        try {
+          const st = JSON.parse(readFileSync(join(__dirname, '.compras-pendientes.json'), 'utf8'))
+          return Object.keys(st).some((k) => k.endsWith(`::${pat}`))
+        } catch { return false }
+      }
       for (const p of patentes) {
-        if (!(await tagEsAutoMallorca(p)))
-          return JSON.stringify({ ok: false, error: `La patente ${p} no aparece en el stock de MallorcAutos. Solo se puede solicitar/traspasar TAG de autos de Mallorca. Revisa esa patente (búscala con consultar_goautos) antes de continuar.` })
+        if (!(await tagEsAutoMallorca(p)) && !conExpedienteCompra(p))
+          return JSON.stringify({
+            ok: false,
+            error: `La patente ${p} no aparece en el stock de MallorcAutos (GoAutos) ni tiene un expediente de compra abierto. Solo se puede solicitar/traspasar TAG de autos de Mallorca.`,
+            instruccion: `Antes de insistir, comprueba la patente con consultar_goautos. Si el auto se compró recién y todavía no está cargado, abre primero el expediente con la herramienta compra (accion:"iniciar") y después vuelve al TAG. Si la persona AFIRMA que el auto existe y ya se cargó, búscalo con consultar_goautos y NO le digas que no existe sin haberlo buscado.`,
+          })
       }
       const docs = documentosRequeridos(tipo, !!input.es_empresa)
       // El PODER lo genera Nexus solo (plantilla fija de Ana Clara, cambia patente+fecha) →

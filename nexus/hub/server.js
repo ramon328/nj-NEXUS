@@ -318,8 +318,13 @@ async function transcribirAudioURL(url) {
 // flujos de varios pasos (ej. SII: "RCV" → "ambas" → "enero a mayo"). Guardamos los
 // últimos turnos en memoria, con expiración para no arrastrar conversaciones viejas.
 const _memoria = new Map()           // de -> { msgs:[{role,content}], ts }
-const MEM_TTL = 30 * 60 * 1000       // 30 min sin hablar => arranca limpio
-const MEM_MAX = 16                   // últimos 16 turnos
+// Ventana de conversación. Antes eran 30 min / 16 turnos: Nexus no se acordaba de lo de
+// hace una hora ni de lo de ayer, y el usuario tenía que repetirle todo ("si existe, tú lo
+// creaste ayer"). El costo está acotado aparte por MAX_HIST_CHARS en asistente.mjs, que
+// recorta lo que realmente se le manda al modelo.
+const MEM_TTL = 12 * 60 * 60 * 1000  // 12 h sin hablar => arranca limpio
+const MEM_MAX = 40                   // últimos 40 turnos en RAM
+const REHIDRATA_DIAS = 7             // cuánto atrás se recupera de la BD en frío
 
 // Rehidrata la conversación desde historial.db cuando la memoria en RAM está vacía
 // (típico tras un REINICIO del hub). Sin esto, un "emítela" después de reiniciar se
@@ -329,7 +334,7 @@ const MEM_MAX = 16                   // últimos 16 turnos
 function rehidratarMemoria(de, canal) {
   try {
     if (!de) return []
-    const lim = Date.now() - MEM_TTL
+    const lim = Date.now() - REHIDRATA_DIAS * 24 * 60 * 60 * 1000
     const filas = histDB.recientes({ canal, contraparte: de, limite: MEM_MAX * 2 }) || []
     return filas
       .filter((f) => {

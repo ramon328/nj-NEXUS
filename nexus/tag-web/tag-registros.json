@@ -1,6 +1,35 @@
 {
   "registros": [
     {
+      "id": "TAG-006",
+      "creado": "2026-08-04T15:09:28.384Z",
+      "tipo": "nuevo_propio",
+      "tipo_label": "TAG nuevo — auto propio (Ana Clara)",
+      "patente": "SWPV28",
+      "cantidad": 1,
+      "es_empresa": false,
+      "solicitante": "Joaquin",
+      "asunto": "Tag nuevo patente SWPV28",
+      "estado": "enviado",
+      "modo": "real",
+      "correo_id": "19fcd529107a3bb9",
+      "enviado_desde": "ventas@mallorcautos.cl",
+      "destino": "contacto@tagtico.cl (copia: ventas@mallorcautos.cl)",
+      "adjuntos": [
+        "Poder_Tag_SWPV28.pdf",
+        "1785856103002_nexus-wa-in-1785856097732.pdf"
+      ],
+      "notas": null,
+      "convenio_recibido": false,
+      "eventos": [
+        {
+          "ts": "2026-08-04T15:09:28.384Z",
+          "tipo": "enviado",
+          "detalle": "Solicitud enviada a contacto@tagtico.cl (copia: ventas@mallorcautos.cl)"
+        }
+      ]
+    },
+    {
       "id": "TAG-005",
       "creado": "2026-08-04T14:52:47.893Z",
       "tipo": "nuevo_propio",

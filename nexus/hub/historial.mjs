@@ -70,8 +70,11 @@ function clave(canal, contraparte) {
   const v = String(contraparte || '').trim()
   // Todos los canales telefónicos se normalizan a E.164 (sin espacios/guiones)
   // para que un mismo número no se parta en varias conversaciones.
-  if (canal === 'whatsapp' || canal === 'llamada' || canal === 'sms' || canal === 'telefono') {
-    return v.replace(/[^0-9+]/g, '')
+  if (canal === 'whatsapp' || canal === 'llamada' || canal === 'sms' || canal === 'telefono' || canal === 'desktop') {
+    // SOLO DÍGITOS: si se deja el "+", el MISMO número se parte en dos conversaciones
+    // ("+56958589915" y "56958589915") y Nexus pierde la mitad de lo que se habló.
+    // WhatsApp/Kapso entrega el número sin "+", pero la web y las alertas lo mandan con "+".
+    return v.replace(/[^0-9]/g, '')
   }
   return v.toLowerCase()
 }
