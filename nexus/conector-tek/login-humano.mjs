@@ -2803,10 +2803,11 @@ async function main() {
   if (mapearOn) { ctx.on('request', (r) => regNet(r.method(), r.url())); ctx.on('response', (r) => regNet(r.request().method(), r.url(), r.status())) }
   for (const p of ctx.pages().slice(1)) { try { await p.close() } catch {} }
   const page = ctx.pages()[0] || await ctx.newPage()
-  // LOGGER DE RED (TEK_LOG_XHR=1): caza los endpoints JSON que la web de Office Banking llama por
+  // LOGGER DE RED (cazador de endpoints, ON POR DEFECTO desde 04-ago — se apaga con TEK_LOG_XHR=0):
+  //   caza los endpoints JSON que la web de Office Banking llama por
   // detrás → para descubrir la API REAL del banco y después llamarla directo (robusto, sin leer
   // HTML). Vuelca a data/xhr-endpoints.json, deduplicado por método+host+ruta, con una muestra.
-  if (process.env.TEK_LOG_XHR === '1') {
+  if (process.env.TEK_LOG_XHR !== '0') {
     const XHR_FILE = join(DATA, 'xhr-endpoints.json')
     let vistos = {}
     try { vistos = JSON.parse(readFileSync(XHR_FILE, 'utf8')) } catch { vistos = {} }

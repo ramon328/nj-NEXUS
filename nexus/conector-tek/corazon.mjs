@@ -75,14 +75,22 @@ function usuarios() {
   const out = []
   if (existsSync(join(DIR, 'session.json'))) out.push('ramon')
   try { for (const f of readdirSync(DIR)) { const m = f.match(/^session-(.+)\.json$/); if (m) out.push(m[1]) } } catch { /* */ }
-  return [...new Set(out)]
+  // Saltar usuarios PAUSADOS (.keepalive-off-<user>): no los latimos ni les abrimos ventana.
+  // Antes el corazón latía a los 3 (ramon/nico/joaquin) → 3 ventanas; nico y joaquin están off.
+  return [...new Set(out)].filter((u) => {
+    const slug = String(u).toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'
+    return !existsSync(join(DATA, '.keepalive-off-' + slug))
+  })
 }
 
 // login-humano para un usuario. keepaliveOnly=true → solo toque (NUNCA loguea).
 function correr(user, keepaliveOnly) {
   return new Promise((resolve) => {
     const env = { ...process.env, TEK_USER: user, TEK_LOCK_WAIT_MS: '8000' }
-    if (keepaliveOnly) env.TEK_KEEPALIVE = '1'
+    // El LATIDO corre INVISIBLE (headless): reusa la sesión (no loguea), así no abre ventanas en
+    // el mini. El login de verdad (keepaliveOnly=false) sigue HEADFUL (mejor para BioCatch y para
+    // que se vea). Ver [[tek-corazon-cadencia]]. TEK_HEADLESS solo acá, no en operaciones/login.
+    if (keepaliveOnly) { env.TEK_KEEPALIVE = '1'; env.TEK_HEADLESS = '1' }
     const h = spawn(NODE, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     let out = ''
     h.stdout.on('data', (d) => { out += d }); h.stderr.on('data', (d) => { out += d })
