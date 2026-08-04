@@ -93,6 +93,9 @@
   /* ── Estructura ─────────────────────────────────────────────────── */
   .app{position:fixed;inset:0;display:grid;grid-template-columns:268px 1fr;grid-template-rows:100%}
   .stage{position:relative;overflow:hidden}
+  /* Velo inferior: separa la barra de voz de las hojas de la constelación */
+  .stage::after{content:"";position:absolute;left:0;right:0;bottom:0;height:150px;pointer-events:none;z-index:5;
+    background:linear-gradient(0deg,rgba(9,11,16,.92) 0%,rgba(9,11,16,.6) 48%,transparent 100%)}
 
   /* ── Panel lateral ──────────────────────────────────────────────── */
   .side{position:relative;z-index:var(--z-side);height:100%;overflow-y:auto;
@@ -143,7 +146,7 @@
   /* ── Barra superior ─────────────────────────────────────────────── */
   .top{position:absolute;top:0;left:0;right:0;z-index:var(--z-chrome);display:flex;align-items:center;gap:12px;
     padding:14px 20px 26px;pointer-events:none;
-    background:linear-gradient(180deg,rgba(9,11,16,.92) 0%,rgba(9,11,16,.6) 55%,transparent 100%)}
+    background:linear-gradient(180deg,rgba(9,11,16,.97) 0%,rgba(9,11,16,.94) 42%,rgba(9,11,16,.62) 72%,transparent 100%)}
   .top .brand{display:flex;align-items:center;gap:11px;pointer-events:auto}
   .top .brand .logo{width:32px;height:32px;border-radius:var(--r2);display:grid;place-items:center;flex:0 0 auto;
     background:var(--n3);border:1px solid var(--rule-2);color:var(--gold)}
@@ -230,17 +233,17 @@
   .core{position:absolute;transform:translate(-50%,-50%);border-radius:50%;display:grid;place-items:center;
     cursor:pointer;z-index:3}
   .core canvas{position:absolute;inset:0;width:100%;height:100%;border-radius:50%}
-  .core .ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,200,97,.5);
-    box-shadow:inset 0 0 70px -34px rgba(255,200,97,.85);transition:border-color var(--t) linear,box-shadow var(--t) linear}
-  /* graduaciones cada 6° en el borde exterior */
-  .core .ring::before{content:"";position:absolute;inset:-13px;border-radius:50%;
-    background:repeating-conic-gradient(from 0deg,rgba(255,200,97,.34) 0 .5deg,transparent .5deg 6deg);
-    -webkit-mask:radial-gradient(circle,transparent calc(50% - 5px),#000 calc(50% - 5px) 50%,transparent 50%);
-            mask:radial-gradient(circle,transparent calc(50% - 5px),#000 calc(50% - 5px) 50%,transparent 50%);
+  .core .ring{position:absolute;inset:0;border-radius:50%;border:1px solid rgba(255,200,97,.45);
+    box-shadow:inset 0 0 44px -30px rgba(255,200,97,.8);transition:border-color var(--t) linear,box-shadow var(--t) linear}
+  /* bisel graduado: marcas cada 7.5°, como el dial de un instrumento */
+  .core .ring::before{content:"";position:absolute;inset:-11px;border-radius:50%;
+    background:repeating-conic-gradient(from 0deg,rgba(255,200,97,.5) 0 .9deg,transparent .9deg 7.5deg);
+    -webkit-mask:radial-gradient(circle,transparent calc(50% - 7px),#000 calc(50% - 7px) 50%,transparent 50%);
+            mask:radial-gradient(circle,transparent calc(50% - 7px),#000 calc(50% - 7px) 50%,transparent 50%);
     animation:spin 140s linear infinite}
   /* órbita exterior de referencia */
-  .core .ring::after{content:"";position:absolute;inset:-30px;border-radius:50%;
-    border:1px dashed rgba(167,176,194,.14);animation:spin 200s linear infinite reverse}
+  .core .ring::after{content:"";position:absolute;inset:-28px;border-radius:50%;
+    border:1px dashed rgba(167,176,194,.13);animation:spin 200s linear infinite reverse}
   @keyframes spin{to{transform:rotate(360deg)}}
   .core.speaking .ring{border-color:rgba(255,200,97,.95);
     box-shadow:inset 0 0 80px -26px rgba(255,200,97,1),0 0 44px -14px rgba(255,200,97,.55);
@@ -361,7 +364,8 @@
   .sheet-close:hover{background:var(--n4);color:var(--ink)}
   .sheet-body{padding:2px 16px 20px;overflow-y:auto}
 
-  .badges{display:flex;gap:7px;flex-wrap:wrap;margin:6px 0 16px}
+  .badges{display:flex;align-items:center;gap:7px;flex-wrap:wrap;margin:6px 0 16px}
+  .badges .chip{padding:4px 9px;font-size:11px}
   .badge{display:inline-flex;align-items:center;gap:7px;font-size:11.5px;font-weight:500;padding:5px 11px;
     border-radius:999px;background:var(--n3);color:var(--mut);border:1px solid var(--rule)}
   .badge .bd{width:6px;height:6px;border-radius:50%;background:var(--off);flex:0 0 auto}
@@ -624,16 +628,6 @@
     <div class="wx" id="wx" style="display:none"><b id="wx-t">—</b><span id="wx-d"></span></div>
     <div class="greet" id="greet"></div>
 
-    <div class="otd" id="otd" style="display:none">
-      <div class="h">Un día como hoy</div>
-      <div class="t" id="otd-t">—</div>
-    </div>
-
-    <div class="otd" id="news" style="display:none">
-      <div class="h">Últimas de IA</div>
-      <div class="news-list" id="news-list"></div>
-    </div>
-
     <div class="pills">
       <span class="pill on" id="p-nexus"><i></i>Nexus</span>
       <span class="pill on" id="p-mini"><i></i>Mac mini</span>
@@ -654,6 +648,17 @@
       <div class="item" data-act="hist" tabindex="0" role="button"><span class="ic" data-ic="hist"></span>Actividad<span class="cnt" id="nc-hist"></span></div>
       <div class="item" data-act="voice" tabindex="0" role="button"><span class="ic" data-ic="voice"></span>Hablar con Nexus</div>
     </nav>
+
+    <!-- Contexto ambiente: va DESPUÉS del menú, que es lo que se usa -->
+    <div class="otd" id="otd" style="display:none">
+      <div class="h">Un día como hoy</div>
+      <div class="t" id="otd-t">—</div>
+    </div>
+
+    <div class="otd" id="news" style="display:none">
+      <div class="h">Últimas de IA</div>
+      <div class="news-list" id="news-list"></div>
+    </div>
   </aside>
 
   <!-- ── Stage ── -->
@@ -750,7 +755,10 @@
         #mdl-body .btn{background:var(--n4);border:1px solid var(--rule-2);color:var(--mut);border-radius:var(--r2);
           padding:8px 13px;font-size:12.5px;cursor:pointer;font-family:inherit;
           transition:background var(--t-fast) linear,color var(--t-fast) linear}
+        #mdl-body .btn{display:inline-flex;align-items:center;gap:7px}
+        #mdl-body .btn svg{width:14px;height:14px}
         #mdl-body .btn:hover{background:var(--n5);color:var(--ink)}
+        #mdl-body .btn.dng{padding:8px 10px}
         #mdl-body .btn.pri{background:var(--acc);border-color:var(--acc);color:#04101f;font-weight:600}
         #mdl-body .btn.pri:hover{background:#79aeff;color:#04101f}
         #mdl-body .btn.dng{color:var(--err);border-color:rgba(255,107,125,.28)}
@@ -933,14 +941,17 @@ function layout(){
   world.style.transform='none';   // medir SIN zoom (getBoundingClientRect); se restaura al final con applyView()
   const W=cons.clientWidth, H=cons.clientHeight;
   const cx=W/2, cy=H/2 - 10;
-  const coreSz=Math.max(150, Math.min(Math.min(W,H)*0.34, 280));
+  const wide=W>760;
+  // En pantalla ancha manda el lado corto; en el teléfono manda el ancho, si no
+  // la constelación queda diminuta con medio alto vacío arriba y abajo.
+  const coreSz=Math.max(132, Math.min(wide? Math.min(W,H)*0.25 : W*0.40, 216));
   core.style.width=coreSz+'px'; core.style.height=coreSz+'px';
   core.style.left=cx+'px'; core.style.top=cy+'px';
   sizeCoreCanvas();
 
-  const wide=W>760;
-  const Ra=Math.max(coreSz*0.72, Math.min(W,H)*0.5 - 70);   // radio anillo de agentes
-  const Rl=Ra + Math.min(150, W*0.16);                       // radio hojas
+  const Ra=Math.max(coreSz*0.66 + 34,                        // separación mínima núcleo↔agente
+    Math.min(wide? Math.min(W,H)*0.5 - 76 : W*0.5 - 52, H*0.5 - 120));
+  const Rl=Ra + Math.min(104, W*0.115);                      // radio hojas (dentro del encuadre)
   const nodeSz=Math.max(48, Math.min(66, Math.min(W,700)/11));
   cons.style.setProperty('--sz', nodeSz+'px');
 
@@ -961,7 +972,7 @@ function layout(){
   function bezier(x1,y1,x2,y2,curv){
     const mx=(x1+x2)/2, my=(y1+y2)/2, dx=x2-x1, dy=y2-y1;
     const nx=-dy, ny=dx, len=Math.hypot(nx,ny)||1;
-    const c=curv*Math.min(120,len*0.28);
+    const c=curv*Math.min(74,len*0.17);   // curvas contenidas: conexión, no espagueti
     return `M ${x1} ${y1} Q ${mx+nx/len*c} ${my+ny/len*c} ${x2} ${y2}`;
   }
   ORDEN.forEach((p,k)=>{
@@ -989,7 +1000,7 @@ function layout(){
         const la=pp.a+off; const depth = (j%3)*30;                 // 3 profundidades → no se enciman las etiquetas
         const rl=Rl+depth; const lx=cx+rl*Math.cos(la), ly=cy+rl*Math.sin(la);
         const lp=document.createElementNS(NS,'path');
-        lp.setAttribute('d',bezier(pp.x,pp.y,lx,ly,off*0.9));
+        lp.setAttribute('d',bezier(pp.x,pp.y,lx,ly,off*0.55));
         lp.setAttribute('fill','none'); lp.setAttribute('stroke',c);
         lp.setAttribute('stroke-width',1); lp.setAttribute('stroke-opacity',0.26);
         lp.setAttribute('data-agent',p); lp.classList.add('lnk');
@@ -1087,10 +1098,12 @@ function drawCore(){
   const cx=coreW/2, cy=coreH/2;
   const amp = speaking? (0.6+audioLevel*0.9) : listening? 0.5 : 0.28;
   // halo
-  const g=coreCtx.createRadialGradient(cx,cy,0,cx,cy,coreR*1.15);
-  g.addColorStop(0,'rgba(255,200,97,'+(0.26+amp*0.24)+')');
-  g.addColorStop(0.5,'rgba(232,166,58,0.09)'); g.addColorStop(1,'rgba(232,166,58,0)');
-  coreCtx.fillStyle=g; coreCtx.beginPath(); coreCtx.arc(cx,cy,coreR*1.15,0,6.2832); coreCtx.fill();
+  // Halo contenido: insinúa energía sin convertirse en un disco naranja que
+  // se come el bisel y las partículas.
+  const g=coreCtx.createRadialGradient(cx,cy,0,cx,cy,coreR*0.94);
+  g.addColorStop(0,'rgba(255,200,97,'+(0.10+amp*0.13)+')');
+  g.addColorStop(0.34,'rgba(232,166,58,0.035)'); g.addColorStop(1,'rgba(232,166,58,0)');
+  coreCtx.fillStyle=g; coreCtx.beginPath(); coreCtx.arc(cx,cy,coreR*0.94,0,6.2832); coreCtx.fill();
   // partículas
   for(const p of coreParts){
     const wob=Math.sin(tPhase*p.sp+p.ph)*0.06*(1+amp);
@@ -1415,8 +1428,13 @@ function chartLinea(g){
   const pts=vals.map((v,i)=>`${X(i).toFixed(1)},${Y(v).toFixed(1)}`).join(' ');
   const area=`M ${X(0).toFixed(1)},${(H-pad).toFixed(1)} L ${pts.split(' ').join(' L ')} L ${X(n-1).toFixed(1)},${(H-pad).toFixed(1)} Z`;
   const labs=g.etiquetas.map(e=>`<span>${esc(String(e).slice(0,7))}</span>`).join('');
+  // El relleno se desvanece hacia abajo: si no, un bloque plano de 150px se ve turbio.
+  const gid='lg'+Math.abs(vals.reduce((a,b)=>a+b,0)%99999);
   return `<svg class="line-svg" viewBox="0 0 ${W} ${H}" preserveAspectRatio="none">
-    <path d="${area}" fill="rgba(255,200,97,.1)"/>
+    <defs><linearGradient id="${gid}" x1="0" y1="0" x2="0" y2="1">
+      <stop offset="0%" stop-color="#ffc861" stop-opacity=".22"/>
+      <stop offset="100%" stop-color="#ffc861" stop-opacity="0"/></linearGradient></defs>
+    <path d="${area}" fill="url(#${gid})"/>
     <polyline points="${pts}" fill="none" stroke="#ffc861" stroke-width="0.8" stroke-linejoin="round" stroke-linecap="round" vector-effect="non-scaling-stroke"/>
     </svg><div class="line-labs">${labs}</div>`;
 }
@@ -1469,7 +1487,7 @@ function drawWave(){
     if(data){ h=(data[Math.floor(i/N*data.length)]/255)*wH*0.9+3; }
     else { const base=active?0.5:0.12; h=(Math.abs(Math.sin(wPhase+i*0.5))*base+ (active?0.15:0.05))*wH; }
     const x=i*gap+gap/2;
-    const col = listening? '#22c8e8' : speaking? '#ffc861' : 'rgba(123,134,161,.45)';
+    const col = listening? '#22c8e8' : speaking? '#ffc861' : 'rgba(123,134,161,.2)';
     wCtx.fillStyle=col; wCtx.beginPath();
     const r=Math.min(gap*0.32,3);
     roundRect(wCtx,x-r,mid-h/2,r*2,h,r); wCtx.fill();
@@ -1498,7 +1516,7 @@ function pintarDetalle(){
   b.push(busy?'<span class="badge busy"><span class="bd"></span>Trabajando</span>'
     :(e?`<span class="badge on"><span class="bd"></span>Última: ${esc(haceTxt(e.hace_seg))}</span>`
        :'<span class="badge"><span class="bd"></span>Sin actividad hoy</span>'));
-  if(e&&e.ultimo_canal) b.push(`<span class="badge">${canalChip(e.ultimo_canal)}</span>`);
+  if(e&&e.ultimo_canal) b.push(canalChip(e.ultimo_canal));   // chip suelto: nada de píldora dentro de píldora
   if(s) b.push(s.activo?'<span class="badge up"><span class="bd"></span>Servicio online</span>':'<span class="badge down"><span class="bd"></span>Servicio offline</span>');
   let last='';
   if(e){ last=`<div class="last-box ${e.ultimo_ok?'':'err'}"><div class="sec-t">Última acción</div>
@@ -1565,7 +1583,7 @@ async function cargarSnapshot(){
     ORDEN.forEach(p=>{ const st=estadoDe(p); const c=$('#nc-'+p); if(c) c.textContent=st?.metricas?.acciones||''; });
     if(abierto) pintarDetalle();
     const core=$('#core');
-    $('#live-txt').textContent='en vivo · '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+    $('#live-txt').textContent='en vivo · '+new Date().toLocaleTimeString('es-CL',{hour:'2-digit',minute:'2-digit',second:'2-digit',hour12:false});
     // Latido: un pulso por lectura real del hub. La animación ES el dato.
     const lv=$('#live'); if(lv){ lv.classList.remove('off');
       const dot=lv.querySelector('i'); if(dot){ dot.classList.remove('beat'); void dot.offsetWidth; dot.classList.add('beat'); } }
@@ -1579,8 +1597,9 @@ async function cargarSnapshot(){
 const BRAIN={ nodes:[], links:[], adj:[], view:null, base:1, raf:0, focus:-1, hover:-1,
   umbral:1, ptrs:new Map(), drag:null, cv:null, ctx:null, dpr:1, reduce:false, listo:false };
 window.BRAIN=BRAIN; // expuesto para depuración
-const _PAL={ '00':'#ffd27a','ra':'#ffd27a','10':'#5b9dff','20':'#36e08a','30':'#a97bff',
-  '40':'#ffb020','50':'#ff7ab6','60':'#63d3ff','70':'#7ee787','90':'#ff9d5c' };
+// Misma paleta categórica que los agentes: el cerebro y la consola hablan igual.
+const _PAL={ '00':'#ffc861','ra':'#ffc861','10':'#5b9dff','20':'#3ddc97','30':'#b08cff',
+  '40':'#ff9d4d','50':'#ff6fa5','60':'#22c8e8','70':'#9be564','90':'#e8a63a' };
 const _FAM={ '00':'Raíz','ra':'Raíz','10':'Identidad','20':'Empresas','30':'Principios',
   '40':'Proyectos','50':'Situaciones','60':'Fuentes','70':'Datos','90':'Agente' };
 const _codeOf=(g)=>{ const c=String(g||'').slice(0,2).toLowerCase(); return _PAL[c]?c:'ra'; };
