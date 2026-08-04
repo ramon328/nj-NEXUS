@@ -180,6 +180,30 @@ def revisar_cav(T):
     return out
 
 
+DUENOS = {"unico": 1, "único": 1, "dos": 2, "tres": 3, "cuatro": 4, "cinco": 5,
+          "seis": 6, "siete": 7, "ocho": 8, "nueve": 9, "diez": 10}
+
+
+def datos_utiles(T):
+    """Datos del informe que sirven para PUBLICAR el auto (subir_auto) y que antes se perdían:
+    el flujo los volvía a pedir al usuario aunque estuvieran en el PDF."""
+    d = {}
+    m = re.search(r"revisi[oó]n t[eé]cnica vigente hasta el\s+([\d\-/]+)", T, re.I)
+    if m:
+        d["rev_tecnica_hasta"] = m.group(1)
+    # Permisos de circulación: tabla "AÑO FECHA DE PAGO MUNICIPALIDAD MONTO". Tomamos el más nuevo.
+    permisos = re.findall(r"\b(20\d{2})\s+(\d{2}/\d{2}/\d{4})\s+([A-Za-zÁÉÍÓÚÑáéíóúñ\s]+?)\s+\d*\s*\$", T)
+    if permisos:
+        anio, fpago, muni = max(permisos, key=lambda p: int(p[0]))
+        d["permiso_ultimo_anio"] = int(anio)
+        d["permiso_fecha_pago"] = fpago
+        d["permiso_comuna"] = norm(muni)
+    m = re.search(r"(\w+)\s+due[nñ]os?\s*\(considerando el actual\)", T, re.I)
+    if m:
+        d["duenos"] = DUENOS.get(m.group(1).lower(), None)
+    return d
+
+
 def main():
     import pypdf
     reader = pypdf.PdfReader(sys.argv[1])
@@ -208,6 +232,7 @@ def main():
             "apto": len(alertas) == 0,
         },
         "chequeos": chequeos,
+        "datos": datos_utiles(T),
     }, ensure_ascii=False))
 
 

@@ -332,17 +332,36 @@ export async function fichaCompra(patente) {
   const nmp = rows
     .filter((r) => r.reportType === 'NMP' && String(r.ready) === 'true' && (r.url || r.publicUrl))
     .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
-  if (!nmp) return { ok: false, sin_informe: true, patente: pat, nota: 'No hay Informe Completo (NMP) comprado para esta patente. No se compra automáticamente.' };
+  // Sin NMP no nos quedamos ciegos: caemos al mejor informe que haya (CAV). El CAV identifica
+  // el auto (marca/modelo/año/motor/chasis/color/combustible) aunque NO trae el kilometraje.
+  // Antes esto devolvía sin_informe y el flujo de compra perdía hasta los datos del vehículo,
+  // pese a que la revisión de documentos sí sabía leer el CAV.
+  let elegido = nmp, parser = 'leer_nmp.py', solo_cav = false;
+  if (!elegido) {
+    const otros = rows.filter((r) => String(r.ready) === 'true' && (r.url || r.publicUrl))
+      .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')));
+    elegido = otros[0];
+    parser = 'leer_cav.py';
+    solo_cav = true;
+  }
+  if (!elegido) return { ok: false, sin_informe: true, patente: pat, nota: 'No hay ningún informe comprado para esta patente. No se compra automáticamente.' };
   const dest = path.join('/tmp', `nmp_compra_${pat}.pdf`);
-  await descargarInforme(nmp.url || nmp.publicUrl, dest);
+  await descargarInforme(elegido.url || elegido.publicUrl, dest);
   let campos = {};
   try {
-    const out = execFileSync('python3', [path.join(__dirname, 'leer_nmp.py'), dest], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
+    const out = execFileSync('python3', [path.join(__dirname, parser), dest], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 });
     campos = (JSON.parse(out) || {}).campos || {};
   } catch (e) {
-    return { ok: false, error: `No pude leer el informe: ${e.message}`, informe_id: nmp.id, pdf: dest };
+    return { ok: false, error: `No pude leer el informe: ${e.message}`, informe_id: elegido.id, pdf: dest };
   }
-  return { ok: true, patente: campos.patente || pat, campos, informe_id: nmp.id, informe_fecha: nmp.createdAt, pdf: dest };
+  return {
+    ok: true, patente: campos.patente || pat, campos,
+    informe_id: elegido.id, informe_tipo: elegido.reportType,
+    informe_nombre: NOMBRE_INFORME[elegido.reportType] || elegido.reportType,
+    informe_fecha: elegido.createdAt, pdf: dest,
+    solo_cav,                                   // true = NO hay km (el CAV no lo trae): pedirlo
+    sin_km: campos.km == null,
+  };
 }
 
 // REVISIÓN A FONDO de los documentos de un auto (para el flujo de compra). GRATIS: usa el

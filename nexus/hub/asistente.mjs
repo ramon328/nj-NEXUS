@@ -2628,7 +2628,7 @@ const HERRAMIENTAS = [
   // ── TAG · solicitud / traspaso de TAG (MallorcAutos → Tag Tico) ──────────────
   {
     name: 'solicitar_tag',
-    description: 'SOLICITA o TRASPASA un TAG (peaje) de MallorcAutos a Tag Tico. El correo SALE desde el buzón de Mallorca (ventas@mallorcautos.cl) a contacto@tagtico.cl con copia a ventas@mallorcautos.cl, y queda registrado como "lead" con seguimiento. FLUJO DE 2 PASOS (obligatorio, es un correo real hacia afuera): (1) accion:"preparar" → NO envía: valida, arma el ASUNTO oficial, te dice qué DOCUMENTOS faltan y cuántos PDF adjuntos hay. Con eso PÍDELE a la persona los documentos que falten EN PDF por WhatsApp, y muéstrale el resumen para confirmar. (2) accion:"enviar" → SOLO tras el OK de la persona y con los PDF ya adjuntos: manda el correo y registra el lead. Los 3 CASOS: "nuevo_propio" = auto propio recién llegado (Ana Clara), asunto "Tag nuevo Ana clara (X)" (X=cantidad); basta poder + CAV. "traspaso" = auto con tag nuestro que se vende, asunto "Traspaso Tag patente XXXX". "nuevo_tercero" = auto de un tercero/consignación, asunto "Tag nuevo patente XXXX". Los PDF los toma de TODOS los que la persona mandó por WhatsApp en la conversación (llegan en mensajes separados y se acumulan). 🔑 EL PODER SE GENERA SOLO: Nexus arma automáticamente el poder de gestión del TAG desde una plantilla fija de Ana Clara, cambiando SOLO la patente y la fecha del día, y lo adjunta al correo. NO le pidas el poder al usuario ni esperes que lo mande. ⚠️ NO seas rígido con los documentos: la lista de "documentos_requeridos" es solo una GUÍA (y ya viene SIN el poder). En MallorcAutos NO se exige el contrato de compraventa firmado; basta con lo que el vendedor mande (carnet + CAV/factura) + el poder que genero yo. Si la persona ya mandó sus documentos y confirma que con esos se puede (ej. "con esos 3 se puede"), NO le sigas pidiendo contrato ni otros papeles: adjunta TODOS los PDF que mandó y envía. Tampoco digas "es el mismo documento que ya me mandaste" salvo que de verdad sobre; confía en lo que el vendedor te manda. 📋 VARIAS PATENTES EN UN CORREO: si quieren más de un TAG a la vez, pásalas TODAS juntas en "patentes" (array) — se manda UN solo correo con todas listadas y Nexus genera y adjunta UN poder por cada patente. Más eficiente que un correo por auto. Por defecto ENVÍA DE VERDAD (a Tag Tico); usa prueba:true para que llegue solo a Ramón mientras pruebas.',
+    description: 'SOLICITA o TRASPASA un TAG (peaje) de MallorcAutos a Tag Tico. El correo SALE desde el buzón de Mallorca (ventas@mallorcautos.cl) a contacto@tagtico.cl con copia a ventas@mallorcautos.cl, y queda registrado como "lead" con seguimiento. FLUJO DE 2 PASOS (obligatorio, es un correo real hacia afuera): (1) accion:"preparar" → NO envía: valida, arma el ASUNTO oficial, te dice qué DOCUMENTOS faltan y cuántos PDF adjuntos hay. Con eso PÍDELE a la persona los documentos que falten EN PDF por WhatsApp, y muéstrale el resumen para confirmar. (2) accion:"enviar" → SOLO tras el OK de la persona y con los PDF ya adjuntos: manda el correo y registra el lead. Los 3 CASOS: "nuevo_propio" = auto propio recién llegado (Ana Clara), asunto "Tag nuevo Ana clara (X)" (X=cantidad); basta poder + CAV. "traspaso" = auto con tag nuestro que se vende, asunto "Traspaso Tag patente XXXX". "nuevo_tercero" = auto de un tercero/consignación, asunto "Tag nuevo patente XXXX". 🧭 CÓMO ELEGIR EL TIPO (no lo adivines): si MallorcAutos/Ana Clara **COMPRÓ** el auto (el usuario dijo "compré", viene de un expediente de compra, o la adquisición es "comprado") el auto es PROPIO → **nuevo_propio**. Usa nuevo_tercero SOLO si el auto es en CONSIGNACIÓN (sigue siendo de un tercero). Si el auto se VENDIÓ y hay que pasar nuestro tag al comprador → traspaso. ⚠️ En un auto comprado, el nuevo dueño es ANA CLARA, NO el vendedor: no pidas "el carnet del nuevo dueño" refiriéndote al vendedor. Si no te queda claro si fue compra o consignación, PREGÚNTALO antes de elegir. Los PDF los toma de TODOS los que la persona mandó por WhatsApp en la conversación (llegan en mensajes separados y se acumulan). 🔑 EL PODER SE GENERA SOLO: Nexus arma automáticamente el poder de gestión del TAG desde una plantilla fija de Ana Clara, cambiando SOLO la patente y la fecha del día, y lo adjunta al correo. NO le pidas el poder al usuario ni esperes que lo mande. ⚠️ NO seas rígido con los documentos: la lista de "documentos_requeridos" es solo una GUÍA (y ya viene SIN el poder). En MallorcAutos NO se exige el contrato de compraventa firmado; basta con lo que el vendedor mande (carnet + CAV/factura) + el poder que genero yo. Si la persona ya mandó sus documentos y confirma que con esos se puede (ej. "con esos 3 se puede"), NO le sigas pidiendo contrato ni otros papeles: adjunta TODOS los PDF que mandó y envía. Tampoco digas "es el mismo documento que ya me mandaste" salvo que de verdad sobre; confía en lo que el vendedor te manda. 📋 VARIAS PATENTES EN UN CORREO: si quieren más de un TAG a la vez, pásalas TODAS juntas en "patentes" (array) — se manda UN solo correo con todas listadas y Nexus genera y adjunta UN poder por cada patente. Más eficiente que un correo por auto. Por defecto ENVÍA DE VERDAD (a Tag Tico); usa prueba:true para que llegue solo a Ramón mientras pruebas.',
     input_schema: {
       type: 'object',
       properties: {
@@ -2705,13 +2705,14 @@ const HERRAMIENTAS = [
     input_schema: {
       type: 'object',
       properties: {
-        accion: { type: 'string', enum: ['iniciar', 'estado', 'guardar', 'paso', 'contrato'], description: 'iniciar = abre el expediente y trae el auto+km del NMP. estado = tablero. guardar = guarda datos. paso = marca un paso listo/pendiente. contrato = paquete de datos para AutoRed.' },
+        accion: { type: 'string', enum: ['iniciar', 'estado', 'guardar', 'paso', 'contrato', 'publicar'], description: 'iniciar = abre el expediente y trae el auto+km del NMP. estado = tablero. guardar = guarda datos. paso = marca un paso listo/pendiente. contrato = paquete de datos para AutoRed.' },
         patente: { type: 'string', description: 'Patente del auto comprado (OBLIGATORIA en todas las acciones).' },
         vendedor: {
           type: 'object', description: 'Datos del VENDEDOR para "guardar" (el carnet es una foto/PDF adjunto, no va acá).',
           properties: { nombre: { type: 'string' }, rut: { type: 'string' }, direccion: { type: 'string' }, telefono: { type: 'string' }, correo: { type: 'string' } },
         },
         precio_compra: { type: 'number', description: 'Precio al que se compró el auto (CLP), para "guardar".' },
+        precio_venta: { type: 'number', description: 'Precio al que se va a VENDER el auto (para publicarlo en GoAutos).' },
         km: { type: 'number', description: 'Kilometraje (solo si querés corregir el que sacó el informe).' },
         permiso_recibido: { type: 'boolean', description: 'true cuando ya tienes el permiso de circulación.' },
         poder_recibido: { type: 'boolean', description: 'true cuando ya tienes el poder (para el TAG).' },
@@ -3092,7 +3093,7 @@ const necesitaLogin = (r) => !!(r && r.necesita_login && r.url && r.pin)
 function respuestaEntrarAlBanco(r, motivo, empresa) {
   return JSON.stringify({
     ok: false, estado: 'necesita_login', necesita_login: true, url: r.url, pin: r.pin, empresa: empresa || r.empresa,
-    texto: `🏦 Para ${motivo} en *${empresa || r.empresa}* tenés que entrar vos al banco (el login humano es el que pasa la seguridad):\n\n👉 ${r.url}\n🔑 PIN (un solo uso): *${r.pin}*\n\nAbrí el link, poné el PIN y logueate normal (clave + Superclave). Apenas entres, *sigo yo solo* y te aviso. ✅`,
+    texto: `🏦 Para ${motivo} en *${empresa || r.empresa}* tenés que entrar vos al banco (el login humano es el que pasa la seguridad):\n\n👉 ${r.url}\n🔑 PIN (un solo uso): ${r.pin}\n\nAbrí el link, poné el PIN y logueate normal (clave + Superclave). Apenas entres, *sigo yo solo* y te aviso. ✅`,
     instruccion: '⛔ NO vuelvas a llamar esta tool en este turno. Pásale al usuario la URL y el PIN TAL CUAL (de un solo uso: NO los inventes ni los cambies) y decile que cuando entre sigue solo. NO digas que falló, ni que "hay que esperar", ni le ofrezcas vincular el banco.',
   })
 }
@@ -3537,7 +3538,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           })
           return JSON.stringify({
             ok: false, estado: 'necesita_login', necesita_login: true, url: res.url, pin: res.pin, empresa_origen: empresa,
-            texto: `🏦 Para transferir ${montoTxt0} a ${bo.beneficiario.nombre} desde *${empresa}* tenés que entrar vos al banco (así pasa la seguridad):\n\n👉 ${res.url}\n🔑 PIN (un solo uso): *${res.pin}*\n\nAbrí el link, poné el PIN y logueate normal (clave + Superclave). Apenas entres, *creo la transferencia solo* y te aviso cómo quedó. ✅`,
+            texto: `🏦 Para transferir ${montoTxt0} a ${bo.beneficiario.nombre} desde *${empresa}* tenés que entrar vos al banco (así pasa la seguridad):\n\n👉 ${res.url}\n🔑 PIN (un solo uso): ${res.pin}\n\nAbrí el link, poné el PIN y logueate normal (clave + Superclave). Apenas entres, *creo la transferencia solo* y te aviso cómo quedó. ✅`,
             instruccion: '⛔ NO vuelvas a llamar tek_transferir. Pásale al usuario la URL y el PIN TAL CUAL (son de un solo uso, no los inventes ni cambies) y decile que cuando entre la transferencia se crea sola y le vas a avisar. NO digas que falló ni que "no se puede".',
           })
         }
@@ -3687,7 +3688,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           })
           return JSON.stringify({
             ok: false, estado: 'necesita_login', necesita_login: true, url: res.url, pin: res.pin, resumen,
-            texto: `🏦 Para subir el lote (${resumen.cantidad} transferencias · ${resumen.monto_total_fmt}) desde *${empresaMasiva}* tenés que entrar vos al banco:\n\n👉 ${res.url}\n🔑 PIN (un solo uso): *${res.pin}*\n\nAbrí el link, poné el PIN y logueate normal. Apenas entres, *subo el lote solo* y te aviso cómo quedó. ✅`,
+            texto: `🏦 Para subir el lote (${resumen.cantidad} transferencias · ${resumen.monto_total_fmt}) desde *${empresaMasiva}* tenés que entrar vos al banco:\n\n👉 ${res.url}\n🔑 PIN (un solo uso): ${res.pin}\n\nAbrí el link, poné el PIN y logueate normal. Apenas entres, *subo el lote solo* y te aviso cómo quedó. ✅`,
             instruccion: '⛔ NO vuelvas a llamar tek_masiva. Pásale la URL y el PIN TAL CUAL y decile que cuando entre el lote sube solo y le vas a avisar. NO digas que falló.',
           })
         }
@@ -3794,7 +3795,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         const r = await mod.abrirLoginAsistido({ empresa: sesR.empresa, user: sesR.userId, motivo: input.motivo || '' })
         if (r.ocupado) return JSON.stringify({ ok: false, estado: 'ocupado', texto: `⏳ La pantalla del banco está ocupada con otro login en curso (${r.nota || ''}). Esperá un par de minutos y pedímelo de nuevo.`, instruccion: 'NO abras otro login. Decile que espere unos minutos.' })
         return JSON.stringify({ ok: true, url: r.url, pin: r.pin, empresa: r.empresa, usuario: r.userId,
-          texto: `🏦 Abrí el login del banco de *${r.empresa}*. Entrá desde el teléfono:\n\n👉 ${r.url}\n🔑 PIN (un solo uso): *${r.pin}*\n\nTecleá tu clave y pasá la Superclave. Cuando entres, la sesión queda abierta y seguimos.`,
+          texto: `🏦 Abrí el login del banco de *${r.empresa}*. Entrá desde el teléfono:\n\n👉 ${r.url}\n🔑 PIN (un solo uso): ${r.pin}\n\nTecleá tu clave y pasá la Superclave. Cuando entres, la sesión queda abierta y seguimos.`,
           instruccion: 'Pásale al usuario la URL y el PIN TAL CUAL (son de un solo uso; NO los inventes ni cambies). Recuérdale que el PIN vence al terminar el login, y que él debe teclear su clave + Superclave (por eso pasa la seguridad).' })
       } catch (e) { return JSON.stringify({ ok: false, error: 'No pude abrir el login asistido del banco: ' + e.message }) }
     }
@@ -3912,7 +3913,10 @@ async function ejecutar(nombre, input, ctx = {}) {
         { k: 'contrato', t: 'Contrato (AutoRed)', min: 5, nota: 'manual: lo generas tú en AutoRed con el paquete de datos' },
         { k: 'pago', t: 'Pago', min: 2, nota: pagoAuto ? 'subes el pago masivo (tek_masiva); lo autoriza un humano' : 'el banco automático está en reposo → transfiere tú al vendedor (manual)' },
         { k: 'goautos', t: 'Publicar en GoAutos', min: 1, nota: 'subir_auto, con o sin foto' },
-        { k: 'tag', t: 'Solicitar TAG', min: 1, nota: 'solicitar_tag; el poder se genera solo' },
+        // Compra = el auto queda a nombre de ANA CLARA, así que el TAG es "nuevo_propio"
+        // (no "nuevo_tercero", que es para consignación). Sin decírselo, el modelo elegía
+        // el tipo equivocado y trataba al VENDEDOR como "nuevo dueño".
+        { k: 'tag', t: 'Solicitar TAG', min: 1, nota: 'solicitar_tag tipo:"nuevo_propio" (auto de Ana Clara); el poder se genera solo' },
         { k: 'factura', t: 'Factura de compra', min: 2, nota: 'borrador SII (sin emitir)' },
       ]
       const faltantes = (e) => {
@@ -3924,7 +3928,10 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (!e.carnet_recibido) f.push('foto del carnet del vendedor')
         if (!e.permiso_recibido) f.push('permiso de circulación')
         if (!(Number(e.precio_compra) > 0)) f.push('precio de compra')
-        if (!e.poder_recibido) f.push('el poder (para el TAG)')
+        // El PODER del TAG NO se pide: solicitar_tag lo genera solo desde la plantilla de
+        // Ana Clara (tag-web/generar_poder.py, solo cambia patente + fecha). Pedirlo acá
+        // contradecía al propio paso 4 ("el poder se genera solo") y dejaba el expediente
+        // eternamente incompleto por un documento que ya producimos nosotros.
         return f
       }
       const tablero = (e) => {
@@ -3962,6 +3969,8 @@ async function ejecutar(nombre, input, ctx = {}) {
               exp.auto = { marca: c.marca, modelo: c.modelo, anio: c.anio, tipo: c.tipo, motor: c.motor, chasis: c.chasis, vin: c.vin, color: c.color, combustible: c.combustible, pbv: c.pbv }
               if (c.km != null && exp.km == null) exp.km = c.km
               exp.informe_id = fc.informe_id
+              exp.informe_nombre = fc.informe_nombre
+              exp.solo_cav = !!fc.solo_cav       // CAV: identifica el auto pero NO trae el km
               exp.avisos = []
             } else {
               exp.sin_informe = true
@@ -3982,6 +3991,9 @@ async function ejecutar(nombre, input, ctx = {}) {
                 informe: rev.informe_nombre, formato: rev.formato, fecha: rev.informe_fecha,
                 resumen: rev.resumen, chequeos: rev.chequeos,
               }
+              // Datos del informe que sirven para PUBLICAR (rev. técnica, permiso, dueños).
+              // Antes se perdían y el flujo se los volvía a pedir al usuario.
+              if (rev.datos) exp.datos_informe = rev.datos
               exp.avisos = [
                 ...rev.chequeos.filter((c) => c.estado === 'alerta').map((c) => `⚠️ ${c.titulo}: ${c.detalle}`),
                 ...rev.chequeos.filter((c) => c.estado === 'revisar').map((c) => `❓ ${c.titulo}: ${c.detalle}`),
@@ -4007,6 +4019,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (accion === 'guardar') {
         if (input.vendedor && typeof input.vendedor === 'object') exp.vendedor = { ...(exp.vendedor || {}), ...input.vendedor }
         if (Number(input.precio_compra) > 0) exp.precio_compra = Number(input.precio_compra)
+        if (Number(input.precio_venta) > 0) exp.precio_venta = Number(input.precio_venta)
         if (Number(input.km) > 0) exp.km = Number(input.km)
         if (input.permiso_recibido === true) exp.permiso_recibido = true
         if (input.poder_recibido === true) exp.poder_recibido = true
@@ -4031,11 +4044,44 @@ async function ejecutar(nombre, input, ctx = {}) {
         store[ckey] = exp; guardar(store)
         const tb = tablero(exp)
         const sig = siguiente(exp)
-        const guia = { contrato: 'genera el contrato en AutoRed (usa accion:"contrato" para el paquete de datos)', pago: pagoAuto ? 'sube el pago masivo con tek_masiva desde ANA CLARA — beneficiario = el vendedor (nombre+RUT), monto = el precio de compra; pregunta concepto y motivo; queda Por Autorizar (lo libera un humano)' : 'el banco automático está EN REPOSO: dile al usuario que TRANSFIERA él al vendedor desde ANA CLARA (beneficiario = nombre+RUT del vendedor, monto = precio de compra). NO uses tek_masiva. Cuando confirme que transfirió, marca el paso como listo', goautos: 'publica el auto con subir_auto', tag: 'solicita el TAG con solicitar_tag (el PODER se genera solo con la patente y la fecha de hoy; solo adjunta carnet + factura/contrato)', factura: 'genera el borrador de la factura de compra (DTE 46) con el tool factura_compra (te manda la vista previa, NO emite)' }
+        const guia = { contrato: 'genera el contrato en AutoRed (usa accion:"contrato" para el paquete de datos)', pago: pagoAuto ? 'sube el pago masivo con tek_masiva desde ANA CLARA — beneficiario = el vendedor (nombre+RUT), monto = el precio de compra; pregunta concepto y motivo; queda Por Autorizar (lo libera un humano)' : 'el banco automático está EN REPOSO: dile al usuario que TRANSFIERA él al vendedor desde ANA CLARA (beneficiario = nombre+RUT del vendedor, monto = precio de compra). NO uses tek_masiva. Cuando confirme que transfirió, marca el paso como listo', goautos: 'publica el auto con subir_auto (usa accion:"publicar" para el paquete de datos ya armado: lo que sale del informe va prellenado y solo falta lo que el informe no trae)', tag: 'solicita el TAG con solicitar_tag tipo:"nuevo_propio" (el auto quedó a nombre de ANA CLARA — NO uses nuevo_tercero, eso es consignación; el nuevo dueño es Ana Clara, NO el vendedor). El PODER se genera solo con la patente y la fecha de hoy; solo adjunta carnet + factura/contrato', factura: 'genera el borrador de la factura de compra (DTE 46) con el tool factura_compra (te manda la vista previa, NO emite)' }
         return JSON.stringify({
           ok: true, patente, tablero: tb.lines,
           siguiente_paso: sig ? { paso: sig, que_hacer: guia[sig] } : null,
           instruccion: sig ? `Paso marcado. El siguiente es "${sig}": ${guia[sig]}.` : '🎉 Todos los pasos están listos: la compra quedó completa. Felicítalo corto.',
+        })
+      }
+
+      // PAQUETE PARA PUBLICAR EN GOAUTOS (paso 3). Junta lo que YA sabemos —del informe y del
+      // expediente— y lista SOLO lo que de verdad falta, para no repreguntar datos que ya
+      // están en el PDF (revisión técnica, comuna del permiso, dueños, prenda).
+      if (accion === 'publicar') {
+        const a = exp.auto || {}
+        const di = exp.datos_informe || {}
+        const lim = exp.revision?.chequeos?.find((c) => c.clave === 'limitaciones_dominio')
+        const paquete = {
+          marca: a.marca, modelo: a.modelo, anio: a.anio, tipo: a.tipo,
+          color: a.color, combustible: a.combustible, motor: a.motor, chasis: a.chasis || a.vin,
+          patente, km: exp.km ?? null, condicion: 'usado',
+          adquisicion: 'comprado', precio_adquisicion: Number(exp.precio_compra) || null,
+          proveedor: exp.vendedor?.nombre || null, fecha_compra: (exp.creado || '').slice(0, 10),
+          precio: Number(exp.precio_venta) || null,
+          rev_tecnica: di.rev_tecnica_hasta || null,
+          comuna_permiso: di.permiso_comuna || null,
+          permiso_municipal: di.permiso_ultimo_anio || null,
+          duenos: di.duenos ?? null,
+          // prenda solo si la revisión la confirmó; si quedó en "no se sabe", va null.
+          prenda: lim ? (lim.estado === 'alerta' ? true : (lim.estado === 'ok' ? false : null)) : null,
+        }
+        const falta = []
+        if (paquete.km == null) falta.push(`kilometraje${exp.solo_cav ? ' (el CAV no lo trae; con el Informe Completo sale solo)' : ''}`)
+        if (!paquete.precio) falta.push('precio de venta')
+        if (!paquete.rev_tecnica) falta.push('vencimiento de la revisión técnica')
+        falta.push('vencimiento del permiso de circulación (el informe solo dice el año pagado, no la fecha)')
+        falta.push('vencimiento de la revisión de gases (no viene en el informe)')
+        return JSON.stringify({
+          ok: true, patente, paquete_subir_auto: paquete, falta_para_publicar: falta,
+          instruccion: `Paquete listo para publicar el auto con subir_auto. Lo que va en "paquete_subir_auto" ya está CONFIRMADO (sale del ${exp.revision?.informe || 'informe'} y del expediente): NO se lo vuelvas a preguntar al usuario. Pídele SOLO lo de "falta_para_publicar", todo junto en UN mensaje. ${paquete.prenda === null ? 'OJO: no se pudo determinar si tiene prenda — no afirmes ninguna de las dos cosas.' : ''} Con eso llama subir_auto y marca el paso con accion:"paso", paso:"goautos".`,
         })
       }
 

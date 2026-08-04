@@ -78,7 +78,10 @@ function authed(req) {
   const pin = currentPin(); if (!pin) return false;   // sin sesión activa → nadie entra
   return cookies(req).nvauth === tokenFor(pin);
 }
-const PINPAGE = `<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Acceso</title></head><body style="font-family:system-ui,-apple-system,sans-serif;background:#0f1115;color:#e8e8ea;display:grid;place-items:center;min-height:100vh;margin:0"><form method=POST action="${PREFIX}/__pin" style="text-align:center;max-width:280px"><div style="font-size:34px">🔐</div><h3 style="font-weight:600">PIN de acceso</h3><input name=pin type=password inputmode=numeric autocomplete=off autofocus placeholder="••••••" style="font-size:22px;letter-spacing:4px;padding:12px;border-radius:10px;border:1px solid #333;background:#1a1d24;color:#fff;text-align:center;width:180px"><br><br><button style="font-size:16px;padding:11px 30px;border-radius:10px;border:0;background:#e0322f;color:#fff;font-weight:600;cursor:pointer">Entrar</button></form></body></html>`;
+// Página del PIN. `aviso` se muestra cuando el PIN no calzó: sin eso, un PIN mal pegado
+// devolvía la MISMA pantalla en blanco y parecía que el botón no hacía nada (04-ago, Ramón).
+const pinPage = (aviso = '') => `<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Acceso</title></head><body style="font-family:system-ui,-apple-system,sans-serif;background:#0f1115;color:#e8e8ea;display:grid;place-items:center;min-height:100vh;margin:0"><form method=POST action="${PREFIX}/__pin" style="text-align:center;max-width:300px;padding:16px"><div style="font-size:34px">🔐</div><h3 style="font-weight:600">PIN de acceso</h3>${aviso ? `<p style="background:#3b1513;border:1px solid #7d2a25;color:#ffb4ae;padding:10px 12px;border-radius:10px;font-size:14px;line-height:1.4">${aviso}</p>` : ''}<input name=pin type=tel inputmode=numeric pattern="[0-9]*" maxlength=8 autocomplete=off autofocus placeholder="8 dígitos" style="font-size:24px;letter-spacing:4px;padding:14px;border-radius:10px;border:1px solid #333;background:#1a1d24;color:#fff;text-align:center;width:200px"><br><br><button style="font-size:17px;padding:13px 34px;border-radius:10px;border:0;background:#e0322f;color:#fff;font-weight:600;cursor:pointer">Entrar</button><p style="color:#7f858f;font-size:13px;margin-top:18px;line-height:1.4">Escribí los 8 dígitos. Si lo copiás de WhatsApp, no importa si vienen los asteriscos.</p></form></body></html>`;
+const PINPAGE = pinPage();
 const NOSESSION = `<!doctype html><html lang=es><head><meta charset=utf-8><meta name=viewport content="width=device-width,initial-scale=1"><title>Sin sesión</title></head><body style="font-family:system-ui,-apple-system,sans-serif;background:#0f1115;color:#9aa0aa;display:grid;place-items:center;min-height:100vh;margin:0;text-align:center"><div><div style="font-size:34px">🔒</div><h3 style="color:#e8e8ea;font-weight:600">No hay una sesión de ingreso activa</h3><p>Pedí una operación que necesite el banco y te llega un PIN nuevo por WhatsApp.</p></div></body></html>`;
 
 // Se inyecta en la vista noVNC: viewport móvil (teléfono/PC) + barra que consulta /estado y avisa
@@ -151,11 +154,21 @@ const handler = (req, res) => {
     let b = ''; req.on('data', (d) => { b += d; if (b.length > 2000) req.destroy(); });
     req.on('end', () => {
       const pin = currentPin();
-      const m = /(?:^|&)pin=([^&]*)/.exec(b); const got = decodeURIComponent((m ? m[1] : '').replace(/\+/g, ' '));
-      if (pin && got && got === pin) {
+      const m = /(?:^|&)pin=([^&]*)/.exec(b); const crudo = decodeURIComponent((m ? m[1] : '').replace(/\+/g, ' '));
+      // SOLO LOS DÍGITOS: el PIN llega por WhatsApp en negrita (*12345678*) y al copiarlo se
+      // pegan los asteriscos; también se cuelan espacios. Comparar crudo rebotaba un PIN correcto.
+      const got = crudo.replace(/\D/g, '');
+      if (pin && got && got === String(pin).replace(/\D/g, '')) {
         res.writeHead(302, { 'set-cookie': `nvauth=${tokenFor(pin)}; Path=${PREFIX || '/'}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`, location: vncView() });
         res.end();
-      } else { res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' }); res.end(pin ? PINPAGE : NOSESSION); }
+      } else {
+        res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' });
+        res.end(pin
+          ? pinPage(got
+            ? 'Ese PIN no es el que está activo. Usá el <b>último</b> que te mandó Nexus (cada pedido genera uno nuevo y anula el anterior).'
+            : 'Escribí el PIN de 8 dígitos.')
+          : NOSESSION);
+      }
     });
     return;
   }
