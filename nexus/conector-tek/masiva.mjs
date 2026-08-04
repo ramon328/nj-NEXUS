@@ -229,29 +229,10 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
     if (concepto) env.TEK_MASIVA_CONCEPTO = concepto
     if (userId) env.TEK_USER = userId
 
-    // ── SESIÓN DORMIDA → LOGIN ASISTIDO CON EL LOTE ENGANCHADO ─────────────────
-    // Igual que en transferir.mjs: si la sesión de esta persona no está fresca, en vez de
-    // quemar un login automático que el antifraude va a rebotar, abrimos el login humano
-    // (/vnc + PIN) y le mandamos la subida del lote en el mismo proceso: cuando la persona
-    // entra, el lote sube solo. Devolvemos el link YA, sin bloquear el chat.
-    const sesion = puerta.estadoSesion(userId)
-    if (asistido && !sesion.viva) {
-      const jobFile = join(DIR, 'data', `.job-masiva-${Date.now().toString(36)}.json`)
-      const ab = puerta.abrirAsistido({
-        userId, empresa, motivo: `subir un lote de ${gen.total} transferencia(s) por ${gen.monto_total}`,
-        env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `masiva:${stamp || gen.ruta}`,
-      })
-      if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
-      return resolve({
-        ok: false, estado: 'necesita_login', necesita_login: true,
-        url: ab.url, pin: ab.pin, userId, empresa,
-        // en_vuelo = ya había un login abierto: este jobFile no lo escribe nadie (ver pendientes.mjs).
-        job: ab.en_vuelo ? null : jobFile,
-        archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total, concepto: concepto || null,
-        nota: 'La sesión del banco está dormida: le abrí el login para que entre. El lote queda enganchado y sube solo apenas entre.',
-      })
-    }
-
+    // ── AUTO-LOGIN CON CLICS HUMANOS + SUBIDA DEL LOTE, TODO EN UN PROCESO ──────
+    // login-humano en MODO AUTO: reusa si viva, LOGUEA SOLO con clics humanos si dormida, y
+    // sube el lote. Solo si el login NO pudo entrar por sí mismo (Superclave / rebote) — y por
+    // lo tanto el lote NO se subió — caemos al ASISTIDO en el close.
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     let out = '', err = ''
     hijo.stdout.on('data', (d) => { out += d.toString() })
@@ -267,6 +248,21 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
       }
       const masiva = resultado?.masiva || null
       const ok = masiva?.creado === true || masiva?.estado === 'lote_creado_pendiente'
+      // ¿Login automático no pudo entrar solo y el lote NO se subió? → ASISTIDO enganchado.
+      if (!ok && !masiva && asistido && process.env.TEK_SIN_ASISTIDO !== '1' && puerta.loginNecesitaHumano(resultado)) {
+        const jobFile = join(DIR, 'data', `.job-masiva-${Date.now().toString(36)}.json`)
+        const ab = puerta.abrirAsistido({
+          userId, empresa, motivo: `subir un lote de ${gen.total} transferencia(s) por ${gen.monto_total}`,
+          env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `masiva:${stamp || gen.ruta}`,
+        })
+        if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
+        return resolve({
+          ok: false, estado: 'necesita_login', necesita_login: true,
+          url: ab.url, pin: ab.pin, userId, empresa, job: ab.en_vuelo ? null : jobFile,
+          archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total, concepto: concepto || null,
+          nota: 'El login automático no pudo entrar solo. Te abrí el login para que entres vos; apenas entres sube el lote.',
+        })
+      }
       resolve({
         ok, estado: masiva?.estado || resultado?.estado || 'sin_resultado',
         archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total,

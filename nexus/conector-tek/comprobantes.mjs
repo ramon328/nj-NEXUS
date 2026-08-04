@@ -41,25 +41,10 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
   tomarLock(lf)
   return new Promise((resolve) => {
     const env = { ...process.env, TEK_COMPROBANTES: modo, TEK_EMPRESA: empresa.replace(/ SPA$/i, '').trim() || 'ANA CLARA', TEK_USER: userId, ...extraEnv }
-    // Sesión dormida → login asistido con la descarga enganchada (misma puerta que el resto).
-    const sesion = puerta.estadoSesion(userId)
-    if (process.env.TEK_SIN_ASISTIDO !== '1' && !sesion.viva) {
-      soltarLock(lf)   // el candado real lo toma login-humano dentro del proceso
-      const jobFile = join(DIR, 'data', `.job-comp-${Date.now().toString(36)}.json`)
-      const ab = puerta.abrirAsistido({
-        userId, empresa, motivo: modo === 'bajar' ? 'bajar los comprobantes' : 'ver los comprobantes',
-        env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `comprobantes:${modo}:${userId}`,
-      })
-      if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
-      return resolve({
-        ok: false, estado: 'necesita_login', necesita_login: true,
-        url: ab.url, pin: ab.pin, userId, empresa,
-        // en_vuelo = el login ya estaba abierto con OTRA operación enganchada: este jobFile
-        // no lo escribe nadie (ver el mismo guard en pendientes.mjs).
-        job: ab.en_vuelo ? null : jobFile,
-        nota: 'La sesión del banco está dormida: le abrí el login. Apenas entre, sigo con los comprobantes solo.',
-      })
-    }
+    // AUTO-LOGIN CON CLICS HUMANOS: el spawn de abajo es login-humano en MODO AUTO — si la
+    // sesión está viva la reusa, si está dormida LOGUEA SOLO (mouse que viaja a los botones +
+    // clic real, lo que ya pasó BioCatch) y corre la operación. Solo si ese login no pudo
+    // entrar por sí mismo (Superclave / rebote antifraude) caemos al ASISTIDO (link + PIN).
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     let out = '', err = ''
     hijo.stdout.on('data', (d) => { out += d.toString() })
@@ -76,6 +61,22 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
       const comprob = resultado?.comprob || null
       // Si el banco botó la sesión por seguridad, avísalo claro (login flageado / expiró).
       const seguridad = /logout\/error-seguridad|device|error-seguridad/i.test(resultado?.url || comprob?.url || '')
+      // ¿El login automático NO pudo entrar solo (pide Superclave / lo rebotó el antifraude)?
+      // → recién ahí abrimos el ASISTIDO: le mandamos link+PIN al usuario y la operación queda
+      //   enganchada a ESE login (se ejecuta sola cuando entra).
+      if (!comprob && process.env.TEK_SIN_ASISTIDO !== '1' && (seguridad || puerta.loginNecesitaHumano(resultado))) {
+        const jobFile = join(DIR, 'data', `.job-comp-${Date.now().toString(36)}.json`)
+        const ab = puerta.abrirAsistido({
+          userId, empresa, motivo: modo === 'bajar' ? 'bajar los comprobantes' : 'ver los comprobantes',
+          env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `comprobantes:${modo}:${userId}`,
+        })
+        if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
+        return resolve({
+          ok: false, estado: 'necesita_login', necesita_login: true,
+          url: ab.url, pin: ab.pin, userId, empresa, job: ab.en_vuelo ? null : jobFile,
+          nota: 'El login automático no pudo entrar solo (probable Superclave o seguridad). Te abrí el login para que entres vos; apenas entres sigo con los comprobantes.',
+        })
+      }
       resolve({ ok: Boolean(comprob) && !seguridad, estado: seguridad ? 'sesion_caida' : (comprob?.estado || resultado?.estado || 'sin_resultado'), comprob, stderr: err.slice(-300) })
     }
     hijo.on('close', fin)

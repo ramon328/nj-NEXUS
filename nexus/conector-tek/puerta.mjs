@@ -138,6 +138,21 @@ export function estadoSesion(userId = 'ramon') {
 
 // ── 3. ¿Este resultado es un problema de SESIÓN (se arregla entrando)? ────────
 const ESTADOS_SESION = /sesion_caida|sesion_muerta|error_segurid|device_trust|login_throttle|timeout_asistido|sin_form|sin_boton_aceptar|error_credenciales|pide_mfa|mfa_sin_codigo|keepalive_omitido|no_logueado|sin_sesion|no tiene banco conectado/i
+// Estados con los que el login AUTOMÁTICO (clics humanos) NO pudo entrar por sí mismo →
+// hace falta el humano (login asistido: link + PIN). El resto (op falló, ocupado) NO cae acá.
+const LOGIN_NECESITA_HUMANO = /device_trust|error_?segurid|error-seguridad|pide_mfa|mfa_sin_codigo|sin_form|sin_boton_aceptar|timeout_asistido|hard_timeout|login_throttle|error_credenciales|sesion_muerta|sin_resultado|spawn_error|\btimeout\b/i
+/**
+ * Tras un intento de login AUTOMÁTICO (con clics humanos), ¿no pudo entrar solo y hay que
+ * caer al asistido? Se le pasa el RESULTADO crudo de login-humano. Si el login entró bien
+ * (estado 'logueado'/'reuso'/'keepalive_ok') devuelve false aunque la OPERACIÓN falle
+ * (eso NO se arregla con un login, es otro problema).
+ */
+export function loginNecesitaHumano(resultado) {
+  const estado = String((resultado && (resultado.estado || resultado.error)) || '')
+  if (/^(logueado|reuso|keepalive_ok|asistido|login)$/i.test(estado)) return false
+  return LOGIN_NECESITA_HUMANO.test(estado)
+}
+
 /**
  * ¿El resultado de una operación falló por FALTA DE SESIÓN (y se arregla con un login
  * asistido)? Ojo: "ocupado" NO entra — ahí hay que esperar, no abrir otro login.
@@ -251,6 +266,40 @@ export function abrirAsistido({ userId = 'ramon', empresa = 'ANA CLARA SPA', mot
 }
 
 /**
+ * INTENTA una operación de banco con LOGIN AUTOMÁTICO (clics humanos). Corre login-humano en
+ * MODO AUTO con la operación enganchada en el env: si la sesión está viva la reusa, si está
+ * dormida LOGUEA SOLO (mouse que viaja a los botones + clic real) y corre la operación, todo
+ * en un proceso. Devuelve el RESULTADO crudo parseado. NO abre asistido: eso lo decide el
+ * llamador con loginNecesitaHumano(). Bloquea hasta ~11 min (login + operación).
+ *
+ * @param {object} o { userId, empresa, env }  env = las TEK_* de la operación (TEK_COMPROBANTES, etc.)
+ * @returns {Promise<{resultado, out, err, code}>}
+ */
+export function intentarAutoConOperacion({ userId, empresa, env = {} }) {
+  return new Promise((resolve) => {
+    const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], {
+      cwd: DIR,
+      env: { ...process.env, ...env, TEK_USER: slugUsuario(userId), TEK_EMPRESA: empresa },
+    })
+    let out = '', err = ''
+    hijo.stdout.on('data', (d) => { out += d.toString() })
+    hijo.stderr.on('data', (d) => { err += d.toString() })
+    const to = setTimeout(() => { try { hijo.kill('SIGKILL') } catch { /* */ } }, 11 * 60_000)
+    hijo.on('close', (code) => {
+      clearTimeout(to)
+      let resultado = null
+      const lineas = out.split('\n')
+      for (let i = lineas.length - 1; i >= 0; i--) {
+        const idx = lineas[i].indexOf('RESULTADO:')
+        if (idx >= 0) { try { resultado = JSON.parse(lineas[i].slice(idx + 'RESULTADO:'.length).trim()); break } catch { /* */ } }
+      }
+      resolve({ resultado, out, err, code })
+    })
+    hijo.on('error', (e) => { clearTimeout(to); resolve({ resultado: { estado: 'spawn_error', error: e.message }, out, err: e.message, code: -1 }) })
+  })
+}
+
+/**
  * Texto listo para mandarle al usuario por WhatsApp cuando hay que entrar al banco.
  * Se arma acá (no en el prompt) para que SIEMPRE salga con la URL y el PIN de verdad.
  */
@@ -267,4 +316,4 @@ export function textoLoginAsistido({ url, pin, empresa, motivo, sigueSola = true
   ].join('\n')
 }
 
-export default { elegirSesion, estadoSesion, esFalloSesion, abrirAsistido, asistidoEnVuelo, textoLoginAsistido, URL_VNC, slugUsuario }
+export default { elegirSesion, estadoSesion, esFalloSesion, loginNecesitaHumano, intentarAutoConOperacion, abrirAsistido, asistidoEnVuelo, textoLoginAsistido, URL_VNC, slugUsuario }

@@ -396,36 +396,12 @@ export function ejecutar(borrador, { userId, empresa, asistido = true } = {}) {
     if (empresa) env.TEK_EMPRESA = empresa
     if (userId) env.TEK_USER = userId
 
-    // ── SESIÓN DORMIDA → LOGIN ASISTIDO CON LA TRANSFERENCIA ENGANCHADA ──────────
-    // Si la sesión de esta persona no está fresca, el login automático no pasa el antifraude
-    // (ver [[tek-login-asistido-ondemand]]): en vez de gastar 3 min para fallar, abrimos el
-    // login humano por /vnc y le MANDAMOS la transferencia en el mismo proceso. Cuando la
-    // persona entra, login-humano sigue solo hasta crear la pendiente. Devolvemos YA el
-    // link + PIN (sin bloquear el turno del chat).
-    const sesion = puerta.estadoSesion(userId)
-    if (asistido && !sesion.viva) {
-      // El proceso corre suelto (el humano tarda lo que tarda): que deje el resultado en
-      // disco para poder contarle a la persona cómo quedó sin adivinar.
-      const jobFile = join(DATA, `.job-transf-${Date.now().toString(36)}.json`)
-      const ab = puerta.abrirAsistido({
-        userId, empresa, motivo: `transferir $${Number(borrador.monto).toLocaleString('es-CL')} a ${b.nombre}`,
-        env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `transferencia:${huella}`,
-      })
-      if (ab.ocupado) {
-        soltarEnvioLock()
-        registrarReciente(huella, 'sesion_caida')   // pre-creación: se puede reintentar ya
-        return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
-      }
-      actualizarEnvioLock({ childPid: ab.pid })
-      return resolve({
-        ok: false, estado: 'necesita_login', necesita_login: true, pendiente: false,
-        // en_vuelo (carrera: el mismo envío pedido dos veces a la vez) = la transferencia
-        // viaja con AQUEL proceso y escribe en SU archivo; este no lo escribe nadie.
-        url: ab.url, pin: ab.pin, userId, empresa, job: ab.en_vuelo ? null : jobFile,
-        nota: 'La sesión del banco está dormida: le abrí el login para que entre. La transferencia queda enganchada y se crea sola apenas entre.',
-      })
-    }
-
+    // ── AUTO-LOGIN CON CLICS HUMANOS + CREACIÓN, TODO EN UN PROCESO ──────────────
+    // login-humano en MODO AUTO: si la sesión está viva la reusa; si está dormida LOGUEA SOLO
+    // (mouse que viaja a los botones + clic real, lo que ya pasó BioCatch) y crea la
+    // transferencia. Solo si ese login NO pudo entrar por sí mismo (Superclave / rebote del
+    // antifraude) — y por lo tanto la transferencia NO se intentó — caemos al ASISTIDO
+    // (link + PIN) en terminar(). Así el usuario no tiene que dar Aceptar salvo que haga falta.
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     actualizarEnvioLock({ childPid: hijo.pid })
 
@@ -448,11 +424,26 @@ export function ejecutar(borrador, { userId, empresa, asistido = true } = {}) {
           try { resultado = JSON.parse(lineas[i].slice(idx + 'RESULTADO:'.length).trim()); break } catch {}
         }
       }
-      if (!resultado) {
-        registrarReciente(huella, 'sin_resultado')
-        return resolve({ ok: false, estado: 'sin_resultado', error: `login-humano no devolvió RESULTADO (code ${code}).`, stderr: err.slice(-500) })
+      if (!resultado) resultado = { estado: 'sin_resultado' }
+      const res = interpretarCreacion(resultado, { huella, borrador, empresa })
+      // ¿El login automático NO pudo entrar solo y la transferencia NO se creó? → ASISTIDO
+      // con la transferencia enganchada. loginNecesitaHumano() SOLO matchea estados de login
+      // que NO tocaron el formulario (device_trust, pide_mfa, sin_form, timeout, throttle…),
+      // así que caer acá NUNCA duplica: el banco jamás recibió la solicitud.
+      if (!res.pendiente && !res.ya_pendiente && asistido && process.env.TEK_SIN_ASISTIDO !== '1' && puerta.loginNecesitaHumano(res)) {
+        const jobFile = join(DATA, `.job-transf-${Date.now().toString(36)}.json`)
+        const ab = puerta.abrirAsistido({
+          userId, empresa, motivo: `transferir $${Number(borrador.monto).toLocaleString('es-CL')} a ${b.nombre}`,
+          env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `transferencia:${huella}`,
+        })
+        if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
+        return resolve({
+          ok: false, estado: 'necesita_login', necesita_login: true, pendiente: false,
+          url: ab.url, pin: ab.pin, userId, empresa, job: ab.en_vuelo ? null : jobFile,
+          nota: 'El login automático no pudo entrar solo (probable Superclave o seguridad). Te abrí el login para que entres vos; apenas entres se crea la transferencia.',
+        })
       }
-      resolve(interpretarCreacion(resultado, { huella, borrador, empresa }))
+      resolve(res)
     }
 
     hijo.on('close', terminar)
