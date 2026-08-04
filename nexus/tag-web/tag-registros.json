@@ -101,7 +101,7 @@
       "es_empresa": false,
       "solicitante": null,
       "asunto": "Tag nuevo patente SWPV28",
-      "estado": "enviado",
+      "estado": "convenio_recibido",
       "modo": "prueba",
       "correo_id": "19fcd39f9df0f319",
       "enviado_desde": "ventas@mallorcautos.cl",
@@ -110,12 +110,17 @@
         "Poder_Tag_SWPV28.pdf"
       ],
       "notas": null,
-      "convenio_recibido": false,
+      "convenio_recibido": true,
       "eventos": [
         {
           "ts": "2026-08-04T14:42:36.272Z",
           "tipo": "enviado",
           "detalle": "Solicitud enviada a ramon@dropout.cl"
+        },
+        {
+          "ts": "2026-08-04T19:15:33.248Z",
+          "tipo": "convenio_recibido",
+          "detalle": "Convenio recibido de Tag Tico (auto): \"Re: Tag nuevo patente SWPV28\""
         }
       ]
     },
