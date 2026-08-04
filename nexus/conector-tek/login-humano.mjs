@@ -3050,6 +3050,18 @@ async function main() {
     //   2. el botón "Aceptar" centrado en la pantalla, sin scroll
     //   3. la pantalla despierta mientras dure la ventana
     await prepararPantallaAsistida(page, log, profileDir)
+    // APRENDER del login humano: grabamos tu movimiento real (mouse/teclado) y el diálogo con
+    // el antifraude. NO toca el login, solo observa. Con varias entradas tuyas armamos una
+    // librería para, después, hacer que el login automático se MUEVA como vos. TEK_GRABAR=0 lo apaga.
+    let grab = null
+    if (process.env.TEK_GRABAR !== '0') {
+      try {
+        const gc = await import('./grabar-comportamiento.mjs')
+        grab = await gc.grabarComportamiento(page, { user: USER, empresa: process.env.TEK_EMPRESA || '', via: 'asistido' })
+        gc.sniffAntifraude(ctx, { user: USER })
+        log('grabador de comportamiento ON → ' + grab.file.split('/').pop())
+      } catch (e) { log('grabador no arrancó (no afecta el login): ' + e.message) }
+    }
     // 5 min era poco: entre abrir WhatsApp, el link, el PIN y loguear se vencía. 10 por defecto.
     const esperaMs = Number(process.env.TEK_ASSIST_ESPERA_MS || 10 * 60_000) || 10 * 60_000
     log(`MODO ASISTIDO: hacé el clic en "Aceptar" + Superclave por VNC. Esperando hasta ${Math.round(esperaMs / 60000)} min…`)
@@ -3057,10 +3069,11 @@ async function main() {
     while (Date.now() < deadline) {
       if (page.isClosed()) break
       let onHome = false; try { const u = new URL(page.url()); onHome = u.host.includes(PRIVADO) && !/^\/(login|logout)|error-seguridad/i.test(u.pathname) } catch {}
-      if (onHome) return acciones('asistido')
+      if (onHome) { if (grab) { try { await grab.cerrar(); log(`traza humana guardada: ${grab.contar()} eventos`) } catch { /* */ } } return acciones('asistido') }
       await sleep(2000)
     }
-    return fin('timeout_asistido', { nota: 'no detecté el ingreso en 5 min' })
+    if (grab) { try { await grab.cerrar() } catch { /* */ } }
+    return fin('timeout_asistido', { nota: `no detecté el ingreso en ${Math.round(esperaMs / 60000)} min` })
   }
 
   // MODO AUTO: esperar que la red asiente (token/reCAPTCHA invisible) y clic humano en Aceptar.

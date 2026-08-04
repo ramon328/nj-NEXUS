@@ -72,6 +72,39 @@ y se le venció la ventana de 5 min. Arreglado así:
 - **Aviso de girar el teléfono**: la pantalla del mini es apaisada; en vertical entra como una
   franja. La barra de abajo lo dice y se actualiza al girar.
 
+## Aprender del login humano para arreglar el automático (04-ago)
+
+Ramón preguntó si se puede "ir pillando el login asistido, aprender qué hace distinto al
+automático y arreglarlo para que no rebote más". El login automático rebota en BioCatch **aunque
+teclea y clickea con eventos reales** (patchright los dispara a nivel navegador, `isTrusted=true`):
+lo que el antifraude distingue no es "falta de eventos" sino la **forma estadística** del gesto
+(un bot hace curvas Bézier demasiado limpias con azar uniforme; un humano tiembla, se pasa y
+corrige, hace pausas). Nunca lo habíamos medido — había **cero trazas guardadas**.
+
+Piezas construidas (todas SOLO observan, no tocan el login ni mueven plata):
+
+- **`grabar-comportamiento.mjs`** → `grabarComportamiento(page)` inyecta un listener que registra
+  el stream real de mouse/teclado del humano durante el login asistido (x, y, tiempo, tipo,
+  presión, `isTrusted`, código de tecla — NO el texto). Queda en `data/trazas-humano/<user>-<ts>.jsonl`.
+  Y `sniffAntifraude(ctx)` registra el diálogo con wup/BioCatch/sendLogs y sus status en
+  `data/antifraude-<user>-<ts>.jsonl`. Enganchado en el branch asistido de `login-humano.mjs`
+  (`TEK_GRABAR=0` lo apaga). Cada vez que entrás, aprendemos gratis.
+- **`analizar-trazas.mjs`** → lee las trazas y saca el "perfil de movimiento": velocidad (media/p95),
+  pausas, temblor (reversiones de dirección), dwell/flight del tecleo. Escribe `data/perfil-humano.json`.
+
+**Cómo decide esto si el automático tiene chance (sin quemar la cuenta):**
+1. Entrás asistido un par de veces → se acumulan trazas + el log del antifraude. Gratis, sin riesgo.
+2. `sniffAntifraude` nos dice el mecanismo: si BioCatch **puntúa** la sesión (sin nonce por sesión),
+   replicar tu movimiento real tiene chance; si se **ata a un nonce** de servidor, el replay no
+   sirve y NO gastamos intentos.
+3. Recién con esa evidencia se construye el "movedor" que mueve/teclea el login automático con TU
+   firma (consumiendo `perfil-humano.json` / una traza real), y se prueba **UN** intento controlado
+   sobre un perfil tibio (que tuvo login humano exitoso ese mismo día).
+
+⚠️ Honestidad: BioCatch está hecho para resistir exactamente esto. No hay garantía de "no rebota
+más". La diferencia es que ahora se decide con datos medidos, no a ciegas — y el aprendizaje sale
+de logins que igual estás haciendo, sin arriesgar el device_trust de la cuenta.
+
 ## Candados (por qué no se pisan entre sí)
 
 - **Un login asistido a la vez**: hay una sola pantalla. Si ya hay uno en vuelo y es *otra*
