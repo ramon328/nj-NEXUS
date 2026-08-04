@@ -12,6 +12,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { mkdirSync, existsSync, readFileSync, writeFileSync, unlinkSync } from 'node:fs'
 import * as credenciales from './credenciales.mjs'
+import * as puerta from './puerta.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 const OUT_DIR = join(DIR, 'data', 'masivas')
@@ -195,12 +196,14 @@ export async function generarMasivo(transfers, opts = {}) {
  * plata NO se mueve hasta que alguien libere el lote en el banco.
  * `concepto` = una de CONCEPTOS (lo elige el usuario). Devuelve { ok, estado, archivo, ... }.
  */
-export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp, userId = 'ramon', empresa = 'ANA CLARA SPA' } = {}) {
+export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp, userId = 'ramon', empresa = 'ANA CLARA SPA', asistido = true } = {}) {
   userId = (userId || 'ramon').toLowerCase()
-  // ANA CLARA / Mallorca: la sesión operativa es SIEMPRE la de ramon (su dispositivo es el
-  // ÚNICO confiado por el banco). Quien pida (nico/joaquin) igual transfiere desde la sesión
-  // de ramon, no la suya — así no chocamos con el device_trust de sus perfiles.
-  if (/ana\s*clara|mallorca/i.test(empresa || '')) { userId = 'ramon'; empresa = 'ANA CLARA SPA' }
+  // SESIÓN POR PERSONA (03-ago-2026): el lote sube con el login de QUIEN PIDE, también en
+  // ANA CLARA (antes se forzaba ramon y si su sesión dormía nadie más podía operar).
+  // La elección real la hace puerta.elegirSesion en el hub; acá solo el kill-switch.
+  if (process.env.TEK_ANACLARA_SOLO_RAMON === '1' && /ana\s*clara|mallorca/i.test(empresa || '')) {
+    userId = 'ramon'; empresa = 'ANA CLARA SPA'
+  }
   if (!credenciales.tieneConexion(userId, empresa)) {
     return { ok: false, estado: 'sin_conexion', error: `"${userId}" no tiene banco conectado para "${empresa}".` }
   }
@@ -225,6 +228,27 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
     }
     if (concepto) env.TEK_MASIVA_CONCEPTO = concepto
     if (userId) env.TEK_USER = userId
+
+    // ── SESIÓN DORMIDA → LOGIN ASISTIDO CON EL LOTE ENGANCHADO ─────────────────
+    // Igual que en transferir.mjs: si la sesión de esta persona no está fresca, en vez de
+    // quemar un login automático que el antifraude va a rebotar, abrimos el login humano
+    // (/vnc + PIN) y le mandamos la subida del lote en el mismo proceso: cuando la persona
+    // entra, el lote sube solo. Devolvemos el link YA, sin bloquear el chat.
+    const sesion = puerta.estadoSesion(userId)
+    if (asistido && !sesion.viva) {
+      const jobFile = join(DIR, 'data', `.job-masiva-${Date.now().toString(36)}.json`)
+      const ab = puerta.abrirAsistido({
+        userId, empresa, motivo: `subir un lote de ${gen.total} transferencia(s) por ${gen.monto_total}`,
+        env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `masiva:${stamp || gen.ruta}`,
+      })
+      if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
+      return resolve({
+        ok: false, estado: 'necesita_login', necesita_login: true,
+        url: ab.url, pin: ab.pin, userId, empresa, job: jobFile,
+        archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total, concepto: concepto || null,
+        nota: 'La sesión del banco está dormida: le abrí el login para que entre. El lote queda enganchado y sube solo apenas entre.',
+      })
+    }
 
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     let out = '', err = ''

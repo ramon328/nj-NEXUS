@@ -7,6 +7,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs'
 import * as credenciales from './credenciales.mjs'
+import * as puerta from './puerta.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 // Lock POR PERSONA (igual que login-humano): la operación de una persona NO bloquea a otra —
@@ -40,6 +41,22 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
   tomarLock(lf)
   return new Promise((resolve) => {
     const env = { ...process.env, TEK_COMPROBANTES: modo, TEK_EMPRESA: empresa.replace(/ SPA$/i, '').trim() || 'ANA CLARA', TEK_USER: userId, ...extraEnv }
+    // Sesión dormida → login asistido con la descarga enganchada (misma puerta que el resto).
+    const sesion = puerta.estadoSesion(userId)
+    if (process.env.TEK_SIN_ASISTIDO !== '1' && !sesion.viva) {
+      soltarLock(lf)   // el candado real lo toma login-humano dentro del proceso
+      const jobFile = join(DIR, 'data', `.job-comp-${Date.now().toString(36)}.json`)
+      const ab = puerta.abrirAsistido({
+        userId, empresa, motivo: modo === 'bajar' ? 'bajar los comprobantes' : 'ver los comprobantes',
+        env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `comprobantes:${modo}:${userId}`,
+      })
+      if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
+      return resolve({
+        ok: false, estado: 'necesita_login', necesita_login: true,
+        url: ab.url, pin: ab.pin, userId, empresa, job: jobFile,
+        nota: 'La sesión del banco está dormida: le abrí el login. Apenas entre, sigo con los comprobantes solo.',
+      })
+    }
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     let out = '', err = ''
     hijo.stdout.on('data', (d) => { out += d.toString() })

@@ -43,6 +43,16 @@ const SOLO_RAMON = process.env.TEK_ANACLARA_SOLO_RAMON === '1'
 export const slugUsuario = (u) => String(u || 'ramon').toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'
 const pidVivo = (pid) => { if (!pid) return false; try { process.kill(pid, 0); return true } catch { return false } }
 
+/** ¿El navegador del banco de esta persona está tomado por otro proceso? (candado.mjs) */
+function candadoTomado(slug) {
+  const lock = join(DIR, slug === 'ramon' ? 'session.lock' : `session-${slug}.lock`)
+  try {
+    const j = JSON.parse(readFileSync(lock, 'utf8'))
+    if (!pidVivo(j.pid)) return false                       // dueño muerto → candado huérfano
+    return Date.now() - (j.ts || 0) <= 12 * 60_000          // más viejo que eso = basura
+  } catch { return false }
+}
+
 // ── 1. ¿Con qué sesión opero? ────────────────────────────────────────────────
 /**
  * Resuelve QUIÉN entra al banco y a QUÉ empresa, para cualquier operación.
@@ -170,17 +180,35 @@ export function asistidoEnVuelo() {
 export function abrirAsistido({ userId = 'ramon', empresa = 'ANA CLARA SPA', motivo = '', env = {}, manual, etiqueta = '' } = {}) {
   const slug = slugUsuario(userId)
 
-  // Una sola pantalla, un solo login asistido a la vez. Si ya hay uno en vuelo devolvemos
-  // EL MISMO pin (pisarlo dejaría al usuario con un PIN que ya no sirve).
+  // Una sola pantalla, un solo login asistido a la vez.
+  // OJO: la operación viaja DENTRO del proceso de login. Si ya hay uno corriendo NO se le
+  // puede enganchar otra cosa — devolver el mismo PIN prometiendo una operación que nadie
+  // va a hacer sería mentirle al usuario. Solo es "el mismo" si es LA MISMA operación.
   const enVuelo = asistidoEnVuelo()
   if (enVuelo) {
+    const misma = (enVuelo.etiqueta || '') === etiqueta && slug === slugUsuario(enVuelo.userId)
+    if (misma) {
+      return {
+        ok: true, en_vuelo: true, ocupado: false, url: URL_VNC, pin: enVuelo.pin,
+        userId: enVuelo.userId, empresa: enVuelo.empresa, etiqueta: enVuelo.etiqueta || '',
+        nota: 'Ya había un login abierto para ESTA misma operación: es el MISMO link y el MISMO PIN.',
+      }
+    }
     return {
-      ok: true, en_vuelo: true, url: URL_VNC, pin: enVuelo.pin,
+      ok: false, en_vuelo: true, ocupado: true, url: URL_VNC, pin: null,
       userId: enVuelo.userId, empresa: enVuelo.empresa, etiqueta: enVuelo.etiqueta || '',
-      ocupado: slug !== slugUsuario(enVuelo.userId),
-      nota: slug === slugUsuario(enVuelo.userId)
-        ? 'Ya había un login asistido abierto para esta persona: es el MISMO link y el MISMO PIN.'
-        : `La pantalla del banco está ocupada por el login de ${enVuelo.userId} (${enVuelo.empresa}). Hay que esperar a que termine.`,
+      nota: `La pantalla del banco está ocupada con el login de ${enVuelo.userId} (${enVuelo.empresa}${enVuelo.motivo ? ' · ' + enVuelo.motivo : ''}). Hay que esperar a que termine o se venza.`,
+    }
+  }
+
+  // ¿El navegador de ESTA persona ya lo tiene otro proceso (una operación en curso, el
+  // corazón, una captura)? Entonces NO spawneamos: login-humano se quedaría minutos esperando
+  // el candado con un PIN vivo y el usuario mirando una pantalla que no abre nada.
+  const ocupadoPorOtro = candadoTomado(slug)
+  if (ocupadoPorOtro) {
+    return {
+      ok: false, en_vuelo: false, ocupado: true, url: URL_VNC, pin: null, userId: slug, empresa,
+      nota: `El navegador del banco de ${slug} está ocupado con otra operación. Hay que esperar a que termine (un par de minutos).`,
     }
   }
 

@@ -2584,7 +2584,11 @@ async function main() {
   // SAFEGUARD: si ya hay una sesión de banco corriendo, NO abro otra (evita chocar el
   // perfil y re-loguear al pedo). Espero a que se libere; si no se libera, aviso y salgo.
   if (!(await adquirirLock())) {
-    console.log('RESULTADO:', JSON.stringify({ estado: 'ocupado', nota: 'Ya hay una sesión de banco activa; no abrí otra para no chocar el perfil ni gatillar el antifraude. Reintentá cuando termine.' }))
+    const r = { estado: 'ocupado', nota: 'Ya hay una sesión de banco activa; no abrí otra para no chocar el perfil ni gatillar el antifraude. Reintentá cuando termine.' }
+    // Si esto corre suelto (login asistido con una operación enganchada) nadie lee el stdout:
+    // dejamos el resultado en disco igual, para que el hub pueda avisarle a la persona.
+    if (process.env.TEK_RESULTADO_FILE) { try { writeFileSync(process.env.TEK_RESULTADO_FILE, JSON.stringify({ ...r, ts: Date.now() }), { mode: 0o600 }) } catch { /* */ } }
+    console.log('RESULTADO:', JSON.stringify(r))
     return
   }
   const headless = process.env.TEK_HEADLESS === '1'

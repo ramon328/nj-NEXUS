@@ -8,6 +8,7 @@ import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
 import { existsSync, readFileSync, writeFileSync, unlinkSync, mkdirSync } from 'node:fs'
 import * as credenciales from './credenciales.mjs'
+import * as puerta from './puerta.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 
@@ -33,7 +34,7 @@ function soltarLock(lf) { try { unlinkSync(lf) } catch { /* */ } }
  * Reusa su sesión viva (corazón) o la abre si está dormida. Devuelve { ok, estado, filas, total }.
  * `empresa` = de qué empresa mirar (la lista es por empresa en el banco). Default: ANA CLARA.
  */
-export function listarPendientes({ userId, empresa } = {}) {
+export function listarPendientes({ userId, empresa, asistido = true } = {}) {
   userId = (userId || 'ramon').toLowerCase()
   empresa = empresa || 'ANA CLARA SPA'
   if (!credenciales.tieneConexion(userId, empresa)) {
@@ -50,6 +51,23 @@ export function listarPendientes({ userId, empresa } = {}) {
       TEK_VER_PENDIENTES: '1',
       TEK_USER: userId,
       TEK_EMPRESA: empresa.replace(/ SPA$/i, '').trim() || 'ANA CLARA',
+    }
+    // Sesión dormida → login asistido con la consulta enganchada (mismo criterio que
+    // transferir/masiva): le llega el link, entra, y la lista se lee sola.
+    const sesion = puerta.estadoSesion(userId)
+    if (asistido && !sesion.viva) {
+      soltarLock(lf)   // el candado real lo toma login-humano (candado.mjs) dentro del proceso
+      const jobFile = join(DIR, 'data', `.job-pend-${Date.now().toString(36)}.json`)
+      const ab = puerta.abrirAsistido({
+        userId, empresa, motivo: 'ver las transferencias pendientes de autorizar',
+        env: { ...env, TEK_RESULTADO_FILE: jobFile }, etiqueta: `pendientes:${userId}`,
+      })
+      if (ab.ocupado) return resolve({ ok: false, estado: 'ocupado', ocupado: true, error: ab.nota })
+      return resolve({
+        ok: false, estado: 'necesita_login', necesita_login: true,
+        url: ab.url, pin: ab.pin, userId, empresa, job: jobFile,
+        nota: 'La sesión del banco está dormida: le abrí el login. Apenas entre, leo las pendientes solo.',
+      })
     }
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     let out = '', err = ''

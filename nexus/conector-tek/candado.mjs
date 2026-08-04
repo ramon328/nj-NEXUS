@@ -43,7 +43,14 @@ export function crearCandado({ user, log = () => {} } = {}) {
     } catch { return false }
   }
 
-  async function adquirir(esperaMs = Number(process.env.TEK_LOCK_WAIT_MS) || ESPERA_DEFECTO) {
+  // Ojo con el default: un TEK_LOCK_WAIT_MS=0 explícito ("no esperes nada") tiene que valer 0,
+  // no caer al defecto de 8 min por ser falsy (eso hacía que un proceso de prueba se quedara
+  // 8 minutos esperando el candado y después abriera el banco sin que nadie lo esperara).
+  async function adquirir(esperaMs) {
+    if (esperaMs == null) {
+      const env = Number(process.env.TEK_LOCK_WAIT_MS)
+      esperaMs = Number.isFinite(env) && process.env.TEK_LOCK_WAIT_MS !== '' ? env : ESPERA_DEFECTO
+    }
     const t0 = Date.now(); let aviso = false
     for (;;) {
       // 'wx' crea en modo exclusivo y falla si ya existe: solo un proceso puede ganar.

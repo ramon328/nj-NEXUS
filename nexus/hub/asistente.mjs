@@ -1765,7 +1765,7 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 
 🔁 RECONECTAR EL BANCO (login asistido on-demand, herramienta **reconectar_banco**) — cuando una operación de banco (transferir, movimientos, comprobantes, pendientes) responda estado **sesion_caida** / **sesion_muerta**, o el usuario diga "reconecta el banco", "el banco está caído/dormido, ábrelo", "necesito entrar al banco", llama **reconectar_banco**. Abre el login REAL del banco en el equipo y te devuelve una **URL + PIN de un solo uso**: pásaselos al usuario TAL CUAL para que entre desde su teléfono, teclee su clave y pase la Superclave (el login HUMANO sí pasa la seguridad del banco; el automático la rebota). Cuando el usuario confirme que entró, reintenta la operación/lectura UNA vez. ⛔ NUNCA le pidas la clave por el chat; la URL y el PIN son de un solo uso (no los inventes ni los cambies). Esto es DISTINTO de vincular_banco (ese AGREGA una empresa nueva); reconectar_banco es para VOLVER A ENTRAR a una que ya está conectada pero se durmió. ⚠️ IMPORTANTE — reconectar_banco **NO es "forzar el login con reintentos"**: es el login **HUMANO** (el usuario teclea sus claves y pasa la seguridad). La regla anti-loop de "no se puede forzar con reintentos / hay que esperar/descansar" es SOLO para los logins AUTOMÁTICOS del sistema — **NO aplica a reconectar_banco**. Por eso: si el usuario dice "reconectame" otra vez, **mandale el link de nuevo SIN sermonear ni negarte** (cada pedido suele ser porque todavía no terminó de entrar en el navegador). Que tek_sesion diga "muerta" DESPUÉS de mandar el link es **NORMAL** — la sesión recién queda viva cuando el usuario **termina** de loguearse por la URL; NO es que falló, así que NO le digas "no se puede forzar", "esperá", "descansá" ni "ya te mandé N links". Simplemente reabrí y pasale URL + PIN, siempre.
 
-🔑 REGLA GENERAL DEL BANCO (aplica a TODAS las herramientas de banco y a TODOS los usuarios con acceso): el camino estándar para operar es — **sesión viva → operás normal; sesión caída/muerta/dormida → reconectar_banco (login humano) → operás.** Por eso, si CUALQUIER herramienta de banco (banco/saldos/movimientos, tek_transferir, tek_masiva, tek_pendientes, tek_comprobantes) responde \`sesion_caida\` / \`sesion_muerta\` / dormida / "no se puede operar", NO cierres con "esperá / reintentá en un rato / no se puede": **llamá AUTOMÁTICAMENTE reconectar_banco en el MISMO turno**, y decile al usuario algo corto tipo *"El banco está dormido — entrá acá y logueate y sigo solo: [URL] · PIN [pin]"*. Cuando confirme que entró, **reintentá la operación que había pedido UNA vez**. Es transparente para el usuario: pide algo del banco → si hace falta, le llega el link para entrar (login humano = pasa el antifraude) → la operación sigue. Esto vale para cualquier persona con banco habilitado.
+🔑 REGLA GENERAL DEL BANCO (aplica a TODAS las herramientas de banco y a TODOS los usuarios con acceso). Dos cosas que ya NO tenés que decidir vos, porque las hace el sistema solo: (1) **CADA PERSONA OPERA CON SU PROPIA SESIÓN DE BANCO** — Joaquín entra con el banco de Joaquín, Nico con el de Nico, Ramón con el suyo, TAMBIÉN en ANA CLARA. Nunca digas que "hay que usar la sesión de Ramón" ni que "solo Ramón puede". (2) **SI LA SESIÓN ESTÁ DORMIDA, EL LINK SALE SOLO**: cualquier tool de banco (tek_transferir, tek_masiva, tek_pendientes, tek_comprobantes) te devuelve estado **necesita_login** con una **url** y un **pin** de verdad. En ese caso: pasale al usuario la URL y el PIN **TAL CUAL** (nunca inventados, nunca cambiados), decile que entre y se loguee normal, y aclarale que **cuando entre la operación sigue sola y le voy a avisar cómo quedó**. ⛔ NO vuelvas a llamar la tool en ese turno, ⛔ NO digas "falló" / "esperá" / "no se puede" / "hay que reintentar", ⛔ NO le ofrezcas vincular ni configurar el banco (ya está conectado). Si el usuario pide entrar al banco sin una operación puntual, usá reconectar_banco (mismo link + PIN). Si te responde **ocupado**, hay otro login en curso: decile que espere un par de minutos, NO abras otro.
 
 📨 ESCRIBIRLE A UN NÚMERO EXTERNO (que NO es usuario de Nexus: un lead, un cliente, un tercero) — herramientas **enviar_mensaje_externo**, **ver_respuestas_externo**, **listar_externos**. Cuando un usuario diga "mándale a +569… que…", "escríbele a este número…", "avísale a <número> que…" y ese número NO es un usuario dado de alta, usa enviar_mensaje_externo (numero, mensaje, y nombre si lo sabes). Le llega SOLO ese texto (con la plantilla oficial si está fuera de las 24h). ⚠️ IMPORTANTE: Nexus NO conversa con ese externo ni le da datos del negocio — solo GUARDA lo que responda. Cuando el usuario pregunte "¿qué respondió el +569…?" usa ver_respuestas_externo; para ver a qué externos se ha escrito, listar_externos. Nunca inventes la respuesta del externo: sácala de la herramienta.
 
@@ -2936,13 +2936,13 @@ const HERRAMIENTAS = [
   // ── tek · ESTADO DE LA SESIÓN del banco (viva/muerta + hace cuánto) ──
   {
     name: 'tek_sesion',
-    description: 'ESTADO DE LA SESIÓN DEL BANCO (sistema "tek"). SOLO LECTURA e INSTANTÁNEO: NO entra al banco, lee el estado que mantiene el "corazón". Úsalo cuando pregunten "¿está viva/conectada la sesión del banco?", "¿puedo transferir ahora?", "¿está caído el banco?", "cuánto dura la sesión del banco", "está operativo el banco". Devuelve si la sesión de ANA CLARA está VIVA o MUERTA, hace cuántos minutos está viva y cuánto le queda (el banco la cae sola al tope de ~95 min). Respondé corto y claro. ⛔ Si está MUERTA: avisá que hay que esperar a que se reestablezca (se reactiva sola al operar, o en la ventana fría 5-10 AM) — NO se puede forzar con reintentos.',
+    description: 'ESTADO DE LA SESIÓN DEL BANCO de QUIEN PREGUNTA (sistema "tek"). SOLO LECTURA e INSTANTÁNEO: NO entra al banco. Úsalo cuando pregunten "¿está viva/conectada la sesión del banco?", "¿puedo transferir ahora?", "¿está caído el banco?", "está operativo el banco". Cada persona tiene SU propia sesión: esto mira la de quien te está hablando (y su empresa). Respondé corto y claro. ⛔ Si está DORMIDA no digas "hay que esperar" ni "no se puede": el banco se abre cuando quiera, con un link + PIN que le mandás (reconectar_banco), o solo, apenas pida una operación.',
     input_schema: { type: 'object', properties: { empresa: { type: 'string', description: 'Opcional: de qué empresa (por defecto ANA CLARA).' } } },
   },
   // ── tek · RECONECTAR el banco con LOGIN ASISTIDO on-demand (URL /vnc + PIN de un solo uso) ──
   {
     name: 'reconectar_banco',
-    description: 'RECONECTAR la sesión del banco con LOGIN ASISTIDO (sistema "tek"). Úsalo cuando una operación de banco devuelva estado "sesion_caida" / "sesion_muerta", o cuando el usuario diga "reconecta el banco", "el banco está caído, ábrelo", "necesito entrar al banco". Abre el login REAL del banco en el equipo, genera un PIN NUEVO de un solo uso, y te devuelve una URL + PIN para que el USUARIO entre desde el teléfono, teclee su clave y pase la seguridad (el login automático NO pasa el antifraude; el humano SÍ). Devuélvele al usuario la URL y el PIN TAL CUAL y dile que, al terminar de entrar, la operación sigue sola. El PIN se invalida solo al cerrar el login. Corre para la empresa de la persona (por defecto ANA CLARA).',
+    description: 'ABRIR / RECONECTAR el banco con LOGIN ASISTIDO (sistema "tek"). Úsalo cuando el usuario diga "abrí el banco", "reconecta el banco", "necesito entrar al banco", o cuando una operación de banco devuelva "sesion_caida" / "sesion_muerta" SIN url+pin propios. Abre el login REAL del banco DE ESA PERSONA (cada uno con su sesión, también en ANA CLARA), genera un PIN NUEVO de un solo uso, y te devuelve URL + PIN para que el USUARIO entre desde el teléfono, teclee su clave y pase la seguridad (el login automático NO pasa el antifraude; el humano SÍ). Devuélvele la URL y el PIN TAL CUAL. El PIN se invalida solo al cerrar el login. Si responde "ocupado" hay otro login en curso: que espere, NO abras otro.',
     input_schema: { type: 'object', properties: { empresa: { type: 'string', description: 'Opcional: de qué empresa reconectar (por defecto la 1ª de la persona / ANA CLARA).' }, motivo: { type: 'string', description: 'Opcional: para qué es (ej "transferencia", "movimientos") — solo para el aviso.' } } },
   },
   // ── tek · VINCULAR un banco: manda el LINK del widget seguro (NO pedir clave por chat) ──
@@ -3032,6 +3032,9 @@ async function avisarTrabajando(ctx, texto) {
 async function lecturaBancoAutoSana(fn) {
   const clasificar = (r) => {
     const s = String((r && (r.estado || r.error)) || '')
+    // Ya se abrió el login asistido y la operación quedó enganchada: reintentar acá NO
+    // sirve (el PIN es de un solo uso y la operación ya viaja con ese proceso).
+    if (r && (r.necesita_login || r.ocupado)) return 'no_reintentar'
     if (/device_trust|incapsula|antifraud/i.test(s)) return 'no_reintentar'   // cuenta/dispositivo bloqueado
     if (/sesion_caida|error.?segurid|invalid_token|timeout|sin_frame|banco no disponible|desconocid|spawn_error/i.test(s)) return 'transitorio'
     if (r && r.ok === false && !r.rechazado) return 'transitorio'
@@ -3061,6 +3064,65 @@ async function escrituraBancoAutoSana(ejecutar) {
     r = await ejecutar()
   }
   return r
+}
+
+// ═══ LA PUERTA DEL BANCO EN EL HUB ═══════════════════════════════════════════
+// Tres cosas que ANTES dependían de que el modelo se acordara (y por eso el 03-ago Joaquín
+// se quedó sin transferir: nunca le llegó el link ni el PIN):
+//   1. con qué sesión se opera  → sesionBanco()  (cada persona con SU login)
+//   2. cómo se entra si duerme  → el motor devuelve necesita_login con url+pin
+//   3. avisarle cómo quedó      → seguirJobBanco() vigila el resultado y le escribe
+// Ver conector-tek/puerta.mjs.
+
+/** Resuelve con qué sesión y a qué empresa opera QUIEN PIDE (cada uno con su banco). */
+async function sesionBanco(ctx, empresaPedida) {
+  const quien = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
+  try {
+    const puerta = await import('../conector-tek/puerta.mjs')
+    return { ...puerta.elegirSesion({ usuario: quien, empresa: empresaPedida, admin: esAdmin(ctx.de) }), quien }
+  } catch {
+    return { userId: quien, empresa: empresaPedida || 'ANA CLARA SPA', propia: true, nota: '', quien }
+  }
+}
+
+/** ¿El motor pidió que la persona entre al banco (login asistido abierto)? */
+const necesitaLogin = (r) => !!(r && r.necesita_login && r.url && r.pin)
+
+/** Respuesta ESTÁNDAR "entrá al banco": URL + PIN de verdad, nunca a criterio del modelo. */
+function respuestaEntrarAlBanco(r, motivo, empresa) {
+  return JSON.stringify({
+    ok: false, estado: 'necesita_login', necesita_login: true, url: r.url, pin: r.pin, empresa: empresa || r.empresa,
+    texto: `🏦 Para ${motivo} en *${empresa || r.empresa}* tenés que entrar vos al banco (el login humano es el que pasa la seguridad):\n\n👉 ${r.url}\n🔑 PIN (un solo uso): *${r.pin}*\n\nAbrí el link, poné el PIN y logueate normal (clave + Superclave). Apenas entres, *sigo yo solo* y te aviso. ✅`,
+    instruccion: '⛔ NO vuelvas a llamar esta tool en este turno. Pásale al usuario la URL y el PIN TAL CUAL (de un solo uso: NO los inventes ni los cambies) y decile que cuando entre sigue solo. NO digas que falló, ni que "hay que esperar", ni le ofrezcas vincular el banco.',
+  })
+}
+
+/**
+ * Vigila el archivo de resultado de una operación que quedó ENGANCHADA a un login asistido
+ * y, cuando termina, le escribe al usuario por WhatsApp cómo quedó. No bloquea el turno.
+ * @param {object} ctx contexto del mensaje (para saber a quién avisarle)
+ * @param {string} job ruta del archivo de resultado
+ * @param {(res:object)=>string} armarTexto traduce el resultado crudo a un mensaje humano
+ */
+function seguirJobBanco(ctx, job, armarTexto) {
+  if (!job) return
+  const target = destinoValido(ctx?.de)
+  if (!target) return
+  const limite = Date.now() + 13 * 60_000
+  const tic = setInterval(async () => {
+    let res = null
+    try { res = JSON.parse(readFileSync(job, 'utf8')) } catch { /* todavía no terminó */ }
+    if (!res && Date.now() < limite) return
+    clearInterval(tic)
+    try {
+      const texto = res
+        ? armarTexto(res)
+        : '⌛ Se cerró la ventana del banco sin que alcanzaras a entrar, así que no hice la operación. Pedímela de nuevo cuando puedas y te mando un link nuevo.'
+      if (texto) await kapso.enviarKapso(target, texto)
+    } catch { /* avisar no debe romper nada */ }
+    try { unlinkSync(job) } catch { /* */ }
+  }, 10_000)
+  tic.unref?.()
 }
 
 async function ejecutar(nombre, input, ctx = {}) {
@@ -3442,24 +3504,12 @@ async function ejecutar(nombre, input, ctx = {}) {
       let tr
       try { tr = await import('../conector-tek/transferir.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de transferencias (tek): ' + e.message }) }
-      // Empresa de ORIGEN: la que el usuario ELIGIÓ (input.empresa). Un usuario NO admin
-      // queda acotado a ANA CLARA. El dueño (cuya sesión de banco opera esa empresa) se
-      // resuelve del vault → así la transferencia sale de la cuenta correcta.
-      let empresa = (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA'
-      if (!esAdmin(ctx.de)) empresa = 'ANA CLARA SPA'
-      // Sesión de banco a usar: la de QUIEN PIDE si tiene su propia conexión a esa empresa
-      // (cada persona opera con SU login: Nico→sesión nico, Ramón→ramon). Solo si el que pide
-      // no la tiene conectada, cae al dueño canónico del vault. Antes iba SIEMPRE por ramon.
-      let userId = 'ramon'
-      try {
-        const cred = await import('../conector-tek/credenciales.mjs')
-        const quien = (usuarioDe(ctx.de)?.nombre || '').toLowerCase().trim()
-        // Si el usuario escribió el nombre de la empresa mal/abreviado ("Ltda" vs "LIMITADA"),
-        // lo resolvemos al nombre canónico de SUS empresas conectadas (la más parecida).
-        if (quien && esAdmin(ctx.de)) { const em = cred.resolverEmpresa(quien, empresa); if (em) empresa = em }
-        if (quien && cred.tieneConexion(quien, empresa)) userId = quien
-        else { const d = cred.dueñoDeEmpresa(empresa); if (d) userId = d }
-      } catch { /* */ }
+      // Empresa de ORIGEN + SESIÓN: la puerta decide. Cada persona transfiere con SU propio
+      // login del banco (también en ANA CLARA); solo si no tiene esa empresa conectada se cae
+      // al dueño del vault. Un usuario NO admin queda acotado a su empresa.
+      const sesB = await sesionBanco(ctx, (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA')
+      const userId = sesB.userId
+      const empresa = sesB.empresa
       const arm = tr.armarBorrador({ userId, nombre: input.nombre, monto: input.monto, motivo: input.motivo,
                                      rut: input.rut, banco: input.banco, cuenta: input.cuenta, tipo_cuenta: input.tipo_cuenta })
       if (!arm.ok) {
@@ -3472,6 +3522,25 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (input.accion === 'enviar') {
         await avisarTrabajando(ctx, `💸 Creando la transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} en el banco… dame ~1-2 min, sigo trabajando 🏦`)
         const res = await escrituraBancoAutoSana(() => tr.ejecutar(bo, { userId, empresa }))
+        // ── SESIÓN DORMIDA: el motor ya abrió el login y le enganchó la transferencia ──
+        // Le pasamos la URL + el PIN AL TOQUE (esto antes dependía de que el modelo se
+        // acordara de llamar reconectar_banco → el 03-ago Joaquín se quedó esperando).
+        // Cuando entre, la transferencia se crea sola y le avisamos cómo quedó.
+        if (necesitaLogin(res)) {
+          const montoTxt0 = '$' + Number(bo.monto).toLocaleString('es-CL')
+          seguirJobBanco(ctx, res.job, (r) => {
+            const fin = tr.leerResultadoAsistido ? tr.leerResultadoAsistido({ jobFile: res.job, borrador: bo, empresa }) : null
+            if (fin?.pendiente) return `✅ Listo: la transferencia de ${montoTxt0} a ${bo.beneficiario.nombre} desde *${empresa}* quedó CREADA y *pendiente por liberar* (falta autorizarla con Superclave para que salga la plata). 🏦`
+            if (fin?.limite_primera_vez) return `🛡️ El banco no dejó la transferencia: es la 1ª vez a esa cuenta y hay tope de $250.000 en las primeras 24h. Podés mandar ≤$250.000 ahora o esperar 24h.`
+            if (fin?.limite_diario) return `🛡️ El banco frenó por límite/monto diario. Para ${montoTxt0} conviene hacerla como transferencia masiva o partirla en varios días.`
+            return `⚠️ Entraste al banco pero no pude confirmar la transferencia de ${montoTxt0} a ${bo.beneficiario.nombre} (estado: ${fin?.estado || r.estado || 'desconocido'}). Revisá *Por Autorizar* en el banco antes de pedírmela de nuevo — puede haberse creado igual.`
+          })
+          return JSON.stringify({
+            ok: false, estado: 'necesita_login', necesita_login: true, url: res.url, pin: res.pin, empresa_origen: empresa,
+            texto: `🏦 Para transferir ${montoTxt0} a ${bo.beneficiario.nombre} desde *${empresa}* tenés que entrar vos al banco (así pasa la seguridad):\n\n👉 ${res.url}\n🔑 PIN (un solo uso): *${res.pin}*\n\nAbrí el link, poné el PIN y logueate normal (clave + Superclave). Apenas entres, *creo la transferencia solo* y te aviso cómo quedó. ✅`,
+            instruccion: '⛔ NO vuelvas a llamar tek_transferir. Pásale al usuario la URL y el PIN TAL CUAL (son de un solo uso, no los inventes ni cambies) y decile que cuando entre la transferencia se crea sola y le vas a avisar. NO digas que falló ni que "no se puede".',
+          })
+        }
         // Si era un beneficiario NUEVO y la transferencia se creó, lo guardamos en la libreta
         // para no volver a pedir los datos la próxima vez (best-effort, no rompe si falla).
         if (res.pendiente && bo.nuevo) {
@@ -3542,20 +3611,10 @@ async function ejecutar(nombre, input, ctx = {}) {
       try { tr = await import('../conector-tek/transferir.mjs') } catch { /* la libreta es opcional */ }
       const lista = Array.isArray(input.transferencias) ? input.transferencias : []
       if (!lista.length) return JSON.stringify({ ok: false, error: 'Pásame la lista de transferencias (al menos una).' })
-      // Empresa de ORIGEN del lote (la que el usuario eligió). No-admin acotado a ANA CLARA.
-      let empresaMasiva = (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA'
-      if (!esAdmin(ctx.de)) empresaMasiva = 'ANA CLARA SPA'
-      // Sesión de banco: la de QUIEN PIDE si tiene su propia conexión a esa empresa (cada
-      // persona opera con SU login). Si no la tiene, cae al dueño canónico. Antes: siempre ramon.
-      let userMasiva = 'ramon'
-      try {
-        const cr = await import('../conector-tek/credenciales.mjs')
-        const quien = (usuarioDe(ctx.de)?.nombre || '').toLowerCase().trim()
-        // Match difuso del nombre de empresa contra las conectadas de quien pide ("Ltda"≈"LIMITADA").
-        if (quien && esAdmin(ctx.de)) { const em = cr.resolverEmpresa(quien, empresaMasiva); if (em) empresaMasiva = em }
-        if (quien && cr.tieneConexion(quien, empresaMasiva)) userMasiva = quien
-        else { const d = cr.dueñoDeEmpresa(empresaMasiva); if (d) userMasiva = d }
-      } catch { /* */ }
+      // Empresa de ORIGEN del lote + sesión: la puerta decide (cada persona con SU login).
+      const sesM = await sesionBanco(ctx, (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA')
+      const userMasiva = sesM.userId
+      const empresaMasiva = sesM.empresa
 
       // Resolver cada transferencia a datos completos. Con rut+cuenta se usa directo; si no,
       // se busca por nombre en la libreta de tek. El motivo va como glosa cartola originador.
@@ -3618,6 +3677,20 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (input.accion === 'enviar') {
         await avisarTrabajando(ctx, `📤 Subiendo el lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) al banco… dame ~1-2 min, sigo acá trabajando 🏦`)
         const res = await escrituraBancoAutoSana(() => mm.ejecutarMasivo(resueltas, { concepto, stamp: String(Date.now()), userId: userMasiva, empresa: empresaMasiva }))
+        // Sesión dormida: el motor ya abrió el login con el lote enganchado → link + PIN YA.
+        if (necesitaLogin(res)) {
+          seguirJobBanco(ctx, res.job, (r) => {
+            const m = r?.masiva || null
+            if (m?.creado === true || m?.estado === 'lote_creado_pendiente') return `✅ Listo: el lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) quedó SUBIDO y *pendiente por autorizar* en *${empresaMasiva}*. Falta liberarlo con Superclave para que salga la plata. 🏦`
+            if (m?.rechazado) return `❌ Entraste al banco pero el banco RECHAZÓ el lote (0 registros aceptados). ${m?.nota || 'Revisá la cuenta, el banco y el RUT de los beneficiarios.'}`
+            return `⚠️ Entraste al banco pero no pude confirmar el lote (estado: ${m?.estado || r?.estado || 'desconocido'}). Revisá *Transferencias masivas → Liberación* antes de volver a subirlo.`
+          })
+          return JSON.stringify({
+            ok: false, estado: 'necesita_login', necesita_login: true, url: res.url, pin: res.pin, resumen,
+            texto: `🏦 Para subir el lote (${resumen.cantidad} transferencias · ${resumen.monto_total_fmt}) desde *${empresaMasiva}* tenés que entrar vos al banco:\n\n👉 ${res.url}\n🔑 PIN (un solo uso): *${res.pin}*\n\nAbrí el link, poné el PIN y logueate normal. Apenas entres, *subo el lote solo* y te aviso cómo quedó. ✅`,
+            instruccion: '⛔ NO vuelvas a llamar tek_masiva. Pásale la URL y el PIN TAL CUAL y decile que cuando entre el lote sube solo y le vas a avisar. NO digas que falló.',
+          })
+        }
         if (res.ok && tr) { for (const t of resueltas) { try { if (String(t.rut || '').replace(/\D/g, '')) tr.guardarBeneficiario({ nombre: t.nombre, rut: t.rut, banco: t.banco, cuenta: t.cuenta }) } catch { /* */ } } }
         let okTxt, instruccion
         if (res.ok) {
@@ -3649,9 +3722,9 @@ async function ejecutar(nombre, input, ctx = {}) {
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de comprobantes (tek): ' + e.message }) }
       // Corre como la PERSONA que pregunta (sesión por persona), con SU empresa — antes iba
       // hardcodeado a ramon/ANA CLARA y por eso ignoraba la sesión de Nico y decía "solo ANA CLARA".
-      const uidComp = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
-      let empComp = input.empresa
-      if (!empComp) { try { const cr = await import('../conector-tek/credenciales.mjs'); empComp = (cr.listar(uidComp) || [])[0]?.empresa } catch { /* */ } }
+      const sesC = await sesionBanco(ctx, input.empresa)
+      const uidComp = sesC.userId
+      const empComp = sesC.empresa
       if (input.accion === 'bajar') {
         // Qué bajar: todos | varios (indices) | uno (indice).
         let spec = '1'
@@ -3660,6 +3733,10 @@ async function ejecutar(nombre, input, ctx = {}) {
         else if (input.indice != null) spec = String(Math.max(1, parseInt(input.indice, 10) || 1))
         await avisarTrabajando(ctx, '🧾 Entrando al banco a bajar los comprobantes… dame ~1-2 min, sigo acá 🏦')
         const r = await lecturaBancoAutoSana(() => cm.bajarComprobantes(spec, { userId: uidComp, empresa: empComp }))
+        if (necesitaLogin(r)) {
+          seguirJobBanco(ctx, r.job, () => '🏦 Entraste al banco. Ya bajé lo que había de comprobantes — si alguno no te llegó, pedímelo de nuevo.')
+          return respuestaEntrarAlBanco(r, 'bajar los comprobantes', empComp)
+        }
         if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de bajar comprobantes.' })
         const oks = (r.comprobantes || []).filter((c) => c.pdf)
         if (!oks.length) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude bajar ${spec === 'todos' ? 'los comprobantes' : 'ese comprobante'} (${r.estado || 'desconocido'}). Puede que esas filas no tengan PDF o el banco no los entregó.` })
@@ -3679,6 +3756,10 @@ async function ejecutar(nombre, input, ctx = {}) {
       }
       // listar
       const r = await lecturaBancoAutoSana(() => cm.listarComprobantes({ userId: uidComp, empresa: empComp }))
+      if (necesitaLogin(r)) {
+        seguirJobBanco(ctx, r.job, () => '🏦 Entraste al banco. Volvé a pedirme la lista de comprobantes y te la muestro (la sesión ya quedó abierta).')
+        return respuestaEntrarAlBanco(r, 'ver los comprobantes', empComp)
+      }
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Hay que reconectar el banco (login asistido) antes de leer comprobantes.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer los comprobantes (${r.estado || 'desconocido'}).` })
       return JSON.stringify({ ok: true, total: r.total, filas: r.filas, instruccion: 'Muéstrale al usuario la lista NUMERADA (nº · fecha · beneficiario · monto · estado). RECUERDA esta lista para el próximo mensaje: si el usuario responde "todos"/"mándamelos todos" llama tek_comprobantes accion:"bajar" con todos:true; si dice "el 3 y el 5" usa indices:[3,5]; si dice uno, indice:ese número. Los números son los que le mostraste.' })
@@ -3686,11 +3767,19 @@ async function ejecutar(nombre, input, ctx = {}) {
     // ── tek · ESTADO DE LA SESIÓN (viva/muerta) — INSTANTÁNEO, lee el archivo del corazón (NO entra al banco) ──
     if (nombre === 'tek_sesion') {
       try {
-        const s = JSON.parse(readFileSync('/Users/AIagenteia/nexus/conector-tek/data/sesiones.json', 'utf8'))
-        const info = s?.sesiones?.ramon   // ANA CLARA / Mallorca se operan con la sesión de ramon
-        if (!info) return JSON.stringify({ ok: false, estado: 'desconocida', texto: 'No tengo el estado de la sesión del banco ahora (el guardián no está reportando). Reintentá en un rato.' })
-        if (info.viva) return JSON.stringify({ ok: true, viva: true, estado: 'viva', tiempo_vivo_min: info.viva_min, restante_min: info.restante_min, vida_max_min: info.vida_max_min, texto: `✅ La sesión del banco (ANA CLARA) está VIVA hace ${info.viva_min} min. Le quedan ~${info.restante_min} min antes de que expire sola (tope ${info.vida_max_min} min). Se puede operar.`, instruccion: 'Dale al usuario el texto corto y claro.' })
-        return JSON.stringify({ ok: true, viva: false, estado: 'muerta', texto: '🔴 La sesión del banco (ANA CLARA) está caída/dormida ahora. No se puede operar hasta que se reestablezca — se reactiva sola al operar o en la ventana fría (5-10 AM). NO se puede forzar con reintentos.', instruccion: 'Dale al usuario el texto corto y claro. NO ofrezcas reintentar logins en bucle.' })
+        // La sesión es POR PERSONA: se mira la de QUIEN PREGUNTA, no una global.
+        const ses = await sesionBanco(ctx, input.empresa)
+        const puerta = await import('../conector-tek/puerta.mjs')
+        const info = puerta.estadoSesion(ses.userId)
+        const deQuien = ses.propia ? 'tu sesión' : `la sesión de ${ses.userId}`
+        if (info.viva) {
+          return JSON.stringify({ ok: true, viva: true, estado: 'viva', usuario: ses.userId, empresa: ses.empresa, restante_min: info.restante_min, seguro: info.seguro,
+            texto: `✅ El banco de *${ses.empresa}* está abierto (${deQuien}, activa hace ${info.edad_min ?? '?'} min). Se puede operar${info.restante_min != null ? `; le quedan ~${info.restante_min} min de inactividad antes de que se cierre sola` : ''}.`,
+            instruccion: 'Dale al usuario el texto corto y claro.' })
+        }
+        return JSON.stringify({ ok: true, viva: false, estado: 'dormida', usuario: ses.userId, empresa: ses.empresa,
+          texto: `🔴 El banco de *${ses.empresa}* está dormido ahora (${deQuien}). No hay drama: cuando me pidas algo del banco te mando el link y el PIN para que entres, y sigo yo solo.`,
+          instruccion: 'Dale el texto corto y claro. ⛔ NO digas "hay que esperar" ni "no se puede": si el usuario quiere operar YA, llamá reconectar_banco y pasale la URL y el PIN.' })
       } catch (e) {
         return JSON.stringify({ ok: false, error: 'No pude leer el estado de la sesión del banco: ' + e.message })
       }
@@ -3698,14 +3787,14 @@ async function ejecutar(nombre, input, ctx = {}) {
     // ── tek · RECONECTAR el banco con LOGIN ASISTIDO on-demand (URL /vnc + PIN de un solo uso) ──
     if (nombre === 'reconectar_banco') {
       if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
-      const uidR = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
-      let empR = input.empresa
-      if (!empR) { try { const cr = await import('../conector-tek/credenciales.mjs'); empR = (cr.listar(uidR) || [])[0]?.empresa } catch { /* */ } }
+      // Cada persona reconecta SU propia sesión (Joaquín entra con el banco de Joaquín).
+      const sesR = await sesionBanco(ctx, input.empresa)
       try {
         const mod = await import('../conector-tek/abrir-login-asistido.mjs')
-        const r = await mod.abrirLoginAsistido({ empresa: empR || 'ANA CLARA', user: uidR, motivo: input.motivo || '' })
-        return JSON.stringify({ ok: true, url: r.url, pin: r.pin, empresa: r.empresa,
-          texto: `Abrí el login del banco (${r.empresa}). Entrá desde el teléfono a:\n${r.url}\nPIN (un solo uso): ${r.pin}\n\nTecleá tu clave y pasá la Superclave. Cuando entres, la operación sigue sola. 🏦`,
+        const r = await mod.abrirLoginAsistido({ empresa: sesR.empresa, user: sesR.userId, motivo: input.motivo || '' })
+        if (r.ocupado) return JSON.stringify({ ok: false, estado: 'ocupado', texto: `⏳ La pantalla del banco está ocupada con otro login en curso (${r.nota || ''}). Esperá un par de minutos y pedímelo de nuevo.`, instruccion: 'NO abras otro login. Decile que espere unos minutos.' })
+        return JSON.stringify({ ok: true, url: r.url, pin: r.pin, empresa: r.empresa, usuario: r.userId,
+          texto: `🏦 Abrí el login del banco de *${r.empresa}*. Entrá desde el teléfono:\n\n👉 ${r.url}\n🔑 PIN (un solo uso): *${r.pin}*\n\nTecleá tu clave y pasá la Superclave. Cuando entres, la sesión queda abierta y seguimos.`,
           instruccion: 'Pásale al usuario la URL y el PIN TAL CUAL (son de un solo uso; NO los inventes ni cambies). Recuérdale que el PIN vence al terminar el login, y que él debe teclear su clave + Superclave (por eso pasa la seguridad).' })
       } catch (e) { return JSON.stringify({ ok: false, error: 'No pude abrir el login asistido del banco: ' + e.message }) }
     }
@@ -3716,11 +3805,20 @@ async function ejecutar(nombre, input, ctx = {}) {
       try { pm = await import('../conector-tek/pendientes.mjs') }
       catch (e) { return JSON.stringify({ ok: false, error: 'No pude cargar el motor de pendientes (tek): ' + e.message }) }
       // Corre como la PERSONA que pregunta, con SU empresa (sesión por persona).
-      const uidP = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
-      let empP = input.empresa
-      if (!empP) { try { const cr = await import('../conector-tek/credenciales.mjs'); empP = (cr.listar(uidP) || [])[0]?.empresa } catch { /* */ } }
+      const sesP = await sesionBanco(ctx, input.empresa)
+      const uidP = sesP.userId
+      const empP = sesP.empresa
       await avisarTrabajando(ctx, '🔎 Entrando al banco a revisar las pendientes… dame ~1-2 min, sigo acá 🏦')
       const r = await lecturaBancoAutoSana(() => pm.listarPendientes({ userId: uidP, empresa: empP }))
+      if (necesitaLogin(r)) {
+        seguirJobBanco(ctx, r.job, (res) => {
+          const p = res?.pendientes || null
+          if (p && (p.total ?? (p.filas || []).length) === 0) return `🏦 Entraste al banco: no hay transferencias ni masivas pendientes de autorizar en ${empP}. ✅`
+          if (p) return `🏦 Entraste al banco: tenés ${p.total ?? (p.filas || []).length} pendiente(s) de autorizar en ${empP}. Pedime "muéstrame las pendientes" y te las listo con detalle.`
+          return '🏦 Entraste al banco, pero no alcancé a leer la lista de pendientes. Pedímela de nuevo y la leo (la sesión ya quedó abierta).'
+        })
+        return respuestaEntrarAlBanco(r, 'ver las transferencias pendientes de autorizar', empP)
+      }
       if (r.estado === 'sesion_caida') return JSON.stringify({ ok: false, estado: 'sesion_caida', texto: 'La sesión del banco se cayó (seguridad). Reintentá en un momento y la reabro.' })
       if (r.estado === 'ocupado') return JSON.stringify({ ok: false, estado: 'ocupado', texto: 'Hay una operación bancaria en curso para esta persona. Espera ~2 min y reintenta UNA vez.' })
       if (!r.ok) return JSON.stringify({ ok: false, estado: r.estado, texto: `No pude leer las pendientes (${r.estado || 'desconocido'}).` })

@@ -10,58 +10,34 @@
 //   4. El PIN se INVALIDA solo cuando el login termina (login-humano vacía el OTP al salir,
 //      vía TEK_OTP_FILE) → la URL vuelve a quedar inútil. Cero exposición fuera de la ventana.
 //
-// Uso (CLI):   TEK_EMPRESA="ANA CLARA" TEK_MOTIVO="transferencia" node abrir-login-asistido.mjs
+// Desde el 03-ago-2026 la mecánica vive en puerta.mjs (la puerta única del banco); este
+// archivo queda como la entrada simple "solo abrime el banco" (CLI + tool reconectar_banco).
+// La diferencia con puerta.abrirAsistido: acá NO viaja ninguna operación enganchada.
+//
+// Uso (CLI):   TEK_EMPRESA="ANA CLARA" TEK_USER=joaquin node abrir-login-asistido.mjs
 // Uso (mód):   import { abrirLoginAsistido } from './abrir-login-asistido.mjs'
 //
 // Pre-rellenado (default) = pre-llena RUT+clave con tecleo realista y el humano solo da
 // Aceptar + Superclave. Manual (TEK_ASSIST_MANUAL=1) = form vacío, el humano teclea todo.
-import { spawn } from 'node:child_process'
-import { writeFileSync, chmodSync } from 'node:fs'
-import { join, dirname } from 'node:path'
-import { fileURLToPath } from 'node:url'
-import crypto from 'node:crypto'
-
-const DIR = dirname(fileURLToPath(import.meta.url))
-const OTP_FILE = process.env.NOVNC_OTP_FILE || '/Users/AIagenteia/nexus/novnc-web/.novnc-otp'
-const VNC_URL = process.env.TEK_VNC_URL || 'https://mac-mini-de-nicolas.tailee0068.ts.net/vnc'
+import * as puerta from './puerta.mjs'
 
 /**
  * Prepara el acceso (PIN nuevo) y abre el login asistido del banco en el mini.
- * @param {object} opts { empresa, motivo, manual }
+ * @param {object} opts { empresa, user, motivo, manual }
  * @returns {Promise<{url,pin,empresa,motivo,pid}>}
  */
 export async function abrirLoginAsistido(opts = {}) {
-  const empresa = opts.empresa || process.env.TEK_EMPRESA || 'ANA CLARA'
+  const empresa = opts.empresa || process.env.TEK_EMPRESA || 'ANA CLARA SPA'
   const motivo = opts.motivo || process.env.TEK_MOTIVO || ''
-  const manual = opts.manual ?? (process.env.TEK_ASSIST_MANUAL === '1')
-  // Usuario/sesión: ANA CLARA/Mallorca es SIEMPRE ramon (único dispositivo confiado por el banco).
-  // Otras empresas → la sesión de quien pide. Ver [[tek-anaclara-siempre-ramon]].
-  const esAnaClara = /ana\s*clara|mallorca/i.test(empresa)
-  const tekUser = esAnaClara ? 'ramon' : ((opts.user || '').toLowerCase().trim() || 'ramon')
-
-  // 1) PIN nuevo de un solo uso + reset del flag de estado (la página /vnc espera conexión fresca)
-  const pin = String(crypto.randomInt(10_000_000, 100_000_000))   // 8 dígitos
-  writeFileSync(OTP_FILE, pin, { mode: 0o600 })
-  try { chmodSync(OTP_FILE, 0o600) } catch { /* */ }
-  try { writeFileSync(OTP_FILE.replace(/[^/]*$/, '.novnc-estado'), JSON.stringify({ ok: false, estado: 'esperando', ts: Date.now() })) } catch { /* */ }
-
-  // 2) Abrir el login asistido (form real del banco en el mini). Detached: corre solo; el
-  //    humano lo maneja por /vnc. TEK_OTP_FILE hace que login-humano vacíe el PIN al terminar.
-  const env = {
-    ...process.env,
-    TEK_ASSIST: '1',
-    ...(manual ? { TEK_ASSIST_MANUAL: '1' } : {}),
-    TEK_EMPRESA: empresa,
-    TEK_USER: tekUser,
-    ...(motivo ? { TEK_MOTIVO: motivo } : {}),
-    TEK_OTP_FILE: OTP_FILE,
+  // SESIÓN POR PERSONA: cada uno entra con SU login, también en ANA CLARA. Antes acá se
+  // forzaba 'ramon' y por eso Joaquín se quedaba sin poder operar. Ver [[tek-sesion-por-persona]].
+  const userId = (opts.user || process.env.TEK_USER || 'ramon').toLowerCase().trim() || 'ramon'
+  const r = puerta.abrirAsistido({ userId, empresa, motivo, manual: opts.manual, etiqueta: 'reconectar' })
+  return {
+    url: r.url, pin: r.pin, empresa: r.empresa, userId: r.userId, motivo,
+    pid: r.pid, en_vuelo: !!r.en_vuelo, ocupado: !!r.ocupado, nota: r.nota,
+    modo: (opts.manual ?? (process.env.TEK_ASSIST_MANUAL === '1')) ? 'manual' : 'pre-rellenado',
   }
-  const child = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], {
-    cwd: DIR, env, detached: true, stdio: 'ignore',
-  })
-  child.unref()
-
-  return { url: VNC_URL, pin, empresa, motivo, pid: child.pid, modo: manual ? 'manual' : 'pre-rellenado' }
 }
 
 // CLI
