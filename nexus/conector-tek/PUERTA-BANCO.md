@@ -50,6 +50,28 @@ sesión dormida
 El PIN es de **un solo uso**: `login-humano` vacía el archivo OTP al salir, así la URL queda
 inútil fuera de la ventana.
 
+## La vista desde el teléfono (04-ago)
+
+Ramón abrió el link y vio "la pantalla de bloqueo": era el **escritorio del mini con ventanas
+encima** — había conectado más rápido de lo que Chrome tardaba en abrir el banco. Peleó con eso
+y se le venció la ventana de 5 min. Arreglado así:
+
+- **Telón en la página `/vnc`**: mientras el estado sea `esperando` NO se muestra la pantalla del
+  mini, se muestra "Preparando el banco…". `login-humano` escribe `listo_para_aceptar` en
+  `.novnc-estado` cuando el formulario ya está en pantalla y ahí recién se levanta el telón.
+  Red de seguridad: a los 45 s se levanta igual. Si el ingreso termina mal, barra roja con el motivo.
+- **Zoom 2x** (`--force-device-scale-factor=2`, `TEK_ASSIST_ZOOM` para cambiarlo): la pantalla del
+  mini es 1920x1080 y en un teléfono el formulario quedaba diminuto. Con 2x el botón Aceptar es un
+  blanco grande. `TEK_ASSIST_ZOOM=1` vuelve a como estaba.
+- **Banco al frente y a pantalla completa**: `--start-fullscreen` + `page.bringToFront()` +
+  `osascript` sobre el PID del Chrome (ubicado por su `user-data-dir`). Verificado: tapa el
+  escritorio, el Dock y las demás ventanas.
+- **Espera de 5 → 10 min** (`TEK_ASSIST_ESPERA_MS`), y el tope duro del proceso pasa a
+  espera + 8 min en asistido (si no, moríamos justo cuando la persona terminaba de entrar).
+- **`caffeinate -dimsu`** mientras dura la ventana: la pantalla no se duerme a mitad del ingreso.
+- **Aviso de girar el teléfono**: la pantalla del mini es apaisada; en vertical entra como una
+  franja. La barra de abajo lo dice y se actualiza al girar.
+
 ## Candados (por qué no se pisan entre sí)
 
 - **Un login asistido a la vez**: hay una sola pantalla. Si ya hay uno en vuelo y es *otra*

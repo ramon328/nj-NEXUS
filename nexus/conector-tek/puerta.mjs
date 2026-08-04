@@ -35,8 +35,10 @@ const ASISTIDO_FILE = join(DATA, '.login-asistido.json')
 // El banco corta la sesión por inactividad ~10-15 min. Un session-<user>.json tocado hace
 // menos que esto = sesión probablemente reusable (login-humano igual la re-verifica al entrar).
 const FRESCA_MIN = Number(process.env.TEK_SESION_FRESCA_MIN || 12)
-// Un login asistido en vuelo dura como mucho esto (5 min de espera humana + la operación).
-const ASISTIDO_VENTANA_MS = Number(process.env.TEK_ASISTIDO_VENTANA_MS || 10 * 60_000)
+// Un login asistido en vuelo dura como mucho esto. Tiene que cubrir la espera humana
+// (TEK_ASSIST_ESPERA_MS, 10 min por defecto) con algo de margen; si fuera menor, un segundo
+// pedido creería que no hay nada en vuelo y trataría de abrir otro login encima.
+const ASISTIDO_VENTANA_MS = Number(process.env.TEK_ASISTIDO_VENTANA_MS || 13 * 60_000)
 // Vuelta atrás de emergencia: si esto es 1, ANA CLARA vuelve a operarse SIEMPRE con ramon.
 const SOLO_RAMON = process.env.TEK_ANACLARA_SOLO_RAMON === '1'
 

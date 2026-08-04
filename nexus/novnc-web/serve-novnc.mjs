@@ -84,24 +84,57 @@ const NOSESSION = `<!doctype html><html lang=es><head><meta charset=utf-8><meta 
 // Se inyecta en la vista noVNC: viewport móvil (teléfono/PC) + barra que consulta /estado y avisa
 // "✅ conectado" (y cierra la pestaña) cuando el login terminó. El botón Aceptar SIGUE siendo el
 // del banco dentro de la pantalla — esto es solo la envoltura de aviso, no reemplaza el gesto real.
+// Se inyecta en la vista noVNC. Además del aviso final, ahora TAPA la pantalla mientras el
+// banco todavía no está listo: quien abría el link rápido veía el escritorio del mini con
+// ventanas encima y creía que era la pantalla de bloqueo del Mac (le pasó a Ramón el 04-ago).
+// Estados que escribe login-humano en .novnc-estado:
+//   esperando           → todavía abriendo Chrome / cargando el banco  (telón puesto)
+//   listo_para_aceptar  → el form está en pantalla, dale Aceptar       (telón fuera)
+//   ok:true             → entró, ya está                              (verde y cierra)
 const OVERLAY_JS = `
 (function(){
   try{var vp=document.querySelector('meta[name=viewport]');if(!vp){vp=document.createElement('meta');vp.name='viewport';vp.content='width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no';document.head.appendChild(vp);}}catch(e){}
   var base=location.pathname.substring(0,location.pathname.lastIndexOf('/'));
   var hint=document.createElement('div');
-  hint.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99998;font:600 13px system-ui,sans-serif;text-align:center;padding:9px;background:rgba(0,0,0,.72);color:#fff';
-  hint.textContent='Dale Aceptar + Superclave en la pantalla — al conectar se avisa acá';
+  hint.style.cssText='position:fixed;left:0;right:0;bottom:0;z-index:99998;font:700 15px system-ui,sans-serif;text-align:center;padding:12px;background:rgba(0,0,0,.8);color:#fff';
+  hint.textContent='Tocá ACEPTAR en la pantalla y después poné la Superclave';
+  // La pantalla del mini es apaisada (1920x1080): en un teléfono vertical entra como una
+  // franja chica. Girándolo ocupa todo el ancho. Se avisa solo, y se saca al girar.
+  function orientar(){
+    try{
+      var vertical=window.innerHeight>window.innerWidth;
+      hint.textContent=vertical
+        ? '📱 Girá el teléfono de lado para ver el banco grande'
+        : 'Tocá ACEPTAR en la pantalla y después poné la Superclave';
+    }catch(e){}
+  }
+  window.addEventListener('resize',orientar);
+  window.addEventListener('orientationchange',function(){setTimeout(orientar,400);});
+  setTimeout(orientar,300);
   var bar=document.createElement('div');
   bar.style.cssText='position:fixed;left:0;right:0;top:0;z-index:99999;font:700 15px system-ui,sans-serif;text-align:center;padding:12px;background:#1b8e3a;color:#fff;display:none';
-  function ready(){document.body.appendChild(hint);document.body.appendChild(bar);}
+  // TELÓN: mientras el banco no está listo no mostramos el escritorio del mini.
+  var telon=document.createElement('div');
+  telon.style.cssText='position:fixed;inset:0;z-index:100000;background:#0f1115;color:#e8e8ea;display:grid;place-items:center;text-align:center;font:600 17px system-ui,sans-serif;padding:24px';
+  telon.innerHTML='<div><div style="font-size:40px;margin-bottom:14px">🏦</div><div>Preparando el banco…</div><div style="font-weight:400;font-size:14px;color:#9aa0aa;margin-top:10px;max-width:300px">Tarda unos segundos. No toques nada: cuando esté listo aparece el formulario y solo tenés que darle Aceptar.</div></div>';
+  function ready(){document.body.appendChild(hint);document.body.appendChild(bar);document.body.appendChild(telon);}
   if(document.body)ready();else document.addEventListener('DOMContentLoaded',ready);
-  var done=false;
+  var done=false, listo=false;
+  // Red de seguridad: si el estado nunca avanza (versión vieja del motor, o algo raro),
+  // el telón se saca solo a los 45s — nunca dejamos a la persona mirando una pantalla muerta.
+  setTimeout(function(){ if(!listo){listo=true;telon.style.display='none';} },45000);
   setInterval(function(){
     if(done)return;
     fetch(base+'/estado',{cache:'no-store'}).then(function(r){return r.json();}).then(function(s){
-      if(s&&s.ok){done=true;bar.textContent='✅ Banco conectado — ya podés cerrar esta pestaña';bar.style.display='block';hint.style.display='none';setTimeout(function(){try{window.close();}catch(e){}},1500);}
+      if(!s)return;
+      if(s.ok){done=true;telon.style.display='none';bar.textContent='✅ Banco conectado — ya podés cerrar esta pestaña';bar.style.display='block';hint.style.display='none';setTimeout(function(){try{window.close();}catch(e){}},1500);return;}
+      if(!listo&&s.estado==='listo_para_aceptar'){listo=true;telon.style.display='none';}
+      if(listo&&s.estado&&s.estado!=='listo_para_aceptar'&&s.estado!=='esperando'){
+        done=true;telon.style.display='none';hint.style.display='none';
+        bar.style.background='#b3261e';bar.textContent='⚠️ El ingreso no se completó ('+s.estado+') — pedile el link de nuevo a Nexus';bar.style.display='block';
+      }
     }).catch(function(){});
-  },2500);
+  },2000);
 })();
 `;
 

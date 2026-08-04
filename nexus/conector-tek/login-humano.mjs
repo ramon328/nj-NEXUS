@@ -18,6 +18,7 @@
 import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchright/index.js'
 const { chromium } = patchright
 import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync, cpSync, rmSync, chmodSync } from 'node:fs'
+import { spawn, execFile } from 'node:child_process'
 import { join } from 'node:path'
 import { obtener as obtenerCreds } from '/Users/AIagenteia/nexus/conector-tek/credenciales.mjs'
 import { crearCandado } from '/Users/AIagenteia/nexus/conector-tek/candado.mjs'
@@ -2568,7 +2569,7 @@ async function explorarNomina(page, log) {
  * el banco al frente y a pantalla completa, el botón "Aceptar" centrado, y la pantalla despierta.
  * Todo best-effort: si algo falla, el login asistido sigue funcionando igual.
  */
-async function prepararPantallaAsistida(page, log) {
+async function prepararPantallaAsistida(page, log, profileDir) {
   // 1) Que no se duerma la pantalla (ni salte el protector) durante la ventana de ingreso.
   try {
     const seg = Math.ceil((Number(process.env.TEK_ASSIST_ESPERA_MS || 600_000) || 600_000) / 1000) + 120
@@ -2578,11 +2579,19 @@ async function prepararPantallaAsistida(page, log) {
   // 2) El banco AL FRENTE: la pestaña (CDP) y la ventana de macOS. Si el mini tiene otras
   //    ventanas abiertas, la vista VNC mostraba esas y no el banco.
   try { await page.bringToFront() } catch { /* */ }
+  // El PID que hay que traer al frente es el del CHROME que lanzamos (no el de node): lo
+  // ubicamos por su user-data-dir, que es único de este perfil de banco.
+  const correr = (cmd, args) => new Promise((res) => {
+    try { execFile(cmd, args, { timeout: 5000 }, (e, out) => res(e ? '' : String(out || ''))) } catch { res('') }
+  })
   try {
-    await new Promise((res) => {
-      const p = spawn('/usr/bin/osascript', ['-e', 'tell application "System Events" to set frontmost of first process whose unix id is ' + process.pid + ' to true'], { stdio: 'ignore' })
-      p.on('close', res); p.on('error', res); setTimeout(res, 3000)
-    })
+    if (profileDir) {
+      const pids = (await correr('/usr/bin/pgrep', ['-f', 'user-data-dir=' + profileDir])).trim().split(/\s+/).filter(Boolean)
+      if (pids.length) {
+        await correr('/usr/bin/osascript', ['-e', `tell application "System Events" to set frontmost of (first process whose unix id is ${pids[0]}) to true`])
+        log('banco traído al frente (pid ' + pids[0] + ')')
+      }
+    }
   } catch { /* necesita permisos de accesibilidad; el fullscreen igual tapa casi todo */ }
 
   // 3) El botón "Aceptar" CENTRADO: sin scroll y sin buscarlo. NO lo clickeamos (eso lo tiene
@@ -2592,10 +2601,29 @@ async function prepararPantallaAsistida(page, log) {
     if (btn) { await btn.scrollIntoViewIfNeeded({ timeout: 4000 }).catch(() => {}); log('botón Aceptar a la vista ✓') }
     else log('no encontré el botón Aceptar para centrarlo (sigue igual, la persona lo ve en pantalla)')
   } catch { /* */ }
+
+  // 4) AVISARLE A LA PÁGINA /vnc que el banco YA está listo. Sin esto, quien abre el link
+  //    rápido (antes de que Chrome termine de cargar el form) ve el escritorio del mini con
+  //    ventanas encima y cree que es la pantalla de bloqueo — le pasó a Ramón el 04-ago.
+  escribirEstadoVnc('listo_para_aceptar')
+}
+
+/** Estado para la página /vnc (la barra que ve la persona en el teléfono). Best-effort. */
+function escribirEstadoVnc(estado, ok = false) {
+  if (!process.env.TEK_OTP_FILE) return
+  try {
+    writeFileSync(process.env.TEK_OTP_FILE.replace(/[^/]*$/, '.novnc-estado'), JSON.stringify({ ok, estado, ts: Date.now() }))
+  } catch { /* */ }
 }
 
 async function main() {
-  setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, 600_000).unref?.()
+  // Tope duro del proceso. En ASISTIDO hay que darle aire: espera humana (10 min) + la
+  // operación que corre después (crear la transferencia, subir el lote…). Si el tope fuera
+  // 10 min, mataríamos el proceso justo cuando la persona termina de entrar.
+  const topeMs = process.env.TEK_ASSIST === '1'
+    ? (Number(process.env.TEK_ASSIST_ESPERA_MS || 600_000) || 600_000) + 8 * 60_000
+    : 600_000
+  setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, topeMs).unref?.()
   // Credenciales: primero la BÓVEDA cifrada (por usuario+empresa), con fallback al
   // .creds.json legacy. Env: TEK_USER (default 'ramon'), TEK_EMPRESA (default ANA CLARA).
   let rut, password
@@ -3021,7 +3049,7 @@ async function main() {
     //   1. el banco al frente y a pantalla completa (tapa todo lo demás)
     //   2. el botón "Aceptar" centrado en la pantalla, sin scroll
     //   3. la pantalla despierta mientras dure la ventana
-    await prepararPantallaAsistida(page, log)
+    await prepararPantallaAsistida(page, log, profileDir)
     // 5 min era poco: entre abrir WhatsApp, el link, el PIN y loguear se vencía. 10 por defecto.
     const esperaMs = Number(process.env.TEK_ASSIST_ESPERA_MS || 10 * 60_000) || 10 * 60_000
     log(`MODO ASISTIDO: hacé el clic en "Aceptar" + Superclave por VNC. Esperando hasta ${Math.round(esperaMs / 60000)} min…`)
