@@ -68,6 +68,11 @@ function currentPin() {
   return PIN_STATIC || null;
 }
 function tokenFor(pin) { return crypto.createHash('sha256').update('ok|novnc-salt|' + pin).digest('hex').slice(0, 40); }
+// Anti-fuerza-bruta del PIN del banco (una sola puerta, PIN de un solo uso).
+let pinFails = 0, pinLockUntil = 0;
+function pinBloqueado() { return pinLockUntil > Date.now() ? Math.ceil((pinLockUntil - Date.now()) / 1000) : 0; }
+function pinFallo() { pinFails++; if (pinFails >= 5) pinLockUntil = Date.now() + Math.min(300, 15 * 2 ** (pinFails - 5)) * 1000; }
+function pinOk() { pinFails = 0; pinLockUntil = 0; }
 function cookies(req) {
   const out = {}; const h = req.headers.cookie || '';
   for (const part of h.split(';')) { const i = part.indexOf('='); if (i < 0) continue; out[part.slice(0, i).trim()] = part.slice(i + 1).trim(); }
@@ -151,6 +156,11 @@ const handler = (req, res) => {
   if (PREFIX && (urlPath === PREFIX || urlPath.startsWith(PREFIX + '/'))) urlPath = urlPath.slice(PREFIX.length) || '/';
   // POST del PIN
   if (REQUIRE_PIN && req.method === 'POST' && urlPath === '/__pin') {
+    // ANTI-FUERZA-BRUTA (seguridad): tras varios PIN errados seguidos, bloqueamos /__pin un rato
+    // (back-off exponencial, tope 5 min). Global — detrás del Funnel la IP real no es confiable.
+    // No afecta el uso normal: el PIN correcto resetea el contador y entra directo.
+    const espera = pinBloqueado();
+    if (espera) { res.writeHead(429, { 'content-type': 'text/html; charset=utf-8' }); return res.end(pinPage(`Demasiados intentos. Esperá ${espera}s y probá con el PIN correcto.`)); }
     let b = ''; req.on('data', (d) => { b += d; if (b.length > 2000) req.destroy(); });
     req.on('end', () => {
       const pin = currentPin();
@@ -159,9 +169,11 @@ const handler = (req, res) => {
       // pegan los asteriscos; también se cuelan espacios. Comparar crudo rebotaba un PIN correcto.
       const got = crudo.replace(/\D/g, '');
       if (pin && got && got === String(pin).replace(/\D/g, '')) {
+        pinOk();
         res.writeHead(302, { 'set-cookie': `nvauth=${tokenFor(pin)}; Path=${PREFIX || '/'}; HttpOnly; Secure; SameSite=Lax; Max-Age=3600`, location: vncView() });
         res.end();
       } else {
+        if (pin && got) pinFallo();   // solo cuenta como intento si HABÍA sesión y mandaron algo
         res.writeHead(401, { 'content-type': 'text/html; charset=utf-8' });
         res.end(pin
           ? pinPage(got
