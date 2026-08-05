@@ -3838,12 +3838,17 @@ async function ejecutar(nombre, input, ctx = {}) {
         const res = await escrituraBancoAutoSana(() => mm.ejecutarMasivo(resueltas, { concepto, stamp: String(Date.now()), userId: userMasiva, empresa: empresaMasiva }))
         // Sesión dormida: el motor ya abrió el login con el lote enganchado → link + PIN YA.
         if (necesitaLogin(res)) {
-          seguirJobBanco(ctx, res.job, (r) => {
+          const finTxtM = (r) => {
             const m = r?.masiva || null
-            if (m?.creado === true || m?.estado === 'lote_creado_pendiente') return `✅ Listo: el lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) quedó SUBIDO y *pendiente por autorizar* en *${empresaMasiva}*. Falta liberarlo con Superclave para que salga la plata. 🏦`
-            if (m?.rechazado) return `❌ Entraste al banco pero el banco RECHAZÓ el lote (0 registros aceptados). ${m?.nota || 'Revisá la cuenta, el banco y el RUT de los beneficiarios.'}`
-            return `⚠️ Entraste al banco pero no pude confirmar el lote (estado: ${m?.estado || r?.estado || 'desconocido'}). Revisá *Transferencias masivas → Liberación* antes de volver a subirlo.`
-          })
+            if (m?.creado === true || m?.estado === 'lote_creado_pendiente') return esAdmin(ctx.de)
+              ? `✅ Listo: el lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) quedó SUBIDO y *pendiente por autorizar* en *${empresaMasiva}*. Falta liberarlo con Superclave para que salga la plata. 🏦`
+              : `✅ Listo: tu lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) quedó ENVIADO y registrado para autorización en *${empresaMasiva}*. 🏦`
+            if (m?.rechazado) return `❌ El banco RECHAZÓ el lote (0 registros aceptados). ${m?.nota || 'Revisá la cuenta, el banco y el RUT de los beneficiarios.'}`
+            return `⚠️ No pude confirmar el lote (estado: ${m?.estado || r?.estado || 'desconocido'}). Lo reviso y te aviso.`
+          }
+          const ajenoM = await loginAlDueñoSiAjeno(ctx, sesM, res, `un lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt})`)
+          if (ajenoM) { seguirJobBanco(ctx, res.job, finTxtM); return ajenoM }
+          seguirJobBanco(ctx, res.job, finTxtM)
           return JSON.stringify({
             ok: false, estado: 'necesita_login', necesita_login: true, url: res.url, pin: res.pin, resumen,
             texto: `🏦 Para subir el lote (${resumen.cantidad} transferencias · ${resumen.monto_total_fmt}) desde *${empresaMasiva}* tenés que entrar vos al banco:\n\n👉 ${res.url}\n🔑 PIN (un solo uso): ${res.pin}\n\nAbrí el link, poné el PIN y logueate normal. Apenas entres, *subo el lote solo* y te aviso cómo quedó. ✅`,
@@ -3853,7 +3858,9 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (res.ok && tr) { for (const t of resueltas) { try { if (String(t.rut || '').replace(/\D/g, '')) tr.guardarBeneficiario({ nombre: t.nombre, rut: t.rut, banco: t.banco, cuenta: t.cuenta }) } catch { /* */ } } }
         let okTxt, instruccion
         if (res.ok) {
-          okTxt = `✅ Lote masivo de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) CREADO — queda PENDIENTE por autorizar/liberar (falta la Superclave para que la plata salga).`
+          okTxt = esAdmin(ctx.de)
+            ? `✅ Lote masivo de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) CREADO — queda PENDIENTE por autorizar/liberar (falta la Superclave para que la plata salga).`
+            : `✅ Lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) ENVIADO — queda registrado para autorización.`
         } else if (res.estado === 'ocupado') {
           okTxt = '⏳ Ya hay una transferencia bancaria en curso. Esperá ~2 minutos y reintentá UNA sola vez.'
           instruccion = '⛔ NO reintentes enviar ahora ni en este turno: hay una operación bancaria en curso. Dile al usuario que espere ~2 min y vuelva a pedirlo. NO vuelvas a llamar tek_masiva.'
@@ -3869,7 +3876,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       // accion 'preparar' (default): resumen para mostrar y pedir OK.
       return JSON.stringify({
         ok: true, modo: 'borrador', ejecutado: false, resumen,
-        texto: `💸 Lote masivo: ${resumen.cantidad} transferencias · total ${resumen.monto_total_fmt} · concepto "${concepto}" · motivo "${motivo}". Quedará PENDIENTE por liberar (no mueve plata hasta la liberación con Superclave).`,
+        texto: `💸 Lote masivo: ${resumen.cantidad} transferencias · total ${resumen.monto_total_fmt} · concepto "${concepto}" · motivo "${motivo}". ${esAdmin(ctx.de) ? 'Quedará PENDIENTE por liberar (no mueve plata hasta la liberación con Superclave).' : 'Quedará registrado para autorización (no mueve plata hasta que lo autoricen).'}`,
         instruccion: 'Muéstrale el resumen (cada beneficiario · banco · cuenta · monto, el total, el concepto y el motivo) y pregúntale claro "¿subo el lote?". SOLO con su OK explícito, llamá tek_masiva con accion:"enviar" y los MISMOS datos.',
       })
     }
