@@ -294,11 +294,37 @@ async function editarVehiculo(id, cambios) {
   return { ok: true, id, cambios_aplicados: aplicados, antes: fmtVeh(actual, true), despues: fmtVeh(despues, true) }
 }
 
+// Parte un nombre completo chileno en nombre + apellido(s) (2 apellidos al final).
+function _partirNombre(txt) {
+  const ws = String(txt || '').trim().split(/\s+/).filter(Boolean)
+  if (ws.length >= 4) return { nombre: ws.slice(0, ws.length - 2).join(' '), apellido: ws.slice(-2).join(' ') }
+  if (ws.length === 3) return { nombre: ws[0], apellido: ws.slice(1).join(' ') }
+  if (ws.length === 2) return { nombre: ws[0], apellido: ws[1] }
+  return { nombre: ws[0] || '', apellido: '.' }   // 1 palabra → apellido placeholder
+}
+
+// PROVEEDOR de la adquisición = a quién se le COMPRÓ el auto o quién lo CONSIGNA.
+// Se busca (o se CREA) como CLIENTE de MallorcAutos (customers) para poder
+// linkearlo por customer_id, que es como lo guarda el portal — NO como nota.
+// Devuelve {cliente, creado} o {cliente:null} si no vinieron datos del proveedor.
+async function resolverProveedor(d, dry = false) {
+  const empresa = d.proveedor_empresa || d.empresa
+  const hay = d.proveedor || d.proveedor_nombre || d.proveedor_apellido || d.proveedor_rut || empresa
+  if (!hay) return { cliente: null, creado: false }
+  let nombre = d.proveedor_nombre, apellido = d.proveedor_apellido
+  if (!empresa && !nombre && !apellido && d.proveedor) ({ nombre, apellido } = _partirNombre(d.proveedor))
+  return resolverCliente({
+    rut: d.proveedor_rut, empresa, nombre, apellido,
+    telefono: d.proveedor_fono || d.proveedor_telefono,
+    direccion: d.proveedor_dir || d.proveedor_direccion,
+    email: d.proveedor_email,
+  }, dry)
+}
+
 // Actualiza/registra la ADQUISICIÓN (precio de compra + datos del vendedor) de un
 // auto EXISTENTE de MallorcAutos, escribiendo en vehicles_purchases — SIN navegador.
 // Si ya hay registro de compra para el auto, lo ACTUALIZA; si no, lo crea.
-// Datos del vendedor (nombre/RUT/teléfono/dirección) van en `notes` (mismo patrón
-// que la creación, que guarda "Comprado a: X").
+// El vendedor se crea/encuentra como cliente y se linkea por customer_id (NO en notas).
 async function editarAdquisicion(id, d, dry = false) {
   id = _num(id)
   const pre = await rest(`vehicles?select=id,client_id${SOLO_MALLORCA}&id=eq.${id}&limit=1`)
@@ -308,27 +334,11 @@ async function editarAdquisicion(id, d, dry = false) {
 
   // VENDEDOR → se CREA/encuentra como `customer` (mismo formato que la venta:
   // resolverCliente) y se linkea por customer_id. NO va en notas.
-  let vendedor = null, vendedorCreado = false, vendedorPreview = null
-  const esEmpresa = !!d.empresa
-  const hayVendedor = d.proveedor || d.proveedor_nombre || d.proveedor_rut || d.empresa
-  if (hayVendedor) {
-    let nombre = d.proveedor_nombre, apellido = d.proveedor_apellido
-    if (!esEmpresa && !nombre && !apellido && d.proveedor) {
-      // Parte el nombre completo en nombre + apellido (chileno: 2 apellidos al final).
-      const ws = String(d.proveedor).trim().split(/\s+/).filter(Boolean)
-      if (ws.length >= 4) { nombre = ws.slice(0, ws.length - 2).join(' '); apellido = ws.slice(-2).join(' ') }
-      else if (ws.length === 3) { nombre = ws[0]; apellido = ws.slice(1).join(' ') }
-      else if (ws.length === 2) { nombre = ws[0]; apellido = ws[1] }
-      else { nombre = ws[0] || ''; apellido = '.' }   // 1 palabra → apellido placeholder
-    }
-    const res = await resolverCliente({
-      rut: d.proveedor_rut, empresa: d.empresa, nombre, apellido,
-      telefono: d.proveedor_fono, direccion: d.proveedor_dir, email: d.proveedor_email,
-    }, dry)
-    vendedor = res.cliente
-    vendedorCreado = res.creado
-    vendedorPreview = res.cliente_a_crear || null
-  }
+  const hayVendedor = d.proveedor || d.proveedor_nombre || d.proveedor_rut || d.proveedor_empresa || d.empresa
+  const res = hayVendedor ? await resolverProveedor(d, dry) : { cliente: null, creado: false }
+  const vendedor = res.cliente
+  const vendedorCreado = res.creado
+  const vendedorPreview = res.cliente_a_crear || null
 
   const campos = {}
   if (precio != null && !Number.isNaN(precio)) campos.purchase_price = precio
@@ -619,16 +629,46 @@ async function crearVehiculo(d) {
   if (!r.ok) return { ok: false, error: `INSERT falló (HTTP ${r.status}): ${JSON.stringify(body).slice(0, 220)}` }
   const veh = Array.isArray(body) ? body[0] : body
   // ── ADQUISICIÓN: registrar la compra o la consignación (deja el costo del auto) ──
+  // El PROVEEDOR (el vendedor, o el CONSIGNADOR si el auto es consignado) se crea /
+  // encuentra como CLIENTE de MallorcAutos y se linkea por customer_id + su documento
+  // (vehicles_documents type purchase/consignment), igual que lo hace el portal.
+  // Solo si no se pudo crear el cliente cae de vuelta a dejarlo como nota.
   let adquisicion = null
+  let proveedor = null, proveedorCreado = false, proveedorError = null
   try {
+    const rp = await resolverProveedor(d)
+    proveedor = rp.cliente
+    proveedorCreado = rp.creado
+  } catch (e) { proveedorError = e.message }
+  const fechaAdq = d.fecha_compra ? _fechaVenta(d.fecha_compra) : new Date().toISOString()
+  const nombreProv = String(d.proveedor || d.proveedor_empresa || d.empresa || [d.proveedor_nombre, d.proveedor_apellido].filter(Boolean).join(' ') || '').trim()
+  const notaProv = proveedor || !nombreProv ? null : `${adq === 'compra' ? 'Comprado a' : 'Consignado por'}: ${nombreProv}`
+  try {
+    // Documento de la adquisición (lo que en GoAutos amarra el cliente con el auto).
+    let docId = null
+    if (proveedor) {
+      const dr = await post('vehicles_documents?select=id', {
+        vehicle_id: veh.id, client_id: CLIENT_ID, customer_id: proveedor.id,
+        type: adq === 'compra' ? 'purchase' : 'consignment', status: 'pending', document_date: fechaAdq,
+      })
+      if (dr.ok) docId = (Array.isArray(dr.body) ? dr.body[0] : dr.body)?.id
+    }
     if (adq === 'compra') {
-      const pp = { vehicle_id: veh.id, purchase_price: _num(precioAdq), purchase_date: d.fecha_compra ? _fechaVenta(d.fecha_compra) : new Date().toISOString(), status: 'completed', notes: d.proveedor ? `Comprado a: ${String(d.proveedor).trim()}` : null }
+      const pp = { vehicle_id: veh.id, purchase_price: _num(precioAdq), purchase_date: fechaAdq, status: 'completed', customer_id: proveedor ? proveedor.id : null, document_id: docId, notes: notaProv }
       const pr = await post('vehicles_purchases?select=id', pp)
       adquisicion = pr.ok ? { tipo: 'compra', precio: pp.purchase_price, id: (Array.isArray(pr.body) ? pr.body[0] : pr.body)?.id } : { tipo: 'compra', error: `no se pudo registrar la compra (HTTP ${pr.status}): ${JSON.stringify(pr.body).slice(0, 160)}` }
     } else {
-      const cc = { vehicle_id: veh.id, agreed_price: _num(precioAdq), metodo_consignacion: 'precio_garantizado', consignment_date: d.fecha_compra ? _fechaVenta(d.fecha_compra) : new Date().toISOString(), notes: d.proveedor ? `Consignado por: ${String(d.proveedor).trim()}` : null }
+      const cc = { vehicle_id: veh.id, agreed_price: _num(precioAdq), metodo_consignacion: 'precio_garantizado', consignment_date: fechaAdq, dealership_id: 39, customer_id: proveedor ? proveedor.id : null, document_id: docId, notes: notaProv }
       const cr = await post('vehicles_consignments?select=id', cc)
       adquisicion = cr.ok ? { tipo: 'consignacion', precio: cc.agreed_price, id: (Array.isArray(cr.body) ? cr.body[0] : cr.body)?.id } : { tipo: 'consignacion', error: `no se pudo registrar la consignación (HTTP ${cr.status}): ${JSON.stringify(cr.body).slice(0, 160)}` }
+    }
+    if (adquisicion && !adquisicion.error) {
+      adquisicion.documento_id = docId
+      adquisicion[adq === 'compra' ? 'vendedor' : 'consignador'] = proveedor
+        ? { id: proveedor.id, nombre: [proveedor.first_name, proveedor.last_name].filter(Boolean).join(' ').trim() || proveedor.company_name, rut: proveedor.rut || null, creado: proveedorCreado }
+        : null
+      if (!proveedor && nombreProv) adquisicion.aviso_cliente = `No pude crear a "${nombreProv}" como cliente${proveedorError ? ` (${proveedorError})` : ''}; quedó solo como nota. Pásame su nombre completo y RUT para dejarlo bien registrado.`
+      if (!proveedor && !nombreProv) adquisicion.aviso_cliente = adq === 'compra' ? 'El auto quedó SIN vendedor registrado (no me dieron sus datos).' : 'El auto quedó SIN consignador registrado (no me dieron sus datos): pregúntale quién consigna el auto (nombre y RUT) y regístralo.'
     }
   } catch (e) { adquisicion = { tipo: adq, error: e.message } }
   return {
@@ -1137,6 +1177,10 @@ async function main() {
       adquisicion: arg('adquisicion') || arg('adquisición'),
       precio_compra: arg('precio_compra'), precio_consignacion: arg('precio_consignacion'),
       precio_adquisicion: arg('precio_adquisicion'), proveedor: arg('proveedor'), fecha_compra: arg('fecha_compra'),
+      // Datos del proveedor / CONSIGNADOR: se crea como cliente y se linkea al auto.
+      proveedor_rut: arg('proveedor_rut'), proveedor_nombre: arg('proveedor_nombre'), proveedor_apellido: arg('proveedor_apellido'),
+      proveedor_empresa: arg('proveedor_empresa'), proveedor_fono: arg('proveedor_fono') || arg('proveedor_telefono'),
+      proveedor_email: arg('proveedor_email'), proveedor_dir: arg('proveedor_dir') || arg('proveedor_direccion'),
     }
     const res = await crearVehiculo(d).catch((e) => ({ ok: false, error: e.message }))
     console.log(JSON.stringify({ concesionaria: 'MallorcAutos', ...res }, null, 2))

@@ -1668,7 +1668,8 @@ Se dispara cuando Ramón dice "quiero publicar/subir un auto", "ingresar un auto
   7. Precio mínimo (piso para negociar, interno):
   8. ⭐ ¿Cómo entró el auto? COMPRADO (propio) o CONSIGNADO:
   9. ⭐ Precio de esa compra/consignación (CLP) — el costo de entrada del auto:
-     · (opcional) a quién se le compró/consigna y fecha
+     · ⭐ si es CONSIGNADO: quién lo consigna (nombre completo y RUT) — queda registrado como CLIENTE del auto, no como comentario
+     · si es COMPRADO: a quién se le compró (nombre y RUT) y la fecha (recomendado)
 
   *3) Del vehículo*
   10. ⭐ Kilometraje:
@@ -1695,7 +1696,7 @@ Se dispara cuando Ramón dice "quiero publicar/subir un auto", "ingresar un auto
 
   📸 Para llenar la sección 4 sola, mándame foto del *padrón*, el *permiso de circulación* y/o la *factura* (de ahí saco los 3 vencimientos ⭐).
 
-• PASO 4 — RELLENA CONVERSANDO. Ramón te va respondiendo (todo junto o campo por campo) y/o manda más fotos de documentos: actualiza el formulario y RE-MUÉSTRALO marcando ✅/⬜ lo que falta. Prioridades: los ⭐ OBLIGATORIOS son IMPRESCINDIBLES — GoAutos NO deja publicar sin ellos, así que NO puedes llamar subir_auto hasta tenerlos TODOS. Son: marca, modelo, año, condición, tipo/carrocería, kilometraje, color, combustible, la ADQUISICIÓN (comprado o consignado) CON su precio, y los 3 vencimientos (revisión técnica, permiso de circulación y revisión de gases). Si falta alguno, insiste por él; pide TODOS los que falten juntos en UN mensaje (no de a uno, no repreguntes lo ya dicho). Los 3 vencimientos y los datos del padrón sácalos TÚ del padrón/permiso/factura si los mandó —no los preguntes si están en la imagen—; si no están ni los dijo, pídelos porque son obligatorios. La adquisición SIEMPRE pregúntala si no la dijo (cómo entró el auto y a qué precio). El resto (precio de venta, precio mínimo, versión, transmisión, tracción, dueños, llaves, patente, motor, chasis, prenda, comuna) es RECOMENDADO: insiste suave pero NO trabes por ellos. Los Extras (sección 5) ofrécelos una vez; si dice "no" o "así está bien", NO lo trabes. NUNCA inventes un dato: si no está y no lo dice, déjalo en blanco (salvo los ⭐, que debes conseguir).
+• PASO 4 — RELLENA CONVERSANDO. Ramón te va respondiendo (todo junto o campo por campo) y/o manda más fotos de documentos: actualiza el formulario y RE-MUÉSTRALO marcando ✅/⬜ lo que falta. Prioridades: los ⭐ OBLIGATORIOS son IMPRESCINDIBLES — GoAutos NO deja publicar sin ellos, así que NO puedes llamar subir_auto hasta tenerlos TODOS. Son: marca, modelo, año, condición, tipo/carrocería, kilometraje, color, combustible, la ADQUISICIÓN (comprado o consignado) CON su precio, y los 3 vencimientos (revisión técnica, permiso de circulación y revisión de gases). Si falta alguno, insiste por él; pide TODOS los que falten juntos en UN mensaje (no de a uno, no repreguntes lo ya dicho). Los 3 vencimientos y los datos del padrón sácalos TÚ del padrón/permiso/factura si los mandó —no los preguntes si están en la imagen—; si no están ni los dijo, pídelos porque son obligatorios. La adquisición SIEMPRE pregúntala si no la dijo (cómo entró el auto y a qué precio). 👤 Y si el auto es CONSIGNADO, pregunta SIEMPRE quién lo consigna (nombre completo y RUT) y pásalo en proveedor_nombre/proveedor_apellido (o proveedor_empresa) + proveedor_rut: ese consignador se registra como CLIENTE del auto en GoAutos —así queda amarrado al vehículo, no como un comentario suelto—. En una COMPRA pásale igual el vendedor (nombre + RUT) si lo tienes. El resto (precio de venta, precio mínimo, versión, transmisión, tracción, dueños, llaves, patente, motor, chasis, prenda, comuna) es RECOMENDADO: insiste suave pero NO trabes por ellos. Los Extras (sección 5) ofrécelos una vez; si dice "no" o "así está bien", NO lo trabes. NUNCA inventes un dato: si no está y no lo dice, déjalo en blanco (salvo los ⭐, que debes conseguir).
 • PASO 5 — CONFIRMA Y SUBE. Muestra el RESUMEN final del formulario (campos llenos + los que queden en blanco) y pide el OK. SOLO cuando confirme ("sí", "dale", "súbelo", "créalo") Y estén TODOS los ⭐ obligatorios, llama subir_auto. Si falta algún ⭐, NO la llames: pídelo primero (el conector igual la rechazaría). En indices_fotos pon SOLO los índices de las fotos DEL AUTO para publicar y en indice_foto la portada; las fotos de documentos (padrón, permiso, factura) NO van en indices_fotos —se leen pero NO se publican en la galería—. Tras crearlo, confirma con el id, marca/modelo/año y avisa qué campos quedaron pendientes por llenar.
 
 🧾 FORMULARIO PARA AGREGAR UN GASTO (a un auto de MallorcAutos) — herramienta gasto_goautos:
@@ -2139,7 +2140,14 @@ const HERRAMIENTAS = [
         llaves: { type: 'integer', description: 'N° de llaves' },
         adquisicion: { type: 'string', enum: ['compra', 'consignacion'], description: 'OBLIGATORIO. Cómo entró el auto: "compra" (propio/comprado) o "consignacion" (de un tercero). Define is_consigned y registra el costo de entrada del auto.' },
         precio_adquisicion: { type: 'integer', description: 'OBLIGATORIO. Precio en CLP de esa compra o consignación (el costo de entrada del auto). Si es compra = precio que se pagó; si es consignación = precio acordado.' },
-        proveedor: { type: 'string', description: 'A quién se le compró el auto, o quién lo consigna (opcional).' },
+        proveedor: { type: 'string', description: 'Nombre COMPLETO de a quién se le compró el auto, o de quién lo CONSIGNA. Se registra como CLIENTE del auto en GoAutos (customer_id), NO como nota. Si es consignación, es prácticamente obligatorio: pregúntalo.' },
+        proveedor_rut: { type: 'string', description: 'RUT del vendedor/consignador. Con el RUT se reusa el cliente si ya existe en GoAutos en vez de duplicarlo. Pídelo siempre en una consignación.' },
+        proveedor_nombre: { type: 'string', description: 'Nombre(s) del vendedor/consignador (si lo tienes separado del apellido).' },
+        proveedor_apellido: { type: 'string', description: 'Apellido(s) del vendedor/consignador.' },
+        proveedor_empresa: { type: 'string', description: 'Razón social, si quien vende/consigna es una EMPRESA (en vez de nombre y apellido).' },
+        proveedor_fono: { type: 'string', description: 'Teléfono del vendedor/consignador (opcional).' },
+        proveedor_email: { type: 'string', description: 'Email del vendedor/consignador (opcional).' },
+        proveedor_dir: { type: 'string', description: 'Dirección del vendedor/consignador (opcional).' },
         fecha_compra: { type: 'string', description: 'Fecha de la compra/consignación dd/mm/aaaa (opcional, por defecto hoy).' },
         prenda: { type: 'boolean', description: '¿Tiene prenda/gravamen? true/false' },
         iva_exento: { type: 'boolean', description: '¿IVA exento? true/false' },
@@ -5026,7 +5034,9 @@ async function ejecutar(nombre, input, ctx = {}) {
       const orden = portada != null ? [portada, ...idxs.filter((i) => i !== portada)] : idxs
       const fotos = orden.map((i) => adjuntos[i]).filter(Boolean)
       const MAPA = ['marca', 'modelo', 'anio', 'patente', 'precio', 'km', 'color', 'combustible', 'transmision', 'traccion', 'duenos', 'version', 'descripcion', 'ubicacion', 'estado',
-        'condicion', 'tipo', 'precio_min', 'descuento', 'motor', 'chasis', 'llaves', 'adquisicion', 'precio_adquisicion', 'proveedor', 'fecha_compra', 'prenda', 'iva_exento', 'facturable', 'transferencia',
+        'condicion', 'tipo', 'precio_min', 'descuento', 'motor', 'chasis', 'llaves', 'adquisicion', 'precio_adquisicion', 'proveedor',
+        'proveedor_rut', 'proveedor_nombre', 'proveedor_apellido', 'proveedor_empresa', 'proveedor_fono', 'proveedor_email', 'proveedor_dir',
+        'fecha_compra', 'prenda', 'iva_exento', 'facturable', 'transferencia',
         'rev_tecnica', 'permiso_circulacion', 'gases', 'permiso_municipal', 'comuna_permiso', 'etiqueta']
       const partes = ['crear']
       for (const k of MAPA) {

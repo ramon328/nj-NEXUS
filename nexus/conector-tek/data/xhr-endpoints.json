@@ -4,7 +4,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json",
-    "hits": 30,
+    "hits": 33,
     "muestra": "{\n  \"application\": {\n    \"VERSION\": \"2.1.7\",\n    \"LOG_LEVEL\": 6,\n    \"AMBIENTE\": \"Produccion\",\n    \"IS_PRODUCTION\": true,\n    \"IS_LOCAL\": false\n  },\n\n  \"apiConfig\": {\n    \"API_CONNECT_URL\": \"https://apideveloper.santander.cl/\",\n    \"API_GEE_URL\": \"https://api.officebanking.cl/\",\n    \"API_GEE_CLIENT_ID\": \"foswmIcjMiDqueAOqCpNe5b9ASeW2NL6\"\n  },\n\n  \"sitios\": {\n    \"DOMAIN\": \".officebanking.cl\",\n    \"PRIVATE_PORTAL_URL\": \"https://privado.officebanking.cl\",\n    \"PUBLIC_PORTAL_URL\": \"https://empresas."
   },
   "POST wup-7b4df495.santander.cl/client/v3/web/wup": {
@@ -12,7 +12,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json",
-    "hits": 103,
+    "hits": 116,
     "muestra": "{\"sts\":\"gAAAAABqbGvAOvOxUKXhVjzVCJN9YsiZvatf6Cihxe-wmzFI2mh2Xj9ScW5eHLXQQ-TTxGNGA3f8jJNc4T0PTrP-ZgoyHxYLcNLkb3-pY6mo1lAvzPY4alTaL_9sRWHX9SBlJI7WO1JZsr3gXvZC6_1RPRZnx3_aQzMqhp-4R5xoTq66s_hQMwMAvbdKwI4RctXwHR0bY25z6sIlhmQOs_Jx_T0COyyL_dIh27PKO_s3pUH4fV4mbiYacHwvzAwZFhBaxfR-o_Pvxf-_otwzZQQLPptOLihW2qxem2YSbXOR3mB7ZK2rWAhfOayFSjX4u0EOTy1BRLfamGIZZAx6Ls5NJ8EmPK6rNg==\",\"std\":\"gAAAAABqbGvA5RPuSp1YVyqFjrWRH0EaCNZOEXVb4_4E5_5MyFt0_YwwYCbPVX0nnIMci489hHfv4h0bJTEaoxOM6po-OyJSAB7rDQvJsCpaCCCG5gWbSdR_RhGoFeN"
   },
   "POST log-7b4df495.santander.cl/api/v1/sendLogs": {
@@ -20,7 +20,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json; charset=utf-8",
-    "hits": 52,
+    "hits": 58,
     "muestra": "{\"status\":\"success\"}"
   },
   "GET empresas.officebanking.cl/assets/params.json": {
@@ -36,7 +36,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json",
-    "hits": 111,
+    "hits": 112,
     "muestra": "{\"sts\":\"gAAAAABqbMDhqT_ynitTkgmktTIKWkrtYfIG6MjY-daCZOcDilUDzBRctA1pPQjy_PvAWchqlh-9BoMdAZ4bFfPjFM9xCSFEudYFmXMpNbVcEy3md7w_QcURQfsrczqlV6TOkBB8L9sZY-kIRDZ5JlFzfPpiBhA1stuquQpz8NYOLU2HkkUgoC_cqO-8ITB_JIl8MY--SAKbYsmoAZMWqjRCdA0vLmSdVcpWUdt7UTniIfAQlQVnGRvMZ9VahakiJ74FRdklK0N_OVstO_b44CfmlLwC7S1uNG0LGxWL4ANVkOu9AV-6KhLKTpQJnD4ffm4IMXSuPt-K-TdoP0Di_NOWNWEKvDcFNw==\",\"std\":\"gAAAAABqbMDhtCqrv55BEGfLq_UwpDs-70oFHRxAPg74abSgtmNIuEop8BBa5FZsEDwISipS0qVuYUgY5KQjnPmdM1hwKlYAgWohH2bgH16lsm1j79-EHvvhnXyqhyz"
   },
   "GET empresas.officebanking.cl/assets/huincha.json": {
@@ -132,7 +132,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 9,
+    "hits": 12,
     "muestra": "{\"list\":[{\"codBot\":\"1006\",\"numCrvCpn\":\"1820\",\"numPri\":\"30\",\"desUrl\":\"/campna/CAMPANAS_OB/TC_GESTION_CLAVES/Dash.aspx\",\"fecIco\":\"2026-07-20 12:45:00.0\",\"flgBlq\":\"2\",\"dscCpn\":\"CAMBIO DE CLAVE PARA TODOS\",\"fecTrm\":\"2026-12-31 23:59:00.0\",\"campo1\":null,\"campo2\":null,\"campo3\":null,\"campo4\":null,\"campo5\":null,\"campo6\":null,\"campo7\":null,\"campo8\":null,\"campo9\":null,\"campo10\":null,\"campo11\":null,\"campo12\":null,\"campo13\":null,\"campo14\":null,\"campo15\":null,\"campo16\":null,\"campo17\":null,\"campo18\":null,\"cam"
   },
   "GET apideveloper.santander.cl/sancl/privado/v1/users/0772711212/company/000690026173520/services/1": {
@@ -140,7 +140,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 10,
+    "hits": 13,
     "muestra": null
   },
   "GET api.officebanking.cl/cust_reference_data_mgt/cash_mgmt_services_ms/v1/create_credentials/lgu": {
@@ -148,7 +148,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json; charset=UTF-8",
-    "hits": 15,
+    "hits": 20,
     "muestra": "{\"token\":\"RVNLNFJORzhGTUJONklQVE1ZTDJJVDZZIzE4MC4xMjIuMjAzLjI0MCMxNzg1NzI4MjYyNDk1I1BEOTRiV3dnZG1WeWMybHZiajBpTVM0d0lpQmxibU52WkdsdVp6MGlTVk5QTFRnNE5Ua3RNU0kvUGp4MGIydGxia1JsWm1sdWFYUnBiMjQrTURJeE9EazBOVGM0TXp3dmRHOXJaVzVFWldacGJtbDBhVzl1UGc9PSNBRVMvQ0JDL1BLQ1M1UGFkZGluZyMxLjAjTEdVI2taZHEzdDNLekg2b05SckdPTW9FWmczWFJYYWJMOG1wbkUxZlhUdFcyak1OdlZWMS8ydFYzT1JQdXBtRWhPeEQzRVNOQStyWVN5RkQ0NzZJMlUzTjJFZ0hncVk0MW9BbCt5WGFwaXRsVUJ1dU9FaUMyTWtscXFzS2hFSVc0RDhySlI1Z0p3T3VrVGd3TVpoVm5jbW40aHEweUhhRmFobnJMak"
   },
   "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/account_summary": {
@@ -156,7 +156,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 8,
+    "hits": 11,
     "muestra": "{\"listCustAccount\":[{\"accountNumber\":\"000080280939\",\"accountType\":\"CUENTA CORRIENTE\",\"moneyType\":\"CLP\",\"balance\":\"189477714\",\"creditLine\":\"5000000\"},{\"accountNumber\":\"005102607637\",\"accountType\":\"CUENTA MONEDA EXTRANJERA\",\"moneyType\":\"USD\",\"balance\":\"2615.14\",\"creditLine\":\"\"}],\"flagConsolidatedAccount\":false}"
   },
   "GET apideveloper.santander.cl/sancl/privado/customer_ref_data_mgt/v1/customers/0772711212/basic-contact-information": {
@@ -164,7 +164,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json;charset=utf-8",
-    "hits": 6,
+    "hits": 9,
     "muestra": "{\"DATA\":{\"rut\":\"00772711212\",\"numper\":\"15298102\",\"phoneNumber\":\"975481858\",\"email\":\"NICOLAS.JURI@IMPORTHN.COM\",\"name\":\"ANA CLARA SPA\",\"address\":\"PRI CAUPOLICAN 9291 636 QUILICURA 8710042\"},\"METADATA\":{\"STATUS\":\"0\",\"DESCRIPTION\":\"Consulta Exitosa\"}}"
   },
   "GET www.officebanking.cl/_bm/get_params": {
@@ -172,7 +172,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json",
-    "hits": 8,
+    "hits": 11,
     "muestra": "{\"e\":\"plKsE3lfs891ORqyXVxcUGw4j3fx5eGcWCGB4BIdrDm5ICMd+nwgnl/PVhhNKSr4NMwAqDJupwuF3vYCFxi0f813xxoJaPq+GUAvJgZss16FP/gvUnRcQ/GH4I6k0ShsThKdQbiG2c4fDMg5nrEAMBdB+Sp3OgRtY4bTVYeObR+Tw=\",\"j\":\"AAQAAAAG%2f%2f%2f%2f%2f+aaLXmPuCV+zE810juutpmO65la8gI2NTb1u0ZUREdoRzy2tJAwIMn4LMsL86jUF3VK5dtVzBaGjGVE8BqQjCmdkSrWl%2fdamVm0\",\"k\":\"3683139~3752774\",\"t\":\"1785728175~14400\"}"
   },
   "GET eob.officebanking.cl/CTA.UI.Web/saldoctacte/": {
@@ -196,7 +196,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "text/css",
-    "hits": 5,
+    "hits": 7,
     "muestra": null
   },
   "GET eob.officebanking.cl/CTA.UI.Web/css/saldoctacte": {
@@ -212,7 +212,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/javascript",
-    "hits": 5,
+    "hits": 7,
     "muestra": null
   },
   "GET eob.officebanking.cl/Static.UI.Web/js/fwkV2.min.js": {
@@ -220,7 +220,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/javascript",
-    "hits": 5,
+    "hits": 7,
     "muestra": null
   },
   "GET eob.officebanking.cl/Static.UI.Web/js/ko-bundleV2.min.js": {
@@ -228,7 +228,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/javascript",
-    "hits": 5,
+    "hits": 7,
     "muestra": null
   },
   "GET eob.officebanking.cl/Static.UI.Web/js/jquery-inputmask-bundle.min.js": {
@@ -236,7 +236,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/javascript",
-    "hits": 5,
+    "hits": 7,
     "muestra": null
   },
   "GET eob.officebanking.cl/Static.UI.Web/js/jquery.fileDownload.min.js": {
@@ -244,7 +244,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/javascript",
-    "hits": 4,
+    "hits": 5,
     "muestra": null
   },
   "GET eob.officebanking.cl/Static.UI.Web/js/ko-validation-bundle.min.js": {
@@ -252,7 +252,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/javascript",
-    "hits": 5,
+    "hits": 7,
     "muestra": null
   },
   "GET eob.officebanking.cl/Static.UI.Web/js/ko-components-bundle.min.js": {
@@ -260,7 +260,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/javascript",
-    "hits": 5,
+    "hits": 7,
     "muestra": null
   },
   "GET eob.officebanking.cl/Static.UI.Web/js/dataTables-bundle.min.js": {
@@ -284,7 +284,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/javascript",
-    "hits": 5,
+    "hits": 7,
     "muestra": null
   },
   "GET eob.officebanking.cl/CTA.UI.Web/ruxitagentjs_ICA7NVfghqrux_10341260622154106.js": {
@@ -300,7 +300,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "font/x-woff",
-    "hits": 5,
+    "hits": 6,
     "muestra": null
   },
   "GET eob.officebanking.cl/CTA.UI.Web/Content/fonts/SantanderTextW05-Regular.woff2": {
@@ -340,7 +340,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json",
-    "hits": 7,
+    "hits": 8,
     "muestra": "{\"e\":\"plvoHFnjESLhG5LSnBy4RQ5MTFDARnjDuIVu7WBDdF8Bds6fve+cngJvMEILMAhO9+3qrBUKz1TF2NnUruf9B3+x+fQloiETcXHp0ykspIy38EyyviIZDI8zMKsR6CBWxiORnQB+0zRmd62OxQ2GjsoHIdAf4hB2k41HmbgLoDEDs=\",\"j\":\"AAQAAAAG%2f%2f%2f%2f%2f6eToipamUa3DSiuMaOkzHjbabO7CyQzY8xL2H2Ov1YDMBMg04oYVkcVYKrB6tNbBoQfRKFBhxClJ6sGgIW90FmQrFAgSnq12BYv\",\"k\":\"4604995~3163446\",\"t\":\"1785728199~14400\"}"
   },
   "GET eob.officebanking.cl/CTA.UI.Web/Content/fonts/font-icn-santander.woff": {
@@ -436,7 +436,7 @@
     "method": "GET",
     "status": 302,
     "content_type": "",
-    "hits": 4,
+    "hits": 6,
     "muestra": null
   },
   "GET eob.officebanking.cl/TEFUN.UI.Web/Account/Login": {
@@ -444,7 +444,7 @@
     "method": "GET",
     "status": 302,
     "content_type": "text/html; charset=utf-8",
-    "hits": 2,
+    "hits": 3,
     "muestra": null
   },
   "GET eob.officebanking.cl/TEFUN.UI.Web/css/creacionUnitaria": {
@@ -740,7 +740,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 1,
+    "hits": 2,
     "muestra": "{\"access_token\":\"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMjE4OTQ1NzgzIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg1NzkwODk1LCJpYXQiOjE3ODU3ODkwOTUsImp0aSI6Ii0yN3NXOUhHR3o2Um5kdHFCTFpUbDBHMDFhTSIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMjE4OTQ1NzgzIn0.cdA47jKYu1UpKjzuVPhMfEe9theOEHdOYtCHCM2ccNATPRyeZZ2DmnoxW-riP-AATUtt_Evl_iVTsYVdSlQ4D_7Y1XcGOq45FXXHUTdEF5jXJRVw_faG3WG"
   },
   "POST wslogin.officebanking.cl/pG4REUIdLbKnB3e3Vg/9Y9tzbruaEJYpDOz/FmpeAQ/BWtWRH/oESg8B": {
@@ -988,6 +988,126 @@
     "method": "GET",
     "status": 204,
     "content_type": "application/x-www-form-urlencoded",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/consolidado": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/consolidado?servicioId=TRNCART_CON",
+    "method": "GET",
+    "status": 302,
+    "content_type": "",
+    "hits": 2,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/Account/Login": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/Account/Login?ReturnUrl=%2FCOPE.UI.Web%2Fconsolidado%3FservicioId%3DTRNCART_CON",
+    "method": "GET",
+    "status": 302,
+    "content_type": "text/html; charset=utf-8",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/ruxitagentjs_ICA7NVfghqrux_10343260715123811.js": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/ruxitagentjs_ICA7NVfghqrux_10343260715123811.js",
+    "method": "GET",
+    "status": 200,
+    "content_type": "text/javascript; charset=utf-8",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/Static.UI.Web/js/jquery.tablesorter.js": {
+    "url": "https://eob.officebanking.cl/Static.UI.Web/js/jquery.tablesorter.js?v=3",
+    "method": "GET",
+    "status": 200,
+    "content_type": "application/javascript",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/bundles/BioCatchHeartBeat": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/bundles/BioCatchHeartBeat?v=p9D4NgPidUVI6lFLSrLHzTZmdk2TMgdiC-Nyi8Dzvjo1",
+    "method": "GET",
+    "status": 200,
+    "content_type": "text/javascript; charset=utf-8",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/scripts/consolidado": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/scripts/consolidado?v=JnSkSDacQAjLGelM1dcsKVP8PKn_-0cFpMToUKwsVpM1",
+    "method": "GET",
+    "status": 200,
+    "content_type": "text/javascript; charset=utf-8",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/css/main": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/css/main?v=YnR69Hvzf5Hzg_dWFElEaQwt3ImPNZ0fHEA3YCus1mM1",
+    "method": "GET",
+    "status": 200,
+    "content_type": "text/css; charset=utf-8",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/fonts/santanderIcon.ttf": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/fonts/santanderIcon.ttf",
+    "method": "GET",
+    "status": 200,
+    "content_type": "application/octet-stream",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/fonts/SantanderTextW05-Regular.woff2": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/fonts/SantanderTextW05-Regular.woff2",
+    "method": "GET",
+    "status": 404,
+    "content_type": "text/html",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/img/more.png": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/img/more.png",
+    "method": "GET",
+    "status": 200,
+    "content_type": "image/png",
+    "hits": 1,
+    "muestra": null
+  },
+  "POST eob.officebanking.cl/COPE.UI.Services/Token": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Services/Token",
+    "method": "POST",
+    "status": 200,
+    "content_type": "application/json;charset=UTF-8",
+    "hits": 1,
+    "muestra": "{\"access_token\":\"0fum5Pi3bZ405f0xJEkCtATRiyhAP-RqCjNyaZYXIx1xAebySNw1IGENtCmRsjXqREuME0QNuAh1_Pywi6mTg0o0zGcJBuk3G-Q4VK6vVPYwz3hAFz3mkAh98A8uQJXyjh6VpghwS0sWWLFBLIYjNiNlKFb16IlFIPZEzvkoMSlIZ-4Nodw5IcxK8F59npJ8ePX6cIx_0u_4_E0mwV8HlzQRqf7tgbJEkmNR4k037wGVZINp90B-b_JHrzBb64fgkROU3njmssvmV3hwqcF8D-pdPLImvzWzjj5zonWTaOK00FKPg75YluUmb_xOSDDXbDdAG-qK52y6jAgbNhu6tC0fHbtJukLaokrjggcKeN6_q6pLXn4Ff704tFfhnYCYCESPe7KKVgCWx4x-zS6fNpGooqFV7RBXGg4kfGXg7K5rh7IUHTE_LDe4eSNYbGAWFRWXcFwSj3ht6Yps2t1N3HRWgR6AYWs2mC6"
+  },
+  "GET eob.officebanking.cl//COPE.UI.Web/Account/Ping": {
+    "url": "https://eob.officebanking.cl//COPE.UI.Web/Account/Ping",
+    "method": "GET",
+    "status": 200,
+    "content_type": "text/html; charset=utf-8",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Web/fonts/SantanderTextW05-Regular.woff": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Web/fonts/SantanderTextW05-Regular.woff",
+    "method": "GET",
+    "status": 200,
+    "content_type": "font/x-woff",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET eob.officebanking.cl/COPE.UI.Services/api/consolidado/obtenerListadoEstadoCuenta": {
+    "url": "https://eob.officebanking.cl/COPE.UI.Services/api/consolidado/obtenerListadoEstadoCuenta?idRecall=",
+    "method": "GET",
+    "status": 200,
+    "content_type": "application/json; charset=utf-8",
+    "hits": 1,
+    "muestra": "{\"Result\":{\"IdRecall\":\"\",\"ListadoEstadoCuentaModel\":[{\"NumeroCuenta\":\"0-000-8028093-9\",\"Moneda\":\"PESOS DE CHILE\",\"SaldoInicial\":\"$ 361.969.243\",\"DepositosAbonos\":\"$ 4.741.606\",\"CargosCheques\":\"$ -233.379.105\",\"SaldoFinal\":\"$ 133.331.744\",\"Saldo\":\"$ 133.331.744\"},{\"NumeroCuenta\":\"0-051-0260763-7\",\"Moneda\":\"DOLAR U.S.A.\",\"SaldoInicial\":\"USD 2.615,14\",\"DepositosAbonos\":\"USD 0,00\",\"CargosCheques\":\"USD 0,00\",\"SaldoFinal\":\"USD 2.615,14\",\"Saldo\":\"USD 2.615,14\"}]},\"ErrorCode\":null,\"ErrorDescription\":nul"
+  },
+  "GET eob.officebanking.cl/TEFUN.UI.Web/ruxitagentjs_ICA7NVfghqrux_10343260715123811.js": {
+    "url": "https://eob.officebanking.cl/TEFUN.UI.Web/ruxitagentjs_ICA7NVfghqrux_10343260715123811.js",
+    "method": "GET",
+    "status": 200,
+    "content_type": "text/javascript; charset=utf-8",
     "hits": 1,
     "muestra": null
   }
