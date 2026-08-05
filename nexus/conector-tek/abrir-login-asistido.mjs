@@ -35,7 +35,7 @@ export async function abrirLoginAsistido(opts = {}) {
   const r = puerta.abrirAsistido({ userId, empresa, motivo, manual: opts.manual, etiqueta: 'reconectar' })
   return {
     url: r.url, pin: r.pin, empresa: r.empresa, userId: r.userId, motivo,
-    pid: r.pid, en_vuelo: !!r.en_vuelo, ocupado: !!r.ocupado, nota: r.nota,
+    pid: r.pid, en_vuelo: !!r.en_vuelo, ocupado: !!r.ocupado, deshabilitado: !!r.deshabilitado, nota: r.nota,
     modo: (opts.manual ?? (process.env.TEK_ASSIST_MANUAL === '1')) ? 'manual' : 'pre-rellenado',
   }
 }

@@ -208,6 +208,15 @@ export function asistidoEnVuelo() {
 export function abrirAsistido({ userId = 'ramon', empresa = 'ANA CLARA SPA', motivo = '', env = {}, manual, etiqueta = '' } = {}) {
   const slug = slugUsuario(userId)
 
+  // ⛔ LOGIN ASISTIDO DESACTIVADO (TEK_SIN_ASISTIDO=1, pedido de Ramón 05-ago): el banco se
+  // activa SOLO con el login AUTOMÁTICO on-demand (mouse real → clic en Aceptar). NO se abre
+  // VNC, NO se manda link, NO se pide Superclave. Chokepoint único: cubre reconectar_banco,
+  // tek_pendientes, tek_comprobantes, y cualquier otro caller. Los callers fallan limpio.
+  if (process.env.TEK_SIN_ASISTIDO === '1') {
+    return { ok: false, deshabilitado: true, en_vuelo: false, ocupado: false, url: null, pin: null, userId: slug, empresa,
+      nota: 'Login asistido desactivado: el banco entra solo con el login automático apenas pidas una operación.' }
+  }
+
   // Una sola pantalla, un solo login asistido a la vez.
   // OJO: la operación viaja DENTRO del proceso de login. Si ya hay uno corriendo NO se le
   // puede enganchar otra cosa — devolver el mismo PIN prometiendo una operación que nadie
