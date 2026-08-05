@@ -2838,7 +2838,9 @@ async function main() {
     // grabamos el postData de TODO POST a officebanking/santander (para poder replayar
     // cualquier acción después: cambiar empresa, saldos, cartola, transferencia…). Excluimos
     // el ruido de BioCatch/WUP (payloads binarios enormes de antifraude) y capamos el cuerpo.
-    const RE_RUIDO = /wup-|threatmetrix|biocatch|innoko|\.png|\.js|\.css|\.woff|analytics|doubleclick|opinator/i
+    // wslogin = el POST del login (lleva la CLAVE en claro) + el sensor de Akamai/BioCatch:
+    // NUNCA grabar su body. google/collect y assets = ruido. El resto de POST del banco sí.
+    const RE_RUIDO = /wslogin\.officebanking|wup-|threatmetrix|biocatch|innoko|\/g\/collect|google\.com|\.png|\.js|\.css|\.woff|analytics|doubleclick|opinator/i
     page.on('request', (req) => {
       try {
         const url = req.url()
