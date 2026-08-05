@@ -2883,6 +2883,14 @@ async function main() {
       } catch { /* */ }
     }
     const resultado = { estado, url: page.url(), ...extra }
+    // MARCADOR DE REACTIVACIÓN: SOLO cuando hubo un LOGIN REAL (estado 'logueado', y NO en
+    // modo keepalive). Es la ÚNICA señal legítima de "la sesión volvió". El corazón la mira
+    // para saber que puede retomar el latido; NUNCA reactiva por un simple cambio de mtime
+    // (un keepalive o una lectura que pegó en "sesión cerrada" también reescriben session.json).
+    // Ver [[tek-corazon-cadencia]]: si la sesión terminó, el corazón NO reintenta hasta este marcador.
+    if (estado === 'logueado' && process.env.TEK_KEEPALIVE !== '1') {
+      try { writeFileSync(join(DATA, '.sesion-reactivada-' + userSlug), JSON.stringify({ ts: Date.now(), via: extra?.via || null }), { mode: 0o600 }) } catch { /* */ }
+    }
     // RESULTADO EN ARCHIVO: cuando el proceso corre SUELTO (login asistido con una operación
     // enganchada), nadie está leyendo el stdout. Con TEK_RESULTADO_FILE dejamos el resultado
     // en disco para que el hub lo levante y le avise a la persona cómo quedó.

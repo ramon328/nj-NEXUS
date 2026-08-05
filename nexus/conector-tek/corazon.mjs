@@ -38,7 +38,7 @@ const DEAD_BACKOFF_MAX = 3 * 3600_000                                           
 const VIDA_MAX_MS = 95 * 60_000                                                     // nunca vimos una sesión pasar de 91 min
 const TOPE_DIA = Number(process.env.TEK_CORAZON_TOPE_DIA || 90)                     // aperturas de navegador por usuario/día
 const RELOGIN_COOLDOWN = Number(process.env.TEK_CORAZON_RELOGIN_MS || 3 * 3600_000) // reintento de login: máx 1 cada 3 h
-const AUTO_RELOGIN = process.env.TEK_CORAZON_RELOGIN !== '0'                        // self-heal ON por defecto
+const AUTO_RELOGIN = process.env.TEK_CORAZON_RELOGIN === '1'                        // self-heal OFF por defecto: NO re-loguear solo (quema la IP con BioCatch). Solo opt-in explícito.
 function ventanaFria() { const h = new Date().getHours(); return h >= 5 && h < 10 } // reestablecer solo de madrugada
 // Fuera de horario hábil no late: la sesión se cae igual de noche y el tráfico nocturno
 // desde una cuenta de empresa es anómalo. Si alguien pide data de madrugada, el login
@@ -63,6 +63,13 @@ const deadMtime = {}    // user → mtime del archivo de sesión cuando la dimos
 // señal limpia de "sesión activada afuera" para que el corazón la retome.
 function sesionFile(user) { return join(DIR, user === 'ramon' ? 'session.json' : `session-${user}.json`) }
 function sesionMtime(user) { try { return statSync(sesionFile(user)).mtimeMs } catch { return 0 } }
+// Marcador de REACTIVACIÓN: lo escribe login-humano SOLO cuando hubo un login REAL (estado
+// 'logueado', no keepalive). Es la única señal legítima de "la sesión volvió". El corazón
+// NO reactiva por mtime de session.json (un keepalive o una lectura sobre "sesión cerrada"
+// también lo reescriben). Si la sesión murió, el corazón NO abre NADA hasta ver este marcador.
+const deadSince = {}    // user → ts en que la dimos por muerta (para comparar contra el marcador)
+function reactivadaFile(user) { const slug = String(user).toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'; return join(DATA, '.sesion-reactivada-' + slug) }
+function reactivadaMtime(user) { try { return statSync(reactivadaFile(user)).mtimeMs } catch { return 0 } }
 
 function presupuesto(user) {
   const hoy = new Date().toDateString()
@@ -110,28 +117,32 @@ function dormirMuerta(user, now) {
   const n = (deadSeguidas[user] = (deadSeguidas[user] || 0) + 1)
   const espera = Math.min(DEAD_BACKOFF_MS * 2 ** (n - 1), DEAD_BACKOFF_MAX)
   deadUntil[user] = now + espera
-  deadMtime[user] = sesionMtime(user)   // línea base: para detectar si una operación la reescribe
+  deadMtime[user] = sesionMtime(user)   // (legacy, informativo)
+  deadSince[user] = now                 // desde acá solo reactiva un LOGIN real (marcador posterior)
   delete vivaDesde[user]
   return Math.round(espera / 60000)
 }
 
 async function atender(user) {
   const now = Date.now()
-  // ¿sesión muerta conocida? No la tocamos (evita churn). Solo reestablecer en ventana fría.
-  if (deadUntil[user] && now < deadUntil[user]) {
-    // ⚡ ¿Una OPERACIÓN (transferencia/lectura) reactivó la sesión mientras la creíamos muerta?
-    // El archivo de sesión se reescribió (el latido NO escribe en back-off) → reenganchar YA y
-    // volver a mantenerla viva. Esto es "sesión se activa → corazón se activa".
-    if (deadMtime[user] && sesionMtime(user) > deadMtime[user] + 1500) {
-      delete deadUntil[user]; delete deadMtime[user]; deadSeguidas[user] = 0; vivaDesde[user] = now
-      log(`[${user}] ⚡ reactivada por una operación → retomo el latido para mantenerla viva`)
+  // ¿sesión muerta conocida? Si terminó, el corazón NO toca NADA (ni keepalive ni re-login):
+  // abrir Chrome sobre una sesión cerrada deja huella en la IP y el login automático lo rebota
+  // BioCatch. Solo volvemos cuando un LOGIN REAL (asistido/operación) deje el marcador de
+  // reactivación — NUNCA por un simple cambio de mtime de session.json. Pedido de Ramón:
+  // "si la sesión terminó, que el corazón no intente más hasta que vuelva la sesión".
+  if (deadUntil[user]) {
+    // ⚡ ¿Volvió por un login REAL? (marcador escrito DESPUÉS de darla por muerta)
+    if (reactivadaMtime(user) > (deadSince[user] || 0) + 1000) {
+      delete deadUntil[user]; delete deadMtime[user]; delete deadSince[user]; deadSeguidas[user] = 0; vivaDesde[user] = now
+      log(`[${user}] ⚡ login real detectado → retomo el latido para mantenerla viva`)
       // cae al flujo normal de latido (abajo) para empezar a mantenerla caliente
     } else {
+      // Muerta y sin login real todavía: silencio total. (self-heal solo si se activa a mano.)
       if (AUTO_RELOGIN && ventanaFria() && now - (lastLogin[user] || 0) > RELOGIN_COOLDOWN) {
         lastLogin[user] = now
-        log(`[${user}] muerta → reestablezco (ventana fría, 1 login)…`)
+        log(`[${user}] muerta → reestablezco (ventana fría, 1 login, self-heal opt-in)…`)
         const est2 = await correr(user, false)
-        if (est2 === 'logueado') { delete deadUntil[user]; delete deadMtime[user]; deadSeguidas[user] = 0; vivaDesde[user] = now; log(`[${user}] ✓ REESTABLECIDA`) }
+        if (est2 === 'logueado') { delete deadUntil[user]; delete deadMtime[user]; delete deadSince[user]; deadSeguidas[user] = 0; vivaDesde[user] = now; log(`[${user}] ✓ REESTABLECIDA`) }
         else { const m = dormirMuerta(user, now); log(`[${user}] reestablecer → ${est2} (espero ${m} min)`) }
       }
       return
