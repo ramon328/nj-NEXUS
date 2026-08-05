@@ -31,3 +31,14 @@ export function validar(code) {
   const hit = vivos.find((x) => x.code === c)
   return hit ? { ok: true, userId: hit.userId || null } : false
 }
+
+/** Quema TODOS los códigos vivos de un usuario. Se llama apenas guardó su clave nueva:
+ *  así el link deja de servir al toque (efecto "un solo uso") sin depender del TTL. */
+export function revocarDe(userId) {
+  const u = String(userId || '')
+  if (!u) return 0
+  const vivos = load().filter((x) => x.exp > Date.now())
+  const quedan = vivos.filter((x) => String(x.userId || '') !== u)
+  save(quedan)
+  return vivos.length - quedan.length
+}

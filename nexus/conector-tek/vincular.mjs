@@ -25,12 +25,16 @@ function soltarLock() { try { unlinkSync(LOCK) } catch { /* */ } }
  * Loguea con las creds dadas y devuelve las empresas del RUT.
  * @returns { ok, empresas:[{contrato,rut,empresa,rol}], estado? }
  */
-export async function listarEmpresas({ rut, clave, banco = 'Santander' } = {}) {
+// `userId` importa: login-humano usa TEK_USER para elegir el PERFIL de Chrome y el archivo
+// de sesión. Sin él caía al default 'ramon' → una vinculación de otra persona le pisaba la
+// sesión a Ramón y le gastaba el throttle/device_trust a su nombre. Siempre pasarlo.
+export async function listarEmpresas({ rut, clave, banco = 'Santander', userId } = {}) {
   if (!rut || !clave) return { ok: false, error: 'Faltan RUT o clave.' }
   if (bancoOcupado()) return { ok: false, estado: 'ocupado', error: 'Hay una operación bancaria en curso. Reintenta en ~2 min.' }
   tomarLock()
   return await new Promise((resolve) => {
     const env = { ...process.env, TEK_VINCULAR: 'empresas', TEK_RUT: String(rut), TEK_CLAVE: String(clave), TEK_BANCO: banco, TEK_FORZAR_LOGIN: '1' }
+    if (userId) env.TEK_USER = String(userId).toLowerCase()
     const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
     let out = '', err = ''
     hijo.stdout.on('data', (d) => { out += d.toString() })

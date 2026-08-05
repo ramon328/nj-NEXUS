@@ -26,7 +26,7 @@ import { existsSync, statSync, readFileSync, writeFileSync, chmodSync } from 'no
 import { networkInterfaces } from 'node:os'
 import { guardar, listar } from './credenciales.mjs'
 import { listarEmpresas } from './vincular.mjs'
-import { validar as validarCodigo } from './vincular-codes.mjs'
+import { validar as validarCodigo, revocarDe } from './vincular-codes.mjs'
 
 const DIR = dirname(fileURLToPath(import.meta.url))
 // WARMUP: al vincular, la lectura no quedaba lista hasta que el "corazón" reestablecía la
@@ -338,6 +338,87 @@ $('#otro').addEventListener('click',()=>{CREDS=null;EMPRESAS=[];$('#clave').valu
 (function(){ try{ const p=new URLSearchParams(location.search).get('pin'); if(p&&/^[0-9]{4,8}$/.test(p)){ $('#pin').value=p; login(); } }catch(e){} })()
 </script></body></html>`
 
+// ── Página "clave nueva" (solo actualizar la clave, SIN entrar al banco) ──────
+// Cuando alguien cambia la clave del banco, la guardada queda vieja y todo lo automático
+// falla (y reintentar con la mala arriesga bloquear la cuenta). Esta página pide SOLO la
+// clave y la escribe sobre las empresas que esa persona YA tiene vinculadas. A diferencia
+// del alta completa, acá NO se llama a listarEmpresas ni a login-humano: cero contacto con
+// el banco, cero intentos gastados, cero antifraude. La clave se estrena en la próxima
+// operación que se pida. Ver clave-nueva.mjs (quien manda el link por WhatsApp).
+const PAGINA_CLAVE = `<!doctype html><html lang="es"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Clave nueva del banco · Nexus</title><style>
+:root{--bg:#0f1720;--card:#182430;--line:#2b3c4d;--ink:#eef4f9;--mut:#93a6b8;--accent:#2f6df6;--ok:#22c55e;--err:#ef4444}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif;padding:env(safe-area-inset-top) 0 40px}
+.wrap{max-width:520px;margin:0 auto;padding:20px}header{display:flex;align-items:center;gap:12px;margin:8px 2px 18px}
+.logo{width:46px;height:46px;border-radius:12px;background:linear-gradient(135deg,var(--accent),#7aa2f7);display:grid;place-items:center;font-size:24px}
+h1{font-size:20px;margin:0}.sub{color:var(--mut);font-size:14px;margin:2px 0 0}
+.card{background:var(--card);border:1px solid var(--line);border-radius:16px;padding:18px;margin-bottom:14px}
+label{display:block;font-size:13px;color:var(--mut);margin:12px 0 6px}
+input{width:100%;padding:14px;border-radius:12px;border:1px solid var(--line);background:#0e1620;color:var(--ink);font-size:17px}
+button{width:100%;margin-top:16px;padding:15px;border:0;border-radius:12px;background:var(--accent);color:#fff;font-size:17px;font-weight:600}
+button:disabled{opacity:.55}.hide{display:none}.ok{color:var(--ok)}.err{color:var(--err)}
+.msg{font-size:14px;margin-top:12px;min-height:20px}.pie{color:var(--mut);font-size:12.5px;text-align:center;margin-top:18px;line-height:1.5}
+.ver{display:flex;align-items:center;gap:8px;margin-top:10px;color:var(--mut);font-size:13px}.ver input{width:auto}
+</style></head><body><div class="wrap">
+<header><div class="logo">🔐</div><div><h1>Clave nueva del banco</h1><p class="sub">Página segura de Nexus</p></div></header>
+
+<div id="login" class="card">
+  <p class="sub">Escribe el código que te llegó por WhatsApp.</p>
+  <label>Código</label>
+  <input id="pin" type="tel" inputmode="numeric" autocomplete="one-time-code" placeholder="6 dígitos">
+  <button id="pinBtn">Entrar</button>
+  <div class="msg" id="pinMsg"></div>
+</div>
+
+<div id="form" class="card hide">
+  <p class="sub" id="quien">Actualiza tu clave del banco.</p>
+  <label>Clave nueva del banco</label>
+  <input id="clave" type="password" autocomplete="new-password" placeholder="Tu clave de Santander">
+  <div class="ver"><input id="ver" type="checkbox"><label for="ver" style="margin:0">Mostrar la clave</label></div>
+  <button id="okBtn">Guardar clave</button>
+  <div class="msg" id="formMsg"></div>
+</div>
+
+<div id="done" class="card hide">
+  <p class="ok" id="doneTxt">✅ Clave guardada.</p>
+  <p class="sub">Quedó cifrada. No entré al banco ahora: la voy a usar en la próxima operación que me pidas. Ya puedes cerrar esta página.</p>
+</div>
+
+<p class="pie">La clave viaja cifrada por HTTPS, se guarda cifrada (AES-256-GCM) y nunca queda en el chat.<br>El código sirve una sola vez y vence a los 30 minutos.</p>
+</div><script>
+const $=s=>document.querySelector(s)
+const B=location.pathname.replace(/\\/clave.*$/,'')
+function show(id){for(const x of ['login','form','done'])$('#'+x).classList.toggle('hide',x!==id)}
+let USER=null
+async function entrar(){
+  const pin=$('#pin').value.trim(); if(!pin)return
+  $('#pinBtn').disabled=true; $('#pinMsg').className='msg'; $('#pinMsg').textContent='Verificando…'
+  let j={}; try{const r=await fetch(B+'/auth',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({pin})}); j=await r.json().catch(()=>({}))}catch(e){}
+  $('#pinBtn').disabled=false
+  if(!j.ok){ $('#pinMsg').className='msg err'; $('#pinMsg').textContent=j.error||'Código incorrecto o vencido.'; return }
+  USER=j.userId||null; $('#pinMsg').textContent=''
+  if(USER)$('#quien').textContent='Hola '+USER+'. Escribe tu clave nueva del banco.'
+  show('form'); $('#clave').focus()
+}
+async function guardar(){
+  const clave=$('#clave').value; if(!clave){ $('#formMsg').className='msg err'; $('#formMsg').textContent='Escribe la clave.'; return }
+  $('#okBtn').disabled=true; $('#formMsg').className='msg'; $('#formMsg').textContent='Guardando…'
+  let j={}; try{const r=await fetch(B+'/clave',{method:'POST',headers:{'content-type':'application/json'},body:JSON.stringify({clave})}); j=await r.json().catch(()=>({}))}catch(e){}
+  $('#okBtn').disabled=false
+  if(!j.ok){ $('#formMsg').className='msg err'; $('#formMsg').textContent=j.error||'No se pudo guardar.'; return }
+  $('#clave').value=''
+  $('#doneTxt').textContent='✅ Clave guardada en '+j.total+(j.total===1?' empresa.':' empresas.')
+  show('done')
+}
+$('#pinBtn').addEventListener('click',entrar)
+$('#pin').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();entrar()}})
+$('#okBtn').addEventListener('click',guardar)
+$('#clave').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();guardar()}})
+$('#ver').addEventListener('change',e=>{$('#clave').type=e.target.checked?'text':'password'})
+;(function(){try{const p=new URLSearchParams(location.search).get('pin'); if(p&&/^[0-9]{4,8}$/.test(p)){$('#pin').value=p; entrar()}}catch(e){}})()
+</script></body></html>`
+
 // ── Servidor HTTP ─────────────────────────────────────────────────────────────
 const manejar = async (req, res) => {
   const ip = (req.headers['x-forwarded-for'] || req.socket.remoteAddress || '').split(',')[0].trim()
@@ -348,6 +429,44 @@ const manejar = async (req, res) => {
     // no-cache: el teléfono NO debe quedarse con una versión vieja del widget.
     res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store, no-cache, must-revalidate', 'pragma': 'no-cache', 'expires': '0' })
     return res.end(PAGINA)
+  }
+
+  // Página "clave nueva": solo actualizar la clave de quien ya está vinculado.
+  if (req.method === 'GET' && (url === '/clave' || url.startsWith('/clave?'))) {
+    res.writeHead(200, { 'content-type': 'text/html; charset=utf-8', 'cache-control': 'no-store, no-cache, must-revalidate', 'pragma': 'no-cache', 'expires': '0' })
+    return res.end(PAGINA_CLAVE)
+  }
+
+  // Guardar SOLO la clave nueva, sobre las empresas que el usuario ya tiene vinculadas.
+  // NO entra al banco (ni listarEmpresas ni login): no gasta intentos ni despierta al
+  // antifraude. La clave se estrena en la próxima operación que se pida.
+  if (req.method === 'POST' && url === '/clave') {
+    const ses = sesion(req)
+    if (!ses) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"ok":false,"error":"no autenticado"}') }
+    const userId = ses.userId
+    // El código tiene que venir atado a una persona: con el PIN maestro no sabríamos a quién
+    // pisarle la clave, y equivocarse ahí bloquea una cuenta de banco. Fail-closed.
+    if (!userId) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"ok":false,"error":"Este link tiene que abrirse con el código que te mandó Nexus."}') }
+    const body = await leerBody(req, 4000)
+    let d = {}
+    try { d = JSON.parse(body) } catch { /* */ }
+    const clave = String(d.clave || '')   // NO se recorta ni se loguea nunca
+    if (!clave) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"ok":false,"error":"Escribe la clave."}') }
+    const previas = listar(userId)
+    if (!previas.length) {
+      res.writeHead(400, { 'content-type': 'application/json' })
+      return res.end('{"ok":false,"error":"Todavía no tienes banco conectado. Usa el link de conectar banco (el alta completa)."}')
+    }
+    let ok = 0
+    for (const c of previas) {
+      const r = guardar(userId, { banco: c.banco, empresa: c.empresa, rut: c.rut, clave, empresas: c.empresas })
+      if (r.ok) ok++
+    }
+    // El link se quema al toque: los códigos vivos de esta persona dejan de servir.
+    try { revocarDe(userId) } catch { /* */ }
+    console.log('[tek-conectar] clave actualizada · userId=' + userId + ' · empresas=' + ok)  // sin rut ni clave
+    res.writeHead(200, { 'content-type': 'application/json' })
+    return res.end(JSON.stringify({ ok: ok > 0, total: ok, error: ok ? undefined : 'No se pudo guardar.' }))
   }
 
   // Login: PIN → cookie firmada (con rate-limit)
@@ -377,7 +496,8 @@ const manejar = async (req, res) => {
   // Empresas del RUT: loguea con las creds y devuelve las empresas asociadas (para elegir).
   // Puede tardar ~2 min (entra al banco). SOLO autenticado. NO guarda nada.
   if (req.method === 'POST' && url === '/empresas') {
-    if (!authed(req)) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
+    const sesEmp = sesion(req)
+    if (!sesEmp) { res.writeHead(401, { 'content-type': 'application/json' }); return res.end('{"error":"no autenticado"}') }
     const body = await leerBody(req, 8000)
     let d = {}
     try { d = JSON.parse(body) } catch { /* */ }
@@ -386,7 +506,9 @@ const manejar = async (req, res) => {
     const banco = String(d.banco || 'Santander').trim() || 'Santander'
     if (!rut || !clave) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"error":"Faltan RUT o clave."}') }
     let r
-    try { r = await listarEmpresas({ rut, clave, banco }) } catch (e) { r = { ok: false, error: e.message } }
+    // userId = de quién es el código → login-humano usa SU perfil de Chrome y SU archivo de
+    // sesión. Sin esto la vinculación de cualquiera se escribía sobre la sesión de Ramón.
+    try { r = await listarEmpresas({ rut, clave, banco, userId: sesEmp.userId || undefined }) } catch (e) { r = { ok: false, error: e.message } }
     console.log('[tek-conectar] empresas', r.ok ? `OK (${(r.empresas || []).length})` : 'ERROR ' + (r.estado || ''), '· banco=' + banco)  // sin rut ni clave
     res.writeHead(r.ok ? 200 : 200, { 'content-type': 'application/json' })
     return res.end(JSON.stringify(r.ok ? { ok: true, empresas: r.empresas } : { ok: false, error: r.error || 'No pude leer las empresas.', estado: r.estado }))

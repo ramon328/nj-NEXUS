@@ -3182,7 +3182,17 @@ async function main() {
       }
       return fin('pide_mfa', { pista: texto.slice(0, 240) })
     }
-    if (ERR_RE.test(texto)) return fin('error_credenciales', { pista: texto.slice(0, 200) })
+    if (ERR_RE.test(texto)) {
+      // El banco dijo "clave incorrecta" → la que tenemos guardada quedó vieja. Le pedimos
+      // la nueva por WhatsApp con link protegido (clave-nueva.mjs, con throttle propio) en vez
+      // de seguir reintentando con la mala, que es lo que termina bloqueando la cuenta.
+      try {
+        const { pedirClaveNueva } = await import('./clave-nueva.mjs')
+        const r = await pedirClaveNueva(process.env.TEK_USER || 'ramon', { motivo: 'error_credenciales' })
+        log(`clave rechazada → pedir clave nueva: ${r.ok ? 'link enviado' : (r.error || 'no enviado')}`)
+      } catch (e) { log('no pude pedir la clave nueva: ' + e.message) }
+      return fin('error_credenciales', { pista: texto.slice(0, 200) })
+    }
     await sleep(1500)
   }
   return fin('timeout', { nota: 'no navegó tras Aceptar (probable BioCatch)' })
