@@ -1,6 +1,40 @@
 {
   "registros": [
     {
+      "id": "TAG-007",
+      "creado": "2026-08-05T23:28:07.286Z",
+      "tipo": "nuevo_propio",
+      "tipo_label": "TAG nuevo — auto propio (Ana Clara)",
+      "patente": "TFFH86, SZZG87, TFFC90, SPSG51, LXGB26, SVJX40",
+      "cantidad": 6,
+      "es_empresa": false,
+      "solicitante": "Joaquin",
+      "asunto": "Tag nuevo (6 patentes)",
+      "estado": "enviado",
+      "modo": "real",
+      "correo_id": "19fd441730eb3b98",
+      "enviado_desde": "contacto@mallorcautos.cl",
+      "destino": "contacto@tagtico.cl (copia: ventas@mallorcautos.cl)",
+      "adjuntos": [
+        "Poder_Tag_TFFH86-SZZG87-TFFC90-SPSG51-LXGB26-SVJX40.pdf",
+        "1785972295804_nexus-wa-in-1785972278498.pdf",
+        "1785972295806_nexus-wa-in-1785972281312.pdf",
+        "1785972295807_nexus-wa-in-1785972283422.pdf",
+        "1785972295808_nexus-wa-in-1785972284772.pdf",
+        "1785972295809_nexus-wa-in-1785972287472.pdf",
+        "1785972295810_nexus-wa-in-1785972290241.pdf"
+      ],
+      "notas": null,
+      "convenio_recibido": false,
+      "eventos": [
+        {
+          "ts": "2026-08-05T23:28:07.286Z",
+          "tipo": "enviado",
+          "detalle": "Solicitud enviada a contacto@tagtico.cl (copia: ventas@mallorcautos.cl)"
+        }
+      ]
+    },
+    {
       "id": "TAG-006",
       "creado": "2026-08-04T15:09:28.384Z",
       "tipo": "nuevo_propio",
