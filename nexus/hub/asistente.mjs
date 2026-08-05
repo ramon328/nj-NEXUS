@@ -3142,6 +3142,37 @@ async function sesionBanco(ctx, empresaPedida, operacion = '') {
 /** ¿El motor pidió que la persona entre al banco (login asistido abierto)? */
 const necesitaLogin = (r) => !!(r && r.necesita_login && r.url && r.pin)
 
+// Número de WhatsApp por userId de banco (para avisarle al DUEÑO de la sesión cuando la
+// operación de un usuario acotado se ejecuta con la sesión de otro).
+const NUM_BANCO = { ramon: '+56932945240', nico: '+56975481858', joaquin: '+56958589915' }
+const capUser = (u) => (u ? u.charAt(0).toUpperCase() + u.slice(1) : u)
+/** ¿La operación se ejecuta con la sesión de OTRO? (ej. Joaquín → Ramón). Un usuario acotado
+ *  SOLO envía la solicitud: no libera plata, no le hablamos de Superclave ni le pedimos un
+ *  login que no puede hacer (es la clave+Superclave del dueño de la sesión). */
+function operadorAjeno(ses, de) { return !esAdmin(de) && ses && ses.userId && ses.quien && ses.userId !== ses.quien }
+/** Cómo queda la operación, según el rol: el que LIBERA (admin) ve lo de Superclave; el que
+ *  SOLO ENVÍA (Joaquín) ve "registrada para autorización" y nada de Superclave. */
+const frasePendiente = (de) => esAdmin(de)
+  ? 'queda PENDIENTE por liberar (falta autorizarla con Superclave para que salga la plata)'
+  : 'queda registrada para autorización'
+/** Sesión del operador dormida y la op es de un usuario ACOTADO que va con la sesión de otro:
+ *  el link de login va al DUEÑO de la sesión (que sí tiene la clave+Superclave), y al que pidió
+ *  solo le decimos que se está activando. Devuelve el JSON de respuesta, o null si no aplica. */
+async function loginAlDueñoSiAjeno(ctx, ses, res, resumenOp) {
+  if (!operadorAjeno(ses, ctx.de)) return null
+  const numOp = NUM_BANCO[ses.userId]
+  if (numOp) {
+    try {
+      await kapso.enviarKapso(numOp, `🏦 ${capUser(ses.userId)}: ${capUser(ses.quien)} pidió ${resumenOp} desde ${ses.empresa} y la sesión del banco está dormida. Entrá para activarla:\n\n👉 ${res.url}\n🔑 PIN (un solo uso): ${res.pin}\n\nApenas entres, la operación sigue sola y les aviso cómo quedó.`)
+    } catch { /* si no se puede avisar al dueño, igual no le pasamos el login al acotado */ }
+  }
+  return JSON.stringify({
+    ok: false, estado: 'activando',
+    texto: `🏦 Estoy activando la conexión al banco para enviar tu solicitud (${resumenOp}). En cuanto esté lista te aviso cómo quedó. ✅`,
+    instruccion: '⛔ NO vuelvas a llamar la herramienta. Decile al usuario que su solicitud se está procesando y que le vas a avisar cuando quede. ⛔ NO le pidas clave ni Superclave ni le pases ningún link ni PIN: su cuenta SOLO envía solicitudes, no libera plata (de eso se encarga otra persona).',
+  })
+}
+
 /** Respuesta ESTÁNDAR "entrá al banco": URL + PIN de verdad, nunca a criterio del modelo. */
 function respuestaEntrarAlBanco(r, motivo, empresa) {
   return JSON.stringify({
@@ -3649,13 +3680,20 @@ async function ejecutar(nombre, input, ctx = {}) {
         // Cuando entre, la transferencia se crea sola y le avisamos cómo quedó.
         if (necesitaLogin(res)) {
           const montoTxt0 = '$' + Number(bo.monto).toLocaleString('es-CL')
-          seguirJobBanco(ctx, res.job, (r) => {
+          const finTxt = (r) => {
             const fin = tr.leerResultadoAsistido ? tr.leerResultadoAsistido({ jobFile: res.job, borrador: bo, empresa }) : null
-            if (fin?.pendiente) return `✅ Listo: la transferencia de ${montoTxt0} a ${bo.beneficiario.nombre} desde *${empresa}* quedó CREADA y *pendiente por liberar* (falta autorizarla con Superclave para que salga la plata). 🏦`
+            if (fin?.pendiente) return esAdmin(ctx.de)
+              ? `✅ Listo: la transferencia de ${montoTxt0} a ${bo.beneficiario.nombre} desde *${empresa}* quedó CREADA y *pendiente por liberar* (falta autorizarla con Superclave para que salga la plata). 🏦`
+              : `✅ Listo: tu solicitud de transferencia de ${montoTxt0} a ${bo.beneficiario.nombre} desde *${empresa}* quedó ENVIADA y registrada para autorización. 🏦`
             if (fin?.limite_primera_vez) return `🛡️ El banco no dejó la transferencia: es la 1ª vez a esa cuenta y hay tope de $250.000 en las primeras 24h. Podés mandar ≤$250.000 ahora o esperar 24h.`
             if (fin?.limite_diario) return `🛡️ El banco frenó por límite/monto diario. Para ${montoTxt0} conviene hacerla como transferencia masiva o partirla en varios días.`
-            return `⚠️ Entraste al banco pero no pude confirmar la transferencia de ${montoTxt0} a ${bo.beneficiario.nombre} (estado: ${fin?.estado || r.estado || 'desconocido'}). Revisá *Por Autorizar* en el banco antes de pedírmela de nuevo — puede haberse creado igual.`
-          })
+            return `⚠️ No pude confirmar la transferencia de ${montoTxt0} a ${bo.beneficiario.nombre} (estado: ${fin?.estado || r.estado || 'desconocido'}). La reviso y te aviso.`
+          }
+          // Joaquín (acotado) va con la sesión de Ramón: el login (clave+Superclave) es de Ramón,
+          // NO de Joaquín → el link va a Ramón y a Joaquín solo le decimos que se está activando.
+          const ajeno = await loginAlDueñoSiAjeno(ctx, sesB, res, `una transferencia de ${montoTxt0} a ${bo.beneficiario.nombre}`)
+          if (ajeno) { seguirJobBanco(ctx, res.job, finTxt); return ajeno }
+          seguirJobBanco(ctx, res.job, finTxt)
           return JSON.stringify({
             ok: false, estado: 'necesita_login', necesita_login: true, url: res.url, pin: res.pin, empresa_origen: empresa,
             texto: `🏦 Para transferir ${montoTxt0} a ${bo.beneficiario.nombre} desde *${empresa}* tenés que entrar vos al banco (así pasa la seguridad):\n\n👉 ${res.url}\n🔑 PIN (un solo uso): ${res.pin}\n\nAbrí el link, poné el PIN y logueate normal (clave + Superclave). Apenas entres, *creo la transferencia solo* y te aviso cómo quedó. ✅`,
@@ -3683,8 +3721,8 @@ async function ejecutar(nombre, input, ctx = {}) {
           instr = '⛔ NO reintentes. La transferencia ya está en el banco pendiente. Decile al usuario que SÍ quedó creada.'
         } else if (res.pendiente) {
           okTxt = res.posible_creada
-            ? `✅ Transferencia de ${montoTxt} a ${bo.beneficiario.nombre} desde *${empresa}* — el banco probablemente YA la creó (queda pendiente por liberar). NO reenvíes.`
-            : `✅ Transferencia de ${montoTxt} a ${bo.beneficiario.nombre} desde *${empresa}* CREADA — queda pendiente por liberar (falta autorizarla con Superclave para que salga).`
+            ? `✅ Transferencia de ${montoTxt} a ${bo.beneficiario.nombre} desde *${empresa}* — el banco probablemente YA la creó (${frasePendiente(ctx.de)}). NO reenvíes.`
+            : `✅ ${esAdmin(ctx.de) ? 'Transferencia' : 'Solicitud de transferencia'} de ${montoTxt} a ${bo.beneficiario.nombre} desde *${empresa}* ${esAdmin(ctx.de) ? 'CREADA' : 'ENVIADA'} — ${frasePendiente(ctx.de)}.`
           instr = '⛔ NO vuelvas a llamar tek_transferir accion:"enviar" con los mismos datos: ya quedó creada. Contale al usuario que SÍ funcionó y está pendiente de liberación. NO digas que falló ni ofrezcas asistido.'
           try {
             recordarHecho(ctx.de,
