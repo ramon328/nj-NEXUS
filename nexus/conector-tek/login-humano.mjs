@@ -2834,16 +2834,22 @@ async function main() {
     const PAY_FILE = join(DATA, 'xhr-payloads.json')
     let payloads = {}
     try { payloads = JSON.parse(readFileSync(PAY_FILE, 'utf8')) } catch { payloads = {} }
-    const RE_MOLDE = /CreacionTransferenciaUnitaria\/(crearTransferencia|ObtenerBanco|ObtenerCuentas|ObtenerSaldo|ObtenerDatosClienteXCta)|TransferenciaUnitaria\/FinCreacion|\.UI\.Services\/Token/i
+    // ANTES solo grababa el molde de transferencia. AMPLIADO (05-ago, "cazar el máximo"):
+    // grabamos el postData de TODO POST a officebanking/santander (para poder replayar
+    // cualquier acción después: cambiar empresa, saldos, cartola, transferencia…). Excluimos
+    // el ruido de BioCatch/WUP (payloads binarios enormes de antifraude) y capamos el cuerpo.
+    const RE_RUIDO = /wup-|threatmetrix|biocatch|innoko|\.png|\.js|\.css|\.woff|analytics|doubleclick|opinator/i
     page.on('request', (req) => {
       try {
         const url = req.url()
-        if (req.method() !== 'POST' || !RE_MOLDE.test(url)) return
+        if (req.method() !== 'POST') return
+        if (!/officebanking\.cl|santander\.cl/i.test(url) || RE_RUIDO.test(url)) return
         const u = new URL(url)
         const clave = `POST ${u.host}${u.pathname}`
         let body = null
         try { body = req.postData() } catch { /* */ }
-        payloads[clave] = { url: u.href.slice(0, 220), headers: req.headers(), postData: body, ts_grabado: process.env.TEK_TS || null }
+        if (body && body.length > 8000) body = body.slice(0, 8000) + '…[cortado]'
+        payloads[clave] = { url: u.href.slice(0, 220), headers: req.headers(), postData: body, hits: (payloads[clave]?.hits || 0) + 1, ts_grabado: process.env.TEK_TS || null }
         try { writeFileSync(PAY_FILE, JSON.stringify(payloads, null, 2)); chmodSync(PAY_FILE, 0o600) } catch { /* */ }
         log(`  ⇡ payload grabado: ${u.pathname.split('/').pop()}`)
       } catch { /* */ }
