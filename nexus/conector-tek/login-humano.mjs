@@ -1766,13 +1766,43 @@ async function masivaImportar(page, log) {
 
   const archivo = process.env.TEK_MASIVA_FILE
   if (process.env.TEK_MASIVA === 'subir' && archivo) {
-    // Frame de la importación (eob TEFM) — el que tiene el input de archivo.
-    let imp = null
-    for (const f of page.frames()) {
-      if (await f.locator('input[type="file"]').first().count().catch(() => 0)) { imp = f; break }
+    // Frame de la importación (eob TEFM) — el que tiene el input de archivo. La navegación al
+    // form es FLAKY (~1 de cada 2 se queda en el dashboard, carrera con el latido cuando se
+    // comparte la sesión de ramon): si no aparece, RE-NAVEGO completo (dashboard → re-entrar
+    // empresa → reabrir menú → Importación) y reintento hasta 3 veces en total. Antes fallaba
+    // al primer traspié → el lote no se subía y el usuario veía "no se creó".
+    const buscarFrameImport = async () => {
+      for (const f of page.frames()) {
+        if (await f.locator('input[type="file"]').first().count().catch(() => 0)) return f
+      }
+      return null
+    }
+    const reabrirImportacion = async () => {
+      await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+      await sleep(6000)
+      await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
+      await sleep(rnd(2500, 4000))
+      try { await cerrarPopups(page, log) } catch { /* */ }
+      await clickHumano(page, page.getByText(/^transferencias?$/i).first())
+      await sleep(rnd(3500, 5000))
+      let ok = await clickColumna(page, /^Transferencias Masivas$/i, /^Importaci[oó]n$/i, log)
+      for (let i = 0; i < 10 && !ok; i++) {
+        for (const f of page.frames()) {
+          const loc = f.getByText(/^\s*Importaci[oó]n\s*$/i).first()
+          if (await loc.count().catch(() => 0)) { const c = await clickHumano(page, loc).catch(() => false); if (c !== false) { ok = true; break } }
+        }
+        if (!ok) await sleep(2000)
+      }
+      await sleep(9000)
+    }
+    let imp = await buscarFrameImport()
+    for (let intento = 1; !imp && intento <= 2; intento++) {
+      log(`masiva: no apareció el form de importación → re-navego (intento ${intento + 1}/3)`)
+      await reabrirImportacion()
+      imp = await buscarFrameImport()
     }
     if (!imp) {
-      log('masiva: no encontré el frame de importación')
+      log('masiva: no encontré el frame de importación (tras 3 intentos)')
       try { registrarIncidente({ flujo: 'masiva', estado: 'sin_frame_importacion', url: page.url(), empresa: process.env.TEK_EMPRESA, user: process.env.TEK_USER, screenshots: ['masiva-00-menu.png', 'masiva-01-import.png', 'masiva-import.json'] }) } catch { /* */ }
       return { estado: 'sin_frame_importacion', url: page.url() }
     }
