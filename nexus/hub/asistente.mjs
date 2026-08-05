@@ -3155,6 +3155,15 @@ function operadorAjeno(ses, de) { return !esAdmin(de) && ses && ses.userId && se
 const frasePendiente = (de) => esAdmin(de)
   ? 'queda PENDIENTE por liberar (falta autorizarla con Superclave para que salga la plata)'
   : 'queda registrada para autorización'
+// Estados en que el LOGIN AUTOMÁTICO (mouse real → Aceptar) no pudo entrar. Como ya NO hay
+// login asistido (TEK_SIN_ASISTIDO=1), esto NO ofrece link ni Superclave: falla limpio y se
+// reintenta más tarde. El banco se activa on-demand con el próximo pedido.
+const RE_LOGIN_NO_ENTRO = /sesion_muerta|sesion_caida|login_throttle|device_trust|pide_mfa|mfa_sin_codigo|error_seguridad|sin_boton_aceptar|sin_form|login_fallido|error_credenciales|timeout/i
+function loginNoEntroAuto(res) {
+  if (!res || res.ok || res.pendiente || res.ya_pendiente) return false
+  return RE_LOGIN_NO_ENTRO.test(String(res.estado || '') + ' ' + String(res.masiva?.estado || ''))
+}
+
 /** Sesión del operador dormida y la op es de un usuario ACOTADO que va con la sesión de otro:
  *  el link de login va al DUEÑO de la sesión (que sí tiene la clave+Superclave), y al que pidió
  *  solo le decimos que se está activando. Devuelve el JSON de respuesta, o null si no aplica. */
@@ -3700,6 +3709,13 @@ async function ejecutar(nombre, input, ctx = {}) {
             instruccion: '⛔ NO vuelvas a llamar tek_transferir. Pásale al usuario la URL y el PIN TAL CUAL (son de un solo uso, no los inventes ni cambies) y decile que cuando entre la transferencia se crea sola y le vas a avisar. NO digas que falló ni que "no se puede".',
           })
         }
+        // Login SOLO automático (sin asistido): si no pudo entrar, falla limpio — sin link.
+        if (loginNoEntroAuto(res)) {
+          const montoTxtNE = '$' + Number(bo.monto).toLocaleString('es-CL')
+          return JSON.stringify({ ok: false, estado: res.estado || 'login_no_entro',
+            texto: `🏦 No pude entrar al banco automáticamente ahora (la sesión estaba dormida). No creé la transferencia de ${montoTxtNE} a ${bo.beneficiario.nombre} — reintentá en un ratito y la dejo lista.`,
+            instruccion: '⛔ NO le pidas al usuario clave, Superclave ni le pases ningún link/PIN. Fue el login automático que no entró; decile que reintente en un rato. NO reintentes vos ahora ni en este turno.' })
+        }
         // Si era un beneficiario NUEVO y la transferencia se creó, lo guardamos en la libreta
         // para no volver a pedir los datos la próxima vez (best-effort, no rompe si falla).
         if (res.pendiente && bo.nuevo) {
@@ -3854,6 +3870,12 @@ async function ejecutar(nombre, input, ctx = {}) {
             texto: `🏦 Para subir el lote (${resumen.cantidad} transferencias · ${resumen.monto_total_fmt}) desde *${empresaMasiva}* tenés que entrar vos al banco:\n\n👉 ${res.url}\n🔑 PIN (un solo uso): ${res.pin}\n\nAbrí el link, poné el PIN y logueate normal. Apenas entres, *subo el lote solo* y te aviso cómo quedó. ✅`,
             instruccion: '⛔ NO vuelvas a llamar tek_masiva. Pásale la URL y el PIN TAL CUAL y decile que cuando entre el lote sube solo y le vas a avisar. NO digas que falló.',
           })
+        }
+        // Login SOLO automático (sin asistido): si no pudo entrar, falla limpio — sin link.
+        if (loginNoEntroAuto(res)) {
+          return JSON.stringify({ ok: false, estado: res.estado || 'login_no_entro', resumen,
+            texto: `🏦 No pude entrar al banco automáticamente ahora (la sesión estaba dormida). No se subió nada — reintentá en un ratito y lo dejo listo.`,
+            instruccion: '⛔ NO le pidas al usuario clave, Superclave ni le pases ningún link/PIN. Fue el login automático que no entró; decile que reintente en un rato. NO reintentes vos ahora ni en este turno.' })
         }
         if (res.ok && tr) { for (const t of resueltas) { try { if (String(t.rut || '').replace(/\D/g, '')) tr.guardarBeneficiario({ nombre: t.nombre, rut: t.rut, banco: t.banco, cuenta: t.cuenta }) } catch { /* */ } } }
         let okTxt, instruccion
