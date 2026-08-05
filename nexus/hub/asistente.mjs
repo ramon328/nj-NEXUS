@@ -52,6 +52,30 @@ const MODELO = process.env.MODELO_ASISTENTE || 'claude-opus-4-8'
 // La web (conversación por voz) usa HAIKU: rápido y BARATO. WhatsApp/análisis pesados
 // siguen en Opus (calidad máxima). Cambiar: MODELO_WEB_ASISTENTE=claude-opus-4-8
 const MODELO_WEB = process.env.MODELO_WEB_ASISTENTE || 'claude-sonnet-5'
+// ── JUGADA HÍBRIDA (ruteo por tarea) ────────────────────────────────────────
+// Charla liviana (saludos, confirmaciones, preguntas personales, "¿qué hiciste
+// hoy?") → HAIKU 4.5: rápido y cuesta la MITAD que Sonnet 5. Finanzas, banco,
+// SII, autos, facturas y orquestadores → se quedan en Sonnet 5 (exactitud).
+// REGLA DE ORO: ante la MÍNIMA señal de plata/cifras/negocio → Sonnet. Ver
+// [[nexus-modelos-respaldo]] y el estándar de exactitud del SISTEMA.
+const MODELO_LIVIANO = process.env.MODELO_LIVIANO || 'claude-haiku-4-5'
+// Señales de tarea PESADA en el mensaje entrante → NO usar Haiku, usar Sonnet.
+const RE_MSG_PESADO = /aliace|mallorc|goautos|margen|resumen|informe|report|financ|ventas?|vend[ií]|compr|stock|factur|boleta|banco|saldo|movimient|cartola|concili|gasto|deuda|cobr|pag(o|ar|ué|ue|amos)|transfer|proveedor|\btek\b|\bsii\b|f29|f22|rcv|carpeta tributaria|honorario|\btag\b|patente|veh[ií]culo|\bautos?\b|precio|monto|plata|dinero|cu[aá]nto|cu[aá]ntos|kpi|utilidad|\bneto\b|\biva\b|n[oó]mina|masiv|conta(ble|bilidad)|balance|cxc|cxp|flujo de caja/i
+// Tools "pesadas": si CUALQUIERA corre en el turno, el resto del turno pasa a Sonnet
+// (aunque el mensaje pareciera liviano) → nunca formateamos cifras con Haiku.
+const RE_TOOL_PESADA = /^(aliace|banco|tek_|sii|factura_compra|conciliacion|gasto|venta|compra|consultar_mallorca|consultar_goautos|sai_|solicitar_tag|emitir|documentos_autos)/
+// ¿Este turno puede ir en Haiku? Conservador: Sonnet ante cualquier duda.
+// El guard de contexto va por TAMAÑO REAL (caracteres del historial), no por nº de
+// turnos: 23 mensajes cortos están lejísimos de los 200K de Haiku. Solo un historial
+// genuinamente enorme (~55k tokens) fuerza Sonnet; igual hay reintento a Sonnet si Haiku
+// se pasa de contexto, así que este umbral es solo para no gastar un intento al pedo.
+function turnoLiviano({ texto, charsHist, hayMedia }) {
+  if (hayMedia) return false                      // fotos/documentos (CAV, carnet, informe) → extracción precisa → Sonnet
+  if (RE_MSG_PESADO.test(String(texto || ''))) return false
+  if (Number(charsHist || 0) > 200000) return false // historial gigante → no arriesgar los 200K de Haiku
+  if (String(texto || '').length > 240) return false // mensaje largo/sustantivo → Sonnet
+  return true                                      // charla liviana → Haiku
+}
 const SUPA_URL = process.env.SUPABASE_URL
 const SUPA_KEY = process.env.SUPABASE_SERVICE_ROLE_KEY || process.env.SUPABASE_ANON_KEY
 const SUPA_REST = SUPA_URL ? SUPA_URL.replace(/\/$/, '') + '/rest/v1' : null
@@ -6190,11 +6214,19 @@ export async function responder(historial, opts = {}) {
   }
   const toolsCache = HERRAMIENTAS.map((t, i) =>
     i === HERRAMIENTAS.length - 1 ? { ...t, cache_control: { type: 'ephemeral' } } : t)
+  // Ruteo híbrido del turno: ¿charla liviana (Haiku) o tarea pesada (Sonnet)?
+  const MODELO_BASE = breve ? MODELO_WEB : MODELO          // el "pesado" (Sonnet 5 hoy)
+  const charsHist = mensajes.reduce((a, m) => { try { return a + (typeof m.content === 'string' ? m.content.length : JSON.stringify(m.content).length) } catch { return a } }, 0)
+  const usarLiviano = turnoLiviano({ texto: textoUsuario, charsHist, hayMedia: mediaTurno.length })
   try {
     for (let i = 0; i < 24; i++) {
       backstopTamano(mensajes)
       const _tCreate = Date.now()
-      try { console.log(`[asistente][iter ${i}] create→ model=${MODELO} msgs=${mensajes.length}`) } catch { /* */ }
+      // Si ya corrió una tool PESADA en el turno, formateamos con Sonnet aunque el
+      // mensaje pareciera liviano (nunca cifras/finanzas con Haiku).
+      const huboToolPesada = usadas.some((n) => RE_TOOL_PESADA.test(String(n)))
+      const modeloTurno = (usarLiviano && !huboToolPesada) ? MODELO_LIVIANO : MODELO_BASE
+      try { console.log(`[asistente][iter ${i}] create→ model=${modeloTurno} msgs=${mensajes.length}`) } catch { /* */ }
       // STREAMING (no .create): con thinking adaptativo + 16k tokens + contexto
       // pesado (datos de Aliace, gráficos), una respuesta puede tardar 30-120s+. En
       // modo NO-streaming eso superaba el timeout del cliente → "Request timed out".
@@ -6203,7 +6235,7 @@ export async function responder(historial, opts = {}) {
       let resp
       try {
         resp = await llamarModelo({
-          model: breve ? MODELO_WEB : MODELO,
+          model: modeloTurno,
           // 16k: holgura para análisis pesados de Aliace (varios RPC/SQL + gráficos).
           max_tokens: 16000,
           // NOTA: `thinking:{type:'enabled',budget_tokens}` ya NO lo aceptan opus-4-8 ni
@@ -6214,11 +6246,23 @@ export async function responder(historial, opts = {}) {
           messages: mensajes,
         }, { onText: opts.onText || null })
       } catch (eModelo) {
+        // Si el turno iba en Haiku y falló por algo que NO es "sin tokens" (p.ej. el
+        // contexto superó los 200K de Haiku, o un 400 propio del modelo liviano),
+        // reintento el MISMO turno en Sonnet antes de rendirme — así nunca se pierde
+        // la respuesta por haber elegido el modelo barato.
+        if (modeloTurno === MODELO_LIVIANO && MODELO_BASE !== MODELO_LIVIANO && !modelos.esErrorSinTokens(eModelo)) {
+          try {
+            console.log(`[asistente] modelo liviano falló (${eModelo?.status || eModelo?.message}); reintento el turno con ${MODELO_BASE}`)
+            resp = await llamarModelo({
+              model: MODELO_BASE, max_tokens: 16000, system: sysCache, tools: toolsCache, messages: mensajes,
+            }, { onText: opts.onText || null })
+          } catch (e2) { eModelo = e2 }
+        }
         // RESPALDO ENTRE IAs: si Claude se cayó por SIN TOKENS / créditos / rate-limit /
         // overloaded y Ramón conectó otro modelo en el Centro de IAs → contestamos con
         // ese (solo texto, sin herramientas) en vez de tirar el turno. Cualquier otro
         // error (red, etc.) se propaga como antes (se reintenta con Claude mismo).
-        if (modelos.esErrorSinTokens(eModelo) && modelos.hayFallback()) {
+        if (!resp && modelos.esErrorSinTokens(eModelo) && modelos.hayFallback()) {
           try {
             console.log(`[asistente] Claude sin tokens/límite (${eModelo?.status || eModelo?.message}); uso modelo de respaldo`)
             const fb = await modelos.responder({ system: sysCache, messages: mensajes })
@@ -6229,7 +6273,7 @@ export async function responder(historial, opts = {}) {
             console.error('[asistente] el modelo de respaldo también falló:', eFb?.message)
           }
         }
-        throw eModelo
+        if (!resp) throw eModelo   // si el reintento en Sonnet obtuvo respuesta, seguimos
       }
       try { console.log(`[asistente][iter ${i}] create OK en ${Date.now() - _tCreate}ms stop=${resp.stop_reason} in=${resp.usage?.input_tokens} out=${resp.usage?.output_tokens}`) } catch { /* */ }
       mensajes.push({ role: 'assistant', content: resp.content })
@@ -6243,7 +6287,7 @@ export async function responder(historial, opts = {}) {
           try {
             const msgsFb = mensajes.slice(0, -1)   // quita el turno vacío; termina en user(tool_result)
             const r2 = await llamarModelo({
-              model: breve ? MODELO_WEB : MODELO, max_tokens: 16000, system: sysCache, messages: msgsFb,
+              model: MODELO_BASE, max_tokens: 16000, system: sysCache, messages: msgsFb,
             })
             texto = r2.content.filter((b) => b.type === 'text').map((b) => b.text).join('\n').trim()
           } catch { /* si falla, queda el mensaje claro de abajo */ }
