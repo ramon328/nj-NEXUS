@@ -60,7 +60,10 @@ const MODELO_WEB = process.env.MODELO_WEB_ASISTENTE || 'claude-sonnet-5'
 // [[nexus-modelos-respaldo]] y el estándar de exactitud del SISTEMA.
 const MODELO_LIVIANO = process.env.MODELO_LIVIANO || 'claude-haiku-4-5'
 // Señales de tarea PESADA en el mensaje entrante → NO usar Haiku, usar Sonnet.
-const RE_MSG_PESADO = /aliace|mallorc|goautos|margen|resumen|informe|report|financ|ventas?|vend[ií]|compr|stock|factur|boleta|banco|saldo|movimient|cartola|concili|gasto|deuda|cobr|pag(o|ar|ué|ue|amos)|transfer|proveedor|\btek\b|\bsii\b|f29|f22|rcv|carpeta tributaria|honorario|\btag\b|patente|veh[ií]culo|\bautos?\b|precio|monto|plata|dinero|cu[aá]nto|cu[aá]ntos|kpi|utilidad|\bneto\b|\biva\b|n[oó]mina|masiv|conta(ble|bilidad)|balance|cxc|cxp|flujo de caja/i
+// ⚠️ Incluye los SEGUIMIENTOS cortos sobre un archivo ("reenvíamelo", "¿lo sacaste?",
+// "no me llegó", "mándamelo") — parecen charla pero exigen tool (mandar el PDF de verdad).
+// Sin esto Haiku contestaba "ya te lo mandé" sin llamar a nada. Ver [[nexus-modelo-hibrido]].
+const RE_MSG_PESADO = /aliace|mallorc|goautos|margen|resumen|informe|report|financ|ventas?|vend[ií]|compr|stock|factur|boleta|banco|saldo|movimient|cartola|concili|gasto|deuda|cobr|pag(o|ar|ué|ue|amos)|transfer|proveedor|\btek\b|\bsii\b|f29|f22|rcv|carpeta tributaria|honorario|\btag\b|patente|veh[ií]culo|\bautos?\b|precio|monto|plata|dinero|cu[aá]nto|cu[aá]ntos|kpi|utilidad|\bneto\b|\biva\b|n[oó]mina|masiv|conta(ble|bilidad)|balance|cxc|cxp|flujo de caja|re?env[ií]a|m[aá]nda(me|melo|mela)?\b|env[ií]a(me|melo|mela)?\b|adjunt|\bpdf\b|archivo|documento|\bcav\b|lo sacaste|lo mandaste|lo enviaste|me lleg[oó]|no lleg[oó]|no me lleg/i
 // Tools "pesadas": si CUALQUIERA corre en el turno, el resto del turno pasa a Sonnet
 // (aunque el mensaje pareciera liviano) → nunca formateamos cifras con Haiku.
 const RE_TOOL_PESADA = /^(aliace|banco|tek_|sii|factura_compra|conciliacion|gasto|venta|compra|consultar_mallorca|consultar_goautos|sai_|solicitar_tag|emitir|documentos_autos)/
@@ -1607,6 +1610,8 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
 - SUBIR / INGRESAR / CARGAR / AGREGAR / PUBLICAR un auto NUEVO = herramienta subir_auto (agente "Meme"). SOLO para MallorcAutos (los autos solo se suben a MallorcAutos). NO improvises el flujo: sigue SIEMPRE, paso a paso, el 📋 FORMULARIO ESTÁNDAR PARA PUBLICAR UN AUTO definido más abajo (foto primero → extraer → mostrar el formulario → rellenar conversando → confirmar y subir). El auto entra en estado "Chillan" (ingreso) y "en el local" por defecto; no lo publiques tú.
 - 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → MIRA el campo "pago" del expediente: si modo="manual" (el banco automático está EN REPOSO, es lo actual) NO uses tek_masiva — dile al usuario que TRANSFIERA él al vendedor desde ANA CLARA (beneficiario = nombre+RUT, monto = precio de compra) y cuando confirme marca el paso; si modo="automatico" usa tek_masiva (queda "Por Autorizar", lo libera un humano, nunca autorizas tú); publicar → subir_auto (con o sin foto); TAG → solicitar_tag (el PODER lo genera Nexus solo con la patente y la fecha del día — NO lo pidas; el usuario solo adjunta carnet + factura/contrato); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
 - 💰 VENDÍ UN AUTO / VENTA / SE VENDIÓ ("vendí este auto", "vendí el [patente]", "se vendió el [patente]", "venta del [patente]") = herramienta venta (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo de venta: NO improvises. (1) Apenas lo digan, llama venta accion:"iniciar" con la patente → te da el TABLERO de 4 pasos, lo que hay que pedirle al usuario (datos del comprador — los MISMOS que en compras — y precio de venta) y cuánto tarda. (2) A medida que te pasen datos usa venta accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y marca con venta accion:"paso": nota_venta → vender_goautos; fondos → revisa/confírmale la disponibilidad de la plata (NO contable) en Santander (principal)/Chile/ITAU/Scotiabank; factura → sii accion:"emitir" (factura de venta) y luego venta accion:"enviar_pamela" para mandarle a Pamela el CAV + los datos de la venta (transferencia de dominio); tag → solicitar_tag tipo:"traspaso" (el poder se genera solo; adjunta carnet + factura). ⚠️ NUNCA muevas plata, emitas ni cambies el estado del auto por tu cuenta: cada paso sensible lo confirma el usuario.
+- 📄 INFORME / CAV DE UN AUTO ("sácame un informe", "un informe completo", "el CAV de la XXXX", "mándame el informe"): la persona quiere **EL ARCHIVO PDF EN LA MANO**, no un resumen. Orden obligatorio: (1) descargar_informe (GRATIS, si ya hay uno comprado de esa patente) → se lo manda; (2) si no hay ninguno, generar_cav (COBRA: primero sin confirmar para que ella acepte el precio, después confirmar:true) → lo genera y lo manda. ⛔ NO uses datos_auto_cav para esto: ese tool es SOLO para sacar los DATOS del auto cuando vas a publicarlo con subir_auto. Si igual generó el informe, mira el campo "pdf_enviado" y di lo que ese campo dice, nada más.
+- 🚫 **NUNCA DIGAS QUE MANDASTE UN ARCHIVO SI NO LO MANDASTE EN ESTE TURNO** (regla dura, vale para informes, CAV, facturas, comprobantes, Excel, fotos y gráficos). Solo puedes decir "ya te lo mandé" cuando el tool de ESTE turno te respondió que el envío quedó CONFIRMADO. Prohibido deducirlo de la conversación, del historial o de que "lo pediste antes". Si te preguntan "¿lo sacaste?", "¿lo mandaste?", "no me llegó", "reenvíamelo" o "mándamelo de nuevo" → **VUELVE A LLAMAR AL TOOL Y MÁNDALO DE VERDAD** (para informes/CAV: descargar_informe, que es gratis porque ya está comprado). Si el tool dice que el envío FALLÓ, díselo derecho ("no salió, lo reintento") — jamás lo tapes con un "ya te lo mandé".
 - 🏦 CARTOLA DEL BANCO ("esta es la cartola", "importa la cartola", "sube los movimientos del banco") = herramienta cartola. La persona MANDA la cartola por WhatsApp (Excel o PDF); Nexus la importa a la BD (movimientos_banco) para poder conciliar. Simula primero (dice cuántos nuevos/duplicados) y con confirmado:true los inserta. El banco automático aún no está listo, por eso la cartola entra por WhatsApp. Después de importar, ofrece conciliar.
 - 🧮 CONCILIACIÓN ("concilia", "conciliación", "revisión del SII y banco", "¿qué falta conciliar/cuadrar?", "gastos duplicados", "cuadra la plata") = herramienta conciliacion (agente "Meme", SOLO MallorcAutos). Cruza las facturas del SII con los movimientos del banco de la BD nueva. accion:"revisar" (default, no escribe) → informe de cobertura, matches, lo que falta cruzar y DUPLICADOS; accion:"aplicar" (simula, y con confirmado:true marca los conciliados en la BD). Rango por defecto = mes en curso. El banco hoy se carga por cartola (manual). Preséntale el informe ordenado y ofrécele aplicar.
 - 💸 REGISTRAR UN GASTO ("anota/registra un gasto", "gasté X en Y", "pagué X por Z", "boleta/factura de gasto") = herramienta gasto (agente "Meme", SOLO MallorcAutos, BD nueva). SIMULA PRIMERO: llámala sin confirmado → muestra el gasto y a qué se asocia; con el OK de la persona, confirmado:true → lo escribe. Si el gasto es de un AUTO pasa la patente (se asocia a ese auto); si no, queda gasto GENERAL. Con factura → pon el N° en "documento"; sin factura → queda "sinfactura" (si hay que emitir la factura de compra, avísale, es aparte). El gasto queda con su MEDIO DE PAGO, pero el banco está EN REPOSO → dile a la persona que el pago lo hace ella (no se paga solo). Pregunta el medio de pago si no lo dan.
@@ -2720,7 +2725,7 @@ const HERRAMIENTAS = [
   },
   {
     name: 'datos_auto_cav',
-    description: 'Para AGREGAR UN AUTO a MallorcAutos/GoAutos SOLO CON LA PATENTE (sin que manden documentos): trae los DATOS del vehículo desde un informe de AutoRed — marca, modelo, año, tipo/carrocería, N° de motor, N° de chasis (VIN), color, combustible, propietario, y si tiene LIMITACIONES AL DOMINIO / PRENDA. FLUJO: (1) Si YA hay un informe comprado de esa patente, lo baja GRATIS y devuelve los datos. (2) Si NO hay ninguno (devuelve elegir_tipo:true con precios), PREGÚNTALE a la persona CON CUÁL quiere que lo agregues, mostrándole las dos opciones y sus PRECIOS ENTRE PARÉNTESIS: "CAV (precio)" — rápido, datos del vehículo + prenda; o "Informe AutoRed Completo (precio)" — además trae dueños anteriores, multas/infracciones y permisos de circulación. ESPERA que elija; recién ahí vuelve a llamar con tipo:"CAV" o tipo:"COMPLETO" y generar:true (ese informe TIENE COSTO). Con los datos que devuelve: completa lo que el informe NO trae y subir_auto necesita (kilometraje, precio de venta, adquisición compra/consignación + su precio, y vencimientos de revisión técnica / permiso de circulación / gases) — PREGÚNTASELO, NO inventes — si hay prenda/limitaciones AVÍSALE, muéstrale un resumen y recién ahí sube el auto con subir_auto tras su OK. Úsalo cuando digan "agrega/ingresa el auto patente XXXX".',
+    description: '⛔ NO ES PARA "sácame un informe / mándame el CAV": esto NO le manda el PDF a la persona (para eso: descargar_informe si ya está comprado, o generar_cav si hay que comprarlo). Para AGREGAR UN AUTO a MallorcAutos/GoAutos SOLO CON LA PATENTE (sin que manden documentos): trae los DATOS del vehículo desde un informe de AutoRed — marca, modelo, año, tipo/carrocería, N° de motor, N° de chasis (VIN), color, combustible, propietario, y si tiene LIMITACIONES AL DOMINIO / PRENDA. FLUJO: (1) Si YA hay un informe comprado de esa patente, lo baja GRATIS y devuelve los datos. (2) Si NO hay ninguno (devuelve elegir_tipo:true con precios), PREGÚNTALE a la persona CON CUÁL quiere que lo agregues, mostrándole las dos opciones y sus PRECIOS ENTRE PARÉNTESIS: "CAV (precio)" — rápido, datos del vehículo + prenda; o "Informe AutoRed Completo (precio)" — además trae dueños anteriores, multas/infracciones y permisos de circulación. ESPERA que elija; recién ahí vuelve a llamar con tipo:"CAV" o tipo:"COMPLETO" y generar:true (ese informe TIENE COSTO). Con los datos que devuelve: completa lo que el informe NO trae y subir_auto necesita (kilometraje, precio de venta, adquisición compra/consignación + su precio, y vencimientos de revisión técnica / permiso de circulación / gases) — PREGÚNTASELO, NO inventes — si hay prenda/limitaciones AVÍSALE, muéstrale un resumen y recién ahí sube el auto con subir_auto tras su OK. Úsalo cuando digan "agrega/ingresa el auto patente XXXX".',
     input_schema: {
       type: 'object',
       properties: {
@@ -4593,11 +4598,32 @@ async function ejecutar(nombre, input, ctx = {}) {
         const py = '/usr/bin/python3'
         const script = join(__dirname, '..', 'conector-autored', 'leer_cav.py')
         const { stdout } = await ejecCmd(`${JSON.stringify(py)} ${JSON.stringify(script)} ${JSON.stringify(out)}`, { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })
-        try { unlinkSync(out) } catch { /* */ }
         const parsed = JSON.parse((stdout.trim().split('\n').filter(Boolean).pop()) || '{}')
-        if (!parsed.ok) return `Bajé el ${etq} de ${patente} pero no pude leer sus datos: ${parsed.error || 'error'}.`
+        // 📄 SI LO ACABAMOS DE COMPRAR, EL PDF SE MANDA SÍ O SÍ. Antes este tool bajaba el
+        // informe, le sacaba los datos y BORRABA el PDF: la persona pagaba el informe y nunca
+        // le llegaba el archivo (le pasó a Joaquín con la SYFL39). Se envía ANTES de borrarlo.
+        let pdf_enviado = null
+        if (!gratis) {
+          const target = destinoValido(ctx.de) || ''
+          if (target) {
+            try {
+              await enviarMediaWhatsApp(target, out, `📄 ${etq} — ${patente} (AutoRed)`, { forceDocument: true })
+              pdf_enviado = true
+              try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] OK datos_auto_cav ${patente} ${row.reportType} -> ${target}\n`) } catch { /* */ }
+            } catch (e) {
+              pdf_enviado = false
+              try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] FALLO datos_auto_cav ${patente}: ${String(e.message).slice(0, 120)}\n`) } catch { /* */ }
+            }
+          }
+        }
+        try { unlinkSync(out) } catch { /* */ }
+        if (!parsed.ok) return `Bajé el ${etq} de ${patente} pero no pude leer sus datos: ${parsed.error || 'error'}.${pdf_enviado ? ' El PDF igual se lo mandé por WhatsApp.' : ''}`
         return JSON.stringify({
           ok: true, patente, fuente: `${etq} id ${row.id}`, gratis, datos: parsed.campos,
+          pdf_enviado,
+          nota_pdf: pdf_enviado === true ? `El PDF del ${etq} YA se le mandó por WhatsApp (avísaselo).`
+            : pdf_enviado === false ? `⚠️ El PDF NO se pudo enviar por WhatsApp. DÍSELO (no digas que se lo mandaste) y ofrécele reintentar con descargar_informe.`
+              : 'El informe ya estaba comprado: NO se mandó ningún PDF. Si la persona quiere el archivo, usa descargar_informe (es gratis).',
           instruccion: `Datos de identificación del vehículo según el ${etq}. Para subir con subir_auto falta lo que el informe NO trae: kilometraje, precio de venta, adquisición (compra/consignación) y su precio, y vencimientos de revisión técnica / permiso de circulación / gases. PREGÚNTASELO, NO lo inventes. 🔎 DOCUMENTOS: si datos.limitaciones_al_dominio o datos.tiene_prenda son true, AVÍSALE claramente y dile el detalle (datos.limitaciones_detalle). ⚠️ datos.tiene_prenda puede venir en null = NO SE SABE (el informe dice que hay una anotación pero no de qué tipo): en ese caso NO digas "tiene prenda" ni "no tiene prenda" — dile que hay una limitación al dominio sin especificar y que hay que pedir el CAV para ver cuál es. Nunca afirmes que el auto está limpio si limitaciones_al_dominio no es false. Muestra un resumen y sube con subir_auto SOLO tras su confirmación.`,
           texto_informe: parsed.texto,
         })
@@ -4626,10 +4652,16 @@ async function ejecutar(nombre, input, ctx = {}) {
         const cap = `📄 ${etq} — ${patente} (AutoRed)`
         const target = destinoValido(input.numero ? normNum(input.numero) : ctx.de) || (input.numero ? normNum(input.numero) : '')
         if (!target) return `Tengo el ${etq} de ${patente} pero no sé a quién enviárselo. Pide el número.`
-        enviarMediaWhatsApp(target, out, cap, { forceDocument: true })
-          .then(() => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] OK descarga ${patente} ${r.reportType} -> ${target}\n`) } catch { /* */ } })
-          .catch((e) => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] FALLO descarga: ${String(e.message).slice(0, 120)}\n`) } catch { /* */ } })
-        return `${etq} de ${patente} (id ${r.id}, ya comprado el ${String(r.createdAt || '').slice(0, 10)}) ENVIADO por WhatsApp${input.numero ? ` a ${target}` : ''}. No tuvo costo (ya estaba comprado). Confírmale corto.`
+        // Se ESPERA el envío (antes era fire-and-forget y el tool decía "ENVIADO" aunque
+        // Kapso fallara → Nexus juraba haberlo mandado y el archivo nunca llegaba).
+        try {
+          await enviarMediaWhatsApp(target, out, cap, { forceDocument: true })
+          try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] OK descarga ${patente} ${r.reportType} -> ${target}\n`) } catch { /* */ }
+        } catch (e) {
+          try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] FALLO descarga: ${String(e.message).slice(0, 120)}\n`) } catch { /* */ }
+          return `⚠️ NO se pudo enviar el ${etq} de ${patente} por WhatsApp: ${e.message}. NO le digas que se lo mandaste: dile que falló el envío y que lo reintentas.`
+        }
+        return `${etq} de ${patente} (id ${r.id}, ya comprado el ${String(r.createdAt || '').slice(0, 10)}) ENVIADO por WhatsApp${input.numero ? ` a ${target}` : ''} (envío confirmado). No tuvo costo (ya estaba comprado). Confírmale corto.`
       } catch (e) { return `No pude descargar el informe de ${patente}: ${e.message}` }
     }
     // ── AUTORED · generar CAV/informe y enviarlo por WhatsApp (2 pasos, cobra) ──
@@ -4660,10 +4692,15 @@ async function ejecutar(nombre, input, ctx = {}) {
         const cap = `📄 ${nombreTipo} — ${patente} (AutoRed)`
         const target = destinoValido(input.numero ? normNum(input.numero) : ctx.de) || (input.numero ? normNum(input.numero) : '')
         if (!target) return `Generé el ${nombreTipo} de ${patente} pero no pude identificar a quién enviárselo. Pídele el número.`
-        enviarMediaWhatsApp(target, out, cap, { forceDocument: true })
-          .then(() => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] OK cav ${patente} -> ${target}\n`) } catch { /* */ } })
-          .catch((e) => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] FALLO cav: ${String(e.message).slice(0, 120)}\n`) } catch { /* */ } })
-        return `${nombreTipo} de ${patente} generado (id ${r.id}) y ENVIADO como PDF por WhatsApp${input.numero ? ` a ${target}` : ' a la persona'}. Confírmale corto que ya se lo mandaste.`
+        // Se ESPERA el envío: el informe COSTÓ PLATA, así que hay que saber de verdad si llegó.
+        try {
+          await enviarMediaWhatsApp(target, out, cap, { forceDocument: true })
+          try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] OK cav ${patente} -> ${target}\n`) } catch { /* */ }
+        } catch (e) {
+          try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] FALLO cav: ${String(e.message).slice(0, 120)}\n`) } catch { /* */ }
+          return `⚠️ El ${nombreTipo} de ${patente} SÍ se generó (id ${r.id}, ya se cobró) pero NO se pudo enviar por WhatsApp: ${e.message}. NO le digas que se lo mandaste: dile que el informe está listo, que falló el envío, y reintenta con descargar_informe (ya está comprado, es gratis).`
+        }
+        return `${nombreTipo} de ${patente} generado (id ${r.id}) y ENVIADO como PDF por WhatsApp${input.numero ? ` a ${target}` : ' a la persona'} (envío confirmado). Confírmale corto que ya se lo mandaste.`
       } catch (e) { return `No pude generar el ${nombreTipo} de ${patente}: ${e.message}` }
     }
     // ── SAI · conciliación (todas leen del motor en ../conector-sai; degradan solas) ──
