@@ -1,271 +1,47 @@
 {
-  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_HTCTRF&ts=1785861878476",
-  "entro": true,
-  "total_filas": 20,
+  "url": "https://privado.officebanking.cl/dashboard",
+  "entro": false,
+  "total_filas": 3,
   "filas": [
     [
-      "0-000-8028093-9",
-      "000-000000-2925739-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "14.139.369-3",
-      "LESLIE YOLANDA LAMOUR",
-      "$ 200.000",
-      "TEF Express",
-      "03/08/2026 19:08:00",
-      "Por Autorizar",
-      ""
+      "72019474",
+      "CUENTA CORRIENTE",
+      "CLP",
+      "$0",
+      "$8.591.226"
     ],
     [
-      "0-000-8028093-9",
-      "000-000002-1406182-8",
-      "BANCO ITAU CHILE",
-      "25.492.965-4",
-      "Xiaoyen Chen",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 18:24:00",
-      "Realizada",
-      ""
+      "5100235147",
+      "CUENTA MONEDA EXTRANJERA",
+      "USD",
+      "$6.462.58",
+      "No aplica"
     ],
     [
-      "0-000-8028093-9",
-      "000-000002-1406182-8",
-      "BANCO ITAU CHILE",
-      "25.492.965-4",
-      "Xiaoyen Chen",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 18:24:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000002-1406182-8",
-      "BANCO ITAU CHILE",
-      "25.492.965-4",
-      "Xiaoyen Chen",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 18:24:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000002-1406182-8",
-      "BANCO ITAU CHILE",
-      "25.492.965-4",
-      "Xiaoyen Chen",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 18:24:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000002-1406182-8",
-      "BANCO ITAU CHILE",
-      "25.492.965-4",
-      "Xiaoyen Chen",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 18:24:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000002-1406182-8",
-      "BANCO ITAU CHILE",
-      "25.492.965-4",
-      "Xiaoyen Chen",
-      "$ 500.000",
-      "TEF Masiva",
-      "03/08/2026 18:24:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "0-000-6380430-4",
-      "BANCO SANTANDER",
-      "76.095.267-2",
-      "RENTAS Y SERVICIOS S.A",
-      "$ 166.000",
-      "TEF Express",
-      "03/08/2026 14:18:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 395.466",
-      "TEF Masiva",
-      "03/08/2026 12:07:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 12:07:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 12:07:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 12:07:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 4.200.000",
-      "TEF Masiva",
-      "03/08/2026 12:07:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 363.453",
-      "TEF Masiva",
-      "03/08/2026 11:41:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 11:40:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 5.000.000",
-      "TEF Masiva",
-      "03/08/2026 11:40:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000000-3264238-5",
-      "BANCO DE CREDITOS E INVERSIONES",
-      "76.242.074-0",
-      "AUTOMOTORA R&S SA",
-      "$ 4.300.000",
-      "TEF Masiva",
-      "03/08/2026 11:40:00",
-      "Realizada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "0-070-3142297-8",
-      "BANCO SANTANDER",
-      "19.689.228-1",
-      "ELIAS MALUK JOAQUIN ALFONSO",
-      "$ 1",
-      "TEF Express",
-      "03/08/2026 10:41:00",
-      "Eliminada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "000-000198-0047689-0",
-      "BANCO FALABELLA",
-      "19.689.228-1",
-      "JOAQUIN ELIAS MALUK",
-      "$ 1",
-      "TEF Express",
-      "02/08/2026 23:54:00",
-      "Eliminada",
-      ""
-    ],
-    [
-      "0-000-8028093-9",
-      "0-070-3142297-8",
-      "BANCO SANTANDER",
-      "19.689.228-1",
-      "JOAQUIN ALFONSO ELIAS MALUK",
-      "$ 1",
-      "TEF Express",
-      "02/08/2026 23:50:00",
-      "Eliminada",
-      ""
+      "5100395551",
+      "CUENTA MONEDA EXTRANJERA",
+      "EUR",
+      "$1.249.41",
+      "No aplica"
     ]
   ],
   "accionInfo": {
     "headers": [
-      "Cuenta origen",
-      "Cuenta destino",
-      "Banco destino",
-      "Rut titular destino",
-      "Nombre titular destino",
-      "Monto",
-      "Tipo transferencia",
-      "Fecha",
-      "Estado",
-      "Impresos"
+      "Nº de Cuenta",
+      "Tipo",
+      "Moneda",
+      "Saldo",
+      "Línea de Crédito"
     ],
     "lastCellsHTML": [
-      "<td data-th=\"Fecha\"><span class=\"bt-content\"><span data-bind=\"text: fechaGeneracion\">03/08/2026 19:08:00</span></span></td>",
-      "<td data-th=\"Estado\"><span class=\"bt-content\"><span data-bind=\"text: estado\">Por Autorizar</span></span></td>",
-      "<td class=\"td-btn-inner-table\" data-th=\"Impresos\"><span class=\"bt-content\"><a role=\"button\" class=\"btn-inner-table btn-ripple btn-popover\" rel=\"popover\" data-trigger=\"focus\" data-popover-content=\"#list-popover\" data-placement=\"left\" data-bind=\"click: $parent.setTransferenciaSeleccionada\" data-original-title=\"\" title=\"\"><i class=\"icon-SYS030 btn-popover\"></i></a></span></td>"
+      "<td _ngcontent-ng-c1317735030=\"\">CLP</td>",
+      "<td _ngcontent-ng-c1317735030=\"\" class=\"ng-star-inserted\"> $0 </td>",
+      "<td _ngcontent-ng-c1317735030=\"\" class=\"ng-star-inserted\"> $8.591.226 </td>"
     ]
   },
   "dump": [
     {
-      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_HTCTRF&ts=1785861878476",
+      "url": "https://privado.officebanking.cl/dashboard",
       "inputs": [],
       "botones": [
         "Accesibilidad",
@@ -273,66 +49,6 @@
         "logout"
       ],
       "titulos": []
-    },
-    {
-      "url": "https://eob.officebanking.cl/TEFT.UI.Web/Historico/?servicioId=TRFCTA_HTCTRF",
-      "inputs": [
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "datepicker1",
-          "name": "",
-          "placeholder": "",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "datepicker2",
-          "name": "",
-          "placeholder": "",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "",
-          "placeholder": " ",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "",
-          "placeholder": " ",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "number",
-          "id": "",
-          "name": "",
-          "placeholder": "",
-          "maxlength": "",
-          "label": ""
-        }
-      ],
-      "botones": [
-        "Aceptar",
-        "Descargar",
-        "Ir"
-      ],
-      "titulos": [
-        "Histórico de transferencias\nMartes 4 de agosto de 2026, 12:44 hrs.",
-        "Opciones de búsqueda",
-        "Detalle de movimientos"
-      ]
     }
   ]
 }
