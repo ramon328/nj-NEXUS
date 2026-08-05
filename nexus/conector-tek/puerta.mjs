@@ -69,7 +69,7 @@ function candadoTomado(slug) {
  * @param {boolean} [o.admin] si es fundador (puede elegir cualquiera de SUS empresas)
  * @returns {{userId, empresa, propia, nota}}
  */
-export function elegirSesion({ usuario, empresa, admin = false } = {}) {
+export function elegirSesion({ usuario, empresa, admin = false, operacion = '' } = {}) {
   const quien = slugUsuario(usuario)
   let emp = String(empresa || '').trim()
 
@@ -93,6 +93,17 @@ export function elegirSesion({ usuario, empresa, admin = false } = {}) {
     userId = dueño || 'ramon'
     propia = false
     nota = `${quien} no tiene "${emp}" conectada → se opera con la sesión de ${userId}`
+  }
+  // Joaquín opera TODO el banco con la sesión de otro (pedido de Ramón, 05-ago): CUALQUIER
+  // operación de banco (transferir, masiva, comprobantes, pendientes, reconectar, lectura…)
+  // que pida Joaquín se ejecuta con la sesión del operador configurado (default 'ramon'), NO
+  // con la de Joaquín. Se apaga con TEK_JOAQUIN_BANCO_CON=joaquin (o el nombre de otro).
+  const OP_JOAQUIN = (process.env.TEK_JOAQUIN_BANCO_CON || process.env.TEK_JOAQUIN_TRANSFIERE_CON || 'ramon').toLowerCase().trim()
+  if (quien === 'joaquin' && OP_JOAQUIN && OP_JOAQUIN !== 'joaquin') {
+    userId = OP_JOAQUIN
+    emp = credenciales.resolverEmpresa(OP_JOAQUIN, emp) || credenciales.resolverEmpresa(OP_JOAQUIN, 'ANA CLARA') || emp
+    propia = false
+    nota = `Joaquín opera el banco con la sesión de ${OP_JOAQUIN} (config TEK_JOAQUIN_BANCO_CON)`
   }
   // Kill-switch de emergencia (volver a la regla vieja sin tocar código).
   if (SOLO_RAMON && /ana\s*clara|mallorca/i.test(emp)) {

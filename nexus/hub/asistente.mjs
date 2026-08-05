@@ -3129,11 +3129,11 @@ async function escrituraBancoAutoSana(ejecutar) {
 // Ver conector-tek/puerta.mjs.
 
 /** Resuelve con qué sesión y a qué empresa opera QUIEN PIDE (cada uno con su banco). */
-async function sesionBanco(ctx, empresaPedida) {
+async function sesionBanco(ctx, empresaPedida, operacion = '') {
   const quien = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
   try {
     const puerta = await import('../conector-tek/puerta.mjs')
-    return { ...puerta.elegirSesion({ usuario: quien, empresa: empresaPedida, admin: esAdmin(ctx.de) }), quien }
+    return { ...puerta.elegirSesion({ usuario: quien, empresa: empresaPedida, admin: esAdmin(ctx.de), operacion }), quien }
   } catch {
     return { userId: quien, empresa: empresaPedida || 'ANA CLARA SPA', propia: true, nota: '', quien }
   }
@@ -3628,7 +3628,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       // Empresa de ORIGEN + SESIÓN: la puerta decide. Cada persona transfiere con SU propio
       // login del banco (también en ANA CLARA); solo si no tiene esa empresa conectada se cae
       // al dueño del vault. Un usuario NO admin queda acotado a su empresa.
-      const sesB = await sesionBanco(ctx, (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA')
+      const sesB = await sesionBanco(ctx, (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA', 'transferencia')
       const userId = sesB.userId
       const empresa = sesB.empresa
       const arm = tr.armarBorrador({ userId, nombre: input.nombre, monto: input.monto, motivo: input.motivo,
@@ -3733,7 +3733,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       const lista = Array.isArray(input.transferencias) ? input.transferencias : []
       if (!lista.length) return JSON.stringify({ ok: false, error: 'Pásame la lista de transferencias (al menos una).' })
       // Empresa de ORIGEN del lote + sesión: la puerta decide (cada persona con SU login).
-      const sesM = await sesionBanco(ctx, (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA')
+      const sesM = await sesionBanco(ctx, (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA', 'transferencia')
       const userMasiva = sesM.userId
       const empresaMasiva = sesM.empresa
 
@@ -5614,7 +5614,11 @@ async function ejecutar(nombre, input, ctx = {}) {
         // acotado debe ver otra empresa.
         const RUT_ANA_CLARA = '77271121-2'
         const soloAnaClara = !esAdmin(ctx.de)
-        const userId = (usuarioDe(ctx.de)?.nombre || '').toLowerCase()
+        let userId = (usuarioDe(ctx.de)?.nombre || '').toLowerCase()
+        // Joaquín opera TODO el banco (también la LECTURA) con la sesión de Ramón (config,
+        // igual que puerta.elegirSesion para transferir/masiva). Sigue acotado a ANA CLARA.
+        const OP_JQ = (process.env.TEK_JOAQUIN_BANCO_CON || process.env.TEK_JOAQUIN_TRANSFIERE_CON || 'ramon').toLowerCase().trim()
+        if (userId === 'joaquin' && OP_JQ && OP_JQ !== 'joaquin') userId = OP_JQ
         const esAna = (r) => String(r || '').replace(/[.\-\s]/g, '') === '772711212'
         const opts = { userId, rut: soloAnaClara ? RUT_ANA_CLARA : input.rut, banco: soloAnaClara ? undefined : input.banco,
                        empresa: soloAnaClara ? undefined : input.empresa,
