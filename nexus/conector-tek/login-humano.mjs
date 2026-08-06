@@ -163,6 +163,42 @@ async function typeHumano(page, loc, texto) {
   await humanType(page, texto)
 }
 
+// TECLEO REAL en un campo del formulario (pedido de Ramón 06-ago): mouse que VIAJA al campo +
+// clic real + teclas isTrusted (como el humano), NUNCA `.value=` por JS (eso lo marca BioCatch).
+// Clickea el campo ANTES de teclear para que el foco sea el correcto (así no se descuadran los
+// campos, que fue por lo que antes se cayó a JS-injection). Verifica el valor y reintenta; si la
+// máscara igual se lo come, cae a JS-injection como ÚLTIMO recurso (para no dejar el campo vacío
+// y frenar la operación). Devuelve true si el campo quedó con el valor.
+async function tipearReal(page, loc, valTxt, label = 'campo') {
+  if (valTxt == null || valTxt === '') return true
+  const val = String(valTxt)
+  const norm = (s) => String(s || '').replace(/\s/g, '')
+  const normNum = (s) => String(s || '').replace(/[^0-9kK]/gi, '')
+  if (!(await loc.count().catch(() => 0))) { log('tipearReal: no vi ' + label); return false }
+  for (let intento = 1; intento <= 2; intento++) {
+    if (!(await moveToLoc(page, loc).catch(() => false))) { await loc.click().catch(() => {}) }
+    else { await sleep(rnd(120, 300)); await clickReal(page).catch(() => {}) }
+    await sleep(rnd(150, 320))
+    await page.keyboard.press('Meta+A').catch(() => {}); await page.keyboard.press('Backspace').catch(() => {})
+    await sleep(rnd(120, 260))
+    await humanType(page, val)
+    await sleep(rnd(220, 480))
+    const got = await loc.inputValue().catch(() => '')
+    if (norm(got) === norm(val) || (normNum(val) && normNum(got) === normNum(val))) { log(label + ' tecleado ✓'); return true }
+    log(`${label}: quedó "${got}" ≠ "${val}" → reintento tecleo (${intento})`)
+  }
+  // Último recurso: setter nativo + eventos (NO deja el campo vacío). Se registra para auditar.
+  const ok = await loc.evaluate((el, value) => {
+    const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
+    const setter = Object.getOwnPropertyDescriptor(proto, 'value') && Object.getOwnPropertyDescriptor(proto, 'value').set
+    el.focus(); setter ? setter.call(el, value) : (el.value = value)
+    el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); el.dispatchEvent(new Event('blur', { bubbles: true }))
+    return el.value === value
+  }, val).catch(() => false)
+  log(label + ': tecleo no cuajó → fallback JS ' + (ok ? 'ok' : 'falló'))
+  return ok
+}
+
 // Tecleo con dwell (down→up), pausas irregulares y algún typo+backspace.
 async function humanType(page, text) {
   // Tecleo con teclas REALES (isTrusted vía keyboard.press — NUNCA .value/inyección) para que
@@ -927,21 +963,11 @@ async function crearTransferencia(page, log) {
     if (esTEFUN) {
       // Llenado por JS por ID (setter nativo + eventos): robusto contra foco/máscara y evita
       // que un campo se meta en otro. Cada campo por su ID exacto.
+      // TECLEO REAL (mouse + teclas isTrusted) por ID; si no cuaja, tipearReal cae a JS solo.
       const setIdJS = async (id, valTxt) => {
         if (valTxt == null || valTxt === '') return
-        const ok = await f2.evaluate(({ id, value }) => {
-          const el = document.getElementById(id); if (!el) return 'no-existe'
-          const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
-          const setter = Object.getOwnPropertyDescriptor(proto, 'value') && Object.getOwnPropertyDescriptor(proto, 'value').set
-          el.focus(); setter ? setter.call(el, '') : (el.value = '')
-          setter ? setter.call(el, value) : (el.value = value)
-          el.dispatchEvent(new Event('input', { bubbles: true }))
-          el.dispatchEvent(new Event('keyup', { bubbles: true }))
-          el.dispatchEvent(new Event('change', { bubbles: true }))
-          el.dispatchEvent(new Event('blur', { bubbles: true }))
-          return el.value === value ? 'ok' : 'val=' + el.value
-        }, { id, value: String(valTxt) }).catch((e) => 'err:' + String(e).slice(0, 60))
-        log('TEFUN #' + id + ' →', ok); await sleep(rnd(350, 650))
+        await tipearReal(page, f2.locator('#' + id).first(), valTxt, 'TEFUN #' + id)
+        await sleep(rnd(300, 600))
       }
       // Banco destino: es un DROPDOWN CUSTOM (no <select>). Abrir + elegir Santander (o el del
       // beneficiario). RUT/Nombre suelen HABILITARSE recién al elegir el banco.
@@ -1151,40 +1177,24 @@ async function crearTransferencia(page, log) {
       }
     }
     const val = async (sel) => f2.locator(sel).first().inputValue().catch(() => '')
+    // TECLEO REAL (mouse + teclas isTrusted). Antes era loc.type sin verificar; ahora tipearReal
+    // clickea el campo, teclea real, verifica y solo cae a JS si la máscara se lo come.
     const setVal = async (sel, valTxt) => {
       if (valTxt == null || valTxt === '') return
-      const loc = f2.locator(sel).first()
-      if (!(await loc.count().catch(() => 0))) { log('destino: no vi campo', sel); return }
-      await loc.click().catch(() => {}); await sleep(rnd(250, 500))
-      await loc.fill('').catch(() => {})
-      await loc.type(String(valTxt), { delay: rnd(70, 150) }).catch(() => {})
-      await sleep(rnd(300, 700))
+      await tipearReal(page, f2.locator(sel).first(), valTxt, sel)
     }
-    // Llenado ROBUSTO por PLACEHOLDER (prefijo, case-insensitive) seteando el valor por JS
-    // con el native setter + eventos input/change/blur. No depende del foco → arregla el
-    // corrimiento de campos del form de otros bancos (con type() el email caía en "nombre"
-    // y el mensaje en "email"). Busca el input VISIBLE (offsetParent != null) en cualquier frame.
+    // TECLEO REAL por PLACEHOLDER (prefijo, case-insensitive) en cualquier frame. Clickea el campo
+    // ANTES de teclear (por eso ya no se descuadran los campos — el problema que había llevado a
+    // la inyección JS). Verifica y cae a JS solo como último recurso (dentro de tipearReal).
     const fillByPlaceholder = async (phPrefix, valTxt) => {
       if (valTxt == null || valTxt === '') return false
       for (const f of page.frames()) {
-        const ok = await f.evaluate(({ ph, value }) => {
-          const pfx = ph.toLowerCase()
-          const el = [...document.querySelectorAll('input,textarea')]
-            .find((e) => (e.placeholder || '').toLowerCase().startsWith(pfx) && e.offsetParent !== null)
-          if (!el) return false
-          const proto = el.tagName === 'TEXTAREA' ? window.HTMLTextAreaElement.prototype : window.HTMLInputElement.prototype
-          const setter = Object.getOwnPropertyDescriptor(proto, 'value')?.set
-          el.focus()
-          setter ? setter.call(el, '') : (el.value = '')
-          setter ? setter.call(el, value) : (el.value = value)
-          el.dispatchEvent(new Event('input', { bubbles: true }))
-          el.dispatchEvent(new Event('change', { bubbles: true }))
-          el.dispatchEvent(new Event('blur', { bubbles: true }))
-          return el.value === value
-        }, { ph: phPrefix, value: String(valTxt) }).catch(() => false)
-        if (ok) return true
+        const loc = f.locator(`input[placeholder^="${phPrefix}" i], textarea[placeholder^="${phPrefix}" i]`).first()
+        if (await loc.count().catch(() => 0) && await loc.isVisible().catch(() => false)) {
+          return await tipearReal(page, loc, valTxt, phPrefix)
+        }
       }
-      log('fillByPlaceholder: no llené', phPrefix)
+      log('fillByPlaceholder: no vi', phPrefix)
       return false
     }
     const valByPlaceholder = async (phPrefix) => {
@@ -1219,13 +1229,8 @@ async function crearTransferencia(page, log) {
         }
       }
       if (!(await loc.count().catch(() => 0))) { log('✗ no vi el campo email en ningún frame'); return }
-      await loc.click().catch(() => {}); await sleep(rnd(200, 450))
-      await loc.fill(emailVal).catch(() => {})
-      await sleep(rnd(300, 600))
-      let got = await loc.inputValue().catch(() => '')
-      if (got !== emailVal) { await loc.fill('').catch(() => {}); await loc.type(emailVal, { delay: rnd(60, 130) }).catch(() => {}); await sleep(400); got = await loc.inputValue().catch(() => '') }
+      await tipearReal(page, loc, emailVal, 'email')   // mouse real + teclas reales + verifica
       await page.keyboard.press('Tab').catch(() => {})
-      log('email poblado:', got || '(vacío)')
     }
 
     if (tipoOtros) {
