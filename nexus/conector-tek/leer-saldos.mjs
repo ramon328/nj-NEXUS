@@ -49,12 +49,13 @@ h.on('exit', () => {
   const lect = r.lectura || null
   // Persistir cada empresa leída como caché (data/emp-<slug>.json) → el banco tool sirve
   // saldos de cualquier empresa al instante. Así toda lectura (on-demand o de la mañana)
-  // deja los datos frescos. ANA CLARA la sirve la tek-api, no la cacheamos acá.
+  // deja los datos frescos. ANA CLARA también se cachea acá (antes se saltaba y quedaba con
+  // el dato viejo de la tek-api → saldos mezclados/desactualizados; ahora TODAS uniformes).
   try {
     const slug = (e) => String(e).toLowerCase().replace(/[^a-z0-9]/g, '')
     const now = Date.now()
     for (const e of (lect?.empresas || [])) {
-      if (!e.conecta || /ana clara/i.test(e.empresa)) continue
+      if (!e.conecta) continue
       const out = { empresa: e.empresa, cuentas: e.cuentas || [], total_clp: e.total_clp || 0, _ts: now, _fuente: 'vivo' }
       try { writeFileSync(join(DIR, 'data', 'emp-' + slug(e.empresa) + '.json'), JSON.stringify(out, null, 2)) } catch { /* */ }
       // movimientos por empresa (si se leyeron con TEK_LEER_MOVS)
