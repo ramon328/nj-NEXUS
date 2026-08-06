@@ -1,23 +1,23 @@
 {
-  "ts": "2026-08-06T02:32:00.234Z",
+  "ts": "2026-08-06T02:44:04.999Z",
   "estado": "AMARILLO",
   "nivel": 1,
   "razones": [
-    "RAM libre baja (892 MB)",
-    "Sugerencia: 1 sesión(es) de chat llevan +6h vivas (~0.7 GB); se pueden reciclar con reciclar-sesiones.sh"
+    "RAM libre baja (748 MB)",
+    "Sugerencia: 3 sesión(es) de chat llevan +6h vivas (~1.8 GB); se pueden reciclar con reciclar-sesiones.sh"
   ],
   "metricas": {
-    "load1": 2.35,
+    "load1": 1.6,
     "nucleos": 6,
-    "loadPorNucleo": 0.39,
-    "ramLibreMB": 892,
+    "loadPorNucleo": 0.27,
+    "ramLibreMB": 748,
     "ramTotalMB": 32768,
     "swapUsedMB": 0,
     "compresorMB": 98,
     "discoPct": 69,
-    "procesos": 753,
+    "procesos": 754,
     "sesionesClaude": 4,
-    "sesionesClaudeViejas": 1
+    "sesionesClaudeViejas": 3
   },
-  "ultimaAlerta": "2026-08-06T02:22:56.947Z"
+  "ultimaAlerta": "2026-08-06T02:35:01.332Z"
 }
