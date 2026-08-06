@@ -725,13 +725,13 @@ async function crearTransferencia(page, log) {
   await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
   await sleepLargo(8000)
   // FORZAR empresa (TEK_FORCE_EMPRESA=1): si la sesión ya está DENTRO de otra empresa,
-  // entrarEmpresa no re-cambia. Clic en "Empresa / Rol" → vuelve al selector → entrarEmpresa.
+  // entrarEmpresa no re-cambia. Hay que VOLVER AL SELECTOR primero. Antes solo se clickeaba
+  // "Empresa / Rol" y faltaba el "Volver a selector de empresas" → nunca llegaba al selector
+  // → transfería desde la empresa equivocada. Ahora usa irAlSelectorEmpresas (mecanismo probado
+  // por leer-saldos, que sí cambia bien entre las empresas).
   if (process.env.TEK_FORCE_EMPRESA === '1') {
-    for (const f of page.frames()) {
-      const b = f.getByText(/Empresa\s*\/\s*Rol/i).first()
-      if (await b.count().catch(() => 0)) { await clickHumano(page, b).catch(() => {}); log('scrape: clic "Empresa / Rol" (forzar cambio de empresa)'); break }
-    }
-    await sleepLargo(6000)
+    try { const ok = await irAlSelectorEmpresas(page, log); log('forzar empresa → selector: ' + (ok ? 'ok' : 'NO llegué al selector')) } catch (e) { log('forzar empresa error: ' + e.message) }
+    await sleepLargo(rnd(2500, 4000))
   }
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
   await sleepLargo(rnd(3000, 5000)); await idle(page, rnd(800, 1600))
