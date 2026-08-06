@@ -42,6 +42,12 @@ const ASISTIDO_VENTANA_MS = Number(process.env.TEK_ASISTIDO_VENTANA_MS || 13 * 6
 // Vuelta atrás de emergencia: si esto es 1, ANA CLARA vuelve a operarse SIEMPRE con ramon.
 const SOLO_RAMON = process.env.TEK_ANACLARA_SOLO_RAMON === '1'
 
+// EMPRESAS HABILITADAS en el banco (pedido de Ramón 06-ago): SOLO estas 4 se pueden operar
+// (transferir/masiva/saldos), por CUALQUIER usuario, y todas van con la sesión de Ramón. El
+// resto (Food Expert, Baleares, Plataformas GoAuto, Mallorca Holding, ACE…) NO están habilitadas.
+export const RE_EMPRESAS_RAMON = /ana\s*clara|mallorca|imp\s*juri\s*y\s*fontena|importaciones\s*mineras|importadora\s*juri\s*y\s*juri/i
+export function empresaPermitida(emp) { return RE_EMPRESAS_RAMON.test(String(emp || '')) }
+
 export const slugUsuario = (u) => String(u || 'ramon').toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'
 const pidVivo = (pid) => { if (!pid) return false; try { process.kill(pid, 0); return true } catch { return false } }
 
@@ -105,15 +111,19 @@ export function elegirSesion({ usuario, empresa, admin = false, operacion = '' }
     propia = false
     nota = `Joaquín opera el banco con la sesión de ${OP_JOAQUIN} (config TEK_JOAQUIN_BANCO_CON)`
   }
-  // EMPRESAS DE RAMÓN — se operan SIEMPRE con la sesión de Ramón, pida quien pida (pedido de
-  // Ramón 06-ago; probadas y mapeadas: Ana Clara + IMP JURI Y FONTENA + Importaciones Mineras +
-  // Importadora Juri, todas colgadas del login de Ramón). Se activa con TEK_ANACLARA_SOLO_RAMON=1.
-  const RE_RAMON = /ana\s*clara|mallorca|imp\s*juri\s*y\s*fontena|importaciones\s*mineras|importadora\s*juri\s*y\s*juri/i
-  if (SOLO_RAMON && RE_RAMON.test(emp)) {
+  // TODO EL BANCO USA LA SESIÓN DE RAMÓN (pedido de Ramón 06-ago): las 4 empresas habilitadas
+  // (Ana Clara + IMP JURI Y FONTENA + Importaciones Mineras + Importadora Juri) cuelgan del login
+  // de Ramón, que es la sesión de CONFIANZA del banco (device-trust). Se operan SIEMPRE con
+  // ramon, pida quien pida — INCONDICIONAL (no depende del kill-switch). Cualquier OTRA empresa
+  // NO está habilitada → permitida:false y los handlers la rechazan. Ver [[tek-empresas-ramon-multiempresa]].
+  const permitida = empresaPermitida(emp)
+  if (permitida) {
     userId = 'ramon'; propia = quien === 'ramon'
-    nota = 'empresa de Ramón (Ana Clara / IMP JURI / Importaciones Mineras / Importadora Juri) → sesión de ramon'
+    nota = `banco de Ramón (${emp}) → sesión de Ramón (la de confianza)`
+  } else {
+    nota = `"${emp}" no está habilitada en el banco (solo Ana Clara, IMP JURI, Importaciones Mineras e Importadora Juri).`
   }
-  return { userId, empresa: emp, propia, nota }
+  return { userId, empresa: emp, propia, nota, permitida }
 }
 
 // ── 2. ¿Está viva la sesión? (sin abrir el navegador) ────────────────────────

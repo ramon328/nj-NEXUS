@@ -1784,9 +1784,9 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 
 🏦 SISTEMA DE BANCO (tek) — CÓMO FUNCIONA HOY (léelo antes de cualquier cosa de banco). Está REAL y ACTIVO (lleva días operando). Olvida cualquier idea de "banco en reposo", "simulación" o "todavía no está listo": eso ya NO aplica.
 - SOLO CREA SOLICITUDES: toda transferencia/pago que arma el sistema queda *Por Autorizar* en el banco y NO mueve plata. La plata sale recién cuando una PERSONA la LIBERA dentro del banco (con su Superclave) — ese paso es MANUAL del banco; Nexus NUNCA libera ni le pide la Superclave al usuario. O sea: el sistema envía SOLICITUDES de transferencia, no hace cobros ni pagos reales por su cuenta.
-- CADA PERSONA CON SU SESIÓN: Joaquín opera con su banco, Nico con el suyo, Ramón con el suyo, también en ANA CLARA.
+- SOLO 4 EMPRESAS HABILITADAS, todas con la sesión de RAMÓN (pida quien pida): *ANA CLARA*, *IMP JURI Y FONTENA*, *IMPORTACIONES MINERAS* e *IMPORTADORA JURI*. Cualquier OTRA empresa NO está operativa: si la piden, decí que solo esas 4 funcionan hoy (la tool la rechaza sola). El usuario NO elige "de qué empresa" fuera de esas 4.
 - SESIÓN CERRADA/DORMIDA = SE ABRE SOLA: si alguien pide algo del banco y la sesión está cerrada, el sistema entra con el LOGIN AUTOMÁTICO (mouse real que viaja al botón y hace clic en Aceptar) en ese momento. NO hay login asistido, NI link, NI PIN, NI Superclave para el usuario. Si en ese instante el login no logra entrar, la tool te dice "reintentá en un rato" y se reactiva solo al próximo pedido — NUNCA le pases links ni le hables de Superclave, ni digas que "está en reposo", ni le ofrezcas vincular (ya está conectado).
-- DATOS SIEMPRE EN VIVO, sin caché viejo: saldos, movimientos y pendientes se leen entrando al banco al momento.
+- SALDOS: el de UNA empresa puntual ("cuánto tengo en Importadora Juri") se lee EN VIVO (login del momento). El de TODAS ("cuánto tengo en total") = último dato guardado, que se REFRESCA solo cada mañana temprano (Ana Clara siempre en vivo) — NO se abren los 4 bancos en vivo por esa pregunta (lento y arriesga el antifraude). ⚠️ Cuando des saldos de "todas", DECÍ la hora/fecha del dato (viene en el campo _ts de cada empresa) para que se sepa qué tan fresco es; NO lo presentes como "ahora mismo" si es del refresco de la mañana.
 
 💸 PAGAR UNA FACTURA DE COMPRA / A UN PROVEEDOR de ANA CLARA — usa **tek_transferir** (uno) o **tek_masiva** (varios): crea la SOLICITUD de transferencia al proveedor, que queda *Por Autorizar* (una persona la libera en el banco). Flujo de 2 pasos igual que cualquier transferencia (preparar → confirmar → enviar), con los datos del proveedor (nombre, RUT, banco, cuenta, monto CLP). Si detectas una factura de compra por pagar, ofrécele armar la transferencia. (La vieja herramienta tek_pago quedó obsoleta: NO la uses para pagar de verdad.)
 
@@ -1804,7 +1804,7 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 
 🔁 RECONECTAR EL BANCO (herramienta **reconectar_banco**) — HOY el banco se reactiva SOLO con el login AUTOMÁTICO (mouse real → clic en Aceptar) apenas se pide una operación: ya NO hay login asistido, NI link VNC, NI PIN, NI Superclave para el usuario. Si una operación responde **sesion_caida** / **sesion_muerta**, o el usuario dice "reconecta el banco" / "el banco está dormido", llama **reconectar_banco** y SEGUÍ EXACTAMENTE lo que diga su campo *instruccion* (hoy responde: el banco entra solo al operar, que reintente su pedido en un rato). ⛔ NUNCA le pases URL, PIN ni le hables de clave/Superclave. ⛔ NO le ofrezcas vincular ni configurar el banco (ya está conectado). Es DISTINTO de vincular_banco (ese AGREGA una empresa nueva). Si una operación quedó a medias, dile que la vuelva a pedir en un rato y se reactiva sola.
 
-🔑 REGLA GENERAL DEL BANCO (aplica a TODAS las herramientas de banco y a TODOS los usuarios con acceso). Dos cosas que ya NO tenés que decidir vos, porque las hace el sistema solo: (1) **CADA PERSONA OPERA CON SU PROPIA SESIÓN DE BANCO** — Joaquín entra con el banco de Joaquín, Nico con el de Nico, Ramón con el suyo, TAMBIÉN en ANA CLARA. Nunca digas que "hay que usar la sesión de Ramón" ni que "solo Ramón puede". (2) **SI LA SESIÓN ESTÁ DORMIDA, EL BANCO ENTRA SOLO** (login automático on-demand, mouse real → clic en Aceptar): NO hay login asistido, NO hay link VNC, NO hay PIN, NO hay Superclave para el usuario. SEGUÍ EXACTAMENTE lo que diga el campo *instruccion* de la tool. Si el login automático no pudo entrar, la tool te devuelve un mensaje "reintentá en un rato" — pasáselo tal cual, ⛔ NUNCA le pases URL, PIN ni le hables de Superclave, ⛔ NO le ofrezcas vincular ni configurar el banco (ya está conectado). El banco se reactiva solo apenas vuelva a pedir la operación. Si te responde **ocupado**, hay otro login en curso: decile que espere un par de minutos, NO abras otro.
+🔑 REGLA GENERAL DEL BANCO (aplica a TODAS las herramientas de banco y a TODOS los usuarios con acceso). Dos cosas que ya NO tenés que decidir vos, porque las hace el sistema solo: (1) **TODO EL BANCO USA LA SESIÓN DE RAMÓN** — las 4 empresas habilitadas (Ana Clara, IMP JURI Y FONTENA, Importaciones Mineras, Importadora Juri) se operan SIEMPRE con la cuenta de Ramón, pida quien pida (es la sesión de CONFIANZA del banco). El usuario NO elige "de qué sesión"; el sistema ya lo resuelve. (2) **SI LA SESIÓN ESTÁ DORMIDA, EL BANCO ENTRA SOLO** (login automático on-demand, mouse real → clic en Aceptar): NO hay login asistido, NO hay link VNC, NO hay PIN, NO hay Superclave para el usuario. SEGUÍ EXACTAMENTE lo que diga el campo *instruccion* de la tool. Si el login automático no pudo entrar, la tool te devuelve un mensaje "reintentá en un rato" — pasáselo tal cual, ⛔ NUNCA le pases URL, PIN ni le hables de Superclave, ⛔ NO le ofrezcas vincular ni configurar el banco (ya está conectado). El banco se reactiva solo apenas vuelva a pedir la operación. Si te responde **ocupado**, hay otro login en curso: decile que espere un par de minutos, NO abras otro.
 
 📨 ESCRIBIRLE A UN NÚMERO EXTERNO (que NO es usuario de Nexus: un lead, un cliente, un tercero) — herramientas **enviar_mensaje_externo**, **ver_respuestas_externo**, **listar_externos**. Cuando un usuario diga "mándale a +569… que…", "escríbele a este número…", "avísale a <número> que…" y ese número NO es un usuario dado de alta, usa enviar_mensaje_externo (numero, mensaje, y nombre si lo sabes). Le llega SOLO ese texto (con la plantilla oficial si está fuera de las 24h). ⚠️ IMPORTANTE: Nexus NO conversa con ese externo ni le da datos del negocio — solo GUARDA lo que responda. Cuando el usuario pregunte "¿qué respondió el +569…?" usa ver_respuestas_externo; para ver a qué externos se ha escrito, listar_externos. Nunca inventes la respuesta del externo: sácala de la herramienta.
 
@@ -3684,6 +3684,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       // login del banco (también en ANA CLARA); solo si no tiene esa empresa conectada se cae
       // al dueño del vault. Un usuario NO admin queda acotado a su empresa.
       const sesB = await sesionBanco(ctx, (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA', 'transferencia')
+      if (sesB.permitida === false) return JSON.stringify({ ok: false, error: sesB.nota || 'Esa empresa no está habilitada en el banco.', instruccion: 'Solo se pueden operar 4 empresas: Ana Clara, IMP JURI Y FONTENA, Importaciones Mineras e Importadora Juri. Decíselo al usuario; NO intentes con otra.' })
       const userId = sesB.userId
       const empresa = sesB.empresa
       const arm = tr.armarBorrador({ userId, nombre: input.nombre, monto: input.monto, motivo: input.motivo,
@@ -3803,6 +3804,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       if (!lista.length) return JSON.stringify({ ok: false, error: 'Pásame la lista de transferencias (al menos una).' })
       // Empresa de ORIGEN del lote + sesión: la puerta decide (cada persona con SU login).
       const sesM = await sesionBanco(ctx, (input.empresa && String(input.empresa).trim()) || 'ANA CLARA SPA', 'transferencia')
+      if (sesM.permitida === false) return JSON.stringify({ ok: false, error: sesM.nota || 'Esa empresa no está habilitada en el banco.', instruccion: 'Solo se pueden operar 4 empresas: Ana Clara, IMP JURI Y FONTENA, Importaciones Mineras e Importadora Juri. Decíselo al usuario; NO intentes con otra.' })
       const userMasiva = sesM.userId
       const empresaMasiva = sesM.empresa
 
@@ -5698,12 +5700,17 @@ async function ejecutar(nombre, input, ctx = {}) {
         // acotado debe ver otra empresa.
         const RUT_ANA_CLARA = '77271121-2'
         const soloAnaClara = !esAdmin(ctx.de)
-        let userId = (usuarioDe(ctx.de)?.nombre || '').toLowerCase()
-        // Joaquín opera TODO el banco (también la LECTURA) con la sesión de Ramón (config,
-        // igual que puerta.elegirSesion para transferir/masiva). Sigue acotado a ANA CLARA.
-        const OP_JQ = (process.env.TEK_JOAQUIN_BANCO_CON || process.env.TEK_JOAQUIN_TRANSFIERE_CON || 'ramon').toLowerCase().trim()
-        if (userId === 'joaquin' && OP_JQ && OP_JQ !== 'joaquin') userId = OP_JQ
+        // TODO el banco es de Ramón: las 4 empresas habilitadas cuelgan de SU login, así que
+        // TODAS las lecturas usan su sesión/datos (pida quien pida). Un no-admin (Joaquín) queda
+        // acotado a ANA CLARA. SOLO se muestran las 4 habilitadas.
+        const userId = 'ramon'
+        const permitidaEmp = (e) => /ana\s*clara|mallorca|imp\s*juri\s*y\s*fontena|importaciones\s*mineras|importadora\s*juri\s*y\s*juri/i.test(String(e || ''))
         const esAna = (r) => String(r || '').replace(/[.\-\s]/g, '') === '772711212'
+        // Empresa PUNTUAL no habilitada → cortar.
+        if (input.empresa && !/^(todas|todos|cada|all)\b/i.test(String(input.empresa)) && !permitidaEmp(input.empresa)) {
+          return JSON.stringify({ ok: false, error: `"${input.empresa}" no está habilitada en el banco. Solo: Ana Clara, IMP JURI Y FONTENA, Importaciones Mineras e Importadora Juri.` })
+        }
+        const filtEmp = (arr, campo) => Array.isArray(arr) ? arr.filter((x) => soloAnaClara ? esAna(x.rut) : permitidaEmp(x[campo])) : arr
         const opts = { userId, rut: soloAnaClara ? RUT_ANA_CLARA : input.rut, banco: soloAnaClara ? undefined : input.banco,
                        empresa: soloAnaClara ? undefined : input.empresa,
                        anio: input.anio, buscar: input.buscar,
@@ -5711,18 +5718,18 @@ async function ejecutar(nombre, input, ctx = {}) {
         let r
         if (input.accion === 'empresas') {
           r = await b.empresas({ userId })
-          if (soloAnaClara && r && Array.isArray(r.empresas)) r = { ...r, empresas: r.empresas.filter((e) => esAna(e.rut)) }
+          if (r && Array.isArray(r.empresas)) r = { ...r, empresas: filtEmp(r.empresas, 'empresa') }
         }
         else if (input.accion === 'saldos') {
-          // "todas" → saldos de TODAS las empresas conectadas del usuario, en una llamada.
-          const quiereTodas = !soloAnaClara && (input.todas === true || /^(todas|todos|cada|all)\b/i.test(String(input.empresa || '')))
+          const quiereTodas = input.todas === true || /^(todas|todos|cada|all)\b/i.test(String(input.empresa || ''))
           r = quiereTodas ? await b.saldosTodas({ userId }) : await b.saldos(opts)
+          if (quiereTodas && r && Array.isArray(r.empresas)) r = { ...r, empresas: filtEmp(r.empresas, 'empresa') }
         }
         else if (input.accion === 'movimientos') r = await b.movimientos(opts)
         else if (input.accion === 'resumen') r = await b.resumen(opts)
         else if (input.accion === 'conexiones') {
           const cx = await b.links({ userId })
-          r = { conexiones: soloAnaClara && Array.isArray(cx) ? cx.filter((l) => esAna(l.rut)) : cx }
+          r = { conexiones: filtEmp(cx, 'empresa') }
         }
         else return 'Acción de banco desconocida (usa: empresas | saldos | movimientos | resumen | conexiones).'
         if (r?.error) return JSON.stringify({ ok: false, error: r.error })
