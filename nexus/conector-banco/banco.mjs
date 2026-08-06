@@ -265,13 +265,14 @@ export async function saldosTodas({ userId } = {}) {
   const conns = userId ? cred.listar(userId) : []
   const vistas = new Set(); const empresasOut = []
   for (const c of conns) {
-    const key = empSlug(c.empresa); if (vistas.has(key)) continue; vistas.add(key)
+    // Dedup normalizando (ANA CLARA SPA y ANA CLARA = la misma empresa) → no la muestres 2 veces.
+    const key = empSlug(c.empresa).replace(/(spa|sa|ltda|limitada|asociadoslimitada)$/, ''); if (vistas.has(key)) continue; vistas.add(key)
     // TODAS uniformes: usamos el caché de leer-saldos (mismo formato y misma fecha para las 4).
     // Ana Clara: solo si aún NO está en ese caché caemos a la tek-api. Antes Ana Clara SIEMPRE
     // salía de la tek-api (quedaba en 24-jul) mientras las otras eran de hoy → dato mezclado.
     const r = saldoEmpresaCache(c.empresa)
     if (!r && esAnaClara(null, c.empresa)) { try { const t = await tekSaldos(); empresasOut.push(t); continue } catch { /* */ } }
-    empresasOut.push(r ? shapeSaldoEmpresa(c.empresa, r) : { empresa: c.empresa, sin_dato: true, nota: 'aún sin leer — se actualiza en el refresco de la mañana o al consultar esa empresa puntual' })
+    empresasOut.push(r ? { ...shapeSaldoEmpresa(c.empresa, r), _ts: r._ts || null } : { empresa: c.empresa, sin_dato: true, nota: 'aún sin leer — se actualiza en el refresco de la mañana o al consultar esa empresa puntual' })
   }
   const totalCLP = empresasOut.reduce((s, e) => s + Number(e.total_disponible_clp || 0), 0)
   // Hora del dato MÁS VIEJO (para que el modelo diga "actualizado a las …" y no lo pase por "ahora").

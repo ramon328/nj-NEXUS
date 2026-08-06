@@ -1,0 +1,22 @@
+{
+  "empresa": "ANA CLARA SPA",
+  "cuentas": [
+    {
+      "tipo": "CUENTA CORRIENTE",
+      "numero": "000080280939",
+      "moneda": "CLP",
+      "saldo": 106687276,
+      "linea_credito": 5000000
+    },
+    {
+      "tipo": "CUENTA MONEDA EXTRANJERA",
+      "numero": "005102607637",
+      "moneda": "USD",
+      "saldo": 2615.14,
+      "linea_credito": 0
+    }
+  ],
+  "total_clp": 106687276,
+  "_ts": 1786053836669,
+  "_fuente": "vivo"
+}
