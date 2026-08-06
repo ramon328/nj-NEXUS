@@ -1208,8 +1208,17 @@ async function crearTransferencia(page, log) {
     const emailLocator = () => f2.locator('input[placeholder="Ingrese email"], input[placeholder="Ingrese Email"]').first()
     const llenarEmail = async () => {
       const emailVal = process.env.TEK_DEST_EMAIL || ''
-      const loc = emailLocator()
-      if (!emailVal || !(await loc.count().catch(() => 0))) { log('✗ no vi el campo email'); return }
+      if (!emailVal) return
+      // Busca el campo email en CUALQUIER frame (no solo f2): en algunas empresas (TEF clásico,
+      // ej. IMP JURI) vive en otro frame y con el locator viejo quedaba vacío → "faltan email".
+      let loc = emailLocator()
+      if (!(await loc.count().catch(() => 0))) {
+        for (const f of page.frames()) {
+          const c = f.locator('#email, input[placeholder="Ingrese email"], input[placeholder="Ingrese Email"]').first()
+          if (await c.count().catch(() => 0)) { loc = c; break }
+        }
+      }
+      if (!(await loc.count().catch(() => 0))) { log('✗ no vi el campo email en ningún frame'); return }
       await loc.click().catch(() => {}); await sleep(rnd(200, 450))
       await loc.fill(emailVal).catch(() => {})
       await sleep(rnd(300, 600))
