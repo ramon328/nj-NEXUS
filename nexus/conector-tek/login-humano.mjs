@@ -2968,6 +2968,53 @@ async function main() {
   // Acciones post-login (mapear/capturar/transferir) — reutilizables tanto si
   // REUSAMOS la sesión viva como si logueamos de cero.
   const acciones = async (via) => {
+    // ── MODO BATCH (TEK_BATCH_FILE): UN login, VARIAS operaciones seguidas en LA MISMA sesión.
+    //    Entre operaciones NO se re-loguea: se cambia de empresa por el SELECTOR (Empresa/Rol →
+    //    Volver a selector), reusando esta sesión viva. Cada op del JSON:
+    //    { empresa, accion:'normal'|'masiva', monto, dest:{cuenta,rut,nombre,email,banco},
+    //      motivo, concepto?, masivaFile? }. Devuelve { batch:[...] }.
+    if (process.env.TEK_BATCH_FILE && existsSync(process.env.TEK_BATCH_FILE)) {
+      let ops = []
+      try { ops = JSON.parse(readFileSync(process.env.TEK_BATCH_FILE, 'utf8')).operaciones || [] } catch (e) { log('batch: no pude leer el archivo: ' + e.message) }
+      const resultados = []
+      for (let i = 0; i < ops.length; i++) {
+        const op = ops[i]
+        log(`\n===== BATCH ${i + 1}/${ops.length}: ${op.accion} · ${op.empresa} · $${op.monto} =====`)
+        // Las funciones (crearTransferencia/masivaImportar) leen de process.env: seteamos por-op.
+        process.env.TEK_EMPRESA = op.empresa
+        process.env.TEK_FORCE_EMPRESA = '1'    // cambiar de empresa por el selector, NO re-login
+        process.env.TEK_MONTO = String(op.monto)
+        process.env.TEK_MOTIVO = op.motivo || 'prueba'
+        if (op.dest) {
+          process.env.TEK_DEST_CUENTA = op.dest.cuenta || ''
+          process.env.TEK_DEST_RUT = op.dest.rut || ''
+          process.env.TEK_DEST_NOMBRE = op.dest.nombre || ''
+          process.env.TEK_DEST_EMAIL = op.dest.email || ''
+          process.env.TEK_DEST_BANCO = op.dest.banco || 'Santander'
+        }
+        let r = null
+        try {
+          if (op.accion === 'masiva') {
+            process.env.TEK_MASIVA = 'subir'; process.env.TEK_MASIVA_FILE = op.masivaFile || ''
+            if (op.concepto) process.env.TEK_MASIVA_CONCEPTO = op.concepto
+            r = await masivaImportar(page, log)
+          } else {
+            process.env.TEK_CREAR = 'crear'
+            r = await crearTransferencia(page, log)
+          }
+        } catch (e) { r = { estado: 'error', error: e.message } }
+        resultados.push({ empresa: op.empresa, accion: op.accion, monto: op.monto, resultado: r })
+        // Si la sesión murió a mitad (antifraude), NO seguir machacando: cortamos el batch.
+        if (r && /sesion_caida|error_seguridad|sesion_muerta|device_trust/i.test(String(r.estado || ''))) {
+          log('batch: la sesión se cayó → corto acá para no forzar más logins'); break
+        }
+        // Volver al dashboard entre ops (deja la sesión lista para el próximo cambio de empresa).
+        await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 25_000 }).catch(() => {})
+        await sleep(rnd(3000, 5000))
+      }
+      try { await guardarSesion(ctx) } catch { /* */ }
+      return { batch: resultados, total: resultados.length }
+    }
     let mapa = null, cap = null, transf = null
     if (mapearOn) { try { mapa = await mapear(page, log, shot) } catch (e) { log('mapear falló:', e.message) } }
     if (capturarOn) { try { cap = await capturarData(ctx, page, log) } catch (e) { log('capturar falló:', e.message) } }
