@@ -3055,6 +3055,17 @@ async function main() {
       return acciones('reuso')
     }
     log('sesión no reutilizable → hago login')
+    // CANDADO ANTI-BLOQUEO POR CLAVE MALA: si un login anterior ya fue RECHAZADO por credenciales
+    // (clave incorrecta / vieja / de prueba), NO reintentamos con la MISMA clave: Santander bloquea
+    // la cuenta a los ~3 rechazos. Quedamos PAUSADOS hasta que la persona actualice su clave por
+    // /banco/clave (ahí se borra este flag). TEK_IGNORAR_THROTTLE=1 lo salta.
+    try {
+      const pausaFile = join(DATA, `.login-pausado-${userSlug}.json`)
+      if (existsSync(pausaFile) && process.env.TEK_IGNORAR_THROTTLE !== '1') {
+        log(`PAUSADO: ${userSlug} tiene la clave marcada como rechazada → NO logueo (evita bloqueo de la cuenta)`)
+        return fin('login_pausado_clave', { nota: `El login de ${userSlug} está PAUSADO porque la clave guardada fue rechazada por el banco. NO reintento con la misma (Santander bloquea a los ~3 rechazos). El usuario debe poner su clave nueva en /banco/clave; ahí se reactiva solo.` })
+      }
+    } catch { /* */ }
     // CANDADO ANTI-QUEMADO: antes de un login REAL, chequear el throttle por cuenta. Si se pasó
     // (device_trust reciente / gap mínimo / tope por hora) NO logueamos → así no se marca la cuenta.
     // TEK_IGNORAR_THROTTLE=1 lo salta (solo para un login asistido/deliberado puntual).
@@ -3241,13 +3252,14 @@ async function main() {
       return fin('pide_mfa', { pista: texto.slice(0, 240) })
     }
     if (ERR_RE.test(texto)) {
-      // El banco dijo "clave incorrecta" → la que tenemos guardada quedó vieja. Le pedimos
-      // la nueva por WhatsApp con link protegido (clave-nueva.mjs, con throttle propio) en vez
-      // de seguir reintentando con la mala, que es lo que termina bloqueando la cuenta.
+      // El banco dijo "clave incorrecta" → la que tenemos guardada quedó vieja/mala. (1) PAUSAMOS
+      // el login de este usuario (flag) para NO reintentar con la misma y bloquear la cuenta a los
+      // ~3 rechazos; se reactiva cuando actualice la clave en /banco/clave. (2) Le pedimos la nueva.
+      try { writeFileSync(join(DATA, `.login-pausado-${userSlug}.json`), JSON.stringify({ ts: Date.now(), motivo: 'error_credenciales' }), { mode: 0o600 }) } catch { /* */ }
       try {
         const { pedirClaveNueva } = await import('./clave-nueva.mjs')
         const r = await pedirClaveNueva(process.env.TEK_USER || 'ramon', { motivo: 'error_credenciales' })
-        log(`clave rechazada → pedir clave nueva: ${r.ok ? 'link enviado' : (r.error || 'no enviado')}`)
+        log(`clave rechazada → PAUSO login + pido clave nueva: ${r.ok ? 'link enviado' : (r.error || 'no enviado')}`)
       } catch (e) { log('no pude pedir la clave nueva: ' + e.message) }
       return fin('error_credenciales', { pista: texto.slice(0, 200) })
     }

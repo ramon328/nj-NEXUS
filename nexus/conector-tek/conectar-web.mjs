@@ -22,7 +22,7 @@ import crypto from 'node:crypto'
 import { spawn } from 'node:child_process'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { existsSync, statSync, readFileSync, writeFileSync, chmodSync } from 'node:fs'
+import { existsSync, statSync, readFileSync, writeFileSync, chmodSync, unlinkSync } from 'node:fs'
 import { networkInterfaces } from 'node:os'
 import { guardar, listar } from './credenciales.mjs'
 import { listarEmpresas } from './vincular.mjs'
@@ -464,6 +464,9 @@ const manejar = async (req, res) => {
     }
     // El link se quema al toque: los códigos vivos de esta persona dejan de servir.
     try { revocarDe(userId) } catch { /* */ }
+    // Reactiva el login: si estaba PAUSADO por clave rechazada (login-humano lo marca para no
+    // bloquear la cuenta), al poner la clave nueva se borra el flag y vuelve a intentar.
+    try { const pf = join(DIR, 'data', `.login-pausado-${String(userId).toLowerCase()}.json`); if (existsSync(pf)) unlinkSync(pf) } catch { /* */ }
     console.log('[tek-conectar] clave actualizada · userId=' + userId + ' · empresas=' + ok)  // sin rut ni clave
     res.writeHead(200, { 'content-type': 'application/json' })
     return res.end(JSON.stringify({ ok: ok > 0, total: ok, error: ok ? undefined : 'No se pudo guardar.' }))
