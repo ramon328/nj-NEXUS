@@ -278,7 +278,10 @@ export async function saldosTodas({ userId } = {}) {
   // Hora del dato MÁS VIEJO (para que el modelo diga "actualizado a las …" y no lo pase por "ahora").
   const tss = empresasOut.map((e) => e._ts || 0).filter(Boolean)
   const masViejo = tss.length ? Math.min(...tss) : 0
-  return { empresas: empresasOut, total_disponible_clp: totalCLP, total_disponible_clp_fmt: fmt(totalCLP, 'CLP'), fuente: 'cache', actualizado_ts: masViejo || null, actualizado: masViejo ? new Date(masViejo).toISOString() : null, nota: 'Saldos = último dato guardado (no abre los bancos en vivo para no colgarse). DECÍ la fecha/hora de "actualizado" al usuario. Para el saldo EN VIVO de una empresa, pregunta por esa empresa puntual.' }
+  // "actualizado" YA FORMATEADO en hora de CHILE (no ISO/UTC), para que el modelo lo muestre tal
+  // cual sin equivocarse de zona (el _ts crudo es epoch; el ISO terminaba en Z = UTC = +4h de más).
+  const actualizadoCL = masViejo ? new Date(masViejo).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'short', timeStyle: 'short' }) : null
+  return { empresas: empresasOut, total_disponible_clp: totalCLP, total_disponible_clp_fmt: fmt(totalCLP, 'CLP'), fuente: 'cache', actualizado_ts: masViejo || null, actualizado: actualizadoCL, nota: `Saldos = último dato guardado (no abre los bancos en vivo para no colgarse). Actualizado: ${actualizadoCL || '?'} (hora de Chile — mostrala TAL CUAL). Para el saldo EN VIVO de una empresa, pregunta por esa empresa puntual.` }
 }
 
 // ── Movimientos ───────────────────────────────────────────────────────
