@@ -1,5 +1,5 @@
-ûóX¥öò” *}
-Googlegoogle-ct-logs@googlegroups.com.https://example.com/log_operator_metadata.json"https://crbug.com/41383535*google*M
+”ìYÛÕ≤” *M
+Googlegoogle-ct-logs@googlegroups.com"https://crbug.com/41383535*google*M
 
 Cloudflarect-logs@cloudflare.com"https://crbug.com/434895698*
 cloudflare*E
@@ -114,11 +114,7 @@ Cloudflareÿù™ƒRcloudflare_nimbus2027ähttps://crbug.com/434895698ê2€
 Sectigo 'Tiger2027h2'|MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEb0AgkemhsPmYe1goCSy5ncf2lG9vtK6f+SzODKJMYEgPOT+z93cUEKM1EaTuo09rozfdqhjeihIl25y9A3JhyQ==,A4AqwmL24F4D+Lxve5hRMk/Xaj31t1lRdeIi+46b1fY= Ä£*#https://tiger2027h2.ct.sectigo.com/2
 Äòñ·Ä¿‡ËB
 ù≤∆J
-SectigoÄ≥˘ΩRsectigo_tiger2027h2ähttps://crbug.com/399124609ê2ò
-Let's Encrypt 'Oak2026h1'|MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEmdRhcCL6d5MNs8eAliJRvyV5sQFC6UF7iwzHsmVaifT64gJG1IrHzBAHESdFSJAjQN56TYky+9cK616MovH2SQ==,GYbUxyiqb/66A294Kk0BkarOLXIxD67OXXBBLSVMx9Q= Ä£*&https://oak.ct.letsencrypt.org/2026h1/2
-ÄŒó Ä ı“B
-Ä‡àÕJ
-Let's EncryptÄŸÊ¥Rletsencrypt_oak2026h1Ç4®≈∏ù,deSRNfTNPgd9wfzoXIznvi+QUTxuK0R+daC6JGKGK3Q=ähttps://crbug.com/41459143ê2ó
+SectigoÄ≥˘ΩRsectigo_tiger2027h2ähttps://crbug.com/399124609ê2ó
 Let's Encrypt 'Oak2026h2'|MFkwEwYHKoZIzj0CAQYIKoZIzj0DAQcDQgAEanCds5bj7IU2lcNPnIvZfMnVkSmu69aH3AS8O/Y0D/bbCPdSqYjvuz9Z1tT29PxcqYxf+w1g5CwPFuwqsm3rFQ==,rKswcGzr7IQx9BPS9JFfER5CJEOx8qaMTzwrO6ceAsM= Ä£*&https://oak.ct.letsencrypt.org/2026h2/2
 Ä∞◊—ÄÚø⁄B
 Ä‡àÕJ

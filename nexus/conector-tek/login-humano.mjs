@@ -202,6 +202,19 @@ async function ensureValue(page, loc, expected, label = 'campo') {
     for (const ch of objetivo.split('')) { await page.keyboard.press(ch, { delay: ri(60, 130) }).catch(() => {}); await sleep(rnd(70, 150)) }
     await sleep(rnd(300, 600))
   }
+  // Último recurso: si el tecleo carácter-a-carácter sigue comiéndose un dígito (máscara
+  // agresiva), lo seteo con fill() y disparo los eventos input/change para que el form lo tome.
+  // El RUT no es lo que puntúa BioCatch (eso es el mouse/Aceptar); mejor un RUT correcto por
+  // fill que un login rechazado por "datos inválidos" (que además dispara falsos avisos de clave).
+  if (norm(await loc.inputValue().catch(() => '')) !== objetivo) {
+    try {
+      await loc.click().catch(() => {})
+      await page.keyboard.press('Meta+A').catch(() => {}); await page.keyboard.press('Backspace').catch(() => {})
+      await loc.fill(objetivo).catch(() => {})
+      await loc.evaluate((el) => { el.dispatchEvent(new Event('input', { bubbles: true })); el.dispatchEvent(new Event('change', { bubbles: true })); el.blur && el.blur() }).catch(() => {})
+      await sleep(rnd(300, 600))
+    } catch { /* */ }
+  }
   const ok = norm(await loc.inputValue().catch(() => '')) === objetivo
   if (!ok) log(`✗ ${label}: no pude dejarlo correcto`)
   return ok
@@ -3137,7 +3150,14 @@ async function main() {
   // En ASISTIDO MANUAL saltamos el relleno: el form queda VACÍO para que lo teclee el humano.
   if (!assistManual) {
     await moveToLoc(page, rutLoc); await clickReal(page); await sleep(rnd(200, 500)); await humanType(page, rut)
-    await ensureValue(page, rutLoc, rut, 'RUT')          // 🔧 la máscara se comía un dígito → verifico y corrijo
+    const rutOk = await ensureValue(page, rutLoc, rut, 'RUT')   // 🔧 la máscara se comía un dígito → verifico y corrijo
+    // Si el RUT NO quedó bien, NO apretamos Aceptar: un RUT mal escrito hace que el banco diga
+    // "datos inválidos" y el sistema lo confundía con "clave incorrecta" → le mandaba al usuario
+    // un falso aviso de "cambiá tu clave". Abortamos con un estado propio (NO es la clave).
+    if (!rutOk) {
+      await shot('h03-rut-malo.png')
+      return fin('rut_no_seteado', { nota: 'No pude escribir bien el RUT en el form (máscara). NO es la clave del usuario — es un problema de tecleo. Reintentar; NO pedir clave nueva.' })
+    }
     await idle(page, rnd(500, 1200))
     await moveToLoc(page, passLoc); await clickReal(page); await sleep(rnd(200, 500)); await humanType(page, password)
     // clave: sin máscara, verifico exacto (no normalizado) y re-tipeo completo si hiciera falta.
