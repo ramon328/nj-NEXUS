@@ -3435,7 +3435,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           try {
             const script = join(__dirname, '..', 'tag-web', 'generar_poder.py')
             const outP = join('/tmp', `poder-tag-${patentes.join('-').replace(/[^A-Z0-9-]/g, '')}-${Date.now()}.pdf`)
-            const hoy = new Date().toISOString().slice(0, 10)
+            const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
             await ejecCmd(`python3 ${JSON.stringify(script)} ${JSON.stringify(patentes.join('-'))} ${JSON.stringify(outP)} ${hoy}`, { timeout: 30000, maxBuffer: 4 * 1024 * 1024 })
             const buf = readFileSync(outP)
             if (buf && buf.length > 800) poderAdjs.push({ filename: `Poder_Tag_${patentes.join('-')}.pdf`, mime: 'application/pdf', buffer: buf, es_poder: true })
@@ -3758,7 +3758,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           instr = '⛔ NO vuelvas a llamar tek_transferir accion:"enviar" con los mismos datos: ya quedó creada. Contale al usuario que SÍ funcionó y está pendiente de liberación. NO digas que falló ni ofrezcas asistido.'
           try {
             recordarHecho(ctx.de,
-              `Transferencia ${montoTxt} a ${bo.beneficiario.nombre} (${bo.beneficiario.banco} ${bo.beneficiario.cuenta}) desde ${empresa}: CREADA el ${new Date().toISOString().slice(0, 10)}, queda pendiente por liberar (no movió plata).`,
+              `Transferencia ${montoTxt} a ${bo.beneficiario.nombre} (${bo.beneficiario.banco} ${bo.beneficiario.cuenta}) desde ${empresa}: CREADA el ${new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })}, queda pendiente por liberar (no movió plata).`,
               usuarioDe(ctx.de)?.nombre)
           } catch { /* */ }
         } else if (res.limite_primera_vez) {
@@ -4460,7 +4460,7 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     // ── CONCILIACIÓN · cruza SII ↔ banco sobre la BD nueva (revisar / aplicar) ──────
     if (nombre === 'conciliacion') {
-      const hoy = new Date().toISOString().slice(0, 10)
+      const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
       const primeroMes = hoy.slice(0, 8) + '01'
       const desde = /^\d{4}-\d{2}-\d{2}$/.test(String(input.desde)) ? input.desde : primeroMes
       const hasta = /^\d{4}-\d{2}-\d{2}$/.test(String(input.hasta)) ? input.hasta : hoy
@@ -6310,7 +6310,8 @@ export async function responder(historial, opts = {}) {
   try {
     const hoy = new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago' })
     const ym = new Date().toLocaleDateString('es-CL', { year: 'numeric', month: '2-digit', timeZone: 'America/Santiago' })
-    sysCache.push({ type: 'text', text: `FECHA DE HOY (Chile): ${hoy} (${ym}). Úsala para "este mes", "hoy", cortes de deuda y los params de los RPC de Aliace (mes/año actual, cutoff_date=hoy).` })
+    const horaCL = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Santiago' })
+    sysCache.push({ type: 'text', text: `FECHA Y HORA DE AHORA (Chile): ${hoy}, ${horaCL} hrs (${ym}). ⏰ TODAS las horas y fechas que muestres o calcules van en hora de CHILE (America/Santiago, −04), NUNCA en UTC. Si un dato viene con hora UTC o ISO terminado en "Z", conviértelo a Chile antes de mostrarlo (Chile = UTC − 4h). Si un tool ya te da la hora formateada (ej el campo "actualizado" de saldos), mostrala TAL CUAL. Usá esta fecha para "este mes", "hoy", "ayer", cortes de deuda y los params de los RPC de Aliace (mes/año actual, cutoff_date=hoy).` })
   } catch { /* sin fecha */ }
   // ESTILO BREVE — SOLO en la web del Centro de IAs (canal con voz). Ramón te
   // ESCUCHA la respuesta, así que tiene que ser corta y al grano. NO afecta a
