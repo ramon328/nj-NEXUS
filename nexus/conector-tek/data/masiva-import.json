@@ -1,96 +1,14 @@
 {
-  "url": "https://privado.officebanking.cl/dashboard",
+  "url": "https://privado.officebanking.cl/logout/error-seguridad",
   "dump": [
     {
-      "url": "https://privado.officebanking.cl/dashboard",
-      "inputs": [
-        {
-          "type": "checkbox",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
-        }
-      ],
-      "links": [
-        {
-          "text": "Inicio",
-          "href": "https://privado.officebanking.cl/dashboard"
-        },
-        {
-          "text": "Indicadores",
-          "href": ""
-        },
-        {
-          "text": "Cuentas Corrientes",
-          "href": ""
-        },
-        {
-          "text": "Linea de Crédito",
-          "href": ""
-        },
-        {
-          "text": "Resumen de Productos",
-          "href": ""
-        },
-        {
-          "text": "Tarjetas",
-          "href": ""
-        },
-        {
-          "text": "Transferencias",
-          "href": ""
-        },
-        {
-          "text": "Pago de Cuentas y Servicios",
-          "href": ""
-        },
-        {
-          "text": "Vales Vista en Línea",
-          "href": ""
-        },
-        {
-          "text": "PAC - Pago Automático de Cuentas",
-          "href": ""
-        },
-        {
-          "text": "Comercio Exterior",
-          "href": ""
-        },
-        {
-          "text": "Compra y Venta de Divisas",
-          "href": ""
-        },
-        {
-          "text": "Créditos",
-          "href": ""
-        },
-        {
-          "text": "Fondos Mutuos",
-          "href": ""
-        },
-        {
-          "text": "Depósito a Plazo",
-          "href": ""
-        },
-        {
-          "text": "Pagos Masivos",
-          "href": ""
-        },
-        {
-          "text": "Factoring",
-          "href": ""
-        },
-        {
-          "text": "Expandir Menú",
-          "href": ""
-        }
-      ],
+      "url": "https://privado.officebanking.cl/logout/error-seguridad",
+      "inputs": [],
+      "links": [],
       "botones": [
-        "Accesibilidad",
-        "Empresa / Rol"
+        "Aceptar"
       ],
-      "textos": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú Tus datos Fecha y Hora: 05/08/2026 18:18 Usuario: Ramon Molina Fierro Perfil: Usuario Empresa: ANA CLARA SPA RUT Empresa: 77.271.121-2 Nº de Contrato: 000690026173520 Saldos Consolidados Ocultar Saldos Nº de Cuenta Tipo Moneda Saldo Línea de Crédito 80280939 CUENTA CORRIENTE CLP $134.188.468 $5.000.000 5102607637 CUENTA MONEDA EXTRANJERA USD $2.615.14 No aplica"
+      "textos": "SU SESIÓN HA FINALIZADO Por su seguridad debe volver a ingresar a la página. Recuerde no compartir su clave de acceso. Aceptar"
     }
   ]
 }
