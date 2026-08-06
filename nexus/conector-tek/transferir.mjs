@@ -393,7 +393,10 @@ export function ejecutar(borrador, { userId, empresa, asistido = true } = {}) {
       TEK_DEST_EMAIL: b.email || '',
       TEK_DEST_MSG: borrador.motivo || 'Transferencia',
     }
-    if (empresa) env.TEK_EMPRESA = empresa
+    // TEK_FORCE_EMPRESA: si la sesión (reusada) ya está DENTRO de otra empresa, hay que VOLVER
+    // AL SELECTOR y entrar a ESTA. Sin esto, la transferencia saldría de la empresa equivocada
+    // (ej. Ramón operando Ana Clara cuando se pidió Importadora Juri). Ver [[tek-empresas-ramon-multiempresa]].
+    if (empresa) { env.TEK_EMPRESA = empresa; env.TEK_FORCE_EMPRESA = '1' }
     if (userId) env.TEK_USER = userId
 
     // ── AUTO-LOGIN CON CLICS HUMANOS + CREACIÓN, TODO EN UN PROCESO ──────────────

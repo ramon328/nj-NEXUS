@@ -40,6 +40,25 @@ function soltarLock(lf) { try { unlinkSync(lf) } catch { /* */ } }
 // Cuenta origen por defecto (ANA CLARA SPA, CLP) — dígitos, como en el archivo real.
 export const CUENTA_ORIGEN_ANACLARA = '80280939'   // = 0-000-8028093-9
 
+// Cuenta de ORIGEN por empresa (data/cuentas-origen.json). La MASIVA lleva la cuenta origen
+// DENTRO del Excel y cada empresa tiene la suya (Ana Clara, IMP JURI, Importaciones Mineras,
+// Importadora Juri…). La NORMAL no la necesita (elige la del dropdown sola). Si la empresa no
+// está mapeada, devuelve null y se usa el default (Ana Clara) — pero conviene mapearla.
+function cuentaOrigenDe(empresa) {
+  try {
+    const j = JSON.parse(readFileSync(join(DIR, 'data', 'cuentas-origen.json'), 'utf8'))
+    const norm = (s) => String(s || '').toUpperCase().replace(/\s+/g, ' ').trim()
+    const t = norm(empresa)
+    if (!t) return null
+    for (const [k, v] of Object.entries(j)) {
+      if (k.startsWith('_')) continue
+      const nk = norm(k)
+      if (nk === t || t.includes(nk) || nk.includes(t)) return v
+    }
+  } catch { /* sin mapeo → default */ }
+  return null
+}
+
 // Opciones del dropdown "Concepto asociado" del banco (ÚNICO campo editable del panel de
 // importación). Nexus le pregunta al usuario cuál usar antes de subir el lote.
 export const CONCEPTOS = [
@@ -207,6 +226,9 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
   if (!credenciales.tieneConexion(userId, empresa)) {
     return { ok: false, estado: 'sin_conexion', error: `"${userId}" no tiene banco conectado para "${empresa}".` }
   }
+  // Cuenta de origen de ESA empresa (si no la pasaron): sin esto la masiva de IMP JURI /
+  // Importaciones Mineras / Importadora Juri saldría de la cuenta de Ana Clara → el banco rechaza.
+  if (!cuentaOrigen) cuentaOrigen = cuentaOrigenDe(empresa) || undefined
   const lf = lockFile(userId)   // lock POR PERSONA
   // 1) Genera el archivo (valida cada fila; si hay problemas, los reporta y NO sube).
   const gen = await generarMasivo(transfers, { cuentaOrigen, stamp })
@@ -225,6 +247,9 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
       TEK_MASIVA: 'subir',
       TEK_MASIVA_FILE: gen.ruta,
       TEK_EMPRESA: empresa.replace(/ SPA$/i, '').trim() || 'ANA CLARA',
+      // Fuerza el cambio a ESTA empresa (volver al selector) si la sesión está en otra → el lote
+      // sale de la empresa correcta, no de la que estuviera activa. Ver [[tek-empresas-ramon-multiempresa]].
+      TEK_FORCE_EMPRESA: '1',
     }
     if (concepto) env.TEK_MASIVA_CONCEPTO = concepto
     if (userId) env.TEK_USER = userId

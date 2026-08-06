@@ -105,10 +105,13 @@ export function elegirSesion({ usuario, empresa, admin = false, operacion = '' }
     propia = false
     nota = `Joaquín opera el banco con la sesión de ${OP_JOAQUIN} (config TEK_JOAQUIN_BANCO_CON)`
   }
-  // Kill-switch de emergencia (volver a la regla vieja sin tocar código).
-  if (SOLO_RAMON && /ana\s*clara|mallorca/i.test(emp)) {
+  // EMPRESAS DE RAMÓN — se operan SIEMPRE con la sesión de Ramón, pida quien pida (pedido de
+  // Ramón 06-ago; probadas y mapeadas: Ana Clara + IMP JURI Y FONTENA + Importaciones Mineras +
+  // Importadora Juri, todas colgadas del login de Ramón). Se activa con TEK_ANACLARA_SOLO_RAMON=1.
+  const RE_RAMON = /ana\s*clara|mallorca|imp\s*juri\s*y\s*fontena|importaciones\s*mineras|importadora\s*juri\s*y\s*juri/i
+  if (SOLO_RAMON && RE_RAMON.test(emp)) {
     userId = 'ramon'; propia = quien === 'ramon'
-    nota = 'TEK_ANACLARA_SOLO_RAMON=1 → ANA CLARA se opera con la sesión de ramon'
+    nota = 'empresa de Ramón (Ana Clara / IMP JURI / Importaciones Mineras / Importadora Juri) → sesión de ramon'
   }
   return { userId, empresa: emp, propia, nota }
 }
