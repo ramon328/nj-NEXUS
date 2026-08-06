@@ -1,14 +1,55 @@
 {
-  "url": "https://privado.officebanking.cl/logout/error-seguridad?reason=invalid_token_RP",
+  "paso": 1,
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1786038800021",
   "forms": [
     {
-      "url": "https://privado.officebanking.cl/logout/error-seguridad?reason=invalid_token_RP",
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1786038800021",
       "inputs": [],
       "botones": [
-        "Aceptar"
+        "Accesibilidad",
+        "Empresa / Rol",
+        "logout"
+      ],
+      "titulos": []
+    },
+    {
+      "url": "https://eob.officebanking.cl/TEF.UI.Web/TransferenciaCreacionCtaCteTercero/?servicioId=TRFCTA_CTE_CTE_TRO_C",
+      "inputs": [
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "txtMonto",
+          "name": "",
+          "placeholder": "Ingrese monto",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "mensaje-100",
+          "name": "",
+          "placeholder": "Ingrese motivo (máx. 100 caracteres)",
+          "maxlength": "100",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "email",
+          "name": "email",
+          "placeholder": "Ingrese email",
+          "maxlength": "60",
+          "label": ""
+        }
+      ],
+      "botones": [
+        "0-000-7201947-4 | PESOS DE CHILE",
+        "Continuar"
       ],
       "titulos": [
-        "SU SESIÓN HA FINALIZADO"
+        "Creación transferencia a cuenta de tercero\nJueves 6 de Agosto de 2026, 13:53 hrs.",
+        "Transferencias creadas"
       ]
     }
   ]
