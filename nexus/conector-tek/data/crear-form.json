@@ -1,14 +1,53 @@
 {
-  "url": "https://privado.officebanking.cl/logout/error-seguridad",
+  "paso": 1,
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1786040120478",
   "forms": [
     {
-      "url": "https://privado.officebanking.cl/logout/error-seguridad",
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1786040120478",
       "inputs": [],
       "botones": [
-        "Aceptar"
+        "Accesibilidad",
+        "Empresa / Rol",
+        "logout"
+      ],
+      "titulos": []
+    },
+    {
+      "url": "https://eob.officebanking.cl/TEFUN.UI.Web/TransferenciaUnitaria/creacionTransferenciaUnitaria/?servicioId=TEF_UNIF_C",
+      "inputs": [
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "montoTEFinput",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "correoOrigenInput",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "60",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "motivoInputText",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "100",
+          "label": ""
+        }
+      ],
+      "botones": [
+        "0-000-7285627-9 | PESOS DE CHILE"
       ],
       "titulos": [
-        "SU SESIÓN HA FINALIZADO"
+        "Transferencia Express"
       ]
     }
   ]

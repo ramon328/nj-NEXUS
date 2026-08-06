@@ -1,9 +1,9 @@
 {
   "paso": 2,
-  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1786039237983",
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1786040120478",
   "forms": [
     {
-      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_CTE_CTE_TRO_C&ts=1786039237983",
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TEF_UNIF_C&ts=1786040120478",
       "inputs": [],
       "botones": [
         "Accesibilidad",
@@ -13,70 +13,62 @@
       "titulos": []
     },
     {
-      "url": "https://eob.officebanking.cl/TEF.UI.Web/TransferenciaCreacionCtaCteTercero/?servicioId=TRFCTA_CTE_CTE_TRO_C",
+      "url": "https://eob.officebanking.cl/TEFUN.UI.Web/TransferenciaUnitaria/creacionTransferenciaUnitaria/?servicioId=TEF_UNIF_C",
       "inputs": [
         {
           "tag": "input",
           "type": "text",
-          "id": "",
+          "id": "inputCuentaDestinoDigitada",
           "name": "",
-          "placeholder": "Ingrese cuenta destino",
-          "maxlength": "12",
+          "placeholder": "",
+          "maxlength": "15",
           "label": ""
         },
         {
           "tag": "input",
           "type": "text",
-          "id": "moneda",
+          "id": "rutDestinatario",
           "name": "",
-          "placeholder": "Ingrese moneda",
-          "maxlength": "",
+          "placeholder": "",
+          "maxlength": "13",
           "label": ""
         },
         {
           "tag": "input",
           "type": "text",
-          "id": "rut",
+          "id": "nombreDestinatario",
           "name": "",
-          "placeholder": "Ingrese RUT",
-          "maxlength": "",
+          "placeholder": "",
+          "maxlength": "60",
           "label": ""
         },
         {
           "tag": "input",
           "type": "text",
-          "id": "nombre",
+          "id": "correoDestinatarioOB",
           "name": "",
-          "placeholder": "Ingrese nombre",
-          "maxlength": "",
-          "label": ""
-        },
-        {
-          "tag": "input",
-          "type": "text",
-          "id": "",
-          "name": "",
-          "placeholder": "Ingrese Email",
+          "placeholder": "",
           "maxlength": "60",
           "label": ""
         },
         {
           "tag": "textarea",
           "type": "textarea",
-          "id": "mensaje",
+          "id": "mensajeText1",
           "name": "",
-          "placeholder": "Ingrese mensaje (máx. 200 caracteres)",
+          "placeholder": "",
           "maxlength": "200",
           "label": ""
         }
       ],
       "botones": [
-        "Buscar Destinatario",
+        "Buscar destinatario",
+        "Seleccione Banco Destino",
         "Crear"
       ],
       "titulos": [
-        "Creación transferencia a cuenta de tercero\nJueves 6 de Agosto de 2026, 14:00 hrs.",
-        "Transferencias creadas"
+        "Transferencia Express",
+        "Buscar destinatario"
       ]
     }
   ]

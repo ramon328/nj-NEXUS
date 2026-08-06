@@ -2437,18 +2437,22 @@ async function irAlSelectorEmpresas(page, log) {
   const enSel = (t) => /selector de empresas|seleccion-empresa|selecciona.*empresa|listado de empresas/i.test(page.url() + ' ' + t)
   const txt0 = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
   if (enSel(txt0)) return true
-  // Desde una vista profunda (ej. la cartola con su iframe) el menú puede no estar a mano:
-  // volvemos al dashboard primero y desde ahí abrimos "Empresa/Rol → Volver a selector".
-  if (!/portal-fob|dashboard/i.test(page.url())) {
+  // SIEMPRE volvemos al DASHBOARD primero: el menú "Empresa/Rol" solo está ahí. Antes se saltaba
+  // el dashboard si la URL ya tenía "portal-fob" — pero tras una MASIVA la vista es portal-fob…MSV_C
+  // y NO tiene ese menú → el cambio de empresa fallaba. Reintentamos hasta 2 veces por si el
+  // dashboard tarda o el flyout no pinta al primer intento.
+  for (let intento = 1; intento <= 2; intento++) {
     await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
-    await sleep(rnd(3500, 5000))
+    await sleep(rnd(4000, 6000))
+    const btn = page.getByText(/Empresa\s*\/\s*Rol/i).first()
+    if (await btn.count().catch(() => 0)) { await clickHumano(page, btn); await sleep(rnd(2200, 3200)) }
+    const volver = page.getByText(/volver al?\s*selector de empresas/i).first()
+    if (await volver.count().catch(() => 0)) { await clickHumano(page, volver); await sleep(rnd(4000, 5500)) }
+    const t2 = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
+    if (enSel(t2)) return true
+    log(`irAlSelectorEmpresas: no llegué al selector (intento ${intento}) → reintento`)
   }
-  const btn = page.getByText(/Empresa\s*\/\s*Rol/i).first()
-  if (await btn.count().catch(() => 0)) { await clickHumano(page, btn); await sleep(rnd(2000, 3000)) }
-  const volver = page.getByText(/volver al?\s*selector de empresas/i).first()
-  if (await volver.count().catch(() => 0)) { await clickHumano(page, volver); await sleep(rnd(4000, 5500)); return true }
-  const t2 = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
-  return enSel(t2)
+  return false
 }
 
 // Lee los MOVIMIENTOS de la empresa YA seleccionada (cartola: Cuentas Corrientes → Saldos
@@ -2707,7 +2711,7 @@ async function main() {
   // 10 min, mataríamos el proceso justo cuando la persona termina de entrar.
   const topeMs = process.env.TEK_ASSIST === '1'
     ? (Number(process.env.TEK_ASSIST_ESPERA_MS || 600_000) || 600_000) + 8 * 60_000
-    : 600_000
+    : (process.env.TEK_BATCH_FILE ? 25 * 60_000 : 600_000)   // batch = varias ops en 1 sesión → más aire
   setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, topeMs).unref?.()
   // Credenciales: primero la BÓVEDA cifrada (por usuario+empresa), con fallback al
   // .creds.json legacy. Env: TEK_USER (default 'ramon'), TEK_EMPRESA (default ANA CLARA).

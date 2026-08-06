@@ -15,6 +15,9 @@ import { generarMasivo } from './masiva.mjs'
 const DIR = dirname(fileURLToPath(import.meta.url))
 const DATA = join(DIR, 'data')
 const DRY = process.argv.includes('--dry')
+// Filtro opcional: nombres (o trozos) de empresa a incluir. Sin filtro = las 3.
+// Ej: node pruebas-3-empresas.mjs "IMPORTACIONES MINERAS" "IMPORTADORA JURI"
+const FILTRO = process.argv.slice(2).filter((a) => !a.startsWith('--'))
 
 // Destino de la prueba: la cuenta de Joaquín (Santander), conocida y segura.
 const DEST = { cuenta: '0-070-31-42297-8', rut: '19.689.228-1', nombre: 'ELIAS MALUK JOAQUIN ALFONSO', email: 'jeliasm@udd.cl', banco: 'Santander' }
@@ -32,8 +35,11 @@ const CONCEPTO = 'Pago de Proveedores'
 async function main() {
   // 1) Generar un Excel de masiva POR EMPRESA (cada uno con SU cuenta de origen). El destino
   //    es la línea de $1 a Joaquín.
+  const empresasActivas = FILTRO.length
+    ? EMPRESAS.filter((e) => FILTRO.some((f) => e.nombre.toUpperCase().includes(f.toUpperCase())))
+    : EMPRESAS
   const operaciones = []
-  for (const emp of EMPRESAS) {
+  for (const emp of empresasActivas) {
     const linea = [{ cuenta: DEST.cuenta, banco: DEST.banco, rut: DEST.rut, nombre: DEST.nombre, monto: MONTO, glosa: MOTIVO, mensaje: MOTIVO }]
     const stamp = 'batch-' + emp.cuentaOrigen
     const gen = await generarMasivo(linea, { cuentaOrigen: emp.cuentaOrigen, stamp })
