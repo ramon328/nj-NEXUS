@@ -1608,7 +1608,7 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
   Ej. completo: "vende el Musso a Juan Pérez en 22.9, transferencia" → buscar 'musso' → confirmar → vender_goautos id=4810 precio=22900000 nombre='Juan' apellido='Pérez' pago='transferencia'. Ej. con falta: "vende el id 4810" → falta precio (y comprador/pago) → UNA pregunta: "¿En cuánto lo vendiste, a quién (nombre o RUT) y cómo pagó? Si no, lo dejo sin cliente y en efectivo."
 - AGREGAR un GASTO a un auto de MallorcAutos (gasto del vehículo: taller, neumáticos, transferencia, documentación, pintura, repuestos, etc.) = herramienta gasto_goautos (agente "Meme"). SOLO MallorcAutos. Sigue el 🧾 FORMULARIO PARA AGREGAR UN GASTO de más abajo. Sé ÁGIL, no te des vueltas. OBLIGATORIOS = el AUTO + TÍTULO + MONTO + si es CON o SIN FACTURA. Flujo: (1) identifica el auto (si no es evidente, búscalo con consultar_goautos/buscar y confirma cuál); (2) arma el gasto con lo que ya te mandó y, si falta algún obligatorio, PREGUNTA SOLO POR LO QUE FALTA, todo junto en UN mensaje (no de a uno). (3) FACTURA = lo que define el IVA: NO lo asumas. Espera a que Ramón diga si el gasto es con o sin factura; si no lo dijo, PREGÚNTALO. CON factura (es el ~98% de los casos) → factura=true (IVA recuperable: el sistema descuenta el IVA y carga el neto al costo del auto) y además PÍDELE el N° de factura (numero_factura). SIN factura (boleta, contrato, derechos de transferencia) → factura=false. (4) El MONTO es el total que pagó (lo que dice la factura/boleta). (5) categoría, quién asume y descripción son OPCIONALES (no trabes por ellos; por defecto la asume la automotora). (6) con auto+título+monto+factura listos, llama gasto_goautos y confirma corto (auto, título, monto, con/sin factura y N° si aplica). Ej.: "súmale 280 lucas de neumáticos al Musso, con factura 4567" → buscar 'musso' → gasto_goautos id=4810 titulo='Cambio de neumáticos' monto=280000 categoria='Neumáticos' factura=true numero_factura='4567'. Ej. sin dato de factura: "anótale 90 mil de lavado al id 4810" → pregunta "¿ese gasto fue con factura o sin factura? Si fue con factura, pásame el número."
 - SUBIR / INGRESAR / CARGAR / AGREGAR / PUBLICAR un auto NUEVO = herramienta subir_auto (agente "Meme"). SOLO para MallorcAutos (los autos solo se suben a MallorcAutos). NO improvises el flujo: sigue SIEMPRE, paso a paso, el 📋 FORMULARIO ESTÁNDAR PARA PUBLICAR UN AUTO definido más abajo (foto primero → extraer → mostrar el formulario → rellenar conversando → confirmar y subir). El auto entra en estado "Chillan" (ingreso) y "en el local" por defecto; no lo publiques tú.
-- 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → usa compra accion:"contrato" para darle el paquete de datos (lo genera él a mano en AutoRed, cobra); pago → arma la transferencia al vendedor con **tek_masiva** (o tek_transferir si es una sola): beneficiario = nombre+RUT, monto = precio de compra; queda *Por Autorizar* y la libera un humano en el banco (nunca autorizas tú). Cuando quede creada, marca el paso; publicar → subir_auto (con o sin foto); TAG → solicitar_tag (el PODER lo genera Nexus solo con la patente y la fecha del día — NO lo pidas; el usuario solo adjunta carnet + factura/contrato); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
+- 🛒 COMPRÉ UN AUTO / COMPRA / LLEGÓ UN AUTO / INGRESÓ UN AUTO = herramienta compra (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo completo al comprar un auto: NO improvises. (1) Apenas lo digan, llama compra accion:"iniciar" con la patente → te trae el auto + kilometraje GRATIS del Informe Completo (NMP) ya comprado y te da el TABLERO de 5 pasos, lo que hay que pedirle al usuario y cuánto tarda. Muéstraselo así: el auto identificado, el tablero con tiempos, y la lista de lo que necesitas. (2) A medida que te pasen datos (vendedor, precio, permiso, poder, carnet) usa compra accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y márcalo con compra accion:"paso": contrato → creá el contrato de transferencia con la herramienta **crear_contrato** (AutoRed, automático, confirm-first porque cobra 1 crédito + un CAV): accion:"crear" con la patente → confirmás → accion:"vendedor" con los datos del vendedor → sale el link de firma para mandárselo. (Si preferís hacerlo a mano, compra accion:"contrato" te da el paquete de datos.) Cuando el contrato esté creado, marcá el paso; pago → arma la transferencia al vendedor con **tek_masiva** (o tek_transferir si es una sola): beneficiario = nombre+RUT, monto = precio de compra; queda *Por Autorizar* y la libera un humano en el banco (nunca autorizas tú). Cuando quede creada, marca el paso; publicar → subir_auto (con o sin foto); TAG → solicitar_tag (el PODER lo genera Nexus solo con la patente y la fecha del día — NO lo pidas; el usuario solo adjunta carnet + factura/contrato); factura de compra → tool factura_compra (borrador DTE 46, te manda la vista previa, NO emite). ⚠️ NUNCA muevas plata, emitas documentos ni compres informes por tu cuenta: cada paso sensible lo confirma el usuario. Si no hay NMP comprado de la patente, pídele los datos del auto (NO compres uno).
 - 💰 VENDÍ UN AUTO / VENTA / SE VENDIÓ ("vendí este auto", "vendí el [patente]", "se vendió el [patente]", "venta del [patente]") = herramienta venta (agente "Meme", SOLO MallorcAutos). Es el ORQUESTADOR del flujo de venta: NO improvises. (1) Apenas lo digan, llama venta accion:"iniciar" con la patente → te da el TABLERO de 4 pasos, lo que hay que pedirle al usuario (datos del comprador — los MISMOS que en compras — y precio de venta) y cuánto tarda. (2) A medida que te pasen datos usa venta accion:"guardar". (3) Para AVANZAR cada paso usa las herramientas reales EN ORDEN y marca con venta accion:"paso": nota_venta → vender_goautos; fondos → revisa/confírmale la disponibilidad de la plata (NO contable) en Santander (principal)/Chile/ITAU/Scotiabank; factura → sii accion:"emitir" (factura de venta) y luego venta accion:"enviar_pamela" para mandarle a Pamela el CAV + los datos de la venta (transferencia de dominio); tag → solicitar_tag tipo:"traspaso" (el poder se genera solo; adjunta carnet + factura). ⚠️ NUNCA muevas plata, emitas ni cambies el estado del auto por tu cuenta: cada paso sensible lo confirma el usuario.
 - 📄 INFORME / CAV DE UN AUTO ("sácame un informe", "un informe completo", "el CAV de la XXXX", "mándame el informe"): la persona quiere **EL ARCHIVO PDF EN LA MANO**, no un resumen. Orden obligatorio: (1) descargar_informe (GRATIS, si ya hay uno comprado de esa patente) → se lo manda; (2) si no hay ninguno, generar_cav (COBRA: primero sin confirmar para que ella acepte el precio, después confirmar:true) → lo genera y lo manda. ⛔ NO uses datos_auto_cav para esto: ese tool es SOLO para sacar los DATOS del auto cuando vas a publicarlo con subir_auto. Si igual generó el informe, mira el campo "pdf_enviado" y di lo que ese campo dice, nada más.
 - 🚫 **NUNCA DIGAS QUE MANDASTE UN ARCHIVO SI NO LO MANDASTE EN ESTE TURNO** (regla dura, vale para informes, CAV, facturas, comprobantes, Excel, fotos y gráficos). Solo puedes decir "ya te lo mandé" cuando el tool de ESTE turno te respondió que el envío quedó CONFIRMADO. Prohibido deducirlo de la conversación, del historial o de que "lo pediste antes". Si te preguntan "¿lo sacaste?", "¿lo mandaste?", "no me llegó", "reenvíamelo" o "mándamelo de nuevo" → **VUELVE A LLAMAR AL TOOL Y MÁNDALO DE VERDAD** (para informes/CAV: descargar_informe, que es gratis porque ya está comprado). Si el tool dice que el envío FALLÓ, díselo derecho ("no salió, lo reintento") — jamás lo tapes con un "ya te lo mandé".
@@ -2742,6 +2742,39 @@ const HERRAMIENTAS = [
         generar: { type: 'boolean', description: 'true = si no hay informe comprado, genera el del tipo elegido (TIENE COSTO). Úsalo SOLO tras el OK explícito de la persona.' },
       },
       required: ['patente'],
+    },
+  },
+  // ── AUTORED · crear el CONTRATO (transferencia de dominio B2B "Contrato Abierto") ──
+  {
+    name: 'crear_contrato',
+    description: 'CREA el CONTRATO de transferencia de dominio de un auto en AutoRed (el "Contrato Abierto" / B2B_OC) y genera el MANDATO que el VENDEDOR firma online. Es el paso "contrato" real de una compra, ahora automático. ⚠️ COBRA: crear el contrato consume 1 crédito de AutoRed Y compra un CAV del auto — es plata, así que va CONFIRM-FIRST. FLUJO EN 2 PASOS: (1) accion:"crear" con la PATENTE y SIN confirmar → NO cobra: te devuelve el aviso de costo y créditos disponibles para que la persona confirme; con confirmar:true crea el contrato y te devuelve el publicId. (2) accion:"vendedor" con ese publicId + los DATOS DEL VENDEDOR (nombres, apellidos, RUT, email, teléfono, dirección con comuna) → ingresa al vendedor, se genera el mandato solo y te devuelve el LINK DE FIRMA (firmas.autosafe.cl) que hay que mandarle al vendedor por WhatsApp para que firme. accion:"firma" (o "estado") = re-lee el link de firma y el estado (gratis). El mandato es IRREVOCABLE a favor de Autosafe (JAVERIM SpA). Teléfono del vendedor en formato chileno; yo lo normalizo. Si el contrato lleva prohibición de enajenar (prenda), pasa "prohibicion" con el acreedor.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['crear', 'vendedor', 'firma', 'estado'], description: 'crear = crea el contrato (cobra; confirm-first). vendedor = ingresa los datos del vendedor y saca el link de firma. firma/estado = re-lee el link de firma y el estado (gratis).' },
+        patente: { type: 'string', description: 'Patente del auto (para accion:"crear").' },
+        confirmar: { type: 'boolean', description: 'true = crear el contrato DE VERDAD (cobra 1 crédito + un CAV). Solo tras el OK explícito de la persona. Ausente/false = solo previsualiza el costo.' },
+        publicId: { type: 'string', description: 'UUID de la solicitud que devolvió accion:"crear". Necesario para accion:"vendedor"/"firma"/"estado".' },
+        prohibicion: { type: 'object', description: 'Opcional: acreedor de la prohibición de enajenar si el contrato la lleva.', properties: { name: { type: 'string' }, rut: { type: 'string' } } },
+        vendedor: {
+          type: 'object',
+          description: 'Datos del vendedor (para accion:"vendedor").',
+          properties: {
+            nombres: { type: 'string', description: 'Nombres de pila.' },
+            apellidoPaterno: { type: 'string' },
+            apellidoMaterno: { type: 'string' },
+            rut: { type: 'string', description: 'RUT con dígito verificador, ej "25.492.965-4".' },
+            email: { type: 'string' },
+            telefono: { type: 'string', description: 'Teléfono chileno; se normaliza a 56XXXXXXXXX.' },
+            calle: { type: 'string' },
+            numero: { type: 'string', description: 'Número de la casa/depto en la calle.' },
+            depto: { type: 'string', description: 'Depto/oficina (opcional).' },
+            comuna: { type: 'string', description: 'Nombre de la comuna del domicilio (se resuelve el id solo).' },
+            numeroWhatsapp: { type: 'string', description: 'Opcional: número al que mandar el link de firma. Por defecto no lo manda (te devuelve el link para que lo pegues).' },
+          },
+        },
+      },
+      required: ['accion'],
     },
   },
   // ── COMPRA · flujo completo al comprar un auto (orquestador + checklist) ───────
@@ -4116,7 +4149,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       // Se reactiva la vía automática poniendo TEK_COMPRA_AUTO=1 cuando el banco vuelva.
       const pagoAuto = process.env.TEK_COMPRA_AUTO === '1'
       const PASOS = [
-        { k: 'contrato', t: 'Contrato (AutoRed)', min: 5, nota: 'manual: lo generas tú en AutoRed con el paquete de datos' },
+        { k: 'contrato', t: 'Contrato (AutoRed)', min: 5, nota: 'automático con la herramienta crear_contrato (confirm-first, cobra); o a mano con el paquete de datos' },
         { k: 'pago', t: 'Pago', min: 2, nota: pagoAuto ? 'subes el pago masivo (tek_masiva); lo autoriza un humano' : 'el banco automático está en reposo → transfiere tú al vendedor (manual)' },
         { k: 'goautos', t: 'Publicar en GoAutos', min: 1, nota: 'subir_auto, con o sin foto' },
         // Compra = el auto queda a nombre de ANA CLARA, así que el TAG es "nuevo_propio"
@@ -4250,7 +4283,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         store[ckey] = exp; guardar(store)
         const tb = tablero(exp)
         const sig = siguiente(exp)
-        const guia = { contrato: 'genera el contrato en AutoRed (usa accion:"contrato" para el paquete de datos)', pago: pagoAuto ? 'sube el pago masivo con tek_masiva desde ANA CLARA — beneficiario = el vendedor (nombre+RUT), monto = el precio de compra; pregunta concepto y motivo; queda Por Autorizar (lo libera un humano)' : 'el banco automático está EN REPOSO: dile al usuario que TRANSFIERA él al vendedor desde ANA CLARA (beneficiario = nombre+RUT del vendedor, monto = precio de compra). NO uses tek_masiva. Cuando confirme que transfirió, marca el paso como listo', goautos: 'publica el auto con subir_auto (usa accion:"publicar" para el paquete de datos ya armado: lo que sale del informe va prellenado y solo falta lo que el informe no trae)', tag: 'solicita el TAG con solicitar_tag tipo:"nuevo_propio" (el auto quedó a nombre de ANA CLARA — NO uses nuevo_tercero, eso es consignación; el nuevo dueño es Ana Clara, NO el vendedor). El PODER se genera solo con la patente y la fecha de hoy; solo adjunta carnet + factura/contrato', factura: 'genera el borrador de la factura de compra (DTE 46) con el tool factura_compra (te manda la vista previa, NO emite)' }
+        const guia = { contrato: 'creá el contrato con la herramienta crear_contrato (AutoRed, automático, confirm-first: cobra 1 crédito + un CAV): accion:"crear" con la patente → confirmar → accion:"vendedor" con los datos del vendedor → mandale el link de firma que sale. (O a mano: compra accion:"contrato" te da el paquete de datos.)', pago: pagoAuto ? 'sube el pago masivo con tek_masiva desde ANA CLARA — beneficiario = el vendedor (nombre+RUT), monto = el precio de compra; pregunta concepto y motivo; queda Por Autorizar (lo libera un humano)' : 'el banco automático está EN REPOSO: dile al usuario que TRANSFIERA él al vendedor desde ANA CLARA (beneficiario = nombre+RUT del vendedor, monto = precio de compra). NO uses tek_masiva. Cuando confirme que transfirió, marca el paso como listo', goautos: 'publica el auto con subir_auto (usa accion:"publicar" para el paquete de datos ya armado: lo que sale del informe va prellenado y solo falta lo que el informe no trae)', tag: 'solicita el TAG con solicitar_tag tipo:"nuevo_propio" (el auto quedó a nombre de ANA CLARA — NO uses nuevo_tercero, eso es consignación; el nuevo dueño es Ana Clara, NO el vendedor). El PODER se genera solo con la patente y la fecha de hoy; solo adjunta carnet + factura/contrato', factura: 'genera el borrador de la factura de compra (DTE 46) con el tool factura_compra (te manda la vista previa, NO emite)' }
         return JSON.stringify({
           ok: true, patente, tablero: tb.lines,
           siguiente_paso: sig ? { paso: sig, que_hacer: guia[sig] } : null,
@@ -4788,6 +4821,120 @@ async function ejecutar(nombre, input, ctx = {}) {
         }
         return `${nombreTipo} de ${patente} generado (id ${r.id}) y ENVIADO como PDF por WhatsApp${input.numero ? ` a ${target}` : ' a la persona'} (envío confirmado). Confírmale corto que ya se lo mandaste.`
       } catch (e) { return `No pude generar el ${nombreTipo} de ${patente}: ${e.message}` }
+    }
+    // ── AUTORED · crear el contrato de transferencia (Contrato Abierto B2B_OC) ─────
+    if (nombre === 'crear_contrato') {
+      const accion = String(input.accion || 'crear').toLowerCase()
+      // normaliza tel chileno → 56XXXXXXXXX (el front rechaza 9XXXXXXXX)
+      const normTelCL = (t) => {
+        let d = String(t || '').replace(/\D/g, '')
+        if (!d) return ''
+        if (d.startsWith('56')) return d
+        if (d.length === 9 && d.startsWith('9')) return '56' + d
+        if (d.length === 8) return '569' + d
+        return d.startsWith('56') ? d : '56' + d
+      }
+      try {
+        if (accion === 'crear') {
+          const patente = String(input.patente || '').trim().toUpperCase().replace(/[\s.\-]/g, '')
+          if (!patente) return 'Para crear el contrato necesito la PATENTE del auto. Pídesela a la persona.'
+          // Paso 1: previsualizar (no cobra) — avisa costo + créditos.
+          if (!input.confirmar) {
+            let cred = null
+            try { cred = await autored.creditos() } catch { /* seguimos sin el dato */ }
+            const disp = (cred && (cred.available ?? cred.credits ?? cred.balance)) ?? null
+            return JSON.stringify({
+              preview: true, patente, cobra: true,
+              creditos_disponibles: disp,
+              aviso: `Crear el Contrato de transferencia de ${patente} en AutoRed CONSUME 1 CRÉDITO y además compra un CAV del auto (es plata). Pídele a la persona que confirme antes.`,
+              instruccion: 'Muéstrale el aviso (que cobra 1 crédito + un CAV) y los créditos disponibles. Si confirma, vuelve a llamar crear_contrato con accion:"crear", la misma patente y confirmar:true. Después vas a necesitar los DATOS DEL VENDEDOR (nombres, apellidos, RUT, email, teléfono, dirección con comuna) para el paso "vendedor".',
+            })
+          }
+          // Paso 2: crear de verdad.
+          const prohib = input.prohibicion && (input.prohibicion.name || input.prohibicion.rut) ? { name: input.prohibicion.name || '', rut: input.prohibicion.rut || '' } : null
+          const r = await autored.crearContratoAbierto(patente, { prohibicion: prohib, confirmar: true })
+          if (r && r.dry_run) return `No pude crear el contrato de ${patente}: la escritura en AutoRed está bloqueada (${r.motivo}). Avísale a Ramón para habilitar AUTORED_PERMITIR_ESCRITURA.`
+          const publicId = r?.publicId || r?.data?.publicId || null
+          if (!publicId) return `Llamé a crear el contrato de ${patente} pero AutoRed no devolvió el publicId (respuesta: ${JSON.stringify(r).slice(0, 200)}). No sigas con el vendedor hasta tener el publicId; reintenta o avísale a Ramón.`
+          return JSON.stringify({
+            ok: true, creado: true, patente, publicId, estado: r.status || 'ENTER_SELLER_INFO',
+            instruccion: `✅ Contrato de ${patente} CREADO en AutoRed (publicId ${publicId}) — ya se cobró 1 crédito + el CAV. AHORA pídele a la persona los DATOS DEL VENDEDOR (nombres, apellido paterno y materno, RUT, email, teléfono, calle + número + comuna) y llama crear_contrato con accion:"vendedor", este mismo publicId y el objeto "vendedor". Con eso se genera el mandato y sale el link de firma.`,
+          })
+        }
+        if (accion === 'vendedor') {
+          const publicId = String(input.publicId || '').trim()
+          if (!publicId) return 'Para ingresar al vendedor necesito el publicId del contrato (el que devolvió accion:"crear").'
+          const v = input.vendedor || {}
+          const falta = []
+          if (!v.nombres) falta.push('nombres')
+          if (!v.apellidoPaterno) falta.push('apellido paterno')
+          if (!v.rut) falta.push('RUT')
+          if (!v.email) falta.push('email')
+          if (!v.telefono) falta.push('teléfono')
+          if (!v.calle || !v.numero) falta.push('dirección (calle y número)')
+          if (!v.comuna) falta.push('comuna')
+          if (falta.length) return JSON.stringify({ faltan_datos: true, publicId, falta, instruccion: `Faltan datos del vendedor para el contrato: ${falta.join(', ')}. Pídeselos a la persona y re-llama con accion:"vendedor", el mismo publicId y el objeto vendedor completo.` })
+          // resolver comuna → {id, name, region}
+          let comuna = null
+          try { comuna = await autored.buscarComuna(v.comuna) } catch { /* */ }
+          if (!comuna) return `No encontré la comuna "${v.comuna}" en AutoRed. Pídele a la persona el nombre exacto de la comuna del domicilio del vendedor y re-llama.`
+          const vendedor = {
+            nombres: v.nombres, apellidoPaterno: v.apellidoPaterno, apellidoMaterno: v.apellidoMaterno || '',
+            rut: v.rut, email: v.email, telefono: normTelCL(v.telefono),
+            calle: v.calle, numero: String(v.numero), depto: v.depto || '',
+            comuna, conyuge: false, representante: false,
+          }
+          const ri = await autored.ingresarVendedorOC(publicId, vendedor, { confirmar: true })
+          if (ri && ri.dry_run) return `No pude ingresar al vendedor: la escritura en AutoRed está bloqueada (${ri.motivo}).`
+          // el mandato se genera solo (~10s); esperamos y buscamos el link de firma
+          let firma = null
+          for (let i = 0; i < 5 && !firma?.firmantes?.[0]?.linkFirma; i++) {
+            await new Promise((res) => setTimeout(res, 4000))
+            try { firma = await autored.firmaMandato(publicId) } catch { /* aún generándose */ }
+          }
+          const link = firma?.firmantes?.[0]?.linkFirma || null
+          const firmante = firma?.firmantes?.[0] || null
+          // opcional: mandar el link al WhatsApp del vendedor (vía contactos externos: texto si
+          // la ventana de 24h está abierta, si no plantilla oficial de Meta — igual que a Pamela).
+          let enviado = null
+          const numV = v.numeroWhatsapp ? normNum(v.numeroWhatsapp) : ''
+          if (link && numV) {
+            try {
+              const ce = await import('./contactos-externos.mjs'); const kap = await import('./kapso.mjs')
+              if (!ce.esContactoExterno(numV)) ce.registrarContactoExterno(numV, { por: ctx.de, porNombre: usuarioDe(ctx.de)?.nombre, nota: 'Vendedor - firma mandato AutoRed' })
+              const cuerpo = `Hola${firmante?.nombre ? ' ' + firmante.nombre : ''}, para completar la transferencia del vehículo necesitas FIRMAR el mandato en este link (es seguro, es de AutoRed/Autosafe):\n${link}`
+              if (ce.ventana24hAbierta(numV)) await kap.enviarKapso(numV, cuerpo)
+              else await kap.enviarPlantillaKapso(numV, process.env.KAPSO_PLANTILLA_ALERTA || 'alerta_nexus', { nombre: firmante?.nombre || 'Hola', mensaje: `Firma el mandato de transferencia acá: ${link}` }, { idioma: process.env.KAPSO_PLANTILLA_ALERTA_IDIOMA || 'es' })
+              enviado = true
+            } catch { enviado = false }
+          }
+          return JSON.stringify({
+            ok: true, vendedor_ingresado: true, publicId,
+            estado: 'mandato generado', link_firma: link, firmante: firmante ? { nombre: firmante.nombre, rut: firmante.rut, estado: firmante.estado } : null,
+            link_enviado_al_vendedor: enviado,
+            instruccion: link
+              ? `✅ Vendedor ingresado y MANDATO generado. El LINK DE FIRMA es: ${link}${enviado === true ? ' — ya se lo mandé por WhatsApp al vendedor.' : enviado === false ? ' — NO pude mandárselo al vendedor, dáselo tú.' : ' — mándaselo al vendedor para que firme (o pásale el número con vendedor.numeroWhatsapp para que yo se lo envíe).'} El mandato es IRREVOCABLE a favor de Autosafe. Cuando el vendedor firme, el contrato avanza solo.`
+              : `El vendedor quedó ingresado (publicId ${publicId}) pero el mandato aún se está generando y todavía no tengo el link de firma. Espera ~10-20s y vuelve a llamar crear_contrato con accion:"firma" y el publicId.`,
+          })
+        }
+        if (accion === 'firma' || accion === 'estado') {
+          const publicId = String(input.publicId || '').trim()
+          if (!publicId) return 'Necesito el publicId del contrato para leer el link de firma / estado.'
+          const firma = await autored.firmaMandato(publicId).catch(() => null)
+          const docs = await autored.documentosSolicitud(publicId).catch(() => [])
+          const f0 = firma?.firmantes?.[0] || null
+          return JSON.stringify({
+            ok: true, publicId,
+            link_firma: f0?.linkFirma || null,
+            firmante: f0 ? { nombre: f0.nombre, rut: f0.rut, estado: f0.estado } : null,
+            documentos: docs,
+            instruccion: f0?.linkFirma
+              ? `Link de firma del mandato: ${f0.linkFirma} (firmante ${f0?.nombre || '—'}, estado ${f0?.estado || '—'}). Mándaselo al vendedor si aún no firma.`
+              : 'Todavía no hay link de firma disponible para este contrato (puede seguir generándose el mandato). Reintenta en un rato.',
+          })
+        }
+        return `Acción "${accion}" no reconocida para crear_contrato. Usa: crear / vendedor / firma / estado.`
+      } catch (e) { return `El robot de crear contrato (AutoRed) falló: ${e.message}` }
     }
     // ── SAI · conciliación (todas leen del motor en ../conector-sai; degradan solas) ──
     if (nombre === 'sai_conciliacion') {
