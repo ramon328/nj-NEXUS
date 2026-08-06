@@ -1753,12 +1753,23 @@ async function masivaImportar(page, log) {
   // queda en sin_frame_importacion. En sesiones sin popup (ej. Ana Clara) es no-op.
   try { await cerrarPopups(page, log) } catch { /* */ }
   await sleep(rnd(800, 1600))
-  const menu = page.getByText(/^transferencias?$/i).first()
-  await clickHumano(page, menu)
-  await sleep(rnd(4000, 5500))
+  // La Importación masiva vive en "Pagos Masivos" (menú lateral) en la mayoría de las empresas
+  // (Importadora Juri, Importaciones Mineras); en otras cuelga de "Transferencias → Transferencias
+  // Masivas". Antes solo se abría "Transferencias" → fallaba con "no apareció el form" en las que
+  // la tienen en "Pagos Masivos". Abrimos "Pagos Masivos" PRIMERO y, si no aparece "Importación",
+  // probamos "Transferencias".
+  const hayImportacion = async () => { for (const f of page.frames()) { if (await f.getByText(/^\s*Importaci[oó]n\s*$/i).first().count().catch(() => 0)) return true } return false }
+  const abrirMenuMasiva = async () => {
+    for (const re of [/^pagos masivos$/i, /^transferencias?$/i]) {
+      const m = page.getByText(re).first()
+      if (await m.count().catch(() => 0)) { await clickHumano(page, m).catch(() => {}); await sleep(rnd(2800, 4200)) }
+      if (await hayImportacion()) { log('masiva: menú abierto (' + re.source + ')'); return }
+    }
+  }
+  await abrirMenuMasiva()
   await page.screenshot({ path: join(DATA, 'masiva-00-menu.png') }).catch(() => {})
-  // "Transferencias Masivas → Importación" por TEXTO (geometría header+columna).
-  let entro = await clickColumna(page, /^Transferencias Masivas$/i, /^Importaci[oó]n$/i, log)
+  // "Transferencias Masivas / Pagos Masivos → Importación" por TEXTO (geometría header+columna).
+  let entro = await clickColumna(page, /^(Transferencias Masivas|Pagos Masivos)$/i, /^Importaci[oó]n$/i, log)
   // Fallback ROBUSTO: "Importación" es ÚNICA en este menú (solo cuelga de Transferencias
   // Masivas), así que la clickeamos DIRECTO en cualquier frame, reintentando ~20s (el flyout
   // puede tardar en pintar). Reemplaza al viejo clic por píxel, que apuntaba a otra fila.
@@ -1810,9 +1821,15 @@ async function masivaImportar(page, log) {
       await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
       await sleep(rnd(2500, 4000))
       try { await cerrarPopups(page, log) } catch { /* */ }
-      await clickHumano(page, page.getByText(/^transferencias?$/i).first())
-      await sleep(rnd(3500, 5000))
-      let ok = await clickColumna(page, /^Transferencias Masivas$/i, /^Importaci[oó]n$/i, log)
+      // Mismo criterio que arriba: la Importación vive en "Pagos Masivos" (mayoría) o en
+      // "Transferencias". Abrimos el que corresponda.
+      for (const re of [/^pagos masivos$/i, /^transferencias?$/i]) {
+        const m = page.getByText(re).first()
+        if (await m.count().catch(() => 0)) { await clickHumano(page, m).catch(() => {}); await sleep(rnd(2800, 4200)) }
+        let hay = false; for (const f of page.frames()) { if (await f.getByText(/^\s*Importaci[oó]n\s*$/i).first().count().catch(() => 0)) { hay = true; break } }
+        if (hay) break
+      }
+      let ok = await clickColumna(page, /^(Transferencias Masivas|Pagos Masivos)$/i, /^Importaci[oó]n$/i, log)
       for (let i = 0; i < 10 && !ok; i++) {
         for (const f of page.frames()) {
           const loc = f.getByText(/^\s*Importaci[oó]n\s*$/i).first()
