@@ -437,13 +437,26 @@ export function armarComprador(c = {}) {
       })),
     };
   }
+  // Persona vacía: el front manda SIEMPRE los bloques `representative` y `union` con
+  // strings vacíos, aunque hasRepresentative/hasUnion sean false. Capturado del envío
+  // real del formulario de AutoRed el 07-08-2026.
+  const personaVacia = () => ({
+    name: '', fLastName: '', mLastName: '', rut: '', dpto: '', street: '', houseNumber: '',
+    phone: '', email: '', hasUnion: false, hasRepresentative: false, isBeneficiary: false,
+  });
+  // El teléfono del comprador viaja CON el "+" (ej. +56941407708). El del vendedor, en
+  // cambio, se re-envía tal cual lo devuelve el status (sin "+"): así lo hace el front.
+  const tel = String(c.telefono || c.phone || '').trim();
   return {
     name: c.nombres || c.name || '', fLastName: c.apellidoPaterno || c.fLastName || '',
     mLastName: c.apellidoMaterno || c.mLastName || '', rut: c.rut || '',
     dpto: c.depto || c.dpto || '', commune: comuna,
     street: c.calle || c.street || '', houseNumber: String(c.numero || c.houseNumber || ''),
-    phone: c.telefono || c.phone || '', email: c.email || '',
+    phone: tel ? (tel.startsWith('+') ? tel : '+' + tel.replace(/\D/g, '')) : '',
+    email: c.email || '',
     hasUnion: Boolean(c.conyuge), hasRepresentative: Boolean(c.representante), isBeneficiary: false,
+    representative: c.representante && typeof c.representante === 'object' ? armarComprador(c.representante) : personaVacia(),
+    union: c.conyuge && typeof c.conyuge === 'object' ? armarComprador(c.conyuge) : personaVacia(),
   };
 }
 

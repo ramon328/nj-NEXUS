@@ -167,6 +167,21 @@ year, version}]`: son las versiones del auto, hay que elegir la que corresponde 
 Si la lista viene vacía, el front manda `makeInputsOptional` y deja que Autosafe busque la tasación.
 
 #### 4.2 — Datos del comprador (`POST /{publicId}/enter-info`)
+🔴 **BLOQUEADO POR UN BUG DE AUTORED (07-08-2026).** En la solicitud 45859 (PGXP70) este endpoint
+devuelve **HTTP 400 con el cuerpo VACÍO**. No es nuestro mapeo: se reprodujo entrando a
+`autored.cl` con el usuario de Joaquín, llenando el wizard del comprador **a mano** y apretando
+Enviar — **el propio formulario de AutoRed recibe el mismo 400**. Se capturó su request real y
+nuestro payload quedó **idéntico, 54 claves, cero diferencias**. Descartados: deuda de pensión de
+Marcela (`{valid:true}`), el `houseNumber` "SN" (probado "S/N"), y el formato del teléfono del
+vendedor (probado con y sin "+"). Hay que reclamarle a AutoRed (soporte +56 9 7979 5860).
+El contrato NO se corrompió con ninguno de los intentos: el 400 rechaza limpio y el vendedor queda.
+
+**Cómo capturar la verdad cuando algo falle acá:** login en `autored.cl/users/sign_in` → menú
+Transferencias → VER en la solicitud → botón **Continuar** → llenar el wizard → Enviar, con el
+inspector de red abierto. Ojo con las rutas: la de detalle es `/transferencias/detalle/{publicId}`
+y la del wizard `/transferencias/proceso/{publicId}`, pero **entrar directo a `/proceso/` da 500**;
+hay que llegar por el botón Continuar.
+
 ⚠️ **Dos trampas grandes acá:**
 1. El endpoint es **`enter-info`**, NO `enter-buyer-info` (eso estaba mal en este mapeo).
 2. Hay que mandar **`sellers` Y `buyers` juntos**: el front arma
@@ -178,7 +193,14 @@ Si la lista viene vacía, el front manda `makeInputsOptional` y deja que Autosaf
 
 Persona (`buyers.0.*`): `name`, `fLastName`, `mLastName`, `rut`, `dpto`, `street`, `houseNumber`,
 `phone`, `email`, `commune.id`, `commune.name`, `commune.region.name`, `hasUnion`,
-`hasRepresentative`, `isBeneficiary`. `union` (cónyuge) y `representative` van anidados igual.
+`hasRepresentative`, `isBeneficiary`. Además el front manda **SIEMPRE** los bloques
+`buyers.0.representative.*` y `buyers.0.union.*` completos con strings vacíos, aunque
+`hasRepresentative`/`hasUnion` sean `false` (12 claves cada uno). Total de un comprador persona
+con un vendedor persona: **54 claves**.
+
+⚠️ **El teléfono del COMPRADOR va con `+`** (`+56941407708`), pero el del VENDEDOR se re-envía
+**tal cual lo devuelve el status, sin `+`** (`56992540550`). Así lo manda el front; no lo
+"arregles".
 
 Empresa (`buyers.0.*`): `rut`, `socialReason`, `commune.*`, `street`, `houseNumber`, `dpto`,
 `isPublicDeed`, `constitutionDate`, `modificationDate`, `companyNotaryName`,
