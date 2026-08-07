@@ -59,7 +59,7 @@ export function grabar(libro) {
  * Idempotente: correrlo dos veces con la misma tanda no agrega nada la segunda.
  */
 export function incorporar(libro, { movimientos = [], facturas = [] } = {}) {
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
   const movsNuevos = []
   const facsNuevas = []
 

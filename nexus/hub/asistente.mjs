@@ -48,6 +48,26 @@ const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
 try { process.loadEnvFile(join(__dirname, '..', '.env')) } catch { /* opcional */ }
 
+// ── FECHA/HORA DE CHILE ────────────────────────────────────────────────────────
+// Chile NO está siempre en UTC−4: en horario de verano (primer sábado de septiembre
+// → primer sábado de abril) corre en UTC−3. Todo lo que sea "hoy", "ahora" o una
+// conversión desde UTC sale de acá; NUNCA se escribe el offset a mano ni se usa
+// toISOString().slice(0,10) (ese es el día UTC, que después de las 20:00 de Chile
+// ya es el día SIGUIENTE y corre gastos, vencimientos y cortes de mes).
+const TZ_CL = 'America/Santiago'
+/** Fecha de hoy en Chile, YYYY-MM-DD. */
+export const hoyCL = () => new Date().toLocaleDateString('en-CA', { timeZone: TZ_CL })
+/** Offset vigente de Chile en ese instante, formato ISO: "-04" o "-03". */
+export function offsetCL(t = new Date()) {
+  try {
+    const g = new Intl.DateTimeFormat('en-US', { timeZone: TZ_CL, timeZoneName: 'longOffset' })
+      .formatToParts(t).find((p) => p.type === 'timeZoneName')?.value || 'GMT-04:00'
+    return g.replace('GMT', '').slice(0, 3) || '-04'
+  } catch { return '-04' }
+}
+/** Horas que Chile va detrás de UTC en ese instante: 4 o 3. */
+export const horasCL = (t = new Date()) => Math.abs(parseInt(offsetCL(t).slice(1), 10)) || 4
+
 const MODELO = process.env.MODELO_ASISTENTE || 'claude-opus-4-8'
 // La web (conversación por voz) usa HAIKU: rápido y BARATO. WhatsApp/análisis pesados
 // siguen en Opus (calidad máxima). Cambiar: MODELO_WEB_ASISTENTE=claude-opus-4-8
@@ -2565,7 +2585,7 @@ const HERRAMIENTAS = [
   },
   {
     name: 'programar_mensaje',
-    description: 'PROGRAMA un mensaje para que Nexus lo envíe DESPUÉS de cierto tiempo (recordatorio / aviso futuro). Úsalo cuando Ramón diga cosas como "en 10 minutos mándame un ws que diga X", "recuérdame mañana a las 9 por correo que…", "llámame en media hora". CANALES: whatsapp (por defecto), correo, llamada (llamada de VOZ que suena dentro de la app Telegram y LEE el mensaje con voz, vía CallMeBot — gratis; el destino de una llamada es el usuario/teléfono de Telegram, no un número común); telefono = llamada TELEFÓNICA REAL a cualquier número vía Twilio (de pago). DESTINO: si Ramón no dice a quién, usa el destinatario por defecto (no pongas "destino"); si dice un número o correo concreto, pásalo en "destino". CUÁNDO (obligatorio): para tiempos relativos usa "en_minutos" (ej "en 10 min" → en_minutos:10); para una hora/fecha concreta calcula tú el instante en formato ISO con la zona de Chile (-04:00) usando la FECHA DE HOY que tienes, y pásalo en "cuando" (ej mañana 9:00 → "2026-06-29T09:00:00-04:00"). Confirma corto antes de programar si hay ambigüedad de hora.',
+    description: 'PROGRAMA un mensaje para que Nexus lo envíe DESPUÉS de cierto tiempo (recordatorio / aviso futuro). Úsalo cuando Ramón diga cosas como "en 10 minutos mándame un ws que diga X", "recuérdame mañana a las 9 por correo que…", "llámame en media hora". CANALES: whatsapp (por defecto), correo, llamada (llamada de VOZ que suena dentro de la app Telegram y LEE el mensaje con voz, vía CallMeBot — gratis; el destino de una llamada es el usuario/teléfono de Telegram, no un número común); telefono = llamada TELEFÓNICA REAL a cualquier número vía Twilio (de pago). DESTINO: si Ramón no dice a quién, usa el destinatario por defecto (no pongas "destino"); si dice un número o correo concreto, pásalo en "destino". CUÁNDO (obligatorio): para tiempos relativos usa "en_minutos" (ej "en 10 min" → en_minutos:10); para una hora/fecha concreta calcula tú el instante en formato ISO usando la FECHA DE HOY que tienes, y pásalo en "cuando" (ej mañana 9:00 → "2026-06-29T09:00:00" + el offset). ⚠️ EL OFFSET DE CHILE NO ES FIJO (es −04 en invierno y −03 en horario de verano): usá EXACTAMENTE el que te da el bloque FECHA Y HORA DE AHORA de este turno, nunca uno de memoria. Si preferís no pensar en zonas, mandá "cuando" SIN offset (ej "2026-06-29T09:00:00") y se interpreta como hora de Chile. Confirma corto antes de programar si hay ambigüedad de hora.',
     input_schema: {
       type: 'object',
       properties: {
@@ -2574,7 +2594,7 @@ const HERRAMIENTAS = [
         asunto: { type: 'string', description: 'Solo correo: asunto del email (opcional).' },
         destino: { type: 'string', description: 'A quién: número +56… (whatsapp/llamada) o correo (correo). Omítelo para usar el destinatario por defecto.' },
         en_minutos: { type: 'number', description: 'Enviar dentro de N minutos (tiempo relativo). Ej "en 10 min" → 10.' },
-        cuando: { type: 'string', description: 'Instante exacto en ISO 8601 con zona Chile, ej "2026-06-29T09:00:00-04:00". Úsalo para horas/fechas concretas.' },
+        cuando: { type: 'string', description: 'Instante exacto en ISO 8601, hora de Chile. Podés mandarlo SIN offset ("2026-06-29T09:00:00") y se toma como hora de Chile (lo más seguro), o con el offset VIGENTE que te dio el bloque FECHA Y HORA de este turno (−04 en invierno, −03 en horario de verano). NO escribas "-04:00" de memoria. Úsalo para horas/fechas concretas.' },
         repeticiones: { type: 'integer', description: 'Cuántas VECES enviar el mismo mensaje (por defecto 1, máximo 50). Ej "mándalo 5 veces" → 5.' },
         intervalo_min: { type: 'number', description: 'Minutos entre cada repetición (por defecto 1). Ej "cada 2 minutos" → 2.' },
       },
@@ -5069,7 +5089,7 @@ async function ejecutar(nombre, input, ctx = {}) {
             // transferencia se puede trabar. Lo vimos en el PGXP70, que pagó solo la cuota 1.
             let avisoVencimiento = null
             if (p.vencimiento && /^\d{4}-\d{2}-\d{2}$/.test(p.vencimiento)) {
-              const dias = Math.round((new Date(p.vencimiento + 'T00:00:00') - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00')) / 86400000)
+              const dias = Math.round((new Date(p.vencimiento + 'T00:00:00') - new Date(hoyCL() + 'T00:00:00')) / 86400000)
               if (dias < 0) avisoVencimiento = `El permiso de circulación VENCIÓ hace ${-dias} días (${p.vencimiento}). Avísale: hay que renovarlo antes de transferir.`
               else if (dias <= 60) avisoVencimiento = `El permiso de circulación vence en ${dias} días (${p.vencimiento}). Si el comprobante muestra pago en CUOTAS, puede que falte pagar la cuota 2 para que corra hasta marzo. Avísaselo.`
             }
@@ -6763,9 +6783,15 @@ export async function responder(historial, opts = {}) {
   // "hoy", cortes de deuda, etc. Va fuera del breakpoint de caché (SISTEMA sigue cacheado).
   try {
     const hoy = new Date().toLocaleDateString('es-CL', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'America/Santiago' })
-    const ym = new Date().toLocaleDateString('es-CL', { year: 'numeric', month: '2-digit', timeZone: 'America/Santiago' })
+    // AÑO-MES en formato ISO (2026-08). Antes salía "8/2026" con es-CL: ambiguo
+    // (en Chile d/m/aaaa) justo para lo que el modelo usa como "este mes".
+    const ym = new Date().toLocaleDateString('en-CA', { year: 'numeric', month: '2-digit', timeZone: 'America/Santiago' })
     const horaCL = new Date().toLocaleTimeString('es-CL', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'America/Santiago' })
-    sysCache.push({ type: 'text', text: `FECHA Y HORA DE AHORA (Chile): ${hoy}, ${horaCL} hrs (${ym}). ⏰ TODAS las horas y fechas que muestres o calcules van en hora de CHILE (America/Santiago, −04), NUNCA en UTC. Si un dato viene con hora UTC o ISO terminado en "Z", conviértelo a Chile antes de mostrarlo (Chile = UTC − 4h). Si un tool ya te da la hora formateada (ej el campo "actualizado" de saldos), mostrala TAL CUAL. Usá esta fecha para "este mes", "hoy", "ayer", cortes de deuda y los params de los RPC de Aliace (mes/año actual, cutoff_date=hoy).` })
+    const fechaISO = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
+    // ⚠️ Chile NO está siempre en UTC−4: en horario de verano (primer sábado de
+    // septiembre → primer sábado de abril) es UTC−3. El offset se calcula en vivo,
+    // nunca se escribe a mano, o el modelo convierte mal ~7 meses del año.
+    sysCache.push({ type: 'text', text: `FECHA Y HORA DE AHORA (Chile): ${hoy}, ${horaCL} hrs. Fecha ISO de hoy: ${fechaISO}. Año-mes en curso: ${ym}. Chile está AHORA MISMO en UTC${offsetCL()} (${horasCL()} horas menos que UTC). ⏰ TODAS las horas y fechas que muestres o calcules van en hora de CHILE (America/Santiago), NUNCA en UTC. Si un dato viene con hora UTC o ISO terminado en "Z", conviértelo restándole ${horasCL()} horas — usá ESE número, NO asumas −4 ni −3 de memoria (Chile cambia de hora en septiembre y en abril). Si armás un ISO con zona (ej para programar algo), usá el sufijo ${offsetCL()}:00 tal cual va aquí. Si un tool ya te da la hora formateada (ej el campo "actualizado" de saldos), mostrala TAL CUAL. Usá esta fecha para "este mes", "hoy", "ayer", cortes de deuda y los params de los RPC de Aliace (mes/año actual, cutoff_date=${fechaISO}).` })
   } catch { /* sin fecha */ }
   // ESTILO BREVE — SOLO en la web del Centro de IAs (canal con voz). Ramón te
   // ESCUCHA la respuesta, así que tiene que ser corta y al grano. NO afecta a

@@ -69,7 +69,10 @@ function nuevoId() { return 'r' + Date.now().toString(36) + Math.random().toStri
 
 // Convierte la entrada de tiempo en un instante (ms epoch). Acepta:
 //  - en_minutos / en_segundos (relativo desde ahora)
-//  - cuando: ISO 8601 (ej "2026-06-28T15:30:00-04:00")
+//  - cuando: ISO 8601, con offset explícito ("2026-06-28T15:30:00-04:00") o SIN él
+//    ("2026-06-28T15:30:00"), que Date.parse toma como hora LOCAL = hora de Chile.
+//    Preferimos sin offset: Chile cambia a UTC−3 en horario de verano (sep→abr), así
+//    que un "-04:00" escrito a mano dispararía el recordatorio una hora TARDE.
 function resolverCuando({ cuando, en_minutos, en_segundos }) {
   if (en_segundos != null && Number.isFinite(Number(en_segundos))) return Date.now() + Number(en_segundos) * 1000
   if (en_minutos != null && Number.isFinite(Number(en_minutos))) return Date.now() + Number(en_minutos) * 60000

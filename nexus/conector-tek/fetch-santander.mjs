@@ -20,7 +20,8 @@ const HOME = 'https://privado.officebanking.cl/dashboard'
 const CARTOLA = 'https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRNCART_CON'
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const log = (...a) => console.log('·', ...a)
-const hoy = () => new Date().toISOString().slice(0, 10)
+// Día de HOY en Chile (no el UTC: de noche pedía una fecha futura a la cartola).
+const hoy = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
 const DESDE = process.env.TEK_DESDE || '2026-01-01'
 
 // heurísticas para reconocer datos en el JSON interceptado

@@ -167,7 +167,9 @@ function rangoFechas(desde, hasta) {
 
 app.get('/dia', (req, res) => {
   try {
-    const hoyCL = new Date(Date.now() - 4 * 3600 * 1000).toISOString().slice(0, 10) // America/Santiago ~UTC-4
+    // Día de hoy en Chile. Sin hardcodear −4: en horario de verano (sep→abr) Chile
+    // corre en UTC−3 y el desfase fijo devolvía el día de AYER entre 23:00 y 00:00.
+    const hoyCL = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
     const desde = String(req.query.fecha || hoyCL).slice(0, 10)
     const hasta = String(req.query.hasta || desde).slice(0, 10)
     if (!/^\d{4}-\d{2}-\d{2}$/.test(desde) || !/^\d{4}-\d{2}-\d{2}$/.test(hasta)) {

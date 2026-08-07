@@ -50,7 +50,7 @@ let _ready = cargarTodo()
 { const t = setInterval(() => { _ready = cargarTodo() }, 180_000); t.unref?.() }  // toma ediciones hechas a mano en Obsidian
 
 function render(key, u) {
-  const hoy = new Date().toISOString().slice(0, 10)
+  const hoy = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
   return `---\ntipo: memoria-nexus\nid: ${key}\nusuario: ${u.nombre || key}\nactualizado: ${hoy}\n---\n\n` +
     `# Memoria de Nexus — ${u.nombre || key}\n\n` +
     `> Lo que Nexus recuerda de esta persona para personalizar el trato. Puedes editar o borrar líneas a mano; se respeta.\n\n` +

@@ -81,14 +81,17 @@ function fechaUTC(str) {
   const d = new Date(Date.UTC(+m[1], +m[2] - 1, +m[3]))
   return Number.isNaN(d.getTime()) ? null : d
 }
-function hoyUTC() {
-  const n = new Date()
-  return new Date(Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate()))
+// Medianoche del día de HOY EN CHILE, expresada como instante UTC para poder restarla
+// contra fechaUTC(). Antes se usaba el día UTC: entre las 20:00 y medianoche de Chile
+// ya era "mañana" y los días al vencimiento salían corridos en uno.
+function hoyCL() {
+  const [a, m, d] = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' }).split('-')
+  return new Date(Date.UTC(+a, +m - 1, +d))
 }
 function diasHasta(str) {
   const f = fechaUTC(str)
   if (!f) return null
-  return Math.round((f.getTime() - hoyUTC().getTime()) / 86400000)
+  return Math.round((f.getTime() - hoyCL().getTime()) / 86400000)
 }
 function fechaLegible(str) {
   const m = String(str || '').slice(0, 10).match(/^(\d{4})-(\d{2})-(\d{2})$/)
@@ -206,7 +209,7 @@ export async function avisarJoaquin(opts = {}) {
     const track = leerTrack()
     const ultimo = fechaUTC(track.ultimo_envio)
     if (ultimo != null) {
-      const desde = Math.round((hoyUTC().getTime() - ultimo.getTime()) / 86400000)
+      const desde = Math.round((hoyCL().getTime() - ultimo.getTime()) / 86400000)
       if (desde < CADA_DIAS) { log(`gate: último envío hace ${desde} día(s) (<${CADA_DIAS}), no reenvío`); return { ok: true, enviados: 0, saltado: true, mensaje, nota: `Ya avisé hace ${desde} día(s); el próximo digest sale a los ${CADA_DIAS}. Usa force para mandarlo igual.` } }
     }
   }
@@ -215,7 +218,7 @@ export async function avisarJoaquin(opts = {}) {
 
   const { alertarUsuario } = await import('./alertar.mjs')
   const id = await alertarUsuario(JOAQUIN, mensaje, 'Joaquin')
-  const hoyStr = hoyUTC().toISOString().slice(0, 10)
+  const hoyStr = hoyCL().toISOString().slice(0, 10)
   guardarTrack({ ultimo_envio: hoyStr, items: items.length })
   log(`aviso enviado a Joaquín (${JOAQUIN}) id=${id} — ${items.length} documento(s)`)
   return { ok: true, enviados: items.length, id, mensaje, nota: `Le mandé a Joaquín ${items.length} documento(s) por vencer.` }

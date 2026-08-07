@@ -31,7 +31,10 @@ export const CATEGORIAS_AUTO = ['Documentación', 'Transferencia', 'Mecánica', 
 export const CATEGORIAS_GENERAL = ['Arriendo', 'Sueldos', 'Servicios', 'Marketing', 'Oficina', 'Impuestos', 'Otros'];
 
 const nuevoId = () => 'nx_' + Date.now().toString(36) + crypto.randomBytes(2).toString('hex');
-const hoyISO = () => new Date().toISOString().slice(0, 10);
+// Fecha de HOY en Chile. Ojo: toISOString() da el día UTC, que después de las 20:00
+// de Chile ya es el día siguiente → un gasto cargado de noche quedaba fechado mañana
+// (y a fin de mes, en el mes equivocado).
+const hoyISO = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' });
 
 async function api(pathq, opts = {}) {
   const r = await fetch(`${SUPA}/rest/v1/${pathq}`, { ...opts, headers: { ...H(), ...(opts.headers || {}) } });
