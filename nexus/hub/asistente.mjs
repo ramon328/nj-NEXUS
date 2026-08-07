@@ -5053,6 +5053,14 @@ async function ejecutar(nombre, input, ctx = {}) {
             if (sumaPagos === 0) falta.push('las formas de pago (efectivo / crédito / tarjeta / al contado / cheque / vale vista)')
             const tasacionPrecio = elegida?.price ?? p.tasacionPrecio ?? null
             const costo = autored.costoTransferencia({ precioVenta: precio, tasacion: tasacionPrecio, registroCivil: c.registro_civil_costo })
+            // Aviso de permiso por vencer: si el permiso vence pronto (o ya venció) la
+            // transferencia se puede trabar. Lo vimos en el PGXP70, que pagó solo la cuota 1.
+            let avisoVencimiento = null
+            if (p.vencimiento && /^\d{4}-\d{2}-\d{2}$/.test(p.vencimiento)) {
+              const dias = Math.round((new Date(p.vencimiento + 'T00:00:00') - new Date(new Date().toISOString().slice(0, 10) + 'T00:00:00')) / 86400000)
+              if (dias < 0) avisoVencimiento = `El permiso de circulación VENCIÓ hace ${-dias} días (${p.vencimiento}). Avísale: hay que renovarlo antes de transferir.`
+              else if (dias <= 60) avisoVencimiento = `El permiso de circulación vence en ${dias} días (${p.vencimiento}). Si el comprobante muestra pago en CUOTAS, puede que falte pagar la cuota 2 para que corra hasta marzo. Avísaselo.`
+            }
             const descuadre = sumaPagos > 0 && precio > 0 && sumaPagos !== precio
             if (!input.confirmar) {
               return JSON.stringify({
@@ -5068,6 +5076,7 @@ async function ejecutar(nombre, input, ctx = {}) {
                 tasaciones_disponibles: tasaciones.map((t) => ({ codigo: t.code, version: t.version, precio: plata(t.price) })),
                 impuesto_estimado: `${plata(costo.impuesto)} (1,5% sobre ${plata(costo.base)}) + ${plata(costo.registro_civil)} de Registro Civil = ${plata(costo.total)}`,
                 falta: falta.length ? falta : null,
+                aviso_vencimiento: avisoVencimiento,
                 descuadre_formas_pago: descuadre ? `La suma de las formas de pago (${plata(sumaPagos)}) NO coincide con el precio de venta (${plata(precio)}). AutoRed lo rechaza. Pídele que lo corrija.` : null,
                 instruccion: falta.length || descuadre
                   ? `BORRADOR INCOMPLETO. Muéstrale lo que ya tenemos y PÍDELE lo que falta: ${[...falta, ...(descuadre ? ['cuadrar las formas de pago con el precio'] : [])].join('; ')}. Si tiene que elegir la tasación, muéstrale las versiones con su precio. Cuando esté completo, vuelve a llamar accion:"permiso" SIN confirmar para mostrarle el borrador final.`

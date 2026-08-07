@@ -354,6 +354,19 @@ export function costoTransferencia({ precioVenta, tasacion, registroCivil } = {}
   return { base, impuesto, registro_civil: rc, total: impuesto + rc };
 }
 
+// Formatos que AutoRed acepta para el permiso de circulación (lista del front).
+const MIMES = {
+  '.pdf': 'application/pdf', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.png': 'image/png',
+  '.webp': 'image/webp', '.heic': 'image/heic', '.doc': 'application/msword',
+  '.docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  '.ppt': 'application/vnd.ms-powerpoint',
+  '.pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
+};
+export function mimeDeArchivo(ruta) {
+  return MIMES[path.extname(String(ruta || '')).toLowerCase()] || 'application/octet-stream';
+}
+export const FORMATOS_PERMISO = Object.keys(MIMES);
+
 // PASO 1 — Permiso de circulación + tasación + precio + formas de pago.
 // multipart: drivingPermit (archivo), commune, siiCode, taxationPrice, expirationDate,
 //            year, price, paymentMethods (JSON string).
@@ -369,6 +382,12 @@ export async function subirPermisoCirculacion(publicId, datos = {}, { confirmar 
   const g = guardia('uploadDocuments', resumen, confirmar);
   if (g) return { ...g, nota: 'Sube el permiso de circulación y fija tasación, precio y formas de pago.' };
   if (!archivo || !fs.existsSync(archivo)) throw new Error(`No encuentro el archivo del permiso de circulación: ${archivo}`);
+  // Chequeos que hace el front antes de enviar: formato y tamaño. Mejor fallar acá con un
+  // mensaje claro que comerse un rechazo mudo de AutoRed.
+  const ext = path.extname(archivo).toLowerCase();
+  if (!MIMES[ext]) throw new Error(`El permiso de circulación está en ${ext || 'un formato desconocido'} y AutoRed no lo acepta. Formatos válidos: ${FORMATOS_PERMISO.join(', ')}.`);
+  const tam = fs.statSync(archivo).size;
+  if (tam > 10 * 1024 * 1024) throw new Error(`El archivo del permiso pesa ${(tam / 1024 / 1024).toFixed(1)} MB y el máximo son 10 MB.`);
   const suma = totalFormasPago(pagos);
   if (suma !== soloDigitos(precioVenta)) {
     throw new Error(`La suma de las formas de pago (${conPuntos(suma)}) debe ser igual al precio de venta (${conPuntos(precioVenta)}).`);
@@ -377,7 +396,9 @@ export async function subirPermisoCirculacion(publicId, datos = {}, { confirmar 
   fd.append('commune', String(comuna || ''));
   fd.append('siiCode', String(siiCode || ''));
   const buf = fs.readFileSync(archivo);
-  fd.append('drivingPermit', new Blob([buf]), path.basename(archivo));
+  // ⚠️ El tipo MIME va SÍ o SÍ: AutoRed valida el formato del archivo y un Blob sin
+  // `type` viaja como application/octet-stream, que no está en su lista de permitidos.
+  fd.append('drivingPermit', new Blob([buf], { type: mimeDeArchivo(archivo) }), path.basename(archivo));
   fd.append('taxationPrice', String(soloDigitos(tasacionPrecio)));
   fd.append('expirationDate', String(vencimiento || ''));
   fd.append('year', String(vencimiento || '').slice(0, 4));
