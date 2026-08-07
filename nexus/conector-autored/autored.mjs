@@ -449,6 +449,15 @@ export async function ingresarCompradorOC(publicId, comprador, { confirmar = fal
   return { ok: true, publicId, respuesta: (() => { try { return JSON.parse(txt); } catch { return txt; } })() };
 }
 
+// Previsualiza las claves planas que se le mandarían a enter-info, sin enviar nada.
+// Sirve para revisar el mapeo contra lo que hace el front sin gastar una solicitud.
+export async function clavesEnterInfo(publicId, comprador) {
+  const estado = await estadoTransferencia(publicId);
+  const fd = new FormData();
+  aplanarEnFormData(fd, { sellers: Array.isArray(estado.sellers) ? estado.sellers : [], buyers: [armarComprador(comprador)] });
+  return [...fd.entries()].map(([k, v]) => `${k} = ${v}`);
+}
+
 // PASO 3 (lectura) — link de firma del CONTRATO (el que firma el COMPRADOR).
 // Ojo: el mandato es type=OC_MANDATE (lo firma el vendedor); el contrato es type=CONTRACT.
 export async function firmaContrato(publicId) {

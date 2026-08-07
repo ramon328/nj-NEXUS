@@ -129,10 +129,82 @@ Contenido del mandato: *MANDATO ESPECIAL E IRREVOCABLE* del vendedor a **PRESTAD
 JAVERIM SpA (Autosafe)**, RUT 76.324.632-9, para que firme la promesa/compraventa del vehículo en su
 representación. Eso es lo que hace "abierto" al contrato: el comprador final se completa después.
 
-### Paso 4 — Cierre (pendiente de mapear: exige un contrato abierto ya firmado)
-Firmado el mandato sigue: subir docs → `VERIFYING_DOCUMENTS` → datos del comprador
-(`enter-buyer-info`) → `vehicle-taxation` → `new-payment` (**impuestos, plata real**) →
-`CREATING_CONTRACT` (`CONTRACT_AUTOMATIC`) → `NOTARY` → `CIVIL_REGISTRY` → `COMPLETED`.
+### Paso 4 — CIERRE (MAPEADO 07-08-2026, verificado)
+Estos son los "**Próximos pasos**" que la UI muestra una vez firmado el mandato:
+**1)** subir el permiso de circulación · **2)** completar la info del comprador ·
+**3)** el comprador firma el contrato · **4)** pagar los impuestos.
+
+Los payloads NO están adivinados: salen del bundle del front (`buildUploadDocumentsFormData`,
+`buildFormData`, `EnterInfo`, `PayTaxes` — chunk `1efuxyhnu06ym.js`) y están contrastados contra la
+solicitud **475 (GYWL24)**, que llegó a Registro Civil con comprador empresa (KURTI SPA).
+
+#### 4.1 — Permiso de circulación + tasación + precio (`POST /{publicId}/upload-documents`)
+**multipart/form-data**, claves planas (NO JSON):
+
+| clave | qué es |
+|---|---|
+| `drivingPermit` | el archivo del permiso (≤10 MB; pdf/jpg/jpeg/png/webp/doc/docx/heic/ppt) |
+| `commune` | **nombre** de la comuna donde se pagó el permiso (no el id) |
+| `siiCode` | código SII de la tasación elegida, formato `AA1234567` |
+| `taxationPrice` | precio de esa tasación, número plano |
+| `expirationDate` | vencimiento del permiso |
+| `year` | `expirationDate.slice(0,4)` — lo manda el front aparte |
+| `price` | precio de venta, número plano |
+| `paymentMethods` | **JSON.stringify** de las 6 formas de pago |
+
+`paymentMethods` = `{efectivo, credito, tarjetaCredito, alContado, cheque, valeVista}`, cada una
+`{checked:bool, amount:"18.000.000"}` (monto **con puntos**, como string).
+⚠️ **La suma de las formas marcadas debe dar EXACTO el `price`**; el front lo valida antes de
+enviar ("La suma de las formas de pago debe ser igual al precio de venta") y el backend lo rechaza.
+
+Las tasaciones salen **gratis** de `GET /{publicId}/vehicle-taxation` → `[{code, price, model, brand,
+year, version}]`: son las versiones del auto, hay que elegir la que corresponde (PGXP70 devolvió 4).
+Si la lista viene vacía, el front manda `makeInputsOptional` y deja que Autosafe busque la tasación.
+
+#### 4.2 — Datos del comprador (`POST /{publicId}/enter-info`)
+⚠️ **Dos trampas grandes acá:**
+1. El endpoint es **`enter-info`**, NO `enter-buyer-info` (eso estaba mal en este mapeo).
+2. Hay que mandar **`sellers` Y `buyers` juntos**: el front arma
+   `{sellers: status.sellers || [], buyers: [elComprador]}` y el backend **reemplaza los dos lados**.
+   Si mandás solo `buyers`, **borrás al vendedor**.
+
+**multipart** con claves punteadas (`buildFormData` recursivo: arrays → `k.0`, objetos → `k.sub`,
+**null/undefined se omiten**). Verificado que sale idéntico al del front.
+
+Persona (`buyers.0.*`): `name`, `fLastName`, `mLastName`, `rut`, `dpto`, `street`, `houseNumber`,
+`phone`, `email`, `commune.id`, `commune.name`, `commune.region.name`, `hasUnion`,
+`hasRepresentative`, `isBeneficiary`. `union` (cónyuge) y `representative` van anidados igual.
+
+Empresa (`buyers.0.*`): `rut`, `socialReason`, `commune.*`, `street`, `houseNumber`, `dpto`,
+`isPublicDeed`, `constitutionDate`, `modificationDate`, `companyNotaryName`,
+`companyNotaryCommune`, `companyNotaryNumber`, y `legalRepresentative.0.{name,fLastName,mLastName,
+rut,phone,email}`. Los documentos de sociedad (`societyConstitution`, `validityOfPowers`,
+`validityOfSociety`, `societyModifications`, `updatedStatute`, `eRutSii`) se adjuntan como archivo
+en `buyers.0.<campo>` y el backend los reconoce por el nombre (`_comprador_` / `_propietario_`).
+
+#### 4.3 — Firma del COMPRADOR (`GET /{publicId}/signers?type=CONTRACT`)
+El mandato del vendedor es `type=OC_MANDATE`; **el contrato es `type=CONTRACT`**. Devuelve
+`{documentUrl, signers:[{status, name, rut, email, signUrl}]}` — el `signUrl` es el link de
+firmas.autosafe.cl que se le manda al comprador por WhatsApp.
+
+#### 4.4 — Impuestos (`POST /{publicId}/new-payment {type:"TAXES"}`)
+⚠️ **NO descuenta plata solo: GENERA el cobro** y devuelve `{paymentUrl}` — alguien tiene que
+entrar a ese link a pagar.
+
+**Monto** (fórmula del componente `PayTaxes`, no inventada):
+`regCivilCost + parseInt(0.015 * max(sellingPrice, taxationPrice))`
+→ 1,5% del **mayor** entre precio de venta y tasación fiscal, más el arancel del Registro Civil
+(**36.030** es el valor que usa el front cuando la API no manda `regCivilCost`).
+
+#### Otros endpoints del cierre
+- `POST /{publicId}/go-back {step}` — vuelve a un paso (`uploadDocuments`/`enterInfo`/`enterSellerInfo`).
+- `POST /business/transfers/massive-sign {publicIds:[]}` — firma masiva.
+- `GET /info/person?rut=` — nombre por RUT (da 400 seguido, se ignora).
+
+#### Recorrido de estados del cierre
+`UPLOAD_DOCUMENTS` → `ENTER_INFO` → `VERIFYING_DOCUMENTS` → `CREATING_CONTRACT` →
+`SIGN_CONTRACT` ("Firma del comprador" en B2B_OC) → `SIGNED_CONTRACT` / `PAY_TAXES` →
+`NOTARY` → `CIVIL_REGISTRY` → `COMPLETED`.
 
 ### Documentos que aparecen en un B2B_OC completado
 `CAV_INITIAL`, `OC_MANDATE`, `DNI`, `TRANSFER_CERTIFICATE`, `CIRCULATION_PERMIT`,
@@ -185,9 +257,48 @@ buscarComuna(nombre)          // -> {id, name, region:{name}} para el payload de
 ```
 CLI nuevo: `comuna <nombre> | firma <publicId> | docs <publicId>`.
 
+## Funciones del CIERRE en `autored.mjs`
+```
+estadoCierre(publicId)          // brújula: en qué paso va, hitos, alertas, docs (gratis)
+ultimoContrato(patente)         // ubica el contrato vivo más reciente de una patente
+subirPermisoCirculacion(publicId, {archivo, comuna, siiCode, tasacionPrecio,
+                                   vencimiento, precioVenta, formasPago}, {confirmar})
+ingresarCompradorOC(publicId, comprador, {confirmar})   // re-envía los sellers solo
+clavesEnterInfo(publicId, comprador)  // previsualiza el multipart SIN enviar (para revisar el mapeo)
+firmaContrato(publicId)         // link de firma del COMPRADOR (gratis)
+generarPagoImpuestos(publicId, {confirmar})             // devuelve paymentUrl
+costoTransferencia({precioVenta, tasacion, registroCivil})
+armarFormasPago({alContado: 18000000, ...}) / totalFormasPago(pagos)
+volverAPaso(publicId, paso, {confirmar})
+leerMapeo(n)                    // bitácora de las escrituras reales
+```
+CLI: `cierre <publicId> | firma-contrato <publicId> | ultimo [patente] | mapeo [n]`.
+
+**Bitácora de mapeo:** cada escritura del cierre deja request + respuesta en
+`mapeo-cierre.jsonl`. Sirve para ver qué contestó AutoRed de verdad cuando Joaquín usa el flujo,
+sin tener que mirarle la pantalla.
+
+## Tool `crear_contrato` en el hub — flujo completo
+Acciones: `crear` · `vendedor` · `firma` · `estado` (mitad 1, ya existían) y
+**`siguiente` · `permiso` · `comprador` · `firma_comprador` · `impuestos`** (el cierre).
+
+**Regla de oro: BORRADOR ANTES DE ENVIAR.** Las tres acciones que escriben (`permiso`,
+`comprador`, `impuestos`) sin `confirmar` devuelven un borrador con todo resuelto (comuna
+buscada en el catálogo, tasación emparejada, montos calculados, suma de formas de pago
+chequeada, datos del comprador reusados) + la lista de lo que falta. Solo con el OK explícito
+de la persona se vuelve a llamar con `confirmar:true`.
+
+- `siguiente` es la entrada: lee el estado REAL en AutoRed y dice el paso + qué pedirle a la persona.
+  Nunca se adivina el paso. Si piden un paso que no corresponde, responde `fuera_de_paso` y redirige.
+- El archivo del permiso sale de los adjuntos de WhatsApp (`ctx.media`).
+- **Reuso del comprador:** con el RUT se busca en los clientes de MallorcAutos
+  (`goautos.mjs cliente --rut`) y se prellenan nombre, email, teléfono y dirección; el borrador
+  dice de dónde salieron para que la persona los confirme. Si el RUT resulta ser de una empresa,
+  el comprador pasa a tratarse como empresa aunque no lo hayan dicho.
+
 ## Pendiente
-- Cierre del Contrato Abierto (paso 4): `enter-buyer-info`, `upload-documents` y `new-payment` — se
-  mapean cuando haya un contrato abierto con el mandato ya firmado (el 45851 sirve).
+- Ejecutar el cierre end-to-end con una solicitud real (la **497 / PGXP70** está justo en el paso 1).
+  Hasta que eso pase, los 4 pasos están mapeados y probados en dry-run, pero no ejecutados en vivo.
 - Wire del tool en `asistente.mjs` de Meme (leer siempre; crear con confirmación explícita por WhatsApp).
 
 ## REVISIÓN A FONDO DE DOCUMENTOS — `revisar_informe.py`
