@@ -365,7 +365,12 @@ export const totalFormasPago = (formas = {}) =>
 export const COSTO_REGISTRO_CIVIL = 36030;
 export function costoTransferencia({ precioVenta, tasacion, registroCivil } = {}) {
   const base = Math.max(soloDigitos(precioVenta), soloDigitos(tasacion));
-  const impuesto = parseInt(String(0.015 * base), 10) || 0;
+  // ⚠️ El front hace `parseInt(0.015*base)`, o sea TRUNCA, y por eso muestra 1 peso de
+  // menos cuando hay decimales. Lo real REDONDEA: contrastado contra los Formulario 23
+  // efectivamente pagados (KPDT21 656.249,64 -> 656.250 · HLDC70 228.274,995 -> 228.275 ·
+  // RYWK18 240.000 exacto). Redondeamos para que el número que le decimos al usuario sea
+  // el que de verdad va a pagar.
+  const impuesto = Math.round(0.015 * base) || 0;
   const rc = registroCivil == null ? COSTO_REGISTRO_CIVIL : soloDigitos(registroCivil);
   return { base, impuesto, registro_civil: rc, total: impuesto + rc };
 }
@@ -510,14 +515,33 @@ export async function clavesEnterInfo(publicId, comprador) {
 
 // PASO 3 (lectura) — link de firma del CONTRATO (el que firma el COMPRADOR).
 // Ojo: el mandato es type=OC_MANDATE (lo firma el vendedor); el contrato es type=CONTRACT.
+// ⚠️ El contrato lo firman DOS partes (vendedor y comprador), no una. Verificado en 4
+// contratos reales: `signers[0]` NO siempre es el comprador (en GYWL24 el primero era el
+// representante del vendedor). Por eso se cruza cada firmante con los RUT del comprador
+// que trae el status, en vez de asumir el orden.
+const soloRut = (r) => String(r || '').replace(/[^0-9kK]/g, '').toUpperCase();
 export async function firmaContrato(publicId) {
-  const f = await firmantes(publicId, 'CONTRACT');
+  const [f, estado] = await Promise.all([
+    firmantes(publicId, 'CONTRACT'),
+    estadoTransferencia(publicId).catch(() => ({})),
+  ]);
+  const rutsComprador = new Set();
+  for (const b of estado.buyers || []) {
+    if (b.rut) rutsComprador.add(soloRut(b.rut));
+    for (const rep of b.legalRepresentative || []) if (rep.rut) rutsComprador.add(soloRut(rep.rut));
+    if (b.representative?.rut) rutsComprador.add(soloRut(b.representative.rut));
+  }
+  const lista = (f.signers || []).map((s) => ({
+    nombre: [s.name, s.fLastName, s.mLastName].filter(Boolean).join(' ') || s.socialReason || '',
+    rut: s.rut, email: s.email, estado: s.status, linkFirma: s.signUrl,
+    lado: rutsComprador.has(soloRut(s.rut)) ? 'comprador' : 'vendedor',
+  }));
   return {
     documento: f.documentUrl,
-    firmantes: (f.signers || []).map((s) => ({
-      nombre: [s.name, s.fLastName, s.mLastName].filter(Boolean).join(' ') || s.socialReason || '',
-      rut: s.rut, email: s.email, estado: s.status, linkFirma: s.signUrl,
-    })),
+    firmantes: lista,
+    comprador: lista.filter((s) => s.lado === 'comprador'),
+    vendedor: lista.filter((s) => s.lado === 'vendedor'),
+    faltan_firmar: lista.filter((s) => s.estado !== 'SIGNED').map((s) => s.nombre || s.rut),
   };
 }
 

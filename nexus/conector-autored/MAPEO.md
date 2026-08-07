@@ -234,19 +234,39 @@ rut,phone,email}`. Los documentos de sociedad (`societyConstitution`, `validityO
 `validityOfSociety`, `societyModifications`, `updatedStatute`, `eRutSii`) se adjuntan como archivo
 en `buyers.0.<campo>` y el backend los reconoce por el nombre (`_comprador_` / `_propietario_`).
 
-#### 4.3 — Firma del COMPRADOR (`GET /{publicId}/signers?type=CONTRACT`)
+#### 4.3 — Firma del CONTRATO (`GET /{publicId}/signers?type=CONTRACT`) ✅ verificado
 El mandato del vendedor es `type=OC_MANDATE`; **el contrato es `type=CONTRACT`**. Devuelve
 `{documentUrl, signers:[{status, name, rut, email, signUrl}]}` — el `signUrl` es el link de
-firmas.autosafe.cl que se le manda al comprador por WhatsApp.
+firmas.autosafe.cl.
 
-#### 4.4 — Impuestos (`POST /{publicId}/new-payment {type:"TAXES"}`)
+⚠️ **Lo firman DOS partes, y el orden NO es fijo.** Verificado en 4 contratos reales: en GYWL24 el
+`signers[0]` era el representante del VENDEDOR, no el comprador. Hay que cruzar el RUT de cada
+firmante con los del comprador del `status` (incluyendo `legalRepresentative` y `representative`),
+nunca asumir el orden. `firmaContrato()` ya devuelve `comprador`, `vendedor` y `faltan_firmar`.
+
+ℹ️ Apenas queda cargado el comprador, **AutoRed le manda la firma sola al cliente** (dato de
+Ramón): no hace falta enviarle el link a mano, solo sirve para consultar el estado o reenviarlo.
+
+#### 4.4 — Impuestos (`POST /{publicId}/new-payment {type:"TAXES"}`) ✅ fórmula validada
 ⚠️ **NO descuenta plata solo: GENERA el cobro** y devuelve `{paymentUrl}` — alguien tiene que
 entrar a ese link a pagar.
 
-**Monto** (fórmula del componente `PayTaxes`, no inventada):
-`regCivilCost + parseInt(0.015 * max(sellingPrice, taxationPrice))`
-→ 1,5% del **mayor** entre precio de venta y tasación fiscal, más el arancel del Registro Civil
-(**36.030** es el valor que usa el front cuando la API no manda `regCivilCost`).
+**Monto:** 1,5% del **mayor** entre precio de venta y tasación fiscal, más el arancel del Registro
+Civil (**36.030** cuando la API no manda `regCivilCost`).
+
+⚠️ **Redondear, no truncar.** El front hace `parseInt(0.015*base)` (trunca) y por eso muestra 1
+peso de menos cuando hay decimales. Contrastado contra los **Formulario 23 realmente pagados**
+(se bajan gratis con el doc `TAX_PAYMENT_RECEIPT` y se leen con `pypdf`):
+
+| patente | base | front (trunca) | pagado real |
+|---|---|---|---|
+| RYWK18 | 16.000.000 | 240.000 | **240.000** |
+| KPDT21 | 43.749.976 | 656.249 | **656.250** |
+| HLDC70 | 15.218.333 | 228.274 | **228.275** |
+| GYWL24 | 250.000.000 | 3.750.000 | **3.750.000** |
+
+`costoTransferencia()` usa `Math.round` y da **4/4** contra lo efectivamente pagado.
+El F23 cubre solo el impuesto; el arancel del Registro Civil se cobra aparte.
 
 #### Otros endpoints del cierre
 - `POST /{publicId}/go-back {step}` — vuelve a un paso (`uploadDocuments`/`enterInfo`/`enterSellerInfo`).

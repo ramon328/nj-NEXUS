@@ -5178,7 +5178,9 @@ async function ejecutar(nombre, input, ctx = {}) {
           // ── PASO 3 · firma del comprador (lectura, gratis) ──
           if (accion === 'firma_comprador') {
             const f = await autored.firmaContrato(publicId).catch(() => null)
-            const f0 = f?.firmantes?.[0] || null
+            // El contrato lo firman las DOS partes y el orden no es fijo: se toma al
+            // firmante del lado COMPRADOR, nunca el primero de la lista.
+            const f0 = f?.comprador?.[0] || null
             if (!f0?.linkFirma) {
               return JSON.stringify({ ok: true, publicId, estado: c.estado, paso_actual: c.paso, sin_link: true, instruccion: `Todavía no hay link de firma del contrato de ${c.patente} (el contrato va en "${c.titulo_paso}"). ${c.paso === 'esperar' ? 'AutoRed lo está generando: dile que hay que esperar y reintenta en un rato.' : 'Revisa con accion:"siguiente" qué falta antes.'}` })
             }
@@ -5199,6 +5201,8 @@ async function ejecutar(nombre, input, ctx = {}) {
               ok: true, paso: '3 de 4 · Firma del comprador', publicId, patente: c.patente,
               link_firma: f0.linkFirma, documento: f.documento,
               firmante: { nombre: f0.nombre, rut: f0.rut, estado: f0.estado },
+              todos_los_firmantes: f.firmantes.map((s) => `${s.nombre} (${s.lado}): ${s.estado === 'SIGNED' ? 'firmado' : 'pendiente'}`),
+              faltan_firmar: f.faltan_firmar.length ? f.faltan_firmar : null,
               link_enviado: enviado,
               instruccion: `Link de firma del CONTRATO para el comprador ${f0.nombre || ''} (estado: ${f0.estado}): ${f0.linkFirma}${enviado === true ? ' — ya se lo mandé por WhatsApp.' : enviado === false ? ' — NO pude mandárselo, dáselo tú.' : ' — mándaselo al comprador (o pásame su número en comprador.numeroWhatsapp y se lo mando yo).'} Cuando firme, queda el paso 4: pagar los impuestos.`,
             })
