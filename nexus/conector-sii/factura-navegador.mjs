@@ -362,6 +362,12 @@ export async function generarBorradorCompra({ vendedor = {}, item = {}, emisor =
   if (!(Number(item.precio) > 0)) {
     return { ok: false, tipo_dte: 46, error: 'Falta el PRECIO del ítem (item.precio) o no es mayor que 0.' }
   }
+  // Misma historia que el detalle: sin DIRECCIÓN/COMUNA del receptor el SII rechaza el
+  // borrador sin mensaje legible. Verificado en vivo el 07-08-2026 (Joaquín, PGXP70):
+  // 3 intentos sin dirección → rechazo mudo; con dirección → vista previa a la primera.
+  if (!String(vendedor.direccion || '').trim() || !String(vendedor.comuna || '').trim()) {
+    return { ok: false, tipo_dte: 46, error: 'Falta la DIRECCIÓN y/o la COMUNA del receptor (vendedor): el SII las exige y sin ellas rechaza el borrador sin decir por qué. Pídeselas a la persona.' }
+  }
   const formCompra = `https://www1.sii.cl/cgi-bin/Portal001/mipeGenFacEx.cgi?AGENTE_RETENEDOR=${cs.camsuj}&PTDC_CODIGO=46`
   await inyectarSesion(apiToken)
   // 1) empresa emisora (Ana Clara)

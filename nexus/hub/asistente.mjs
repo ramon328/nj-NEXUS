@@ -41,6 +41,8 @@ import { conteo as tagConteo, conteoExcel as tagConteoExcel, leerSnapshot as tag
 import * as autored from '../conector-autored/autored.mjs'
 // Gastos — registra gastos en la BD nueva de MallorcAutos (Supabase); carga su propio .env.
 import * as gastosDB from '../conector-gastos/gastos.mjs'
+// CAV guardados por patente (PBV y tipo NO existen en GoAutos ni en la BD nueva: solo acá).
+import { leerCav } from '../conector-goautos/cav-store.mjs'
 // Conciliación — cruza SII ↔ banco sobre la BD nueva (reusa el motor de match del SAI).
 import * as conciliacion from '../conector-gastos/conciliar.mjs'
 
@@ -2947,7 +2949,7 @@ const HERRAMIENTAS = [
   // ── FACTURA DE COMPRA (DTE 46) · BORRADOR, sin emitir ─────────────────────────
   {
     name: 'factura_compra',
-    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos (el que emite el documento es el comprador, no el proveedor). Se arma con la SESIÓN DEL SII DE NICO. FLUJO DE 2 PASOS: (1) accion:"borrador" → te MANDA la VISTA PREVIA por WhatsApp (NO emite); (2) SOLO tras el "sí, emítela" explícito de la persona, accion:"emitir" + emitir_real:true → FIRMA y EMITE de verdad en el SII (⚠️ IRREVERSIBLE, consume folio) y te manda el PDF oficial. NUNCA pongas emitir_real:true sin que la persona haya visto el borrador y confirmado. DOS CASOS: (A) COMPRA DE AUTO USADO a particular → pásale la PATENTE: saca auto (marca/modelo/motor/chasis/km) + vendedor + precio del EXPEDIENTE de compra; cambio de sujeto "Productos Usados" (SIN IVA, total = precio). (B) GASTO SIN FACTURA (proveedor que no factura, ej. mecánico/repuestos) → NO pases patente; pásale vendedor_rut (del proveedor), monto y glosa: usa el cambio de sujeto GENÉRICO con RETENCIÓN 19%. En ambos el SII autocompleta el nombre desde el RUT. Úsalo en el PASO 5 del flujo de compra, o cuando un GASTO quede "sin factura" y haya que emitir la factura de compra, o si piden "hazme la factura de compra". 🔁 CORRECCIONES / AGREGAR DATOS (IMPORTANTE): si ya mandaste un borrador y la persona pide CAMBIAR o AGREGAR algo, DEBES VOLVER A LLAMAR factura_compra pasando ese dato como parámetro — se regenera el borrador con el cambio. Mapa: precio→"precio"/"monto"; descripción del gasto→"glosa"; RUT/dirección del proveedor→"vendedor_rut"/"vendedor_direccion"; **chasis o VIN del auto→"chasis"; N° de motor→"motor"; cualquier otro texto que quiera agregar→"detalle_extra"**. ⚠️ Si falta el chasis/VIN u otro dato del auto y la persona te lo da, PÁSALO en "chasis"/"motor" a ESTA herramienta — NO basta con guardarlo en GoAutos (factura_compra NO lee GoAutos, lee el expediente y la BD nueva). NO respondas "listo/corregido/agregado" sin volver a llamar la herramienta: si no la re-llamas, el borrador NO cambia. El NOMBRE del proveedor lo autocompleta el SII desde el RUT; si sale mal, corrige el RUT.',
+    description: 'BORRADOR de la FACTURA DE COMPRA electrónica (DTE 46) de ANA CLARA / MallorcAutos (el que emite el documento es el comprador, no el proveedor). Se arma con la SESIÓN DEL SII DE NICO. FLUJO DE 2 PASOS: (1) accion:"borrador" → te MANDA la VISTA PREVIA por WhatsApp (NO emite); (2) SOLO tras el "sí, emítela" explícito de la persona, accion:"emitir" + emitir_real:true → FIRMA y EMITE de verdad en el SII (⚠️ IRREVERSIBLE, consume folio) y te manda el PDF oficial. NUNCA pongas emitir_real:true sin que la persona haya visto el borrador y confirmado. DOS CASOS: (A) COMPRA DE AUTO USADO a particular → pásale la PATENTE: saca auto (marca/modelo/motor/chasis/km) + vendedor + precio del EXPEDIENTE de compra; cambio de sujeto "Productos Usados" (SIN IVA, total = precio). (B) GASTO SIN FACTURA (proveedor que no factura, ej. mecánico/repuestos) → NO pases patente; pásale vendedor_rut (del proveedor), monto y glosa: usa el cambio de sujeto GENÉRICO con RETENCIÓN 19%. En ambos el SII autocompleta el nombre desde el RUT. Úsalo en el PASO 5 del flujo de compra, o cuando un GASTO quede "sin factura" y haya que emitir la factura de compra, o si piden "hazme la factura de compra". 🔁 CORRECCIONES / AGREGAR DATOS (IMPORTANTE): si ya mandaste un borrador y la persona pide CAMBIAR o AGREGAR algo, DEBES VOLVER A LLAMAR factura_compra pasando ese dato como parámetro — se regenera el borrador con el cambio. Mapa: precio→"precio"/"monto"; descripción del gasto→"glosa"; RUT/dirección/comuna del proveedor→"vendedor_rut"/"vendedor_direccion"/"vendedor_comuna"; **datos del vehículo→su propio parámetro: "chasis" (VIN), "motor", "pbv", "tipo", "marca", "modelo", "anio", "color", "combustible", "km"; cualquier otro texto suelto→"detalle_extra"**. ⚠️ Si la persona dice que al borrador le falta o le sobra un dato del auto (típico: "faltó el PBV"), PÁSALO en su parámetro a ESTA herramienta — NO basta con guardarlo en GoAutos. NO respondas "listo/corregido/agregado" sin volver a llamar la herramienta: si no la re-llamas, el borrador NO cambia. 🧠 La herramienta RECUERDA los datos de tu última llamada para esa patente/RUT: al corregir un campo NO se pierden los demás, así que puedes mandar solo lo que cambia (igual, si tienes el dato a mano, mándalo). 📍 La DIRECCIÓN y la COMUNA del vendedor son OBLIGATORIAS: el SII rechaza el borrador sin ellas y no dice por qué; si no las tienes, la herramienta te lo avisa antes de intentar. El NOMBRE del proveedor lo autocompleta el SII desde el RUT; si sale mal, corrige el RUT.',
     input_schema: {
       type: 'object',
       properties: {
@@ -2963,6 +2965,14 @@ const HERRAMIENTAS = [
         glosa: { type: 'string', description: 'CASO GASTO: descripción de lo comprado/servicio (ej. "servicio mecánico", "repuestos").' },
         chasis: { type: 'string', description: 'CASO AUTO: chasis/VIN del auto. PÁSALO si falta en la ficha o si la persona lo da/corrige — se agrega al detalle del borrador.' },
         motor: { type: 'string', description: 'CASO AUTO: N° de motor. Pásalo si falta o si la persona lo da/corrige.' },
+        pbv: { type: 'string', description: 'CASO AUTO: PBV del CAV (ej "2.594,00 KILOS"). Se toma solo del CAV guardado; pásalo si la persona lo dicta o lo corrige.' },
+        tipo: { type: 'string', description: 'CASO AUTO: tipo de vehículo del CAV (ej "STATION WAGON", "SEDAN"). NO es la versión comercial.' },
+        marca: { type: 'string', description: 'CASO AUTO: marca, si hay que corregirla.' },
+        modelo: { type: 'string', description: 'CASO AUTO: modelo, si hay que corregirlo.' },
+        anio: { type: 'string', description: 'CASO AUTO: año, si hay que corregirlo.' },
+        color: { type: 'string', description: 'CASO AUTO: color, si falta o hay que corregirlo.' },
+        combustible: { type: 'string', description: 'CASO AUTO: combustible, si falta o hay que corregirlo.' },
+        km: { type: 'number', description: 'CASO AUTO: kilometraje que va en el detalle.' },
         detalle_extra: { type: 'string', description: 'Texto LIBRE que la persona quiere AGREGAR al detalle de la factura (ej. "incluye llave adicional", una observación). Se añade tal cual al final de la descripción.' },
         cambio_sujeto: { type: 'string', enum: ['usados', 'generico'], description: 'Opcional. Auto = "usados" (default con patente). Gasto = "generico" (default sin patente, retención 19%).' },
       },
@@ -4644,6 +4654,37 @@ async function ejecutar(nombre, input, ctx = {}) {
     }
     // ── FACTURA DE COMPRA (DTE 46) · BORRADOR (vista previa), NUNCA emite ──────────
     if (nombre === 'factura_compra') {
+      // ── MEMORIA DE LA ÚLTIMA LLAMADA (incidente 07-08-2026, Joaquín / PGXP70) ──────
+      // Esta tool era SIN MEMORIA: cada llamada armaba el borrador de cero. Cuando la
+      // persona pedía "corrige el chasis", el modelo re-llamaba pasando SOLO el chasis y
+      // se PERDÍAN la dirección y comuna del vendedor (que no están en ningún expediente
+      // cuando el auto no vino del flujo compra). Sin dirección el SII rechaza el borrador
+      // sin mensaje legible → 3 intentos fallidos seguidos y "no sé qué campo rechazó".
+      // Ahora los parámetros de la última llamada se guardan y se MEZCLAN: lo nuevo pisa
+      // lo viejo, lo que no venga se hereda. Corregir un campo ya no borra los demás.
+      const FCPATH = join(__dirname, '.factura-compra-ultima.json')
+      const fcKey = `${ctx.de || '_anon'}::${String(input.patente || input.vendedor_rut || '').trim().toUpperCase().replace(/[\s.\-]/g, '')}`
+      const FC_HEREDA = ['patente', 'vendedor_rut', 'vendedor_nombre', 'vendedor_direccion', 'vendedor_comuna',
+        'precio', 'monto', 'glosa', 'chasis', 'motor', 'pbv', 'tipo', 'marca', 'modelo', 'anio', 'color',
+        'combustible', 'km', 'detalle_extra', 'cambio_sujeto']
+      let fcPrev = {}
+      try { fcPrev = (JSON.parse(readFileSync(FCPATH, 'utf8')) || {})[fcKey] || {} } catch { fcPrev = {} }
+      for (const k of FC_HEREDA) {
+        if (input[k] === undefined || input[k] === null || input[k] === '') {
+          if (fcPrev[k] !== undefined && fcPrev[k] !== null && fcPrev[k] !== '') input[k] = fcPrev[k]
+        }
+      }
+      const fcGuardar = () => {
+        try {
+          let todo = {}
+          try { todo = JSON.parse(readFileSync(FCPATH, 'utf8')) || {} } catch { todo = {} }
+          const guardado = {}
+          for (const k of FC_HEREDA) if (input[k] !== undefined && input[k] !== null && input[k] !== '') guardado[k] = input[k]
+          guardado.ts = new Date().toISOString()
+          todo[fcKey] = guardado
+          writeFileSync(FCPATH, JSON.stringify(todo, null, 2), 'utf8')
+        } catch { /* best-effort: nunca tumbar la emisión por el caché */ }
+      }
       const patente = String(input.patente || '').trim().toUpperCase().replace(/[\s.\-]/g, '')
       // Token del backend SII LOCAL (el navegador usa la sesión de NICO que guarda ese backend).
       let token = ''
@@ -4656,14 +4697,29 @@ async function ejecutar(nombre, input, ctx = {}) {
         const ckey = `${ctx.de || '_anon'}::${patente}`
         let exp = {}
         try { exp = (JSON.parse(readFileSync(CPATH, 'utf8')) || {})[ckey] || {} } catch { exp = {} }
-        let a = exp.auto || {}; const v = exp.vendedor || {}
-        // Respaldo: si el expediente no trae el detalle del auto, sácalo de la BD (vehiculos).
-        // Merge SOLO con valores definidos (que un campo vacío del expediente no pise la ficha).
+        const v = exp.vendedor || {}
+        // Merge SOLO con valores definidos (que un campo vacío no pise a uno bueno).
         const soloDef = (o) => Object.fromEntries(Object.entries(o || {}).filter(([, x]) => x != null && x !== ''))
-        if (!a.motor || !a.chasis) { try { const fv = await gastosDB.fichaVehiculo(patente); if (fv) a = { ...soloDef(fv), ...soloDef(a) } } catch { /* */ } }
-        // Overrides que da/corrige la persona (chasis/VIN, motor): mandan por sobre todo.
-        if (input.chasis) a.chasis = String(input.chasis).trim()
-        if (input.motor) a.motor = String(input.motor).trim()
+        // ── DE DÓNDE SALEN LOS DATOS DEL AUTO, de MENOR a MAYOR autoridad ─────────────
+        //   1. BD nueva (vehiculos)  — tiene marca/modelo/color/km, pero NO PBV ni tipo,
+        //      y a veces trae basura (en PGXP70 el motor venía igual al chasis).
+        //   2. CAV guardado           — es el DOCUMENTO OFICIAL: manda en la identidad del
+        //      vehículo (tipo, motor, chasis, PBV, color, combustible, año).
+        //   3. Expediente de compra   — lo que se cargó en el flujo compra para ESTE auto.
+        //   4. input.*                — lo que la persona dicta/corrige ahora: manda sobre todo.
+        // (Incidente 07-08-2026, Joaquín/PGXP70: la de COMPRA no miraba el CAV, así que el
+        //  PDF salía sin PBV y con el motor malo aunque el CAV correcto estaba guardado.)
+        let a = {}
+        try { const fv = await gastosDB.fichaVehiculo(patente); if (fv) a = { ...a, ...soloDef(fv) } } catch { /* */ }
+        try { const cav = leerCav(patente); if (cav) a = { ...a, ...soloDef(cav) } } catch { /* */ }
+        a = { ...a, ...soloDef(exp.auto) }
+        for (const k of ['chasis', 'motor', 'pbv', 'tipo', 'marca', 'modelo', 'anio', 'color', 'combustible']) {
+          if (input[k]) a[k] = String(input[k]).trim()
+        }
+        // Chequeo de sanidad: motor == chasis es SIEMPRE un dato corrupto (pasó en la BD
+        // nueva con PGXP70). Preferimos omitir el motor antes que imprimir uno falso.
+        if (a.motor && a.chasis && String(a.motor).replace(/\s+/g, '') === String(a.chasis).replace(/\s+/g, '')) delete a.motor
+        if (input.km != null && input.km !== '') exp.km = input.km
         if (exp.km == null && a.km != null) exp.km = a.km
         const rut = String(input.vendedor_rut || v.rut || '').trim()
         precio = Number(input.precio) > 0 ? Number(input.precio) : Number(exp.precio_compra) || 0
@@ -4699,6 +4755,17 @@ async function ejecutar(nombre, input, ctx = {}) {
       }
       const detIVA = cambioSujeto === 'generico' ? 'con retención 19%' : 'sin IVA'
       const item = { detalle, precio, cantidad: 1 }
+      // GUARDIA DE DIRECCIÓN (incidente 07-08-2026). Sin dirección/comuna del receptor el
+      // SII rechaza el borrador SIN mensaje legible: el robot gastaba ~2 min de navegador
+      // para volver con "no sé qué campo rechazó". Cortamos antes y pedimos el dato claro.
+      if (!String(vendedor.direccion || '').trim() || !String(vendedor.comuna || '').trim()) {
+        const falta = [!String(vendedor.direccion || '').trim() ? 'la DIRECCIÓN (calle y número)' : '',
+          !String(vendedor.comuna || '').trim() ? 'la COMUNA' : ''].filter(Boolean).join(' y ')
+        return JSON.stringify({ ok: false, falta_dato: true,
+          error: `Falta ${falta} del ${patente ? 'VENDEDOR' : 'PROVEEDOR'} para la factura de compra. El SII la exige y sin ella rechaza el borrador sin decir por qué.`,
+          instruccion: `Pídesela a la persona y vuelve a llamar factura_compra con vendedor_direccion y vendedor_comuna. NO digas que el SII falló: falta un dato nuestro.` })
+      }
+      fcGuardar()   // desde acá los datos ya están completos: se recuerdan para la próxima llamada
       try {
         const robot = await import('../conector-sii/factura-navegador.mjs')
         // ── EMISIÓN REAL (irreversible): solo con accion:"emitir" + emitir_real:true ──
@@ -6721,13 +6788,22 @@ export async function responder(historial, opts = {}) {
   // el auto en turnos posteriores (cuando ya no llegan adjuntos nuevos).
   const mediaTurno = (Array.isArray(opts.media) ? opts.media : []).filter(Boolean)
   const mediaHandler = (Array.isArray(opts.mediaReciente) && opts.mediaReciente.length) ? opts.mediaReciente : mediaTurno
-  if (mediaTurno.length) {
+  // 👁️ QUÉ VE EL MODELO. Antes solo se inyectaban los adjuntos de ESTE turno: al turno
+  // siguiente la foto desaparecía del contexto y Nexus contestaba "no tengo forma de
+  // reabrir esa imagen" cuando le decían "corrígelo con lo que sale ahí" (07-08-2026,
+  // Joaquín / CAV del PGXP70). Ahora, si el turno NO trae adjuntos nuevos, se re-inyectan
+  // los recientes (mismo TTL de 20 min del server) para poder RELEERLOS. Tope bajo (4)
+  // porque cada imagen cuesta contexto y esto corre en cada turno de la ventana.
+  const mediaVer = mediaTurno.length ? mediaTurno.slice(0, 8) : (Array.isArray(opts.mediaReciente) ? opts.mediaReciente : []).slice(-4)
+  if (mediaVer.length) {
     const ult = [...mensajes].reverse().find((m) => m.role === 'user')
     if (ult) {
       const bloques = typeof ult.content === 'string' ? [{ type: 'text', text: ult.content }] : ult.content
-      const adj = mediaTurno.slice(0, 8).map(bloqueMedia).filter(Boolean)
+      const adj = mediaVer.map(bloqueMedia).filter(Boolean)
       if (adj.length) {
-        bloques.push({ type: 'text', text: `[Adjuntos recibidos por WhatsApp: ${adj.length}. Índices 0..${adj.length - 1} en el orden mostrado. Si es para subir un auto, indica en indice_foto cuál es la foto del auto.]` })
+        bloques.push({ type: 'text', text: mediaTurno.length
+          ? `[Adjuntos recibidos por WhatsApp: ${adj.length}. Índices 0..${adj.length - 1} en el orden mostrado. Si es para subir un auto, indica en indice_foto cuál es la foto del auto.]`
+          : `[Adjuntos RECIENTES de esta conversación (${adj.length}), NO llegaron en este mensaje: se te muestran de nuevo para que puedas releerlos si la persona se refiere a ellos ("lo que sale ahí", "el documento que te mandé"). Índices 0..${adj.length - 1}.]` })
         bloques.push(...adj)
         ult.content = bloques
       }
