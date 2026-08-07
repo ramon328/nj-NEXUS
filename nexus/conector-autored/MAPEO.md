@@ -169,6 +169,14 @@ Si la lista viene vacía, el front manda `makeInputsOptional` y deja que Autosaf
 #### 4.2 — Datos del comprador (`POST /{publicId}/enter-info`)
 🔴 **BLOQUEADO EN LA SOLICITUD 45859 / PGXP70 (07-08-2026): devuelve HTTP 400 con cuerpo VACÍO.**
 
+✅ **PROBADO QUE ES DE AUTORED, NO NUESTRO.** Prueba final: `go-back` a `uploadDocuments`
+(HTTP 200, `{"message":"Retroceso a paso uploadDocuments realizado correctamente"}`) → se rehízo
+**el paso 1 completo desde el formulario web de AutoRed** (su `upload-documents` respondió 200; el
+formulario venía precargado con TODOS nuestros datos, lo que confirma que nuestra subida por API
+era correcta) → se siguió al paso 2 **por su misma web** → `enter-info` **400 otra vez**.
+Es decir: el flujo entero hecho por su producto, sin API nuestra, falla igual.
+El contrato quedó intacto (vendedor, mandato, permiso, precio, tasación y forma de pago).
+
 **Causa probable — un registro de vendedor mal grabado POR ESTE CONECTOR, no un bug de AutoRed.**
 Se comparó cómo quedó guardado el vendedor en los 12 contratos abiertos de la cuenta: **todos** los
 vendedores persona tienen el teléfono en E.164 **con "+"** (`+56993196983`) y los bloques
