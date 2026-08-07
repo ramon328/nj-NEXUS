@@ -292,6 +292,12 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
         ok, estado: masiva?.estado || resultado?.estado || 'sin_resultado',
         archivo: gen.ruta, total: gen.total, monto_total: gen.monto_total,
         concepto: concepto || null, masiva, resumen: masiva?.resumen || null,
+        // Motivo y espera del candado anti-quemado: sin esto el hub no podía distinguir
+        // "nuestro throttle" de "el banco no me dejó entrar" y le decía al usuario que
+        // fallara el login, sin decirle cuánto esperar (07-08-2026, lote de Joaquín).
+        motivo: resultado?.motivo ?? null,
+        espera_min: resultado?.espera_min ?? null,
+        nota_login: resultado?.nota ?? null,
         stderr: ok ? undefined : err.slice(-400),
       })
     })

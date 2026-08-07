@@ -312,16 +312,49 @@ function registrarDeviceTrust(slug) {
   h.device_trust = (h.device_trust || []).filter((t) => Date.now() - t < 6 * 3600_000)
   h.device_trust.push(Date.now()); guardarHistLogin(slug, h)
 }
-// null = se puede loguear (y REGISTRA el intento). {motivo, esperaMin} = NO loguear.
+// Un intento se reserva ANTES de loguear (para que dos llamadores no se atropellen), pero
+// lo que de verdad "quema" la cuenta en Santander es MANDAR las credenciales. Si el proceso
+// muere antes de eso (lo mató un reinicio del hub, se cayó la red), ese intento reservado
+// bloqueaba 8 minutos y gastaba un cupo por un login que NUNCA tocó el formulario.
+// (Pasó el 07-08-2026: un reinicio del hub mató el login y el reintento de Joaquín rebotó
+// contra nuestro propio candado.) Solución: los intentos se guardan con estado; los
+// RESERVADOS solo cuentan mientras podrían estar en vuelo (RESERVA_VIVA_MS), después se
+// descartan. Los CONFIRMADOS (credenciales enviadas) cuentan la hora completa, como siempre.
+const RESERVA_VIVA_MS = Number(process.env.TEK_LOGIN_RESERVA_MS || 3 * 60_000)
+// Los históricos son números sueltos; los nuevos, {t, ok}. Se leen los dos.
+const _tsLogin = (x) => (typeof x === 'number' ? x : Number(x?.t) || 0)
+const _confirmado = (x) => (typeof x === 'number' ? true : x?.ok === true)
+/** Solo los intentos que cuentan para el throttle AHORA. */
+function loginsVigentes(h, now) {
+  return (h.logins || []).filter((x) => {
+    const t = _tsLogin(x)
+    if (!t || now - t >= 3600_000) return false
+    return _confirmado(x) ? true : now - t < RESERVA_VIVA_MS   // reserva huérfana → no cuenta
+  })
+}
+/** Marca el intento reservado como REAL (se enviaron credenciales al banco). */
+function confirmarLogin(slug, ts) {
+  try {
+    const h = leerHistLogin(slug)
+    h.logins = (h.logins || []).map((x) => (_tsLogin(x) === ts && !_confirmado(x) ? { t: ts, ok: true } : x))
+    guardarHistLogin(slug, h)
+  } catch { /* nunca romper el login por el contador */ }
+}
+// null = se puede loguear (y RESERVA el intento). {motivo, esperaMin} = NO loguear.
 function chequearThrottleLogin(slug) {
   const now = Date.now(); const h = leerHistLogin(slug)
-  h.logins = (h.logins || []).filter((t) => now - t < 3600_000)
+  const vig = loginsVigentes(h, now)
+  h.logins = vig
   const dt = (h.device_trust || []).filter((t) => now - t < LOGIN_DT_COOLDOWN_MS)
   if (dt.length) return { motivo: 'cooldown_device_trust', esperaMin: Math.ceil((LOGIN_DT_COOLDOWN_MS - (now - Math.max(...dt))) / 60000) }
-  if (h.logins.length && now - Math.max(...h.logins) < LOGIN_MIN_GAP_MS) return { motivo: 'gap_minimo', esperaMin: Math.ceil((LOGIN_MIN_GAP_MS - (now - Math.max(...h.logins))) / 60000) }
-  if (h.logins.length >= LOGIN_MAX_HORA) return { motivo: 'max_por_hora', esperaMin: Math.ceil((3600_000 - (now - Math.min(...h.logins))) / 60000) }
-  h.logins.push(now); guardarHistLogin(slug, h); return null
+  const tsMax = vig.length ? Math.max(...vig.map(_tsLogin)) : 0
+  if (tsMax && now - tsMax < LOGIN_MIN_GAP_MS) return { motivo: 'gap_minimo', esperaMin: Math.ceil((LOGIN_MIN_GAP_MS - (now - tsMax)) / 60000) }
+  if (vig.length >= LOGIN_MAX_HORA) return { motivo: 'max_por_hora', esperaMin: Math.ceil((3600_000 - (now - Math.min(...vig.map(_tsLogin)))) / 60000) }
+  h.logins.push({ t: now, ok: false }); guardarHistLogin(slug, h)
+  _loginReservado = now
+  return null
 }
+let _loginReservado = 0
 const ERR_RE = /clave.*incorrect|usuario.*incorrect|datos.*inv[aá]lid|no coincide|bloquead|revisa los datos/i
 
 // ── MAPEO (TEK_MAPEAR=1): captura API interna + menú + bundles, SOLO LECTURA ──
@@ -3310,6 +3343,10 @@ async function main() {
   if (!aceptar) return fin('sin_boton_aceptar')
   await moveToLoc(page, aceptar); await sleep(rnd(220, 560)); await clickReal(page)
   loginIntentado = true   // desde acá, un rebote a error_seguridad SÍ es un golpe de dispositivo real
+  // Recién ACÁ el login "quema" cuenta: las credenciales ya salieron. Se confirma la reserva
+  // del throttle. Si el proceso muere antes de esta línea, la reserva caduca sola y NO gasta
+  // cupo ni bloquea 8 minutos (ver chequearThrottleLogin).
+  if (_loginReservado) confirmarLogin(userSlug, _loginReservado)
   log('Aceptar clickeado (humano)')
 
   let deadline = Date.now() + 80_000

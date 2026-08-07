@@ -3282,6 +3282,22 @@ function loginNoEntroAuto(res) {
   if (!res || res.ok || res.pendiente || res.ya_pendiente) return false
   return RE_LOGIN_NO_ENTRO.test(String(res.estado || '') + ' ' + String(res.masiva?.estado || ''))
 }
+/** El que frenó NO fue el banco: fue NUESTRO candado anti-quemado (throttle de login).
+ *  Hay que decirlo distinto — "el login no entró" es falso y deja al usuario sin saber
+ *  cuánto esperar. Devuelve {esperaMin, motivo} o null. (07-08-2026, lote de Joaquín:
+ *  Nexus le dijo "el login automático no logró entrar" cuando era el gap de 8 minutos.) */
+function throttleDeLogin(res) {
+  if (!res || res.ok) return null
+  const est = String(res.estado || '') + ' ' + String(res.masiva?.estado || '')
+  if (!/login_throttle|cooldown_device_trust/i.test(est) && !/gap_minimo|max_por_hora|cooldown_device_trust/i.test(String(res.motivo || ''))) return null
+  const esperaMin = Number(res.espera_min) > 0 ? Math.ceil(Number(res.espera_min)) : null
+  const porQue = {
+    gap_minimo: 'tienen que pasar unos minutos entre un login y el siguiente',
+    max_por_hora: 'ya se hicieron varios logins en la última hora',
+    cooldown_device_trust: 'el banco pidió validar el dispositivo hace poco y hay que dejarlo enfriar',
+  }[String(res.motivo || '')] || 'hay que espaciar los logins'
+  return { esperaMin, motivo: String(res.motivo || 'throttle'), porQue }
+}
 
 /** Sesión del operador dormida y la op es de un usuario ACOTADO que va con la sesión de otro:
  *  el link de login va al DUEÑO de la sesión (que sí tiene la clave+Superclave), y al que pidió
@@ -3998,6 +4014,14 @@ async function ejecutar(nombre, input, ctx = {}) {
             texto: `🏦 Para subir el lote (${resumen.cantidad} transferencias · ${resumen.monto_total_fmt}) desde *${empresaMasiva}* tenés que entrar vos al banco:\n\n👉 ${res.url}\n🔑 PIN (un solo uso): ${res.pin}\n\nAbrí el link, poné el PIN y logueate normal. Apenas entres, *subo el lote solo* y te aviso cómo quedó. ✅`,
             instruccion: '⛔ NO vuelvas a llamar tek_masiva. Pásale la URL y el PIN TAL CUAL y decile que cuando entre el lote sube solo y le vas a avisar. NO digas que falló.',
           })
+        }
+        // CANDADO ANTI-QUEMADO (nuestro, no del banco): decir el motivo REAL y CUÁNTO falta.
+        const thrM = throttleDeLogin(res)
+        if (thrM) {
+          const cuando = thrM.esperaMin ? `en ~${thrM.esperaMin} ${thrM.esperaMin === 1 ? 'minuto' : 'minutos'}` : 'en un rato'
+          return JSON.stringify({ ok: false, estado: 'login_throttle', espera_min: thrM.esperaMin, resumen,
+            texto: `⏳ No subí el lote todavía, pero *no falló nada ni el banco lo rechazó*: es mi candado anti-bloqueo — ${thrM.porQue}, para no marcar la cuenta en Santander. Reintento ${cuando} y te aviso. El lote (${resumen.cantidad} · ${resumen.monto_total_fmt}) queda armado tal cual. 🏦`,
+            instruccion: `⛔ NO digas que el login "no pudo entrar" ni que el banco falló: fue NUESTRA protección anti-bloqueo. Dile al usuario el motivo y que reintente ${cuando}. NO reintentes vos ahora ni en este turno.` })
         }
         // Login SOLO automático (sin asistido): si no pudo entrar, falla limpio — sin link.
         if (loginNoEntroAuto(res)) {
