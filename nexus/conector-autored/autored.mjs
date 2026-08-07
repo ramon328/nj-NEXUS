@@ -286,6 +286,255 @@ export async function validarDeudaPension(persona, { confirmar = false } = {}) {
 }
 
 // ============================================================
+//  CIERRE DEL CONTRATO ABIERTO (paso 4) — los 4 "próximos pasos" que muestra
+//  AutoRed una vez FIRMADO el mandato:
+//    1. Subir el permiso de circulación   -> POST /{id}/upload-documents
+//    2. Completar la info del comprador   -> POST /{id}/enter-info
+//    3. El comprador firma el contrato    -> GET  /{id}/signers?type=CONTRACT
+//    4. Pagar los impuestos               -> POST /{id}/new-payment {type:'TAXES'}
+//
+//  Los payloads NO están adivinados: salen del bundle del front de AutoRed
+//  (buildUploadDocumentsFormData / buildFormData / PayTaxes), leído el 07-08-2026,
+//  y están contrastados contra la solicitud 475 (GYWL24) que llegó a Registro Civil.
+// ============================================================
+
+// Bitácora de mapeo: cada escritura del cierre deja request + respuesta acá. Sirve
+// para aprender del uso real de Joaquín sin tener que estar mirándole la pantalla.
+const MAPEO_LOG = path.join(__dirname, 'mapeo-cierre.jsonl');
+function anotarMapeo(evento, datos) {
+  try {
+    fs.appendFileSync(MAPEO_LOG, JSON.stringify({ ts: new Date().toISOString(), evento, ...datos }) + '\n');
+  } catch { /* la bitácora nunca puede romper la operación */ }
+}
+export function leerMapeo(limite = 50) {
+  try {
+    return fs.readFileSync(MAPEO_LOG, 'utf8').trim().split('\n').filter(Boolean).slice(-limite).map((l) => JSON.parse(l));
+  } catch { return []; }
+}
+
+// Aplana un objeto a claves punteadas, igual que el `buildFormData` del front
+// (utils 83162): arrays -> `k.0`, objetos -> `k.sub`, null/undefined se OMITEN.
+function aplanarEnFormData(fd, valor, prefijo = '') {
+  if (valor == null) return;
+  if (Array.isArray(valor)) { valor.forEach((v, i) => aplanarEnFormData(fd, v, `${prefijo}.${i}`)); return; }
+  if (typeof valor !== 'object') { fd.append(prefijo, typeof valor === 'boolean' || typeof valor === 'number' ? String(valor) : valor); return; }
+  for (const k of Object.keys(valor)) aplanarEnFormData(fd, valor[k], prefijo ? `${prefijo}.${k}` : k);
+}
+
+// Las 6 formas de pago del formulario. La suma DEBE dar exactamente el precio de venta
+// (lo valida el front antes de enviar: "La suma de las formas de pago debe ser igual...").
+export const FORMAS_PAGO = ['efectivo', 'credito', 'tarjetaCredito', 'alContado', 'cheque', 'valeVista'];
+export const FORMAS_PAGO_NOMBRE = {
+  efectivo: 'Efectivo', credito: 'Crédito', tarjetaCredito: 'Tarjeta de crédito',
+  alContado: 'Al contado', cheque: 'Cheque', valeVista: 'Vale vista',
+};
+const soloDigitos = (x) => parseInt(String(x ?? '').replace(/[^0-9]/g, ''), 10) || 0;
+const conPuntos = (n) => String(soloDigitos(n)).replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+
+// Arma el objeto paymentMethods completo (las 6 claves, marcadas o no).
+// `formas` = {alContado: 25000000} o {efectivo: 5000000, cheque: 20000000}.
+export function armarFormasPago(formas = {}) {
+  const out = {};
+  for (const k of FORMAS_PAGO) {
+    const monto = soloDigitos(formas[k]);
+    out[k] = monto > 0 ? { checked: true, amount: conPuntos(monto) } : { checked: false, amount: '' };
+  }
+  return out;
+}
+export const totalFormasPago = (formas = {}) =>
+  Object.values(formas).reduce((a, f) => a + soloDigitos(f?.amount), 0);
+
+// Impuesto de transferencia = 1,5% del MAYOR entre precio de venta y tasación fiscal,
+// más el arancel del Registro Civil (el front usa 36.030 cuando la API no lo manda).
+export const COSTO_REGISTRO_CIVIL = 36030;
+export function costoTransferencia({ precioVenta, tasacion, registroCivil } = {}) {
+  const base = Math.max(soloDigitos(precioVenta), soloDigitos(tasacion));
+  const impuesto = parseInt(String(0.015 * base), 10) || 0;
+  const rc = registroCivil == null ? COSTO_REGISTRO_CIVIL : soloDigitos(registroCivil);
+  return { base, impuesto, registro_civil: rc, total: impuesto + rc };
+}
+
+// PASO 1 — Permiso de circulación + tasación + precio + formas de pago.
+// multipart: drivingPermit (archivo), commune, siiCode, taxationPrice, expirationDate,
+//            year, price, paymentMethods (JSON string).
+export async function subirPermisoCirculacion(publicId, datos = {}, { confirmar = false } = {}) {
+  const { archivo, comuna, siiCode, tasacionPrecio, vencimiento, precioVenta, formasPago } = datos;
+  const pagos = formasPago && typeof formasPago === 'object' && 'efectivo' in formasPago ? formasPago : armarFormasPago(formasPago || {});
+  const resumen = {
+    publicId, archivo: archivo || null, commune: comuna || '', siiCode: siiCode || '',
+    taxationPrice: String(soloDigitos(tasacionPrecio)), expirationDate: vencimiento || '',
+    year: String(vencimiento || '').slice(0, 4), price: String(soloDigitos(precioVenta)),
+    paymentMethods: pagos,
+  };
+  const g = guardia('uploadDocuments', resumen, confirmar);
+  if (g) return { ...g, nota: 'Sube el permiso de circulación y fija tasación, precio y formas de pago.' };
+  if (!archivo || !fs.existsSync(archivo)) throw new Error(`No encuentro el archivo del permiso de circulación: ${archivo}`);
+  const suma = totalFormasPago(pagos);
+  if (suma !== soloDigitos(precioVenta)) {
+    throw new Error(`La suma de las formas de pago (${conPuntos(suma)}) debe ser igual al precio de venta (${conPuntos(precioVenta)}).`);
+  }
+  const fd = new FormData();
+  fd.append('commune', String(comuna || ''));
+  fd.append('siiCode', String(siiCode || ''));
+  const buf = fs.readFileSync(archivo);
+  fd.append('drivingPermit', new Blob([buf]), path.basename(archivo));
+  fd.append('taxationPrice', String(soloDigitos(tasacionPrecio)));
+  fd.append('expirationDate', String(vencimiento || ''));
+  fd.append('year', String(vencimiento || '').slice(0, 4));
+  fd.append('price', String(soloDigitos(precioVenta)));
+  fd.append('paymentMethods', JSON.stringify(pagos));
+  const r = await fetch(`${API_TR}/business/transfers/${publicId}/upload-documents`, {
+    method: 'POST', headers: { accept: 'application/json', cookie: `authorization=${await jwt()}` }, body: fd,
+  });
+  const txt = await r.text();
+  anotarMapeo('upload-documents', { publicId, enviado: resumen, http: r.status, respuesta: txt.slice(0, 600) });
+  if (!r.ok) throw new Error(`HTTP ${r.status} upload-documents: ${txt.slice(0, 300)}`);
+  return { ok: true, publicId, respuesta: (() => { try { return JSON.parse(txt); } catch { return txt; } })() };
+}
+
+// Normaliza un comprador (persona o empresa) al shape que espera el backend.
+// Persona  -> mapToPerson del front. Empresa -> mapToLegalPerson.
+export function armarComprador(c = {}) {
+  const comuna = c.comuna && typeof c.comuna === 'object'
+    ? { id: parseInt(String(c.comuna.id || 0), 10), name: c.comuna.name || '', region: { name: c.comuna.region?.name || c.comuna['region.name'] || '' } }
+    : null;
+  if (c.empresa || c.socialReason) {
+    return {
+      rut: c.rut || '', socialReason: c.empresa || c.socialReason || '', commune: comuna,
+      street: c.calle || c.street || '', houseNumber: String(c.numero || c.houseNumber || ''), dpto: c.depto || c.dpto || '',
+      isPublicDeed: Boolean(c.escrituraPublica ?? c.isPublicDeed ?? false),
+      constitutionDate: c.fechaConstitucion || c.constitutionDate || '',
+      modificationDate: c.fechaModificacion || c.modificationDate || '',
+      companyNotaryName: c.notarioNombre || c.companyNotaryName || null,
+      companyNotaryCommune: c.notarioComuna || c.companyNotaryCommune || null,
+      companyNotaryNumber: (c.notarioNumero ?? c.companyNotaryNumber) != null && String(c.notarioNumero ?? c.companyNotaryNumber) !== ''
+        ? parseInt(String(c.notarioNumero ?? c.companyNotaryNumber), 10) : null,
+      legalRepresentative: (c.representantes || c.legalRepresentative || []).map((r) => ({
+        name: r.nombres || r.name || '', fLastName: r.apellidoPaterno || r.fLastName || '',
+        mLastName: r.apellidoMaterno || r.mLastName || '', rut: r.rut || '',
+        phone: r.telefono || r.phone || '', email: r.email || '',
+      })),
+    };
+  }
+  return {
+    name: c.nombres || c.name || '', fLastName: c.apellidoPaterno || c.fLastName || '',
+    mLastName: c.apellidoMaterno || c.mLastName || '', rut: c.rut || '',
+    dpto: c.depto || c.dpto || '', commune: comuna,
+    street: c.calle || c.street || '', houseNumber: String(c.numero || c.houseNumber || ''),
+    phone: c.telefono || c.phone || '', email: c.email || '',
+    hasUnion: Boolean(c.conyuge), hasRepresentative: Boolean(c.representante), isBeneficiary: false,
+  };
+}
+
+// PASO 2 — Datos del comprador. ⚠️ El endpoint es `enter-info` (NO "enter-buyer-info")
+// y hay que MANDAR TAMBIÉN a los vendedores que ya están cargados: el front envía
+// {sellers, buyers} completo y el backend reemplaza ambos lados. Si mandás solo buyers,
+// borrás al vendedor.
+export async function ingresarCompradorOC(publicId, comprador, { confirmar = false } = {}) {
+  const estado = await estadoTransferencia(publicId);
+  const sellers = Array.isArray(estado.sellers) ? estado.sellers : [];
+  const buyers = [armarComprador(comprador)];
+  const payload = { sellers, buyers };
+  const g = guardia('enterInfo', { publicId, endpoint: 'enter-info', buyers, sellers_reenviados: sellers.length }, confirmar);
+  if (g) return { ...g, nota: 'Ingresa al comprador. Los vendedores se re-envían tal cual para no borrarlos.' };
+  const fd = new FormData();
+  aplanarEnFormData(fd, payload);
+  const r = await fetch(`${API_TR}/business/transfers/${publicId}/enter-info`, {
+    method: 'POST', headers: { accept: 'application/json', cookie: `authorization=${await jwt()}` }, body: fd,
+  });
+  const txt = await r.text();
+  const claves = [...fd.keys()];
+  anotarMapeo('enter-info', { publicId, claves, buyers, http: r.status, respuesta: txt.slice(0, 600) });
+  if (!r.ok) throw new Error(`HTTP ${r.status} enter-info: ${txt.slice(0, 300)}`);
+  return { ok: true, publicId, respuesta: (() => { try { return JSON.parse(txt); } catch { return txt; } })() };
+}
+
+// PASO 3 (lectura) — link de firma del CONTRATO (el que firma el COMPRADOR).
+// Ojo: el mandato es type=OC_MANDATE (lo firma el vendedor); el contrato es type=CONTRACT.
+export async function firmaContrato(publicId) {
+  const f = await firmantes(publicId, 'CONTRACT');
+  return {
+    documento: f.documentUrl,
+    firmantes: (f.signers || []).map((s) => ({
+      nombre: [s.name, s.fLastName, s.mLastName].filter(Boolean).join(' ') || s.socialReason || '',
+      rut: s.rut, email: s.email, estado: s.status, linkFirma: s.signUrl,
+    })),
+  };
+}
+
+// PASO 4 — Impuestos. new-payment NO descuenta plata solo: GENERA el cobro y devuelve
+// `paymentUrl` (link de pago). Alguien tiene que entrar a pagar en ese link.
+export async function generarPagoImpuestos(publicId, { tipo = 'TAXES', confirmar = false } = {}) {
+  const g = guardia('newPayment', { publicId, type: tipo }, confirmar);
+  if (g) return { ...g, nota: 'Genera el cobro de los impuestos de transferencia y devuelve el link de pago.' };
+  const r = await api(`${API_TR}/business/transfers/${publicId}/new-payment`, { method: 'POST', body: { type: tipo } });
+  anotarMapeo('new-payment', { publicId, type: tipo, respuesta: JSON.stringify(r).slice(0, 600) });
+  return r;
+}
+
+// Volver a un paso anterior del wizard (uploadDocuments / enterInfo / enterSellerInfo).
+export async function volverAPaso(publicId, paso, { confirmar = false } = {}) {
+  const g = guardia('enterInfo', { publicId, go_back: paso }, confirmar);
+  if (g) return g;
+  return api(`${API_TR}/business/transfers/${publicId}/go-back`, { method: 'POST', body: { step: paso } });
+}
+
+// Lee el estado y traduce en qué paso del CIERRE está la solicitud y qué falta.
+// Es la brújula del orquestador: nunca adivinamos el paso, se lo preguntamos a AutoRed.
+export const PASOS_CIERRE = {
+  UPLOAD_DOCUMENTS: { paso: 'permiso', titulo: 'Subir el permiso de circulación' },
+  ENTER_INFO: { paso: 'comprador', titulo: 'Completar la información del comprador' },
+  VERIFYING_DOCUMENTS: { paso: 'esperar', titulo: 'AutoRed está verificando los documentos' },
+  CREATING_CONTRACT: { paso: 'esperar', titulo: 'AutoRed está creando el contrato' },
+  SIGN_CONTRACT: { paso: 'firma_comprador', titulo: 'El comprador debe firmar el contrato' },
+  SIGNED_CONTRACT: { paso: 'impuestos', titulo: 'Realizar el pago de impuestos' },
+  PAY_TAXES: { paso: 'impuestos', titulo: 'Realizar el pago de impuestos' },
+  NOTARY: { paso: 'esperar', titulo: 'En notaría' },
+  CIVIL_REGISTRY: { paso: 'esperar', titulo: 'En el Registro Civil' },
+  COMPLETED: { paso: 'listo', titulo: 'Transferencia finalizada' },
+  ABORTED: { paso: 'abortado', titulo: 'Solicitud abortada' },
+  REJECTED: { paso: 'rechazado', titulo: 'Solicitud rechazada' },
+};
+
+export async function estadoCierre(publicId) {
+  const e = await estadoTransferencia(publicId);
+  const mapa = PASOS_CIERRE[e.status] || { paso: 'desconocido', titulo: e.status };
+  const v = e.vehicle || {};
+  return {
+    publicId, id: e.id, kind: e.kind, estado: e.status,
+    paso: mapa.paso, titulo_paso: mapa.titulo,
+    patente: v.licensePlate, auto: [v.brandName, v.modelName, v.year].filter(Boolean).join(' '),
+    precio_venta: v.sellingPrice, tasacion: v.taxationPrice, sii_code: v.siiCode,
+    comuna_permiso: v.permitCommune, vence_permiso: v.expirationCirculationPermit,
+    formas_pago: e.paymentMethods,
+    vendedores: (e.sellers || []).map((s) => ({ nombre: [s.name, s.fLastName, s.mLastName].filter(Boolean).join(' ') || s.socialReason, rut: s.rut })),
+    compradores: (e.buyers || []).map((b) => ({ nombre: [b.name, b.fLastName, b.mLastName].filter(Boolean).join(' ') || b.socialReason, rut: b.rut })),
+    hitos: {
+      permiso_subido: Boolean(e.uploadedDocuments),
+      comprador_ingresado: Boolean(e.enteredInfo),
+      contrato_creado: Boolean(e.createdContract),
+      contrato_firmado: Boolean(e.signedContract),
+      impuestos_pagados: Boolean(e.paidTaxes),
+    },
+    tiene_permiso: (e.documents || []).some((d) => d.type === 'CIRCULATION_PERMIT'),
+    limitaciones_dominio: Boolean(e.hasDomainLimits),
+    vendedor_invalido: Boolean(e.isSellerInvalid),
+    deuda_pension_vendedor: Boolean(e.sellerHasPensionDebt),
+    deuda_pension_comprador: Boolean(e.buyerHasPensionDebt),
+    pasos_editables: e.editableSteps || [],
+    registro_civil_costo: e.regCivilCost ?? null,
+    documentos: (e.documents || []).map((d) => ({ tipo: d.type, nombre: d.originalName, estado: d.status, url: d.publicUrl })),
+  };
+}
+
+// Busca la solicitud ABIERTA más reciente de una patente (o la última en general).
+export async function ultimoContrato(patente = '') {
+  const l = await listarTransferencias({ patente: String(patente || '').toUpperCase().replace(/[\s.\-]/g, ''), filas: 20 });
+  const rows = (l.rows || []).filter((r) => !['ABORTED', 'REJECTED'].includes(r.status));
+  return rows[0] || null;
+}
+
+// ============================================================
 //  INFORMES / CAV  (base /api/v2/reports) — la que quiere Meme
 // ============================================================
 // Tipos (radio UI -> reportType que se envía):
@@ -453,6 +702,10 @@ async function cli() {
       case 'revisar': out(await revisarDocumentos(args[0])); break;
       case 'firma': out(await firmaMandato(args[0])); break;
       case 'docs': out(await documentosSolicitud(args[0])); break;
+      case 'cierre': out(await estadoCierre(args[0])); break;
+      case 'firma-contrato': out(await firmaContrato(args[0])); break;
+      case 'ultimo': out(await ultimoContrato(args[0] || '')); break;
+      case 'mapeo': out(leerMapeo(Number(args[0]) || 30)); break;
       case 'login': out(await login().then(() => ({ ok: true, msg: 'sesión renovada' }))); break;
       default:
         console.log(`Comandos: quien | creditos | resumen | rc | lista [patente] | estado <publicId> | impuestos <publicId> | vehiculo <patente> | informes [patente] | repetidos <patente> | comuna <nombre> | revisar <patente> | firma <publicId> | docs <publicId> | login
