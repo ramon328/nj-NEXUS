@@ -4015,6 +4015,14 @@ async function ejecutar(nombre, input, ctx = {}) {
             instruccion: '⛔ NO vuelvas a llamar tek_masiva. Pásale la URL y el PIN TAL CUAL y decile que cuando entre el lote sube solo y le vas a avisar. NO digas que falló.',
           })
         }
+        // RED DE SALIDA RECHAZADA por el banco: no se intentó el login (a propósito). No es una
+        // caída ni algo que el usuario pueda destrabar reintentando: hay que cambiar la conexión.
+        if (String(res.estado || '') === 'red_bloqueada') {
+          return JSON.stringify({ ok: false, estado: 'red_bloqueada', resumen,
+            texto: `🛑 No subí el lote y *no lo intenté a propósito*: el mini está saliendo a internet por una red que Santander rechaza en el ingreso, así que el login no tenía cómo pasar. No se movió nada y el lote (${resumen.cantidad} · ${resumen.monto_total_fmt}) queda armado.\n\nEsto lo tiene que destrabar Ramón: hay que salir por una IP móvil chilena (el túnel a la MacBook con datos) o hacer el login desde otra conexión. Avísame cuando esté y lo subo al toque. 🏦`,
+            instruccion: '⛔ NO digas que el banco falló, que la sesión estaba dormida ni que reintente en un rato: reintentar NO lo arregla. Es la RED de salida del mini, la destraba Ramón. Dile eso y ofrécele avisarle a él.',
+            detalle_tecnico: res.nota_login || null })
+        }
         // CANDADO ANTI-QUEMADO (nuestro, no del banco): decir el motivo REAL y CUÁNTO falta.
         const thrM = throttleDeLogin(res)
         if (thrM) {

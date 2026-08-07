@@ -320,6 +320,29 @@ function registrarDeviceTrust(slug) {
 // contra nuestro propio candado.) Solución: los intentos se guardan con estado; los
 // RESERVADOS solo cuentan mientras podrían estar en vuelo (RESERVA_VIVA_MS), después se
 // descartan. Los CONFIRMADOS (credenciales enviadas) cuentan la hora completa, como siempre.
+// ⚠️ OJO CON ESTE CANDADO — APAGADO POR DEFECTO (07-08-2026).
+// Se creó creyendo que Starlink (AS14593) estaba bloqueada por Santander. **ES FALSO**:
+// recon SIN credenciales desde Starlink con navegador real y perfil limpio → Incapsula 200/201,
+// BioCatch (wup-*.santander.cl/client/v3.1/web/wup) 200, llegó al iframe de login y el texto
+// "reinicia tu wifi" NO apareció. Ese texto es la respuesta GENÉRICA del antifraude (sale
+// también por Incapsula sin JS resuelto), NO prueba de bloqueo de IP. Lo cazó Ramón.
+// Queda el mecanismo, pero solo se activa con TEK_CHEQUEAR_RED=1 y con redes REALMENTE
+// probadas como bloqueadas. Starlink NO está en la lista: está demostrado que pasa.
+const RED_BLOQUEADA_RE = new RegExp(process.env.TEK_REDES_BLOQUEADAS || '(?!)', 'i')
+let _redCache = null
+/** IP y operador de SALIDA del mini. Cacheado 5 min; si no se puede medir, devuelve null. */
+async function redDeSalida() {
+  if (_redCache && Date.now() - _redCache.ts < 5 * 60_000) return _redCache.v
+  try {
+    const c = new AbortController(); const t = setTimeout(() => c.abort(), 6000)
+    const r = await fetch('https://ipinfo.io/json', { signal: c.signal })
+    clearTimeout(t)
+    const j = await r.json()
+    const v = { ip: j.ip || '', org: j.org || '' }
+    _redCache = { ts: Date.now(), v }
+    return v
+  } catch { return null }
+}
 const RESERVA_VIVA_MS = Number(process.env.TEK_LOGIN_RESERVA_MS || 3 * 60_000)
 // Los históricos son números sueltos; los nuevos, {t, ok}. Se leen los dos.
 const _tsLogin = (x) => (typeof x === 'number' ? x : Number(x?.t) || 0)
@@ -3186,6 +3209,22 @@ async function main() {
     // TEK_IGNORAR_THROTTLE=1 lo salta (solo para un login asistido/deliberado puntual).
     // El ASISTIDO no pasa por el candado: lo teclea una persona (es el login que SÍ pasa el
     // antifraude) y ya viene pedido a mano — frenarlo dejaría al usuario con un link muerto.
+    // ── RED DE SALIDA: no quemar un login sobre una IP que el banco YA rechaza ────────
+    // Santander marca ciertas redes de entrada (Starlink AS14593, datacenter/VPN) y muestra
+    // "reinicia tu wifi o utiliza otra conexión". El login igual se intentaba: gastaba un
+    // cupo del throttle Y dejaba 25 min de cooldown por device_trust, para un intento que
+    // NUNCA podía pasar. Lo que sí pasa es IP MÓVIL chilena (Entel/Claro) vía TEK_PROXY_URL.
+    // Se chequea ANTES de reservar el intento. Si no se puede medir, se sigue (fail-open).
+    if (process.env.TEK_CHEQUEAR_RED === '1' && !assist && !process.env.TEK_PROXY_URL) {
+      const red = await redDeSalida()
+      if (red && RED_BLOQUEADA_RE.test(red.org || '')) {
+        log(`RED BLOQUEADA: salgo por ${red.org} (${red.ip}) — el banco rechaza esta red. NO gasto un login.`)
+        return fin('red_bloqueada', {
+          ip: red.ip, org: red.org,
+          nota: `No intento el login: el mini está saliendo por ${red.org}, una red que Santander RECHAZA en el ingreso (muestra "reinicia tu wifi o utiliza otra conexión"). Intentarlo igual gastaría un login y dejaría 25 min de cooldown para nada. Hay que salir por una IP MÓVIL chilena (Entel/Claro) levantando el túnel SOCKS a la MacBook y seteando TEK_PROXY_URL, o hacer el login asistido desde otra conexión.`,
+        })
+      }
+    }
     if (!assist && process.env.TEK_IGNORAR_THROTTLE !== '1') {
       const bloqueo = chequearThrottleLogin(userSlug)
       if (bloqueo) {
