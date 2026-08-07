@@ -230,13 +230,20 @@ export async function crearContratoAbierto(patente, { prohibicion = null, forzar
 //   Teléfono: formato 56XXXXXXXXX (con código país, sin +); el front rechaza 9XXXXXXXX.
 export async function ingresarVendedorOC(publicId, vendedor, { confirmar = false } = {}) {
   const v = vendedor || {};
+  // ⚠️ FORMATO — corregido el 07-08-2026 tras el problema del PGXP70 (solicitud 497).
+  // La UI de AutoRed guarda al vendedor con el teléfono en E.164 CON "+" (`+56993196983`)
+  // y con los bloques `union` y `representative` completos aunque vayan vacíos. Este
+  // conector los omitía y mandaba el teléfono sin "+", y el 497 quedó siendo el ÚNICO
+  // vendedor persona guardado así de todos los contratos abiertos de la cuenta.
+  // Se deja idéntico a la UI para no volver a crear un registro fuera de formato.
+  const tel = String(v.telefono || '').trim();
   const plano = {
     'sellers.0.name': v.nombres || '',
     'sellers.0.fLastName': v.apellidoPaterno || '',
     'sellers.0.mLastName': v.apellidoMaterno || '',
     'sellers.0.rut': v.rut || '',
     'sellers.0.email': v.email || '',
-    'sellers.0.phone': v.telefono || '',
+    'sellers.0.phone': tel ? (tel.startsWith('+') ? tel : '+' + tel.replace(/\D/g, '')) : '',
     'sellers.0.street': v.calle || '',
     'sellers.0.houseNumber': v.numero || '',
     'sellers.0.dpto': v.depto || '',
@@ -247,6 +254,15 @@ export async function ingresarVendedorOC(publicId, vendedor, { confirmar = false
     'sellers.0.hasRepresentative': String(Boolean(v.representante)),
     'sellers.0.isBeneficiary': 'false',
   };
+  // Bloques vacíos de cónyuge y representante, tal como los manda el formulario web.
+  for (const bloque of ['union', 'representative']) {
+    for (const campo of ['name', 'fLastName', 'mLastName', 'rut', 'dpto', 'street', 'houseNumber', 'phone', 'email']) {
+      plano[`sellers.0.${bloque}.${campo}`] = '';
+    }
+    plano[`sellers.0.${bloque}.hasUnion`] = 'false';
+    plano[`sellers.0.${bloque}.hasRepresentative`] = 'false';
+    plano[`sellers.0.${bloque}.isBeneficiary`] = 'false';
+  }
   const g = guardia('enterInfo', { publicId, ...plano }, confirmar);
   if (g) return g;
   const fd = new FormData();

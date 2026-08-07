@@ -167,13 +167,38 @@ year, version}]`: son las versiones del auto, hay que elegir la que corresponde 
 Si la lista viene vacía, el front manda `makeInputsOptional` y deja que Autosafe busque la tasación.
 
 #### 4.2 — Datos del comprador (`POST /{publicId}/enter-info`)
-🔴 **BLOQUEADO POR UN BUG DE AUTORED (07-08-2026).** En la solicitud 45859 (PGXP70) este endpoint
-devuelve **HTTP 400 con el cuerpo VACÍO**. No es nuestro mapeo: se reprodujo entrando a
-`autored.cl` con el usuario de Joaquín, llenando el wizard del comprador **a mano** y apretando
-Enviar — **el propio formulario de AutoRed recibe el mismo 400**. Se capturó su request real y
-nuestro payload quedó **idéntico, 54 claves, cero diferencias**. Descartados: deuda de pensión de
-Marcela (`{valid:true}`), el `houseNumber` "SN" (probado "S/N"), y el formato del teléfono del
-vendedor (probado con y sin "+"). Hay que reclamarle a AutoRed (soporte +56 9 7979 5860).
+🔴 **BLOQUEADO EN LA SOLICITUD 45859 / PGXP70 (07-08-2026): devuelve HTTP 400 con cuerpo VACÍO.**
+
+**Causa probable — un registro de vendedor mal grabado POR ESTE CONECTOR, no un bug de AutoRed.**
+Se comparó cómo quedó guardado el vendedor en los 12 contratos abiertos de la cuenta: **todos** los
+vendedores persona tienen el teléfono en E.164 **con "+"** (`+56993196983`) y los bloques
+`union`/`representative` presentes. El del 497 es el **único** sin "+" y sin esos bloques — y lo
+grabó `ingresarVendedorOC`, que mandaba `56992540550` y omitía los bloques. Eso también explica por
+qué **el formulario web de AutoRed falla igual**: no está roto, re-envía el vendedor tal como viene
+del `status` y el backend se atora con ese registro. (Reproducido a mano en `autored.cl` con el
+usuario de Joaquín; se capturó su request real y nuestro payload quedó **idéntico, 54 claves**.)
+
+Confirmado en la bitácora (`actividad_ias`): al vendedor del 497 lo grabó **nuestro**
+`crear_contrato accion:"vendedor"` el 06-08 23:26. El del 489 (SWPV28) **no** tiene registro de
+haberse cargado por el conector y quedó con el formato correcto — coherente con la hipótesis.
+
+⛔ **NO forzar `go-back` a `enterSellerInfo` para arreglarlo.** El front solo ofrece retroceder a
+los pasos presentes en `transferData.editableSteps`, y en el 497 esa lista es
+`["uploadDocuments","enterInfo"]`: **el paso del vendedor NO es editable**. Forzarlo por API sería
+operar fuera del flujo soportado sobre un contrato con el mandato ya firmado. La hipótesis queda
+**sin probar a propósito**: el camino correcto es pedirle a AutoRed (soporte +56 9 7979 5860) que
+normalice el registro del vendedor, que es algo que solo pueden hacer ellos.
+
+Ya corregido en `ingresarVendedorOC` para que ningún contrato nuevo quede así.
+
+**Descartado con pruebas** (todas dieron el mismo 400 vacío): deuda de pensión de comprador y
+vendedor (`{valid:true}` en ambos) · `houseNumber` "SN" y "S/N" · teléfono del vendedor con y sin
+"+" · bloques `union`/`representative` agregados en el payload · apóstrofo de la región
+"O'Higgins" (probado sin apóstrofo y vacío) · `dpto` vacío · `commune.id` como número y como
+string · RUT y email deliberadamente inválidos (mismo 400 ⇒ **no es validación de campos**).
+Con un `publicId` inexistente responde **404 con mensaje**, así que el ruteo y el parseo del
+multipart funcionan: el 400 ocurre después de encontrar la transferencia.
+
 El contrato NO se corrompió con ninguno de los intentos: el 400 rechaza limpio y el vendedor queda.
 
 **Cómo capturar la verdad cuando algo falle acá:** login en `autored.cl/users/sign_in` → menú
