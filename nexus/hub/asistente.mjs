@@ -2787,9 +2787,9 @@ const HERRAMIENTAS = [
             empresa: { type: 'string', description: 'Razón social (si es empresa).' },
             email: { type: 'string' },
             telefono: { type: 'string', description: 'Teléfono chileno; se normaliza a 56XXXXXXXXX.' },
-            calle: { type: 'string' },
-            numero: { type: 'string' },
-            depto: { type: 'string' },
+            calle: { type: 'string', description: 'Solo el nombre de la calle o camino, sin el número ni la casa/depto.' },
+            numero: { type: 'string', description: 'Número de la calle. En Chile es normal que sea "SN" o "S/N" (sin número): eso es un valor VÁLIDO, ponlo tal cual y NO preguntes por un número distinto.' },
+            depto: { type: 'string', description: 'Casa, depto u oficina (ej. "casa 3"). Opcional.' },
             comuna: { type: 'string', description: 'Nombre de la comuna del domicilio (resuelvo el id solo).' },
             escrituraPublica: { type: 'boolean', description: 'Empresa: si se constituyó por escritura pública.' },
             fechaConstitucion: { type: 'string', description: 'Empresa: fecha de constitución AAAA-MM-DD.' },
@@ -5035,8 +5035,20 @@ async function ejecutar(nombre, input, ctx = {}) {
             const p = input.permiso || {}
             let tasaciones = []
             try { tasaciones = await autored.impuestosVehiculo(publicId) } catch { /* seguimos sin la lista */ }
-            // El archivo del permiso sale de los adjuntos de WhatsApp.
-            const adj = (Array.isArray(ctx.media) ? ctx.media : []).filter((f) => /\.(pdf|jpe?g|png|webp|heic)$/i.test(String(f)))
+            // El archivo del permiso sale de los adjuntos de WhatsApp. La memoria de
+            // adjuntos del server es RAM con TTL de 20 min, así que si el hub se reinició
+            // o la persona mandó el permiso y contestó el resto más tarde, ahí no está.
+            // Respaldo: buscarlo en el historial persistente (le pasó a Joaquín con el
+            // PGXP70 — mandó el permiso y Nexus se lo siguió pidiendo).
+            const esDoc = (f) => /\.(pdf|jpe?g|png|webp|heic)$/i.test(String(f))
+            let adj = (Array.isArray(ctx.media) ? ctx.media : []).filter(esDoc)
+            let deHistorial = false
+            if (!adj.length && ctx.de) {
+              try {
+                const guardados = historial.adjuntosDe(ctx.de, { horas: 72 }).filter(esDoc)
+                if (guardados.length) { adj = [guardados[0]]; deHistorial = true }   // el más reciente
+              } catch { /* si falla, seguimos pidiéndoselo */ }
+            }
             const archivo = Number.isInteger(p.indice_archivo) && ctx.media?.[p.indice_archivo] ? ctx.media[p.indice_archivo] : adj[adj.length - 1] || null
             // Tasación: si dieron el código, tomamos ese; si dieron solo el precio, lo buscamos.
             const elegida = p.siiCode ? (tasaciones.find((t) => String(t.code).toUpperCase() === String(p.siiCode).toUpperCase()) || null)
@@ -5067,6 +5079,7 @@ async function ejecutar(nombre, input, ctx = {}) {
                 borrador: true, paso: '1 de 4 · Subir el permiso de circulación', publicId, patente: c.patente, auto: c.auto,
                 se_va_a_enviar: {
                   archivo_permiso: archivo ? archivo.split('/').pop() : null,
+                  archivo_de: archivo ? (deHistorial ? 'lo recuperé de un mensaje anterior suyo — confírmale que es ese permiso' : 'lo mandó recién') : null,
                   comuna_del_permiso: p.comuna || null, vence: p.vencimiento || null,
                   tasacion_fiscal: elegida ? `${elegida.version} — ${plata(elegida.price)} (código ${elegida.code})` : (p.siiCode || null),
                   precio_venta: precio ? plata(precio) : null,

@@ -10,6 +10,7 @@
 
 import { DatabaseSync } from 'node:sqlite'
 import { join } from 'node:path'
+import { existsSync } from 'node:fs'
 
 const HOME = process.env.HOME || ''
 const RUTA_DB = join(HOME, 'nexus', 'historial.db')
@@ -177,6 +178,31 @@ export function recientes({ canal, contraparte, limite = 32 }) {
     LIMIT ?
   `).all(canal, clave(canal, contraparte), limite)
   return filas.reverse()
+}
+
+// ADJUNTOS que mandó una persona, del más nuevo al más viejo, leídos del historial
+// PERSISTENTE. La memoria de adjuntos del server vive en RAM con TTL de 20 min: se
+// pierde si el hub se reinicia o si la persona manda el archivo y contesta el resto
+// más tarde. Para flujos de varios pasos (ej. subir el permiso de circulación a
+// AutoRed) eso deja al asistente pidiendo un archivo que la persona YA mandó.
+// Devuelve solo rutas que todavía existen en disco.
+export function adjuntosDe(contraparte, { canal = 'whatsapp', horas = 72, limite = 12 } = {}) {
+  const desde = new Date(Date.now() - horas * 3600 * 1000).toISOString()
+  const filas = db().prepare(`
+    SELECT media FROM mensajes
+    WHERE canal = ? AND contraparte = ? AND direccion = 'entrante'
+      AND media IS NOT NULL AND media != '' AND ts >= ?
+    ORDER BY ts DESC LIMIT ?
+  `).all(canal, clave(canal, contraparte), desde, limite)
+  const rutas = []
+  for (const f of filas) {
+    let arr = []
+    try { arr = JSON.parse(f.media) } catch { continue }
+    for (const p of (Array.isArray(arr) ? arr : [])) {
+      if (typeof p === 'string' && p && !rutas.includes(p) && existsSync(p)) rutas.push(p)
+    }
+  }
+  return rutas
 }
 
 // Feed plano (para las pestañas de Correos y Llamadas).

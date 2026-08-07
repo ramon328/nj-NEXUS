@@ -139,6 +139,11 @@ Los payloads NO están adivinados: salen del bundle del front (`buildUploadDocum
 solicitud **475 (GYWL24)**, que llegó a Registro Civil con comprador empresa (KURTI SPA).
 
 #### 4.1 — Permiso de circulación + tasación + precio (`POST /{publicId}/upload-documents`)
+✅ **EJECUTADO EN VIVO el 07-08-2026** sobre la solicitud **497 (PGXP70)** con Joaquín: HTTP 200,
+`UPLOAD_DOCUMENTS` → **`ENTER_INFO`**, documento `CIRCULATION_PERMIT` cargado y los campos guardados
+tal cual se enviaron (precio 17.000.000 · tasación 20.392.937 · `VN1760073` · Huechuraba ·
+2026-08-31 · alContado). El mapeo de este paso está confirmado, no es teoría.
+
 **multipart/form-data**, claves planas (NO JSON):
 
 | clave | qué es |
@@ -296,9 +301,26 @@ de la persona se vuelve a llamar con `confirmar:true`.
   dice de dónde salieron para que la persona los confirme. Si el RUT resulta ser de una empresa,
   el comprador pasa a tratarse como empresa aunque no lo hayan dicho.
 
+## Lecciones del primer uso real (07-08-2026, PGXP70 con Joaquín)
+1. **El permiso de circulación se lee solo y trae la tasación.** El comprobante municipal imprime el
+   código SII y el monto (`VN176007320` / 20.392.937) → los 7 dígitos tras las 2 letras son el
+   `siiCode` que espera AutoRed (`VN1760073`) y el monto calza con una de las opciones de
+   `vehicle-taxation`. **No hay que hacer elegir la versión a ojo:** se empareja con el documento.
+   También trae comuna, vencimiento, dueño, RUT, motor y color.
+2. **El archivo del permiso necesita tipo MIME.** Un `Blob` sin `type` viaja como
+   `application/octet-stream` y AutoRed valida el formato contra una lista. Se deduce de la extensión.
+3. **Los adjuntos se perdían entre mensajes.** La memoria de adjuntos del hub es RAM con TTL de
+   20 min: si el hub se reinicia, o la persona manda el permiso y contesta el precio más tarde, el
+   archivo desaparece y el asistente lo vuelve a pedir aunque ya se lo mandaron (le pasó a Joaquín, y
+   siguió insistiendo aun cuando él dijo "déjalo como está"). Arreglado con
+   `historial.adjuntosDe(numero)`, que los recupera del historial persistente (72 h); el borrador
+   avisa cuando el archivo vino de un mensaje anterior para que la persona confirme que es ese.
+4. **Ojo con los permisos pagados en cuotas.** El del PGXP70 tenía la cuota 2 impaga, así que vencía
+   el 31/08/2026 y no el 31/03/2027. El borrador ahora avisa si el permiso vence en menos de 60 días.
+
 ## Pendiente
-- Ejecutar el cierre end-to-end con una solicitud real (la **497 / PGXP70** está justo en el paso 1).
-  Hasta que eso pase, los 4 pasos están mapeados y probados en dry-run, pero no ejecutados en vivo.
+- Pasos **2, 3 y 4** del cierre: mapeados y probados en dry-run, **todavía no ejecutados en vivo**.
+  La 497 / PGXP70 quedó en `ENTER_INFO` esperando los datos del comprador y es la que los va a estrenar.
 - Wire del tool en `asistente.mjs` de Meme (leer siempre; crear con confirmación explícita por WhatsApp).
 
 ## REVISIÓN A FONDO DE DOCUMENTOS — `revisar_informe.py`
