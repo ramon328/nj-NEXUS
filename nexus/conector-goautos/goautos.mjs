@@ -285,6 +285,18 @@ async function editarVehiculo(id, cambios) {
     if (spec.esEstado) payload.state_updated_at = new Date().toISOString()
   }
   if (!Object.keys(payload).length) return { ok: false, error: 'No se indicó ningún campo a cambiar.' }
+  // ⛔ MOTOR ≠ CHASIS (07-08-2026). Pegar el VIN en los dos campos es el error de carga
+  // más típico, y de ahí se propaga a la BD nueva y a las FACTURAS: el DTE sale con un
+  // N° de motor falso. Se compara contra lo que quedaría después del cambio (lo nuevo
+  // si viene en el payload, lo actual si no). PGXP70 y LYVB95 entraron así.
+  {
+    const nm = (x) => String(x || '').replace(/[\s.\-]/g, '').toUpperCase()
+    const motorFin = payload.engine_number !== undefined ? payload.engine_number : actual.engine_number
+    const chasisFin = payload.chassis_number !== undefined ? payload.chassis_number : actual.chassis_number
+    if (nm(motorFin) && nm(motorFin) === nm(chasisFin)) {
+      return { ok: false, error: `El N° de MOTOR no puede ser igual al CHASIS/VIN (${motorFin}). Es el error de carga típico: se pega el VIN en los dos campos y después la factura sale con un motor falso. Saca el motor real del CAV o del padrón; si no lo tienes, deja el campo vacío.` }
+    }
+  }
   payload.updated_at = new Date().toISOString()
   // 3) UPDATE doblemente acotado: por id Y por client_id=32 (imposible tocar otra automotora).
   const up = await patch(`vehicles?id=eq.${id}${SOLO_MALLORCA}&select=${SELECT_VEH}`, payload)
@@ -605,6 +617,13 @@ async function crearVehiculo(d) {
   if (d.traccion) payload.traction = String(d.traccion).trim()
   if (d.motor) payload.engine_number = String(d.motor).trim()
   if (d.chasis) payload.chassis_number = String(d.chasis).trim()
+  // ⛔ MOTOR ≠ CHASIS también al CREAR: si vienen iguales, el motor es el VIN pegado dos
+  // veces (error de carga típico). Se DESCARTA el motor en vez de guardar un dato falso
+  // que después termina impreso en una factura. Ver el mismo chequeo en editarVehiculo().
+  if (payload.engine_number && payload.chassis_number &&
+      String(payload.engine_number).replace(/[\s.\-]/g, '').toUpperCase() === String(payload.chassis_number).replace(/[\s.\-]/g, '').toUpperCase()) {
+    delete payload.engine_number
+  }
   if (d.llaves != null && d.llaves !== '') payload.keys = _num(d.llaves)
   if (d.precio_min != null && d.precio_min !== '') payload.min_price = _num(d.precio_min)
   if (d.descuento != null && d.descuento !== '') payload.discount_percentage = _num(d.descuento)
@@ -1329,12 +1348,23 @@ async function main() {
       precio: f.precio ?? null,
       iva_exento: f.iva_exento === true,
     }
+    // ⛔ MOTOR ≠ CHASIS. Si en la ficha vienen iguales es un error de carga (se pegó el VIN
+    // en los dos campos): NO se entrega ese motor a la factura — se descarta y pasa a
+    // "faltantes" para que Nexus lo pida, en vez de imprimir un N° de motor falso en un DTE.
+    // (El CAV guardado sí puede aportar el bueno: por eso se revisa DESPUÉS del merge.)
+    const _nm = (x) => String(x || '').replace(/[\s.\-]/g, '').toUpperCase()
+    let motor_sospechoso = false
+    if (_nm(df.motor) && _nm(df.motor) === _nm(df.chasis)) { df.motor = null; motor_sospechoso = true }
     const faltantes = ['tipo', 'motor', 'chasis', 'color', 'combustible', 'pbv', 'patente', 'anio'].filter((k) => !df[k])
     console.log(JSON.stringify({
       concesionaria: 'MallorcAutos', auto: f, datos_factura: df,
       cav_guardado: Boolean(cav.patente),
       cav_fuente: cav.fuente || null,
       faltantes,
+      motor_sospechoso,
+      aviso_motor: motor_sospechoso
+        ? 'OJO: en la ficha el N° de MOTOR venía IGUAL al chasis/VIN — es un error de carga, no un motor real. Lo descarté para que no salga un dato falso en la factura. Pídele el motor real (del CAV o del padrón) y guárdalo con guardar-cav; avísale también que hay que corregirlo en GoAutos.'
+        : undefined,
       nota: faltantes.length
         ? `Para la factura faltan: ${faltantes.join(', ')}. Pídelos o sácalos del CAV; el PBV NUNCA está en GoAutos. Cuando los tengas, guárdalos con: guardar-cav --patente ${df.patente || 'XXXX'} --pbv "…" (así el próximo no los pide).`
         : 'datos_factura está COMPLETO: arma la descripción del auto sin pedir el CAV.',

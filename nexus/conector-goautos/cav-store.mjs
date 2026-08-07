@@ -52,6 +52,11 @@ export function guardarCav(datos = {}) {
     const v = datos[c]
     if (v !== undefined && v !== null && String(v).trim() !== '') nuevo[c] = String(v).trim()
   }
+  // ⛔ MOTOR ≠ CHASIS (07-08-2026). El CAV es la ÚLTIMA fuente limpia del N° de motor: si
+  // acá entra el VIN pegado dos veces, la factura sale con un motor falso y ya no queda de
+  // dónde sacar el bueno. Mejor sin motor que con uno inventado.
+  const _nm = (x) => String(x || '').replace(/[\s.\-]/g, '').toUpperCase()
+  if (_nm(nuevo.motor) && (_nm(nuevo.motor) === _nm(nuevo.chasis) || _nm(nuevo.motor) === _nm(nuevo.vin))) delete nuevo.motor
   nuevo.patente = String(datos.patente).trim()
   nuevo.actualizado = new Date().toISOString()
   if (datos.fuente) nuevo.fuente = datos.fuente          // ej. "CAV 2026-07-14"

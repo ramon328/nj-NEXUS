@@ -509,5 +509,21 @@
     "postData": "{\"CuentaOrigen\":\"000075098782\",\"CuentaOrigenGlosaProducto\":\"CUENTA CORRIENTE\",\"CodigoMonedaOrigen\":\"CLP\",\"Monto\":\"1\",\"EmailOrigen\":\"\",\"Motivo\":\"prueba tek\",\"CuentaDestino\":\"0-070-31-42297-8\",\"CodigoMonedaDestino\":\"CLP\",\"CodigoBancoDestino\":\"0037\",\"CuentaDestinoGlosaProducto\":\"\",\"RutDestinatario\":\"19.689.228-1\",\"NombreDestinatario\":\"ELIAS MALUK JOAQUIN ALFONSO\",\"EmailDestino\":\"jeliasm@udd.cl\",\"MotivoDestino\":\"\"}",
     "hits": 2,
     "ts_grabado": null
+  },
+  "POST www.googletagmanager.com/td": {
+    "url": "https://www.googletagmanager.com/td?id=G-4Q7P1YGRZB&v=3&t=t&pid=846611434&gtm=45je6852v9179543703za200zd9179543703&seq=2&exp=115616986~115938465~115938468~118897920~118897930~119337769~119527019~119896803~120385423&dl=em",
+    "headers": {
+      "accept": "*/*",
+      "accept-language": "es-CL",
+      "origin": "https://empresas.officebanking.cl",
+      "referer": "https://empresas.officebanking.cl/",
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
+      "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"macOS\""
+    },
+    "postData": null,
+    "hits": 1,
+    "ts_grabado": null
   }
 }

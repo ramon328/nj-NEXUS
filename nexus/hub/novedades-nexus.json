@@ -4,6 +4,12 @@
   "novedades": [
     {
       "fecha": "2026-08-07",
+      "area": "Autos",
+      "titulo": "El N° de motor ya no puede ser el VIN",
+      "detalle": "Había 2 autos cargados con el N° de motor igual al chasis (se pega el VIN en los dos campos) y eso terminaba impreso en las facturas. Corregí los datos y puse tres candados: no dejo guardar ni crear un auto con motor = chasis, y si igual llega así lo descarto y te pido el motor real en vez de imprimir uno falso en un documento tributario."
+    },
+    {
+      "fecha": "2026-08-07",
       "area": "Facturas",
       "titulo": "La factura de compra ya no se come los datos",
       "detalle": "Tres arreglos: (1) ahora leo el CAV que ya tengo guardado de esa patente, así el PBV y el tipo de vehículo salen solos (antes el PDF salía sin PBV aunque el dato estuviera guardado); (2) recuerdo los datos de tu borrador anterior, así corregir un campo ya no borra la dirección del vendedor ni el precio — esa era la causa real del 'el SII rechazó y no sé por qué'; (3) si falta la dirección o la comuna te lo digo al tiro, en vez de intentar 2 minutos y fallar a ciegas. Además puedo releer las fotos y PDF que me mandaste antes en la conversación: si me dices 'corrígelo con lo que sale ahí', ahora sí puedo mirarlos de nuevo."
