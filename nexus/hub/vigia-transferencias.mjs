@@ -24,6 +24,19 @@ import * as autored from '../conector-autored/autored.mjs'
 const __dirname = dirname(fileURLToPath(import.meta.url))
 const ESTADO = join(__dirname, '.transferencias-vistas.json')
 
+// ⚠️ Corriendo bajo launchd NO existe el entorno del shell, así que sin esto Kapso
+// queda sin API key y el aviso muere con "Kapso sin configurar". Cargamos ~/nexus/.env
+// a mano, igual que hace el conector de AutoRed.
+function cargarEnv() {
+  const f = join(__dirname, '..', '.env')
+  if (!existsSync(f)) return
+  for (const linea of readFileSync(f, 'utf8').split('\n')) {
+    const m = linea.match(/^\s*([A-Z0-9_]+)\s*=\s*(.*)\s*$/)
+    if (m && !process.env[m[1]]) process.env[m[1]] = m[2].replace(/^["']|["']$/g, '')
+  }
+}
+cargarEnv()
+
 // A quién se le avisa. Joaquín lleva las transferencias; Ramón queda de copia solo
 // para el hito de "listo para pagar", que es el que cuesta plata.
 const JOAQUIN = process.env.VIGIA_TR_NUMERO || '+56958589915'
@@ -37,6 +50,16 @@ function leerVistas() {
 }
 function guardarVistas(v) {
   try { writeFileSync(ESTADO, JSON.stringify(v, null, 2)) } catch (e) { log('no pude guardar el estado:', e.message) }
+}
+
+// Deja el aviso en el historial de la conversación. `enviarKapso` NO registra por su
+// cuenta, y sin esto Nexus no sabe que te avisó: si contestas "ya pagué", no tiene idea
+// de qué le hablas.
+async function anotarEnHistorial(numero, texto) {
+  try {
+    const h = await import('./historial.mjs')
+    h.registrar({ canal: 'whatsapp', direccion: 'saliente', contraparte: numero, texto, origen: 'vigia-transferencias', estado: 'enviado' })
+  } catch (e) { log('no pude registrar en el historial:', e.message) }
 }
 
 // Estados que NO son "vivos": no vale la pena mirarlos.
@@ -120,11 +143,19 @@ async function revisar({ dry = false } = {}) {
     if (dry) { log(`[DRY] a ${JOAQUIN}:\n${aviso.texto}\n`); continue }
     try {
       await kap.enviarKapso(JOAQUIN, aviso.texto)
+      anotarEnHistorial(JOAQUIN, aviso.texto)
       log(`avisado ${c.patente} → ${c.estado}`)
-      if (aviso.prioridad && RAMON) await kap.enviarKapso(RAMON, aviso.texto).catch(() => {})
+      if (aviso.prioridad && RAMON) {
+        await kap.enviarKapso(RAMON, aviso.texto).then(() => anotarEnHistorial(RAMON, aviso.texto)).catch(() => {})
+      }
     } catch (e) {
-      log(`no pude avisar de ${c.patente}: ${e.message}`)
-      delete vistas[r.publicId]        // que reintente en la próxima pasada
+      // ⚠️ Si el envío falla NO se borra el registro: borrarlo hacía que la pasada
+      // siguiente lo viera como "primera vez" y, por la regla de no avisar la primera
+      // vez, el aviso se perdía PARA SIEMPRE (pasó con el PGXP70 firmado). Se deja la
+      // huella ANTERIOR: así el cambio se vuelve a detectar y el aviso se reintenta.
+      log(`no pude avisar de ${c.patente}: ${e.message} — reintenta en la próxima pasada`)
+      if (previo) vistas[r.publicId] = previo
+      else vistas[r.publicId] = { huella: 'pendiente-de-aviso', patente: c.patente, estado: c.estado, ts: new Date().toISOString() }
     }
   }
   guardarVistas(vistas)
