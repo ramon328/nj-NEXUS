@@ -314,6 +314,21 @@ export async function validarDeudaPension(persona, { confirmar = false } = {}) {
 //  y están contrastados contra la solicitud 475 (GYWL24) que llegó a Registro Civil.
 // ============================================================
 
+// ⛔ CANDADO — no escribir NUNCA sobre una solicitud muerta.
+// El 07-08-2026, probando el flujo, se le escribió a 5 solicitudes ABORTADAS creyendo
+// que estaban inertes: NO lo estaban. El backend las aceptó y las REVIVIÓ (una llegó a
+// SIGN_MANDATE, o sea a punto de pedirle la firma a una persona real). Hubo que
+// abortarlas de nuevo una por una. Desde entonces toda escritura del cierre chequea
+// primero el estado y se niega si la solicitud está abortada, rechazada o finalizada.
+const ESTADOS_MUERTOS = ['ABORTED', 'REJECTED', 'COMPLETED'];
+async function exigirViva(publicId, accion) {
+  let e;
+  try { e = await estadoTransferencia(publicId); } catch { return; }   // si no se puede leer, no bloqueamos
+  if (ESTADOS_MUERTOS.includes(e.status)) {
+    throw new Error(`No se escribe sobre una solicitud ${e.status}: ${accion} cancelado (${publicId}). Escribirle la REVIVE.`);
+  }
+}
+
 // Bitácora de mapeo: cada escritura del cierre deja request + respuesta acá. Sirve
 // para aprender del uso real de Joaquín sin tener que estar mirándole la pantalla.
 const MAPEO_LOG = path.join(__dirname, 'mapeo-cierre.jsonl');
@@ -402,6 +417,7 @@ export async function subirPermisoCirculacion(publicId, datos = {}, { confirmar 
   };
   const g = guardia('uploadDocuments', resumen, confirmar);
   if (g) return { ...g, nota: 'Sube el permiso de circulación y fija tasación, precio y formas de pago.' };
+  await exigirViva(publicId, 'subir el permiso de circulación');
   if (!archivo || !fs.existsSync(archivo)) throw new Error(`No encuentro el archivo del permiso de circulación: ${archivo}`);
   // Chequeos que hace el front antes de enviar: formato y tamaño. Mejor fallar acá con un
   // mensaje claro que comerse un rechazo mudo de AutoRed.
@@ -492,6 +508,7 @@ export async function ingresarCompradorOC(publicId, comprador, { confirmar = fal
   const payload = { sellers, buyers };
   const g = guardia('enterInfo', { publicId, endpoint: 'enter-info', buyers, sellers_reenviados: sellers.length }, confirmar);
   if (g) return { ...g, nota: 'Ingresa al comprador. Los vendedores se re-envían tal cual para no borrarlos.' };
+  if (ESTADOS_MUERTOS.includes(estado.status)) throw new Error(`No se escribe sobre una solicitud ${estado.status}: ingresar comprador cancelado (${publicId}). Escribirle la REVIVE.`);
   const fd = new FormData();
   aplanarEnFormData(fd, payload);
   const r = await fetch(`${API_TR}/business/transfers/${publicId}/enter-info`, {
@@ -550,6 +567,7 @@ export async function firmaContrato(publicId) {
 export async function generarPagoImpuestos(publicId, { tipo = 'TAXES', confirmar = false } = {}) {
   const g = guardia('newPayment', { publicId, type: tipo }, confirmar);
   if (g) return { ...g, nota: 'Genera el cobro de los impuestos de transferencia y devuelve el link de pago.' };
+  await exigirViva(publicId, 'generar el cobro de impuestos');
   const r = await api(`${API_TR}/business/transfers/${publicId}/new-payment`, { method: 'POST', body: { type: tipo } });
   anotarMapeo('new-payment', { publicId, type: tipo, respuesta: JSON.stringify(r).slice(0, 600) });
   return r;

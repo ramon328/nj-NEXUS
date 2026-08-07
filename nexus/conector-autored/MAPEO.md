@@ -167,9 +167,17 @@ year, version}]`: son las versiones del auto, hay que elegir la que corresponde 
 Si la lista viene vacía, el front manda `makeInputsOptional` y deja que Autosafe busque la tasación.
 
 #### 4.2 — Datos del comprador (`POST /{publicId}/enter-info`)
-🔴 **BLOQUEADO EN LA SOLICITUD 45859 / PGXP70 (07-08-2026): devuelve HTTP 400 con cuerpo VACÍO.**
+✅ **EJECUTADO EN VIVO el 07-08-2026** (solicitud 45859 / PGXP70, compradora Marcela Paz Carvallo
+Montero): HTTP 200, `ENTER_INFO` → **`SIGN_CONTRACT`**, comprador guardado, vendedor intacto y el
+documento `CONTRACT_AUTOMATIC` generado solo. El mapeo de este paso está confirmado.
 
-✅ **PROBADO QUE ES DE AUTORED, NO NUESTRO.** Prueba final: `go-back` a `uploadDocuments`
+⚠️ **Puede tardar y devolver 504 antes de responder 200.** El primer intento dio
+`504 Gateway Time-out` sin guardar nada; el segundo, con los mismos datos, dio 200. Si sale 504:
+**NO asumir que falló** — releer el `status` y reintentar solo si el comprador no quedó.
+
+<details><summary>Historial: estuvo bloqueado unas horas por un bug de AutoRed (resuelto por ellos)</summary>
+
+Durante ~1 h devolvió **HTTP 400 con cuerpo vacío**, y se comprobó que era de su lado. Prueba final: `go-back` a `uploadDocuments`
 (HTTP 200, `{"message":"Retroceso a paso uploadDocuments realizado correctamente"}`) → se rehízo
 **el paso 1 completo desde el formulario web de AutoRed** (su `upload-documents` respondió 200; el
 formulario venía precargado con TODOS nuestros datos, lo que confirma que nuestra subida por API
@@ -241,6 +249,8 @@ Empresa (`buyers.0.*`): `rut`, `socialReason`, `commune.*`, `street`, `houseNumb
 rut,phone,email}`. Los documentos de sociedad (`societyConstitution`, `validityOfPowers`,
 `validityOfSociety`, `societyModifications`, `updatedStatute`, `eRutSii`) se adjuntan como archivo
 en `buyers.0.<campo>` y el backend los reconoce por el nombre (`_comprador_` / `_propietario_`).
+
+</details>
 
 #### 4.3 — Firma del CONTRATO (`GET /{publicId}/signers?type=CONTRACT`) ✅ verificado
 El mandato del vendedor es `type=OC_MANDATE`; **el contrato es `type=CONTRACT`**. Devuelve
