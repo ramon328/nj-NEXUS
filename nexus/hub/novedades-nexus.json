@@ -4,6 +4,12 @@
   "novedades": [
     {
       "fecha": "2026-08-07",
+      "area": "Banco",
+      "titulo": "Ya no te digo 'no pude entrar' cuando no es cierto",
+      "detalle": "Cuando no subo una transferencia ahora te digo el motivo REAL y qué hacer: si es mi candado anti-bloqueo te digo cuántos minutos faltan, en vez del genérico 'el login no pudo entrar'. Y si un login se corta a la mitad (por ejemplo si me reinician), ya no gasta un cupo ni te bloquea 8 minutos: solo cuenta cuando de verdad mandé las credenciales al banco."
+    },
+    {
+      "fecha": "2026-08-07",
       "area": "Autos",
       "titulo": "El N° de motor ya no puede ser el VIN",
       "detalle": "Había 2 autos cargados con el N° de motor igual al chasis (se pega el VIN en los dos campos) y eso terminaba impreso en las facturas. Corregí los datos y puse tres candados: no dejo guardar ni crear un auto con motor = chasis, y si igual llega así lo descarto y te pido el motor real en vez de imprimir uno falso en un documento tributario."
