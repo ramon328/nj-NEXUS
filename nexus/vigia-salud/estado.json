@@ -1,20 +1,20 @@
 {
-  "ts": "2026-08-08T15:53:17.727Z",
+  "ts": "2026-08-08T16:02:19.993Z",
   "estado": "AMARILLO",
   "nivel": 1,
   "razones": [
     "Swap subiendo (1666 MB)"
   ],
   "metricas": {
-    "load1": 2.97,
+    "load1": 2.19,
     "nucleos": 6,
-    "loadPorNucleo": 0.5,
-    "ramLibreMB": 7680,
+    "loadPorNucleo": 0.37,
+    "ramLibreMB": 8208,
     "ramTotalMB": 32768,
     "swapUsedMB": 1666,
     "compresorMB": 2059,
     "discoPct": 76,
-    "procesos": 715,
+    "procesos": 720,
     "sesionesClaude": 0,
     "sesionesClaudeViejas": 0
   },
