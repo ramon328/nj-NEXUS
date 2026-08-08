@@ -224,12 +224,36 @@ export async function crearContratoAbierto(patente, { prohibicion = null, forzar
   return api(`${API_TR}/business/transfers/initialize`, { method: 'POST', body: payload });
 }
 
+// ¿El RUT es de persona jurídica? En Chile las empresas parten en 50.000.000.
+// Sirve de candado: si llega un RUT de empresa con datos de persona natural, el
+// vendedor se guardaría mal (pasó el 08-08-2026 con Trade Marketing Chile SpA).
+export function esRutEmpresa(rut) {
+  const cuerpo = Number(String(rut || '').replace(/[.\-]/g, '').slice(0, -1));
+  return Number.isFinite(cuerpo) && cuerpo >= 50000000;
+}
+
 // Paso B: datos del vendedor. La API espera multipart/form-data con claves planas
 //   `sellers.0.<campo>` (NO JSON). Al guardarlo, el proceso genera solo el MANDATO
 //   (ENTER_SELLER_INFO -> GENERATING_MANDATE -> SIGN_MANDATE) y le manda el mail de firma.
 //   Teléfono: formato 56XXXXXXXXX (con código país, sin +); el front rechaza 9XXXXXXXX.
+//
+// ⚠️ DOS FORMAS DISTINTAS: persona natural y EMPRESA. Se eligen con `v.tipo`
+//   ('empresa') o automáticamente si viene `v.razonSocial`. NO son intercambiables:
+//   el 08-08-2026 los contratos 499/500/501 (Trade Marketing Chile SpA) se guardaron
+//   con la razón social partida en name/fLastName ("TRADE MARKETING CHILE" + "SPA")
+//   y el RUT de la empresa en el formulario de persona natural. Resultado: el mandato
+//   sale a firmar a nombre de la EMPRESA (RUT 76.101.539-7), y una empresa no tiene
+//   Clave Única — quien firma tiene que ser el REPRESENTANTE LEGAL, como en GYWL24
+//   (SUN-GROUP SPA → firmó Ronald Ben-Dov con su RUT persona).
 export async function ingresarVendedorOC(publicId, vendedor, { confirmar = false } = {}) {
   const v = vendedor || {};
+  if (v.tipo === 'empresa' || v.razonSocial) return ingresarVendedorEmpresaOC(publicId, v, { confirmar });
+  if (esRutEmpresa(v.rut)) {
+    throw new Error(
+      `El RUT ${v.rut} es de una EMPRESA, pero lo estás mandando como persona natural. ` +
+      `Usa el formulario de empresa: { tipo:"empresa", razonSocial, rut, domicilio, representantes:[{...}] }.`,
+    );
+  }
   // ⚠️ FORMATO — corregido el 07-08-2026 tras el problema del PGXP70 (solicitud 497).
   // La UI de AutoRed guarda al vendedor con el teléfono en E.164 CON "+" (`+56993196983`)
   // y con los bloques `union` y `representative` completos aunque vayan vacíos. Este
@@ -274,6 +298,70 @@ export async function ingresarVendedorOC(publicId, vendedor, { confirmar = false
   });
   if (!r.ok) throw new Error(`HTTP ${r.status} enter-seller-info: ${(await r.text()).slice(0, 200)}`);
   return { ok: true, publicId };
+}
+
+// Paso B (variante EMPRESA): vendedor persona jurídica.
+//   Mismo endpoint y mismo multipart de claves punteadas, pero el bloque `sellers.0`
+//   cambia entero: NO lleva name/fLastName/mLastName/hasUnion/union/representative
+//   (esos son de persona natural), y en su lugar lleva `socialReason`, los datos de
+//   constitución y el array `legalRepresentative.0.*`.
+//
+//   Mapeado el 08-08-2026 leyendo el vendedor ya guardado de la solicitud 475
+//   (GYWL24 · SUN-GROUP SPA), que llegó hasta Registro Civil sin rebotar. Campos
+//   exactos que devuelve el status para ese vendedor:
+//     rut · socialReason · street · houseNumber · dpto · commune.{id,name,region.name}
+//     isPublicDeed · constitutionDate · modificationDate
+//     companyNotaryName · companyNotaryCommune · companyNotaryNumber
+//     legalRepresentative.0.{name,fLastName,mLastName,rut,phone,email}
+//   Ojo: la EMPRESA no lleva email ni teléfono propios — el contacto es el del
+//   representante legal, y es ÉL quien firma el mandato.
+//   Los documentos de sociedad (societyConstitution, validityOfPowers,
+//   validityOfSociety, societyModifications, updatedStatute, eRutSii) son archivos
+//   OPCIONALES: en GYWL24 fueron todos `false` y el contrato avanzó igual.
+export async function ingresarVendedorEmpresaOC(publicId, empresa, { confirmar = false } = {}) {
+  const e = empresa || {};
+  const reps = Array.isArray(e.representantes) ? e.representantes : (e.representante ? [e.representante] : []);
+  if (!e.razonSocial) throw new Error('Falta la razón social de la empresa vendedora.');
+  if (!e.rut) throw new Error('Falta el RUT de la empresa vendedora.');
+  if (!reps.length) throw new Error('Falta el REPRESENTANTE LEGAL de la empresa vendedora: es quien firma el mandato.');
+
+  const tel = (t) => { const s = String(t || '').trim(); return s ? (s.startsWith('+') ? s : '+' + s.replace(/\D/g, '')) : ''; };
+  const plano = {
+    'sellers.0.rut': e.rut,
+    'sellers.0.socialReason': e.razonSocial,
+    'sellers.0.street': e.calle || '',
+    'sellers.0.houseNumber': String(e.numero || ''),
+    'sellers.0.dpto': e.depto || '',
+    'sellers.0.commune.id': String(e.comuna?.id || ''),
+    'sellers.0.commune.name': e.comuna?.name || '',
+    'sellers.0.commune.region.name': e.comuna?.region?.name || '',
+    'sellers.0.isPublicDeed': String(Boolean(e.escrituraPublica)),
+    'sellers.0.constitutionDate': e.fechaConstitucion || '',
+    'sellers.0.modificationDate': e.fechaModificacion || '',
+    'sellers.0.companyNotaryName': e.notarioNombre || '',
+    'sellers.0.companyNotaryCommune': e.notarioComuna || '',
+    'sellers.0.companyNotaryNumber': e.notarioNumero || '',
+  };
+  reps.forEach((r, i) => {
+    plano[`sellers.0.legalRepresentative.${i}.name`] = r.nombres || '';
+    plano[`sellers.0.legalRepresentative.${i}.fLastName`] = r.apellidoPaterno || '';
+    plano[`sellers.0.legalRepresentative.${i}.mLastName`] = r.apellidoMaterno || '';
+    plano[`sellers.0.legalRepresentative.${i}.rut`] = r.rut || '';
+    plano[`sellers.0.legalRepresentative.${i}.phone`] = tel(r.telefono);
+    plano[`sellers.0.legalRepresentative.${i}.email`] = r.email || '';
+  });
+
+  const g = guardia('enterInfo', { publicId, ...plano }, confirmar);
+  if (g) return g;
+  const fd = new FormData();
+  for (const [k, val] of Object.entries(plano)) fd.append(k, val);
+  const r = await fetch(`${API_TR}/business/transfers/${publicId}/enter-seller-info`, {
+    method: 'POST',
+    headers: { accept: 'application/json', cookie: `authorization=${await jwt()}` },
+    body: fd,
+  });
+  if (!r.ok) throw new Error(`HTTP ${r.status} enter-seller-info (empresa): ${(await r.text()).slice(0, 200)}`);
+  return { ok: true, publicId, tipo: 'empresa', firmante: reps[0] };
 }
 
 // Paso C (lectura): link de firma del mandato + estado del firmante.

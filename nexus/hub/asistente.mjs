@@ -2828,18 +2828,31 @@ const HERRAMIENTAS = [
         prohibicion: { type: 'object', description: 'Opcional: acreedor de la prohibición de enajenar si el contrato la lleva.', properties: { name: { type: 'string' }, rut: { type: 'string' } } },
         vendedor: {
           type: 'object',
-          description: 'Datos del vendedor (para accion:"vendedor").',
+          description: 'Datos del vendedor (para accion:"vendedor"). PERSONA NATURAL o EMPRESA — son formularios DISTINTOS en AutoRed, no los mezcles. Si el auto está a nombre de una empresa (razón social en el CAV, o RUT sobre 50 millones), es OBLIGATORIO tipo:"empresa" con razonSocial + representantes: NO pongas la razón social en nombres/apellidos ni el RUT de la empresa en el formulario de persona. Quien firma el mandato de una empresa es su REPRESENTANTE LEGAL, con su RUT de persona.',
           properties: {
-            nombres: { type: 'string', description: 'Nombres de pila.' },
-            apellidoPaterno: { type: 'string' },
-            apellidoMaterno: { type: 'string' },
-            rut: { type: 'string', description: 'RUT con dígito verificador, ej "25.492.965-4".' },
-            email: { type: 'string' },
-            telefono: { type: 'string', description: 'Teléfono chileno; se normaliza a 56XXXXXXXXX.' },
+            tipo: { type: 'string', enum: ['persona', 'empresa'], description: 'persona natural o empresa. Por defecto persona. Si la persona te dice "es una empresa", o el titular del CAV es una razón social (SPA, SA, LTDA, EIRL...), usa "empresa".' },
+            nombres: { type: 'string', description: 'Nombres de pila (SOLO persona natural).' },
+            apellidoPaterno: { type: 'string', description: 'Solo persona natural.' },
+            apellidoMaterno: { type: 'string', description: 'Solo persona natural.' },
+            rut: { type: 'string', description: 'RUT con dígito verificador, ej "25.492.965-4". Si es empresa, el RUT DE LA EMPRESA.' },
+            email: { type: 'string', description: 'Solo persona natural. En una empresa el contacto va en el representante legal.' },
+            telefono: { type: 'string', description: 'Solo persona natural; se normaliza a 56XXXXXXXXX.' },
             calle: { type: 'string' },
             numero: { type: 'string', description: 'Número de la casa/depto en la calle.' },
             depto: { type: 'string', description: 'Depto/oficina (opcional).' },
-            comuna: { type: 'string', description: 'Nombre de la comuna del domicilio (se resuelve el id solo).' },
+            comuna: { type: 'string', description: 'Nombre de la comuna del domicilio (se resuelve el id solo). En empresa, el domicilio social.' },
+            razonSocial: { type: 'string', description: 'EMPRESA: razón social completa tal como sale en el e-RUT o el CAV, ej "TRADE MARKETING CHILE SPA".' },
+            escrituraPublica: { type: 'boolean', description: 'EMPRESA: si se constituyó por escritura pública. Opcional.' },
+            fechaConstitucion: { type: 'string', description: 'EMPRESA: fecha de constitución AAAA-MM-DD. Opcional (sale de la vigencia de sociedad).' },
+            fechaModificacion: { type: 'string', description: 'EMPRESA: fecha de la última modificación AAAA-MM-DD. Opcional.' },
+            notarioNombre: { type: 'string', description: 'EMPRESA: nombre del notario. Opcional.' },
+            notarioComuna: { type: 'string', description: 'EMPRESA: comuna de la notaría. Opcional.' },
+            notarioNumero: { type: 'string', description: 'EMPRESA: número de la notaría. Opcional.' },
+            representantes: {
+              type: 'array',
+              description: 'EMPRESA: representantes legales. OBLIGATORIO al menos uno — es QUIEN FIRMA el mandato, con su RUT de persona natural. Sale de la vigencia de poderes.',
+              items: { type: 'object', properties: { nombres: { type: 'string' }, apellidoPaterno: { type: 'string' }, apellidoMaterno: { type: 'string' }, rut: { type: 'string' }, email: { type: 'string' }, telefono: { type: 'string' } } },
+            },
             numeroWhatsapp: { type: 'string', description: 'Opcional: número al que mandar el link de firma. Por defecto no lo manda (te devuelve el link para que lo pegues).' },
           },
         },
@@ -5025,32 +5038,61 @@ async function ejecutar(nombre, input, ctx = {}) {
           if (!publicId) return `Llamé a crear el contrato de ${patente} pero AutoRed no devolvió el publicId (respuesta: ${JSON.stringify(r).slice(0, 200)}). No sigas con el vendedor hasta tener el publicId; reintenta o avísale a Ramón.`
           return JSON.stringify({
             ok: true, creado: true, patente, publicId, estado: r.status || 'ENTER_SELLER_INFO',
-            instruccion: `✅ Contrato de ${patente} CREADO en AutoRed (publicId ${publicId}) — ya se cobró 1 crédito + el CAV. AHORA pídele a la persona los DATOS DEL VENDEDOR (nombres, apellido paterno y materno, RUT, email, teléfono, calle + número + comuna) y llama crear_contrato con accion:"vendedor", este mismo publicId y el objeto "vendedor". Con eso se genera el mandato y sale el link de firma.`,
+            instruccion: `✅ Contrato de ${patente} CREADO en AutoRed (publicId ${publicId}) — ya se cobró 1 crédito + el CAV. AHORA pídele a la persona los DATOS DEL VENDEDOR y llama crear_contrato con accion:"vendedor", este mismo publicId y el objeto "vendedor". PRIMERO pregunta si el vendedor (el titular del auto) es PERSONA o EMPRESA, porque son formularios distintos: · PERSONA → nombres, apellido paterno y materno, RUT, email, teléfono, calle + número + comuna. · EMPRESA → tipo:"empresa", razón social, RUT de la empresa, domicilio social (calle + número + comuna) y el REPRESENTANTE LEGAL completo (nombres, apellidos, RUT de persona, email, teléfono), que es quien firma. NUNCA metas una razón social en los campos de nombre/apellido. Con eso se genera el mandato y sale el link de firma.`,
           })
         }
         if (accion === 'vendedor') {
           const publicId = String(input.publicId || '').trim()
           if (!publicId) return 'Para ingresar al vendedor necesito el publicId del contrato (el que devolvió accion:"crear").'
           const v = input.vendedor || {}
+          // ¿Persona o empresa? Lo decide el tipo, la razón social, o el RUT (las
+          // empresas chilenas parten en 50.000.000). El candado del RUT es lo que
+          // faltó el 08-08-2026: Trade Marketing Chile SpA entró por el formulario
+          // de persona natural con la razón social partida en nombre + apellido.
+          const esEmpresa = v.tipo === 'empresa' || Boolean(v.razonSocial) || autored.esRutEmpresa(v.rut)
           const falta = []
-          if (!v.nombres) falta.push('nombres')
-          if (!v.apellidoPaterno) falta.push('apellido paterno')
-          if (!v.rut) falta.push('RUT')
-          if (!v.email) falta.push('email')
-          if (!v.telefono) falta.push('teléfono')
-          if (!v.calle || !v.numero) falta.push('dirección (calle y número)')
-          if (!v.comuna) falta.push('comuna')
-          if (falta.length) return JSON.stringify({ faltan_datos: true, publicId, falta, instruccion: `Faltan datos del vendedor para el contrato: ${falta.join(', ')}. Pídeselos a la persona y re-llama con accion:"vendedor", el mismo publicId y el objeto vendedor completo.` })
+          if (esEmpresa) {
+            if (!v.razonSocial) falta.push('razón social de la empresa')
+            if (!v.rut) falta.push('RUT de la empresa')
+            if (!v.calle || !v.numero) falta.push('domicilio social (calle y número)')
+            if (!v.comuna) falta.push('comuna del domicilio social')
+            const r0 = (v.representantes || [])[0] || {}
+            if (!r0.nombres || !r0.apellidoPaterno) falta.push('nombre completo del representante legal (es quien firma)')
+            if (!r0.rut) falta.push('RUT del representante legal')
+            if (!r0.email) falta.push('email del representante legal')
+            if (!r0.telefono) falta.push('teléfono del representante legal')
+          } else {
+            if (!v.nombres) falta.push('nombres')
+            if (!v.apellidoPaterno) falta.push('apellido paterno')
+            if (!v.rut) falta.push('RUT')
+            if (!v.email) falta.push('email')
+            if (!v.telefono) falta.push('teléfono')
+            if (!v.calle || !v.numero) falta.push('dirección (calle y número)')
+            if (!v.comuna) falta.push('comuna')
+          }
+          if (falta.length) return JSON.stringify({ faltan_datos: true, publicId, vendedor_es_empresa: esEmpresa, falta, instruccion: `Faltan datos del vendedor para el contrato: ${falta.join(', ')}. ${esEmpresa ? 'El vendedor es una EMPRESA: los datos de la empresa salen del e-RUT y de la vigencia de sociedad, y los del representante legal de la vigencia de poderes. ' : ''}Pídeselos a la persona y re-llama con accion:"vendedor", el mismo publicId y el objeto vendedor completo.` })
           // resolver comuna → {id, name, region}
           let comuna = null
           try { comuna = await autored.buscarComuna(v.comuna) } catch { /* */ }
           if (!comuna) return `No encontré la comuna "${v.comuna}" en AutoRed. Pídele a la persona el nombre exacto de la comuna del domicilio del vendedor y re-llama.`
-          const vendedor = {
-            nombres: v.nombres, apellidoPaterno: v.apellidoPaterno, apellidoMaterno: v.apellidoMaterno || '',
-            rut: v.rut, email: v.email, telefono: normTelCL(v.telefono),
-            calle: v.calle, numero: String(v.numero), depto: v.depto || '',
-            comuna, conyuge: false, representante: false,
-          }
+          const vendedor = esEmpresa
+            ? {
+              tipo: 'empresa', razonSocial: v.razonSocial, rut: v.rut,
+              calle: v.calle, numero: String(v.numero), depto: v.depto || '', comuna,
+              escrituraPublica: Boolean(v.escrituraPublica),
+              fechaConstitucion: v.fechaConstitucion || '', fechaModificacion: v.fechaModificacion || '',
+              notarioNombre: v.notarioNombre || '', notarioComuna: v.notarioComuna || '', notarioNumero: v.notarioNumero || '',
+              representantes: (v.representantes || []).map((r) => ({
+                nombres: r.nombres, apellidoPaterno: r.apellidoPaterno, apellidoMaterno: r.apellidoMaterno || '',
+                rut: r.rut, email: r.email, telefono: normTelCL(r.telefono),
+              })),
+            }
+            : {
+              nombres: v.nombres, apellidoPaterno: v.apellidoPaterno, apellidoMaterno: v.apellidoMaterno || '',
+              rut: v.rut, email: v.email, telefono: normTelCL(v.telefono),
+              calle: v.calle, numero: String(v.numero), depto: v.depto || '',
+              comuna, conyuge: false, representante: false,
+            }
           const ri = await autored.ingresarVendedorOC(publicId, vendedor, { confirmar: true })
           if (ri && ri.dry_run) return `No pude ingresar al vendedor: la escritura en AutoRed está bloqueada (${ri.motivo}).`
           // el mandato se genera solo (~10s); esperamos y buscamos el link de firma
@@ -5075,12 +5117,17 @@ async function ejecutar(nombre, input, ctx = {}) {
               enviado = true
             } catch { enviado = false }
           }
+          // Si es empresa, el mandato lo tiene que firmar el REPRESENTANTE LEGAL con su
+          // RUT de persona. Si AutoRed devolvió como firmante el RUT de la empresa, el
+          // vendedor quedó cargado como persona natural y hay que rehacerlo.
+          const rutEmpresaFirmando = esEmpresa && firmante?.rut && autored.esRutEmpresa(firmante.rut)
           return JSON.stringify({
-            ok: true, vendedor_ingresado: true, publicId,
+            ok: true, vendedor_ingresado: true, publicId, vendedor_es_empresa: esEmpresa,
             estado: 'mandato generado', link_firma: link, firmante: firmante ? { nombre: firmante.nombre, rut: firmante.rut, estado: firmante.estado } : null,
             link_enviado_al_vendedor: enviado,
+            aviso: rutEmpresaFirmando ? 'OJO: el mandato quedó a nombre del RUT de la EMPRESA, no del representante legal. Una empresa no puede firmar con Clave Única. Avísale a la persona que hay que rehacer el paso del vendedor antes de que intenten firmar.' : null,
             instruccion: link
-              ? `✅ Vendedor ingresado y MANDATO generado. El LINK DE FIRMA es: ${link}${enviado === true ? ' — ya se lo mandé por WhatsApp al vendedor.' : enviado === false ? ' — NO pude mandárselo al vendedor, dáselo tú.' : ' — mándaselo al vendedor para que firme (o pásale el número con vendedor.numeroWhatsapp para que yo se lo envíe).'} El mandato es IRREVOCABLE a favor de Autosafe. Cuando el vendedor firme, el contrato avanza solo.`
+              ? `✅ Vendedor ingresado y MANDATO generado. El LINK DE FIRMA es: ${link}${enviado === true ? ' — ya se lo mandé por WhatsApp al vendedor.' : enviado === false ? ' — NO pude mandárselo al vendedor, dáselo tú.' : ' — mándaselo al vendedor para que firme (o pásale el número con vendedor.numeroWhatsapp para que yo se lo envíe).'}${esEmpresa ? ` Lo firma ${firmante?.nombre || 'el representante legal'} como REPRESENTANTE LEGAL de la empresa vendedora.` : ''} El mandato es IRREVOCABLE a favor de Autosafe. Cuando el vendedor firme, el contrato avanza solo.`
               : `El vendedor quedó ingresado (publicId ${publicId}) pero el mandato aún se está generando y todavía no tengo el link de firma. Espera ~10-20s y vuelve a llamar crear_contrato con accion:"firma" y el publicId.`,
           })
         }

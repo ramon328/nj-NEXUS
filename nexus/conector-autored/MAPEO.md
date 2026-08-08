@@ -112,6 +112,41 @@ sellers.0.hasUnion / .hasRepresentative / .isBeneficiary
 Índice `0` = primer vendedor (soporta varios: `sellers.1.*`). Los sub-objetos van con clave plana
 punteada. `union` = cónyuge, `representative` = representante legal (mismos campos anidados).
 
+#### 2.b — Vendedor EMPRESA (mapeado 08-08-2026) ✅ verificado contra la solicitud 475
+El primer paso del wizard ("Persona / Empresa") **cambia el formulario entero**, igual que en el
+comprador. Mismo endpoint `enter-seller-info` y mismo multipart punteado, pero el bloque
+`sellers.0` es otro: **no lleva** `name` / `fLastName` / `mLastName` / `hasUnion` /
+`hasRepresentative` ni los sub-bloques `union` y `representative` (esos son de persona natural).
+
+```
+sellers.0.rut                      ← RUT de la EMPRESA (con puntos y guión)
+sellers.0.socialReason             ← razón social, ej "SUN-GROUP SPA"
+sellers.0.street / .houseNumber / .dpto
+sellers.0.commune.id / .commune.name / .commune.region.name
+sellers.0.isPublicDeed             ← bool: constituida por escritura pública
+sellers.0.constitutionDate         ← "AAAA-MM-DD"
+sellers.0.modificationDate         ← "" si no hubo
+sellers.0.companyNotaryName / .companyNotaryCommune / .companyNotaryNumber
+sellers.0.legalRepresentative.0.name / .fLastName / .mLastName / .rut / .phone / .email
+```
+
+⚠️ **La empresa NO lleva `email` ni `phone` propios**: el contacto es el del representante legal,
+y **es él quien firma el mandato**, con su RUT de persona natural. Verificado en **475 (GYWL24 ·
+SUN-GROUP SPA)**, que llegó a Registro Civil sin rebotar: firmó Ronald Ben-Dov (17.699.968-3).
+
+Los documentos de sociedad (`societyConstitution`, `validityOfPowers`, `validityOfSociety`,
+`societyModifications`, `updatedStatute`, `eRutSii`) se adjuntan como archivo en `sellers.0.<campo>`
+y son **opcionales**: en 475 fueron todos `false` y el contrato avanzó igual.
+
+🐞 **El error que originó esta sección.** El 08-08-2026, en los contratos **499/500/501**
+(VYVS34 / VYWD41 / VYRF43, vendedor *Trade Marketing Chile SpA*), el conector solo tenía el
+formulario de persona natural, así que la razón social entró **partida en dos**
+(`name: "TRADE MARKETING CHILE"`, `fLastName: "SPA"`) con el **RUT de la empresa** en un
+formulario de persona. Resultado: los 3 mandatos salieron a firmar a nombre del RUT **76.101.539-7**
+— y una empresa no tiene Clave Única, así que no puede firmar. Candados agregados:
+`esRutEmpresa()` (RUT ≥ 50.000.000 = persona jurídica) rechaza el formulario de persona, y tras
+generar el mandato se avisa si el firmante quedó con RUT de empresa.
+
 ### Paso 3 — Mandato y firma (automático, no cobra)
 Al guardar el vendedor el estado avanza solo:
 `ENTER_SELLER_INFO` → **`GENERATING_MANDATE`** → **`SIGN_MANDATE`** (~10 s).
