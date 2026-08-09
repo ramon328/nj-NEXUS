@@ -452,6 +452,15 @@ const manejar = async (req, res) => {
     try { d = JSON.parse(body) } catch { /* */ }
     const clave = String(d.clave || '')   // NO se recorta ni se loguea nunca
     if (!clave) { res.writeHead(400, { 'content-type': 'application/json' }); return res.end('{"ok":false,"error":"Escribe la clave."}') }
+    // ⛔ CLAVES DE PRUEBA. El 06-08-2026 entró "Nexus_!" (un valor de prueba) y pisó la clave
+    // real de Nico en sus 9 empresas: todo login pasó a dar "clave incorrecta" y hubo que
+    // pausar la cuenta para que Santander no la bloqueara a los ~3 rechazos. Costó un día
+    // encontrarlo. No cuesta nada rechazarlas acá.
+    const CLAVES_BASURA = /^(nexus_!|nexus|prueba|test|testing|1234|12345|123456|clave|password|asdf|qwerty|xxx+|\.+)$/i
+    if (CLAVES_BASURA.test(clave.trim())) {
+      res.writeHead(400, { 'content-type': 'application/json' })
+      return res.end('{"ok":false,"error":"Esa no parece tu clave real del banco (parece un valor de prueba). Escribe la clave con la que entras a Santander — si guardo una equivocada, se bloquea la cuenta."}')
+    }
     const previas = listar(userId)
     if (!previas.length) {
       res.writeHead(400, { 'content-type': 'application/json' })

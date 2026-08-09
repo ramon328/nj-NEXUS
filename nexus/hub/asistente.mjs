@@ -1762,7 +1762,8 @@ GOAUTOS = SOLO MallorcAutos. Nunca des datos de otras automotoras.
 - ALTA — los ROLES se dan POR EMPRESA (estructura ordenada), no por scopes sueltos. Cuando un fundador diga "agrega/crea un usuario", "da de alta a alguien", "mete a X a MallorcAutos", etc., PÍDELE (claro): (1) el NOMBRE, (2) el NÚMERO de WhatsApp con +56, y (3) a qué EMPRESA(s) lo mete. Empresas válidas:
   · *MallorcAutos / Ana Clara* (clave "mallorcautos", ACTIVA) — le da los AUTOS (GoAutos: ver/publicar/editar/vender/gastos + Excel) + el SII y el BANCO de **Ana Clara** (la razón social de MallorcAutos). Ej.: "mete a Joaquín a MallorcAutos" → empresas:['mallorcautos'].
   · *Aliace* (clave "aliace", ACTIVA) — le da la facturación/ventas/pagos/cobranzas/deudas/metas de Aliace.
-  · *IMPOMIN* / *HN* / *ACE* / *Food Expert* (claves "impomin", "hn", "ace", "foodexpert") — rol creado para futuros usuarios, con SII + banco de cada empresa, pero HOY están PENDIENTES/DORMIDOS: se pueden asignar, pero el usuario no podrá sacar datos hasta que se carguen las credenciales de esa empresa. Si un fundador mete a alguien a una de estas, AVÍSALE que la empresa está pendiente de credenciales (queda dormida por ahora).
+  · *ACE* (clave "ace", **SII ACTIVO** desde el 09-ago-2026) — ACE SPA (RUT 76.715.392-9, empresa_id 4 del SII) ya descarga TODO del SII (compras/ventas RCV, F29, F22, libros, ficha, boletas, facturas a detalle) y también EMITE facturas. Su BANCO todavía no está enchufado por el rol: si metes a alguien a ACE, avísale que por ahora tendrá el SII y no el banco.
+  · *IMPOMIN* / *HN* / *Food Expert* (claves "impomin", "hn", "foodexpert") — rol creado para futuros usuarios, con SII + banco de cada empresa, pero HOY están PENDIENTES/DORMIDOS: se pueden asignar, pero el usuario no podrá sacar datos hasta que se carguen las credenciales de esa empresa. Si un fundador mete a alguien a una de estas, AVÍSALE que la empresa está pendiente de credenciales (queda dormida por ahora).
   Un usuario puede manejar UNA o VARIAS empresas. Al asignar una empresa, su SII/banco/facturas quedan CLAVADOS a esa razón social (un usuario de MallorcAutos NO ve el SII ni el banco de otras empresas). Si un caso MUY puntual necesita un área suelta que no es de ninguna empresa (ej. solo "cerebro" o "bd"), pásala en el campo accesos. Muéstrale un RESUMEN (nombre · número · empresa) y pide OK; SOLO cuando confirme, llama agregar_usuario. La herramienta YA registra al usuario, lo habilita para escribirle a Nexus y le manda el WhatsApp de bienvenida — NO escribas tú esa bienvenida.
 - BAJA — "quita / elimina / da de baja a X": confirma el número y llama quitar_usuario (no se puede quitar a un fundador).
 - VER — "qué usuarios hay / lista de usuarios": llama listar_usuarios.
@@ -1772,7 +1773,7 @@ GOAUTOS = SOLO MallorcAutos. Nunca des datos de otras automotoras.
 
 PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 1) Cuando pidan descargar algo del SII (ej. "quiero descargar algo del SII"), llama sii(accion:'estado'): te devuelve LAS EMPRESAS a las que esa persona tiene acceso (hoy ANA CLARA SPA = 3 y ACE SPA = 4) y los tipos que se pueden bajar. Si tiene más de una y no dijo cuál, PREGÚNTALE de qué empresa antes de bajar nada — no asumas Ana Clara por costumbre. Dile al usuario "Me conecté a Martes" y lístale en lenguaje claro qué puede bajar (compras/ventas RCV, F29, F22, carpeta tributaria, ficha, boletas, libros).
-2) Pregúntale QUÉ documento quiere y de QUÉ periodo (mes/año, formato AAAAMM; o un rango desde–hasta).
+2) Pregúntale QUÉ documento quiere y de QUÉ periodo (mes/año, formato AAAAMM; o un rango desde–hasta). 📅 **EL AÑO, CON CUIDADO:** saca el año del bloque FECHA Y HORA DE AHORA de este turno, NO de memoria — "julio" a secas es julio del año EN CURSO. Un año equivocado devuelve "0 documentos" y eso se lee como "la empresa no facturó", que es mentira (pasó de verdad el 09-ago-2026: se pidió julio 2026 y se bajó 202507). La herramienta te devuelve el campo *periodo_legible*: **repite ESE texto** al contar el resultado, y si trae un aviso de año raro, corrige antes de reportar nada.
 3) Llama sii(accion:'descargar', empresa_id, desde, hasta, docs:[tipo]) → te devuelve un job_id.
 4) Consulta sii(accion:'job', job_id) hasta que el estado sea 'completado' (avísale al usuario que está bajando).
 5) Cuando termine, usa sii(accion:'documentos', empresa_id) para ubicar el archivo y su "ruta".
@@ -6031,8 +6032,38 @@ async function ejecutar(nombre, input, ctx = {}) {
           if (!input.empresa_id) return 'Falta empresa_id (consíguelo con accion:estado).'
           if (empresaBloqueada(input.empresa_id)) return '🔒 No tienes acceso al SII de esa empresa; solo el de tu(s) empresa(s).'
           const body = { desde: input.desde, hasta: input.hasta || input.desde, docs: input.docs || [] }
+          // 📅 GUARDIA DE PERIODO (incidente real 09-ago-2026): Nico pidió "julio 2026" de
+          // ACE y el modelo mandó desde:"202507" (julio 2025) — un mes sin documentos. El
+          // SII respondió 0 correctamente y Nexus reportó "julio 2026: sin facturas", que
+          // era FALSO. El periodo pedido nunca se le mostraba a la persona, así que el
+          // error era invisible. Ahora la herramienta devuelve el periodo EN PALABRAS para
+          // que se lo repita, y avisa cuando el año no es el corriente ni el anterior.
+          const MESES_ES = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+          const enPalabras = (p) => {
+            const m = /^(\d{4})(\d{2})$/.exec(String(p || ''))
+            if (!m) return null
+            const mes = Number(m[2])
+            return (mes >= 1 && mes <= 12) ? `${MESES_ES[mes - 1]} ${m[1]}` : null
+          }
+          const ymHoy = new Date().toLocaleDateString('en-CA', { timeZone: TZ_CL }).slice(0, 7).replace('-', '')
+          const legibleDesde = enPalabras(body.desde), legibleHasta = enPalabras(body.hasta)
+          if (!legibleDesde || !legibleHasta) {
+            return JSON.stringify({ ok: false, error: `El periodo tiene que ser AAAAMM (ej. ${ymHoy}). Recibí desde="${body.desde}" hasta="${body.hasta}".` })
+          }
+          if (body.desde > ymHoy || body.hasta > ymHoy) {
+            return JSON.stringify({ ok: false, error: `Ese periodo está en el FUTURO (hoy estamos en ${enPalabras(ymHoy)}): el SII no tiene nada. Pediste ${legibleDesde}${legibleHasta !== legibleDesde ? ' a ' + legibleHasta : ''}. Confirma el mes con la persona.` })
+          }
+          const periodo_legible = legibleDesde === legibleHasta ? legibleDesde : `${legibleDesde} a ${legibleHasta}`
+          const anioHoy = ymHoy.slice(0, 4)
+          const aniosPedidos = [...new Set([body.desde.slice(0, 4), body.hasta.slice(0, 4)])]
+          const anioRaro = aniosPedidos.some((a) => a !== anioHoy && Number(a) !== Number(anioHoy) - 1)
           const r = await fetch(`${base}/api/empresas/${input.empresa_id}/descargar`, { method: 'POST', headers: H, body: JSON.stringify(body) })
-          return JSON.stringify(await r.json())
+          const j = await r.json()
+          return JSON.stringify({
+            ...j, periodo_legible, periodo_aaaamm: { desde: body.desde, hasta: body.hasta }, mes_en_curso: enPalabras(ymHoy),
+            instruccion: `📅 Estás bajando **${periodo_legible}**. Cuando le cuentes el resultado, di el periodo TAL CUAL sale acá ("${periodo_legible}"), NO como lo entendiste tú: si te equivocaste de año, un "0 documentos" suena a "esa empresa no facturó" siendo mentira.`
+              + (anioRaro ? ` ⚠️ OJO: ${periodo_legible} no es de este año (${anioHoy}) ni del anterior. Si la persona te dijo otro año, CANCELA y vuelve a bajar el correcto antes de reportar nada.` : ''),
+          })
         }
         if (input.accion === 'job') {
           const r = await fetch(`${base}/api/jobs/${encodeURIComponent(input.job_id)}`, { headers: H })
