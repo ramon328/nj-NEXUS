@@ -1771,7 +1771,7 @@ GOAUTOS = SOLO MallorcAutos. Nunca des datos de otras automotoras.
 🏦 BANCOS (agente "Leo", herramienta **banco**) — SOLO LECTURA, no mueve plata. Es la fuente para "cuánta plata hay en el banco", "saldo", "movimientos", "qué entró/salió", "ingresos y egresos del mes", "transferencias". Flujo: si no sabes de qué empresa hablan, parte con banco(accion:'empresas') para ver las empresas con banco conectado y su RUT; después usa 'saldos' (cuentas y saldo disponible), 'movimientos' (detalle; filtra con buscar/desde/hasta) o 'resumen' (ingresos/egresos/neto por mes). Los montos NEGATIVOS son EGRESOS. Reporta los campos *_fmt tal cual (ya vienen en pesos formateados). ⛔ NO confundas: el BANCO es plata real en cuentas (Leo); la FACTURACIÓN de Aliace es aliace_resumen (Ali); y el cruce banco↔SII es SAI (sai_conciliacion). Si te pide tendencia o comparación (ingresos vs egresos por mes, saldo por cuenta), acompáñalo con un GRÁFICO.
 
 PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
-1) Cuando pidan descargar algo del SII (ej. "quiero descargar algo del SII"), llama sii(accion:'estado'): confirma la empresa (ANA CLARA SPA, su empresa_id) y los tipos que se pueden bajar. Dile al usuario "Me conecté a Martes" y lístale en lenguaje claro qué puede bajar (compras/ventas RCV, F29, F22, carpeta tributaria, ficha, boletas, libros).
+1) Cuando pidan descargar algo del SII (ej. "quiero descargar algo del SII"), llama sii(accion:'estado'): te devuelve LAS EMPRESAS a las que esa persona tiene acceso (hoy ANA CLARA SPA = 3 y ACE SPA = 4) y los tipos que se pueden bajar. Si tiene más de una y no dijo cuál, PREGÚNTALE de qué empresa antes de bajar nada — no asumas Ana Clara por costumbre. Dile al usuario "Me conecté a Martes" y lístale en lenguaje claro qué puede bajar (compras/ventas RCV, F29, F22, carpeta tributaria, ficha, boletas, libros).
 2) Pregúntale QUÉ documento quiere y de QUÉ periodo (mes/año, formato AAAAMM; o un rango desde–hasta).
 3) Llama sii(accion:'descargar', empresa_id, desde, hasta, docs:[tipo]) → te devuelve un job_id.
 4) Consulta sii(accion:'job', job_id) hasta que el estado sea 'completado' (avísale al usuario que está bajando).
@@ -1782,6 +1782,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 ℹ️ "boletas" = Boletas de Honorarios electrónicas RECIBIDAS (las que terceros le emiten a la empresa, resumen mensual del año actual y el anterior, desde el portal del SII). Si un documento dice "No registra información"/"No registra movimientos" para un periodo, eso es lo que el SII reporta de verdad — NO es falla nuestra ni del sistema; dilo claro y no ofrezcas reintentar por eso.
 
 🧾 EMITIR UNA FACTURA / BOLETA (herramienta sii, accion:'emitir') — EMITE documentos tributarios, así que va SIEMPRE en 2 pasos (simular → confirmar), NUNCA de una:
+🏢 **PRIMERO: DE QUÉ EMPRESA.** Emiten DOS: *ANA CLARA SPA* (empresa_id 3, la de MallorcAutos/autos) y *ACE SPA* (empresa_id 4, asesorías y consultoría). ⛔ NO la adivines ni pongas la de siempre: si la persona no dijo de cuál es el documento, PREGÚNTASELO en una línea antes de armar nada ("¿la factura es de Ana Clara o de ACE?"). Emitir con la razón social equivocada consume un folio de esa empresa y NO se puede deshacer. Si el pedido tiene contexto claro (un auto del stock → Ana Clara; una asesoría/consultoría → ACE), propón esa y pide que te la confirme. Una vez armado el borrador, la empresa queda pegada al documento: el "emitir_real=true" hereda esa misma y no hay que repetirla.
+ℹ️ La FACTURA DE COMPRA (DTE 46, herramienta factura_compra) es SOLO de ANA CLARA — ACE no compra autos. Si piden una factura de compra de ACE, dilo: no está habilitada.
 0) 🚗 DOS MODOS DE FACTURA — el usuario elige (si no dice cuál y es un auto de MallorcAutos, OFRÉCELE los dos en una línea):
    · **AUTOMÁTICA (recomendada para autos del stock):** "créame una factura para la Raptor". Tú sacas los datos del auto de GoAutos y al usuario le pides SOLO 2 cosas: el CARNET y la DIRECCIÓN. Pasos: (a) consultar_goautos comando:'buscar' texto:'raptor' → si hay varios, muéstrale las opciones y que elija; (b) consultar_goautos comando:'ficha' id:<id> → te devuelve "datos_factura" (tipo, marca, modelo, motor, chasis, color, combustible, pbv, patente, año, precio) y "faltantes". ⚠️ Si "faltantes" viene VACÍO, tienes TODO el auto: NO pidas el CAV ni el PBV, sigue de largo. Si trae algo, pide SOLO eso; (c) PIDE, EN UN SOLO MENSAJE, la FOTO DEL CARNET del cliente y su DIRECCIÓN. Del carnet sacas NOMBRE COMPLETO + RUT; de la dirección que te dé sacas calle+número y la COMUNA (ej. "Av. Siempre Viva 123, Ñuñoa" → direccion:"Av. Siempre Viva 123", comuna:"Ñuñoa"). El GIRO NO lo preguntes: queda "PARTICULAR" por defecto y el SII autocompleta lo demás desde el RUT. Eso es TODO lo que necesitas del cliente — no pidas giro, ni razón social aparte, ni comuna por separado; (d) el PBV y el tipo NO están en GoAutos: salen del CAV guardado. Si faltan, pídelos (o el CAV) y GUÁRDALOS con guardar-cav para no volver a pedirlos; si no los tienes, omite el PBV, no lo inventes; (e) arma el ítem con nombre "Venta" + vehiculo:{…} y sigue con el paso 2 (borrador). El emisor SIEMPRE es ANA CLARA (ya está configurado, no lo preguntes). Usa el "precio" de GoAutos como referencia pero CONFIRMA el precio de venta real con el usuario.
    · **MANUAL:** el usuario te dicta todo (o te manda el CAV). Es el flujo de siempre (pasos 1 a 4).
@@ -2377,13 +2379,13 @@ const HERRAMIENTAS = [
   },
   {
     name: 'sii',
-    description: 'Sistema SII ("Martes"): descarga documentos del SII (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros, y "facturas de compra a detalle") y EMITE facturas. Empresa configurada: ANA CLARA SPA. 🧾 IMPORTANTE — si te piden "el detalle de la(s) factura(s)", "la factura a detalle", "el PDF de la factura", "las facturas con los productos/ítems" o similar: es el tipo docs:["facturas"] (baja el PDF timbrado de CADA factura de compra recibida, con sus líneas). El RCV solo trae la cabecera (folio/montos/IVA); "facturas" trae el documento completo. Entra solo con la cuenta del facturador (persona autorizada), ya configurada. ⚡ Si piden UNA sola (ej. "la última factura que me enviaron", "mándame la factura de tal proveedor"): NO uses descargar (baja el mes entero y es lento). Usa la vía rápida: facturas_recientes (empresa_id 3, sin fechas = últimos 45 días, ya vienen de la más nueva a la más vieja) → elige el "codigo" que corresponda (la 1ª = la última) → factura_enviar (empresa_id, codigo) y listo, le llega el PDF. Para bajar MUCHAS de un período (ej. "todas las de junio"): descargar docs:["facturas"] → job hasta completado → documentos → enviar cada ruta. Acotado a N documentos por corrida (anti-bloqueo). Acciones: estado (empresas + qué se puede bajar), descargar (dispara la descarga), job (avance de una descarga), documentos (lista lo ya bajado, con su "ruta"), enviar (MANDA el archivo PDF/Excel al WhatsApp del usuario), emitir (EMITE una factura/boleta electrónica — SIMULA PRIMERO: sin confirmado=true solo arma y devuelve el BORRADOR con neto/IVA/total para pedir OK; NUNCA emite sin una confirmación explícita del usuario). Los precios de los ítems son NETOS (sin IVA); el IVA 19% se agrega solo en facturas afectas (33).',
+    description: 'Sistema SII ("Martes"): descarga documentos del SII (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros, y "facturas de compra a detalle") y EMITE facturas. 🏢 DOS EMPRESAS CARGADAS: **ANA CLARA SPA (empresa_id 3)** y **ACE SPA (empresa_id 4)**, las dos pueden descargar Y emitir. ⚠️ Por eso la empresa YA NO tiene default en emitir: si la persona no dijo de cuál es la factura, PREGÚNTASELO — emitir con la razón social equivocada consume un folio de esa empresa y es irreversible. En las descargas, si no lo dice y tiene acceso a las dos, pregunta igual (o usa accion:estado para mostrárselas). 🧾 IMPORTANTE — si te piden "el detalle de la(s) factura(s)", "la factura a detalle", "el PDF de la factura", "las facturas con los productos/ítems" o similar: es el tipo docs:["facturas"] (baja el PDF timbrado de CADA factura de compra recibida, con sus líneas). El RCV solo trae la cabecera (folio/montos/IVA); "facturas" trae el documento completo. Entra solo con la cuenta del facturador (persona autorizada), ya configurada. ⚡ Si piden UNA sola (ej. "la última factura que me enviaron", "mándame la factura de tal proveedor"): NO uses descargar (baja el mes entero y es lento). Usa la vía rápida: facturas_recientes (empresa_id 3, sin fechas = últimos 45 días, ya vienen de la más nueva a la más vieja) → elige el "codigo" que corresponda (la 1ª = la última) → factura_enviar (empresa_id, codigo) y listo, le llega el PDF. Para bajar MUCHAS de un período (ej. "todas las de junio"): descargar docs:["facturas"] → job hasta completado → documentos → enviar cada ruta. Acotado a N documentos por corrida (anti-bloqueo). Acciones: estado (empresas + qué se puede bajar), descargar (dispara la descarga), job (avance de una descarga), documentos (lista lo ya bajado, con su "ruta"), enviar (MANDA el archivo PDF/Excel al WhatsApp del usuario), emitir (EMITE una factura/boleta electrónica — SIMULA PRIMERO: sin confirmado=true solo arma y devuelve el BORRADOR con neto/IVA/total para pedir OK; NUNCA emite sin una confirmación explícita del usuario). Los precios de los ítems son NETOS (sin IVA); el IVA 19% se agrega solo en facturas afectas (33).',
     input_schema: {
       type: 'object',
       properties: {
         accion: { type: 'string', enum: ['estado', 'descargar', 'job', 'documentos', 'enviar', 'emitir', 'facturas_recientes', 'factura_enviar'] },
         codigo: { type: 'string', description: 'para "factura_enviar": el codigo de la factura (sale en facturas_recientes)' },
-        empresa_id: { type: 'integer', description: 'id de la empresa (lo da accion:estado). ANA CLARA SPA = 3.' },
+        empresa_id: { type: 'integer', description: 'id de la empresa (lo da accion:estado). ANA CLARA SPA = 3 · ACE SPA = 4. OBLIGATORIO en accion:"emitir" (no hay default): si la persona no dijo la empresa, pregúntale antes. En un "emitir_real=true" pelado se hereda la del borrador que ya armaste, no hace falta repetirla.' },
         desde: { type: 'string', description: 'periodo inicio AAAAMM, ej "202605"' },
         hasta: { type: 'string', description: 'periodo fin AAAAMM (si es uno solo, igual a desde)' },
         docs: { type: 'array', items: { type: 'string' }, description: 'tipos a bajar, ej ["rcv_compra"] o ["f29","rcv_venta"]. Para el DETALLE de las facturas (PDF timbrado con líneas de productos de cada factura de compra recibida): ["facturas"].' },
@@ -6089,15 +6091,6 @@ async function ejecutar(nombre, input, ctx = {}) {
           } catch (e) { return `No pude enviar la factura: ${e.message}` }
         }
         if (input.accion === 'emitir') {
-          const empresaId = input.empresa_id || 3 // ANA CLARA SPA
-          if (empresaBloqueada(empresaId)) return '🔒 No puedes emitir facturas de esa empresa; solo de la(s) tuya(s).'
-          // SOLO ANA CLARA EMITE. Las demás empresas del SII (ACE SPA id 4, etc.) están
-          // cargadas en modo SOLO LECTURA: descargan y consultan, no emiten nada. El
-          // backend también lo bloquea (SII_EMISORES_PERMITIDOS); esto evita el viaje.
-          const SII_EMISORES_OK = ['3']
-          if (!SII_EMISORES_OK.includes(String(empresaId))) {
-            return JSON.stringify({ ok: false, modo: 'bloqueado', mensaje: 'Esa empresa está cargada en el SII en modo SOLO LECTURA (descargar y consultar): no emite documentos. La única que emite es ANA CLARA SPA. No armé ni borrador.' })
-          }
           // 📌 DOCUMENTO EN CURSO (memoria de la factura que se está armando).
           // El modelo NO reenvía siempre todos los datos: manda "confirmado=true" pelado, o
           // repite solo la mitad. Cuando la herramienta era 100% sin memoria eso terminaba en
@@ -6109,16 +6102,37 @@ async function ejecutar(nombre, input, ctx = {}) {
           const dekeyDoc = ctx.de || '_anon'
           const leerPendDoc = () => { try { return JSON.parse(readFileSync(PEND_PATH_DOC, 'utf8')) } catch { return {} } }
           const prevEntrada = leerPendDoc()[dekeyDoc] || null
+          // Se continúa el mismo documento si hay uno guardado y es reciente (6 h).
+          const docGuardado = (prevEntrada && prevEntrada.doc && (Date.now() - Number(prevEntrada.ts_doc || 0)) < 6 * 60 * 60 * 1000)
+            ? prevEntrada.doc : null
+          // ── EMPRESA EMISORA: NUNCA se adivina ────────────────────────────────────
+          // Hay MÁS DE UNA empresa habilitada para emitir, así que un default silencioso
+          // (antes: "|| 3") sería un riesgo real: un "emite una factura de ACE" sin
+          // empresa_id habría emitido de ANA CLARA, consumiendo un folio en la razón
+          // social equivocada — irreversible. Si no viene, se hereda del documento en
+          // curso; si no hay documento en curso, se PREGUNTA.
+          const SII_EMISORES = { 3: 'ANA CLARA SPA', 4: 'ACE SPA' }
+          const empresaId = String(input.empresa_id || docGuardado?.empresa_id || '')
+          if (!empresaId) {
+            return JSON.stringify({ ok: false, falta_dato: true,
+              empresas_que_emiten: SII_EMISORES,
+              error: '¿De qué empresa es el documento? Hay más de una habilitada para emitir.',
+              instruccion: 'Pregúntale a la persona de cuál de estas empresas es la factura/boleta: ANA CLARA SPA (empresa_id 3) o ACE SPA (empresa_id 4). Vuelve a llamar con empresa_id. ⛔ NO adivines ni asumas la de siempre: emitir con la empresa equivocada consume un folio de esa razón social y NO se puede deshacer.' })
+          }
+          if (!SII_EMISORES[empresaId]) {
+            return JSON.stringify({ ok: false, modo: 'bloqueado', empresas_que_emiten: SII_EMISORES,
+              mensaje: 'Esa empresa está cargada en el SII en modo SOLO LECTURA (descargar y consultar): no emite documentos. No armé ni borrador.' })
+          }
+          if (empresaBloqueada(empresaId)) return '🔒 No puedes emitir facturas de esa empresa; solo de la(s) tuya(s).'
           const rutDe = (o) => String(o?.rut || '').replace(/[.\-\s]/g, '').toLowerCase()
           const traeReceptor = input.receptor && typeof input.receptor === 'object' && Object.keys(input.receptor).length > 0
           const traeItems = Array.isArray(input.items) && input.items.length > 0
-          // Se continúa el mismo documento si hay uno guardado, es reciente (6 h) y la llamada
-          // no apunta a OTRO receptor. Si cambia el RUT, es una factura nueva: no se hereda nada.
-          const docGuardado = (prevEntrada && prevEntrada.doc && (Date.now() - Number(prevEntrada.ts_doc || 0)) < 6 * 60 * 60 * 1000)
-            ? prevEntrada.doc : null
+          // No se hereda nada si la llamada apunta a OTRO receptor o a OTRA empresa
+          // emisora: eso es una factura NUEVA, no una corrección de la anterior.
           const mismoReceptor = !traeReceptor || !input.receptor.rut || !docGuardado
             || rutDe(input.receptor) === rutDe(docGuardado.receptor)
-          const heredar = docGuardado && mismoReceptor
+          const mismaEmpresa = !docGuardado || String(docGuardado.empresa_id || '') === empresaId
+          const heredar = docGuardado && mismoReceptor && mismaEmpresa
           const previo = heredar ? docGuardado : {}
           const body = {
             tipo_dte: input.tipo_dte || previo.tipo_dte || 33,
@@ -6137,7 +6151,10 @@ async function ejecutar(nombre, input, ctx = {}) {
           // Guardar/actualizar el documento en curso para las llamadas siguientes.
           try {
             const p = leerPendDoc()
-            p[dekeyDoc] = { ...(p[dekeyDoc] || {}), doc: { ...body, confirmar: undefined }, ts_doc: Date.now() }
+            // `empresa_id` viaja DENTRO del documento en curso: así un "emitir_real=true"
+            // pelado firma en la MISMA empresa con la que se armó el borrador, sin volver
+            // a preguntar y sin poder derivar a otra razón social.
+            p[dekeyDoc] = { ...(p[dekeyDoc] || {}), doc: { ...body, empresa_id: empresaId, confirmar: undefined }, ts_doc: Date.now() }
             writeFileSync(PEND_PATH_DOC, JSON.stringify(p))
           } catch { /* best-effort */ }
           const b = r.borrador || {}, t = b.totales || {}
@@ -6173,6 +6190,9 @@ async function ejecutar(nombre, input, ctx = {}) {
           // cualquier campo cambia la firma ⇒ el borrador se rehace de verdad.
           const nrm = (s) => String(s ?? '').replace(/\s+/g, ' ').trim().toLowerCase()
           const contenido = {
+            // La EMPRESA EMISORA entra en la firma: si cambia, el borrador se rehace en
+            // vez de firmar el que el usuario ya vio (que era de otra razón social).
+            empresa: empresaId,
             tipo: Number(b.tipo_dte || input.tipo_dte || 33),
             receptor: {
               rut: nrm(rec.rut).replace(/[.\-]/g, ''), nombre: nrm(rec.nombre), giro: nrm(rec.giro),
@@ -6262,7 +6282,12 @@ async function ejecutar(nombre, input, ctx = {}) {
                 // herramienta no lo rehaga, en el SII sigue el dato viejo.
                 ? `✏️ El usuario EDITÓ el documento (cambió ${cambios.join(', ') || 'algún dato'}) después de haber recibido el borrador oficial. En el SII TODAVÍA está la versión vieja. Vuelve a llamar AHORA MISMO sii accion:"emitir" con **confirmado=true** y estos mismos datos corregidos para regenerar el borrador oficial y mandárselo. ⛔ PROHIBIDO decirle "listo", "corregido" o "quedó así" antes de que la herramienta responda modo:'borrador_sii_enviado': si no la vuelves a llamar, el cambio NO existe.`
                 : 'MUÉSTRALE este borrador TAL CUAL al usuario y pídele el OK ("¿te genero el borrador en el SII?"). Cuando confirme, vuelve a llamar emitir con confirmado=true (eso NO emite: arma el borrador oficial y se lo manda en imagen).',
-              listo_para_emitir: r.listo_para_emitir,
+              // Antes acá viajaba `listo_para_emitir` del backend, que mira el camino VIEJO
+              // de emitir.py (SII_EMISION_HABILITADA / CAF) y NO el real (el robot del
+              // portal MIPYME): venía en false mientras el sistema sí emite, así que Nexus
+              // podía decirle a alguien "no se puede emitir" siendo mentira. Lo que importa
+              // de verdad es CUÁL es la empresa emisora, y eso sí va.
+              empresa_emisora: SII_EMISORES[empresaId],
             })
           }
           // 🔁 GUARD ANTI-LOOP (determinista): si el borrador OFICIAL de ESTE mismo documento

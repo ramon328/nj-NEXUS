@@ -208,6 +208,22 @@ def _facturador(empresa_id: int) -> dict | None:
     return data.get(str(empresa_id))
 
 
+def _emisor_extra(empresa_id: int) -> dict:
+    """Datos del EMISOR que el formulario del SII no autocompleta (hoy: la ciudad de
+    origen, obligatoria para llegar a la vista previa). Config en emisores.json,
+    keyed por empresa_id. Antes 'SANTIAGO' estaba hardcodeado en el robot, que era el
+    dato de ANA CLARA: con más de una empresa emitiendo eso ya no sirve."""
+    f = BASE_DIR / "emisores.json"
+    if not f.exists():
+        return {}
+    try:
+        data = json.loads(f.read_text(encoding="utf-8"))
+    except Exception:  # noqa: BLE001
+        return {}
+    e = data.get(str(empresa_id)) or {}
+    return {k: v for k, v in e.items() if k in ("ciudad",) and v}
+
+
 def _client_facturador(empresa_id: int, fac: dict) -> SiiClient:
     """SiiClient autenticado como el facturador (persona), sesión propia y
     reutilizada (un solo login, igual que la de la empresa)."""
@@ -404,6 +420,8 @@ def emitir_documento(empresa_id: int, body: EmitirIn):
         )
     except emitir_dte.ErrorEmision as exc:
         return {"ok": False, "modo": "error_datos", "mensaje": str(exc)}
+    # Ciudad del emisor (la usa el robot en EFXP_CIUDAD_ORIGEN): por empresa, no fija.
+    borrador["emisor"].update(_emisor_extra(empresa_id))
 
     pendientes = emitir_dte._pendientes_para_emitir(empresa)
     if not body.confirmar:
