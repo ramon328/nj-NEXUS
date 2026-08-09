@@ -2782,7 +2782,11 @@ async function main() {
   // Tope duro del proceso. En ASISTIDO hay que darle aire: espera humana (10 min) + la
   // operación que corre después (crear la transferencia, subir el lote…). Si el tope fuera
   // 10 min, mataríamos el proceso justo cuando la persona termina de entrar.
-  const topeMs = process.env.TEK_ASSIST === '1'
+  // TEK_TOPE_MS: perilla explícita. Sin ella, una lectura multi-empresa (9 empresas) moría
+  // a los 10 min con "hard_timeout" y devolvía empresas:[] — se perdía el login entero.
+  // (09-08-2026, cosecha de las empresas de Nico.) Se usa tal cual si viene.
+  const topeMs = Number(process.env.TEK_TOPE_MS) > 0 ? Number(process.env.TEK_TOPE_MS)
+    : process.env.TEK_ASSIST === '1'
     ? (Number(process.env.TEK_ASSIST_ESPERA_MS || 600_000) || 600_000) + 8 * 60_000
     : (process.env.TEK_BATCH_FILE ? 25 * 60_000 : 600_000)   // batch = varias ops en 1 sesión → más aire
   setTimeout(() => { console.log('RESULTADO:', JSON.stringify({ estado: 'hard_timeout' })); process.exit(2) }, topeMs).unref?.()
