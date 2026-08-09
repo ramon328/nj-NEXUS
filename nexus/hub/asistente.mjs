@@ -6136,9 +6136,14 @@ async function ejecutar(nombre, input, ctx = {}) {
             ok: true, empresa: d.empresa, periodo_legible: legible, codigos: c,
             hay_remanente: d.hay_remanente, resultado: d.resultado, fuentes: d.fuentes,
             supuestos: d.supuestos, faltan: d.faltan, graficos_entregados: g.entregados, nota: d.nota,
-            instruccion: `🧾 F29 estimado de ${legible}. ${g.entregados ? 'Ya le mandé el gráfico.' : ''} Dile: el TOTAL, y de dónde sale (IVA + PPM + retención de honorarios + impuesto único). `
+            declarado: d.declarado === true,
+            instruccion: (d.declarado === true
+              ? `🧾 OJO: el F29 de ${legible} YA ESTÁ DECLARADO en el SII, así que estos NO son números estimados — es la declaración oficial. Dilo así ("ya está declarado, el total fue X"), NO lo presentes como estimación. `
+              : `🧾 F29 estimado de ${legible}. `)
+              + `${g.entregados ? 'Ya le mandé el gráfico. ' : ''}Dile el TOTAL y de dónde sale (IVA + PPM + retención de honorarios + impuesto único). `
+              + `⚠️ La tasa de PPM es **${c['115_tasa_ppm_texto'] || '0%'}** (un decimal, NO 25%): si la mencionas, cópiala de "115_tasa_ppm_texto" tal cual. `
               + `${d.hay_remanente ? `⚠️ Este periodo NO deja IVA a pagar: queda REMANENTE a favor de $${Number(c['077_remanente_para_el_mes_siguiente'] || 0).toLocaleString('es-CL')} para el mes siguiente; lo que se paga es solo PPM + retenciones.` : `El IVA a pagar es $${Number(c['089_iva_a_pagar'] || 0).toLocaleString('es-CL')}.`} `
-              + `⚠️ SIEMPRE aclara que es una ESTIMACIÓN, no la declaración oficial${(d.faltan || []).length ? ', y dile TAL CUAL lo que falta: ' + d.faltan.join('; ') : ''}. ${(d.supuestos || []).length ? 'Supuestos que usé: ' + d.supuestos.join(' ') : ''} ⛔ NO presentes esto como el monto definitivo del contador.`,
+              + (d.declarado === true ? '' : `⚠️ SIEMPRE aclara que es una ESTIMACIÓN, no la declaración oficial${(d.faltan || []).length ? ', y dile TAL CUAL lo que falta: ' + d.faltan.join('; ') : ''}. ${(d.supuestos || []).length ? 'Supuestos que usé: ' + d.supuestos.join(' ') : ''} ⛔ NO presentes esto como el monto definitivo del contador.`),
           })
         }
         if (input.accion === 'emisor') {

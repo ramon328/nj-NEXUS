@@ -125,7 +125,39 @@ def retencion_honorarios(base: Path, periodo: str) -> tuple[int, str]:
 
 
 def estimar(base: Path, periodo: str) -> dict:
-    """Arma la estimación del F29 del período. `base` = carpeta de la empresa."""
+    """Arma la estimación del F29 del período. `base` = carpeta de la empresa.
+
+    Si el F29 de ESE período YA está declarado y descargado, no estima nada: devuelve
+    los códigos REALES de la declaración, que es una respuesta mejor que cualquier
+    estimación.
+    """
+    # ── ¿Ya está declarado? Entonces esto no es una estimación, es el dato ──────
+    propio = codigos_f29_declarado(base / "formularios" / "f29" / f"f29_{periodo}.pdf")
+    if propio:
+        return {
+            "periodo": periodo, "listo": True, "declarado": True,
+            "codigos": {
+                "538_debito_fiscal": int(propio.get(538) or 0),
+                "537_creditos_totales": int(propio.get(537) or 0),
+                "credito_del_periodo": int(propio.get(511) or 0),
+                "504_remanente_mes_anterior": int(propio.get(504) or 0),
+                "089_iva_a_pagar": int(propio.get(89) or 0),
+                "077_remanente_para_el_mes_siguiente": int(propio.get(77) or 0),
+                "563_base_imponible_ppm": int(propio.get(563) or 0),
+                "115_tasa_ppm": float(propio.get(115) or 0),
+                "115_tasa_ppm_texto": (str(float(propio.get(115) or 0)).replace(".", ",") + "%"),
+                "062_ppm": int(propio.get(62) or 0),
+                "151_retencion_honorarios": int(propio.get(151) or 0),
+                "048_impuesto_unico_trabajadores": int(propio.get(48) or 0),
+                "91_total_a_pagar": int(propio.get(91) or 0),
+            },
+            "hay_remanente": int(propio.get(77) or 0) > 0,
+            "resultado": "remanente a favor" if int(propio.get(89) or 0) == 0 and int(propio.get(77) or 0) > 0 else "IVA a pagar",
+            "fuentes": {"todo": f"F29 REALMENTE DECLARADO del período {periodo} (PDF oficial del SII)"},
+            "supuestos": [], "faltan": [],
+            "nota": "Estos NO son números estimados: es la declaración oficial que ya está "
+                    "presentada en el SII.",
+        }
     faltan, supuestos = [], []
     compras_f, ventas_f = _rcv(base, "compra", periodo), _rcv(base, "venta", periodo)
     if compras_f is None:
@@ -149,7 +181,17 @@ def estimar(base: Path, periodo: str) -> dict:
     cod_ant = codigos_f29_declarado(base / "formularios" / "f29" / f"f29_{ant}.pdf")
     if cod_ant:
         remanente = int(cod_ant.get(77) or 0)
-        fuente_rem = f"código 077 del F29 declarado de {ant}"
+        fuente_rem = f"código 077 del F29 declarado de {ant}, SIN reajustar"
+        if remanente:
+            # Verificado con ANA CLARA: el 077 de abril (67.520.933) entró en mayo como
+            # 68.399.064 (+1,3%). La ley reajusta el remanente y ese factor NO es la
+            # simple variación de la UTM del mes (probado: da 68.196.249). No se inventa:
+            # se arrastra el nominal y se avisa que el remanente real es algo mayor, o
+            # sea que el IVA a pagar que sale acá es un TECHO.
+            supuestos.append(
+                "El remanente se arrastró NOMINAL (sin el reajuste legal, que en el caso "
+                "medido fue ~1,3%): el remanente real es un poco mayor, así que el IVA a "
+                "pagar estimado es un techo, nunca menos de lo que corresponde.")
     else:
         remanente = 0
         fuente_rem = "SIN DATO: no tengo el F29 declarado del período anterior"
@@ -192,6 +234,9 @@ def estimar(base: Path, periodo: str) -> dict:
             "077_remanente_para_el_mes_siguiente": remanente_nuevo,
             "563_base_imponible_ppm": base_imponible,
             "115_tasa_ppm": tasa_ppm,
+            # OJO: la tasa viene en PORCENTAJE (0,25 = 0,25%, no 25%). El texto va listo
+            # para copiar porque el modelo ya lo leyó mal una vez.
+            "115_tasa_ppm_texto": (str(tasa_ppm).replace(".", ",") + "%"),
             "062_ppm": ppm,
             "151_retencion_honorarios": ret_151,
             "048_impuesto_unico_trabajadores": imp_unico,
