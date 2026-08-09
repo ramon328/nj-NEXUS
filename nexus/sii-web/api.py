@@ -963,6 +963,25 @@ def descargar_archivo(empresa_id: int, ruta: str, inline: bool = False):
     )
 
 
+@app.get("/api/empresas/{empresa_id}/f29-estimado")
+def f29_estimado(empresa_id: int, periodo: str):
+    """ESTIMACIÓN del F29 del período: IVA débito/crédito, remanente, PPM, retención de
+    honorarios e impuesto único, con la FUENTE de cada cifra y lo que falte declarado.
+
+    Modelo validado contra el F29 real de ANA CLARA 202605 (9 códigos, exactos).
+    No consulta al SII: usa el RCV, las boletas y el F29 anterior ya descargados.
+    """
+    empresa = db.obtener_empresa(empresa_id)
+    if not empresa:
+        raise HTTPException(404, "Empresa no encontrada.")
+    if not re.fullmatch(r"\d{6}", periodo or ""):
+        raise HTTPException(400, "periodo debe ser AAAAMM.")
+    from sii import f29_estimado as f29mod
+    r = f29mod.estimar(_empresa_dir(empresa_id), periodo)
+    r["empresa"] = {"id": empresa_id, "nombre": empresa["nombre"], "rut": empresa["rut"]}
+    return r
+
+
 @app.get("/api/empresas/{empresa_id}/emisor")
 def get_emisor(empresa_id: int):
     """Datos del emisor configurables por empresa (hoy la ciudad de origen)."""
