@@ -104,6 +104,14 @@ app.add_middleware(
 # seteado, no se exige (modo local).
 API_TOKEN = os.getenv("API_TOKEN", "").strip()
 
+# Empresas AUTORIZADAS a emitir DTE. El resto es SOLO LECTURA: descargan y consultan,
+# pero no emiten nada. Decisión de Ramón (09-ago-2026) al cargar ACE SPA (id 4): ACE
+# NO emite. Es un candado POR EMPRESA, aparte del global SII_EMISION_HABILITADA.
+# Para autorizar otra empresa: SII_EMISORES_PERMITIDOS=3,4 en el .env (coma-separado).
+EMISORES_PERMITIDOS = {
+    s.strip() for s in os.getenv("SII_EMISORES_PERMITIDOS", "3").split(",") if s.strip()
+}
+
 
 @app.middleware("http")
 async def _exigir_token(request, call_next):
@@ -379,6 +387,16 @@ def emitir_documento(empresa_id: int, body: EmitirIn):
     empresa = db.obtener_empresa(empresa_id, con_clave=True)
     if not empresa:
         raise HTTPException(404, "Empresa no encontrada.")
+    # Candado por empresa: una empresa no autorizada no emite NI arma borrador, para que
+    # nadie confunda un borrador con el primer paso de una emisión que no debe ocurrir.
+    if str(empresa_id) not in EMISORES_PERMITIDOS:
+        return {
+            "ok": False, "modo": "bloqueado",
+            "mensaje": (f"{empresa['nombre']} NO está autorizada a emitir documentos: "
+                        "está cargada en modo solo lectura (descargar y consultar). "
+                        "No se armó ni borrador."),
+            "faltan": ["Autorizar la empresa en SII_EMISORES_PERMITIDOS del .env."],
+        }
     try:
         borrador = emitir_dte.preparar(
             empresa, body.tipo_dte, body.receptor, body.items,

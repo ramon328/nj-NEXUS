@@ -1252,7 +1252,9 @@ const EMPRESAS = {
   aliace: { nombre: 'Aliace', scopes: ['aliace'] },
   impomin: { nombre: 'IMPOMIN', scopes: ['sii', 'banco'], sii_empresa_id: null, banco_empresa: null, pendiente: true },
   hn: { nombre: 'HN', scopes: ['sii', 'banco'], sii_empresa_id: null, banco_empresa: null, pendiente: true },
-  ace: { nombre: 'ACE', scopes: ['sii', 'banco'], sii_empresa_id: null, banco_empresa: null, pendiente: true },
+  // ACE SPA (76.715.392-9): SII ACTIVO en el backend (empresa id 4, clave tributaria cargada).
+  // El banco sigue dormido hasta cargar su razón social bancaria, por eso queda `pendiente`.
+  ace: { nombre: 'ACE SPA', scopes: ['sii', 'banco'], sii_empresa_id: 4, banco_empresa: null, pendiente: true },
   foodexpert: { nombre: 'Food Expert', scopes: ['sii', 'banco'], sii_empresa_id: null, banco_empresa: null, pendiente: true },
 }
 function scopesDeEmpresas(empresas) {
@@ -6089,6 +6091,13 @@ async function ejecutar(nombre, input, ctx = {}) {
         if (input.accion === 'emitir') {
           const empresaId = input.empresa_id || 3 // ANA CLARA SPA
           if (empresaBloqueada(empresaId)) return '🔒 No puedes emitir facturas de esa empresa; solo de la(s) tuya(s).'
+          // SOLO ANA CLARA EMITE. Las demás empresas del SII (ACE SPA id 4, etc.) están
+          // cargadas en modo SOLO LECTURA: descargan y consultan, no emiten nada. El
+          // backend también lo bloquea (SII_EMISORES_PERMITIDOS); esto evita el viaje.
+          const SII_EMISORES_OK = ['3']
+          if (!SII_EMISORES_OK.includes(String(empresaId))) {
+            return JSON.stringify({ ok: false, modo: 'bloqueado', mensaje: 'Esa empresa está cargada en el SII en modo SOLO LECTURA (descargar y consultar): no emite documentos. La única que emite es ANA CLARA SPA. No armé ni borrador.' })
+          }
           // 📌 DOCUMENTO EN CURSO (memoria de la factura que se está armando).
           // El modelo NO reenvía siempre todos los datos: manda "confirmado=true" pelado, o
           // repite solo la mitad. Cuando la herramienta era 100% sin memoria eso terminaba en
