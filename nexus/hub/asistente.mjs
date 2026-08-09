@@ -6521,15 +6521,27 @@ async function ejecutar(nombre, input, ctx = {}) {
         // acotado debe ver otra empresa.
         const RUT_ANA_CLARA = '77271121-2'
         const soloAnaClara = !esAdmin(ctx.de)
-        // TODO el banco es de Ramón: las 4 empresas habilitadas cuelgan de SU login, así que
-        // TODAS las lecturas usan su sesión/datos (pida quien pida). Un no-admin (Joaquín) queda
-        // acotado a ANA CLARA. SOLO se muestran las 4 habilitadas.
-        const userId = 'ramon'
-        const permitidaEmp = (e) => /ana\s*clara|mallorca|imp\s*juri\s*y\s*fontena|importaciones\s*mineras|importadora\s*juri\s*y\s*juri/i.test(String(e || ''))
+        // CADA FUNDADOR LEE CON SU PROPIA CONEXIÓN (09-08-2026, pedido de Ramón).
+        // Antes acá estaba hardcodeado userId='ramon' + la lista de las 4 empresas de Ramón,
+        // DUPLICANDO la regla de puerta.mjs. Efecto: a Nico le decía que "ACE SPA no está
+        // conectada" siendo FALSO (tiene 9 vinculadas y el banco se las muestra). Ahora el
+        // dueño de la lectura sale de quién pregunta, y qué empresas puede ver lo decide la
+        // PUERTA (una sola fuente de verdad). Joaquín (no admin) sigue acotado a ANA CLARA.
+        const quienB = (usuarioDe(ctx.de)?.nombre || 'ramon').toLowerCase().trim() || 'ramon'
+        const userId = soloAnaClara ? 'ramon' : quienB
+        let _puerta = null
+        try { _puerta = await import('../conector-tek/puerta.mjs') } catch { /* degrada al regex de siempre */ }
+        const permitidaEmp = (e) => {
+          const emp = String(e || '')
+          if (!emp) return false
+          if (soloAnaClara) return /ana\s*clara|mallorca/i.test(emp)
+          if (_puerta) { try { return _puerta.elegirSesion({ usuario: quienB, empresa: emp, admin: true }).permitida === true } catch { /* */ } }
+          return /ana\s*clara|mallorca|imp\s*juri\s*y\s*fontena|importaciones\s*mineras|importadora\s*juri\s*y\s*juri/i.test(emp)
+        }
         const esAna = (r) => String(r || '').replace(/[.\-\s]/g, '') === '772711212'
         // Empresa PUNTUAL no habilitada → cortar.
         if (input.empresa && !/^(todas|todos|cada|all)\b/i.test(String(input.empresa)) && !permitidaEmp(input.empresa)) {
-          return JSON.stringify({ ok: false, error: `"${input.empresa}" no está habilitada en el banco. Solo: Ana Clara, IMP JURI Y FONTENA, Importaciones Mineras e Importadora Juri.` })
+          return JSON.stringify({ ok: false, error: `"${input.empresa}" no es una de las empresas que ${capUser(quienB)} tiene conectadas en el banco.`, instruccion: 'Dile cuáles SÍ tiene (usa mis_bancos_conectados) y que elija una. NO afirmes que la empresa "no está conectada" en general: puede estarlo para otra persona.' })
         }
         const filtEmp = (arr, campo) => Array.isArray(arr) ? arr.filter((x) => soloAnaClara ? esAna(x.rut) : permitidaEmp(x[campo])) : arr
         const opts = { userId, rut: soloAnaClara ? RUT_ANA_CLARA : input.rut, banco: soloAnaClara ? undefined : input.banco,
