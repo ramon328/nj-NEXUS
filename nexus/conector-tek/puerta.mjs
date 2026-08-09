@@ -116,6 +116,22 @@ export function elegirSesion({ usuario, empresa, admin = false, operacion = '' }
   // de Ramón, que es la sesión de CONFIANZA del banco (device-trust). Se operan SIEMPRE con
   // ramon, pida quien pida — INCONDICIONAL (no depende del kill-switch). Cualquier OTRA empresa
   // NO está habilitada → permitida:false y los handlers la rechazan. Ver [[tek-empresas-ramon-multiempresa]].
+  // ── NICO OPERA CON SU PROPIA CUENTA (pedido de Ramón, 09-08-2026) ──────────────────
+  // Antes solo estaban habilitadas las 4 empresas de Ramón: las 5 propias de Nico (ACE,
+  // Food Expert, Baleares, Mallorca Holding, GoAuto) daban permitida:false y los handlers
+  // las rechazaban — con el efecto feo de que el modelo reintentaba la tool en bucle.
+  // Ahora: si NICO pide una empresa que ÉL tiene conectada, va con SU sesión.
+  // ANA CLARA queda fuera de esta regla mientras TEK_ANACLARA_SOLO_RAMON=1 (kill-switch
+  // vigente): esa es la empresa operativa de MallorcAutos y sigue con la sesión de confianza.
+  // Se revierte entero con TEK_NICO_PROPIA=0.
+  const NICO_PROPIA = process.env.TEK_NICO_PROPIA !== '0'
+  const esAnaClara = /ana\s*clara|mallorca/i.test(emp)
+  if (NICO_PROPIA && quien === 'nico' && credenciales.tieneConexion('nico', emp) && !(SOLO_RAMON && esAnaClara)) {
+    return {
+      userId: 'nico', empresa: emp, propia: true, permitida: true,
+      nota: `${emp} → sesión propia de Nico`,
+    }
+  }
   const permitida = empresaPermitida(emp)
   if (permitida) {
     userId = 'ramon'; propia = quien === 'ramon'
