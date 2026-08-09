@@ -332,6 +332,29 @@ async function autoGraficarResumen(r, ctx) {
     }
   } catch (e) { /* best-effort */ }
 }
+// Entrega gráficos sin depender de que el modelo llame a `graficar`: en web los deja en
+// ctx.graficos (la ventana los muestra), en WhatsApp los genera y los manda solos. Mismo
+// mecanismo que autoGraficarResumen (Aliace), disponible para cualquier respuesta.
+async function entregarGraficos(specs, ctx) {
+  try {
+    const lista = (specs || []).filter((s) => s && Array.isArray(s.valores) && s.valores.length >= 2)
+    if (!lista.length) return { entregados: 0 }
+    if (ctx.web) { if (Array.isArray(ctx.graficos)) ctx.graficos.push(...lista); return { entregados: lista.length, via: 'web' } }
+    const target = destinoValido(ctx.de); if (!target) return { entregados: 0 }
+    const glog = (msg) => { try { appendFileSync('/tmp/nexus-fotos.log', `[${new Date().toISOString()}] ${msg}\n`) } catch { /* */ } }
+    let n = 0
+    for (const s of lista) {
+      const archivo = `/tmp/nexus-grafico-${Date.now()}-${Math.abs(Math.round(s.valores[0]))}.png`
+      const fjson = archivo + '.json'
+      try {
+        writeFileSync(fjson, JSON.stringify({ ...s, archivo }))
+        await ejecCmd(`python3 ${JSON.stringify(join(__dirname, 'graficar.py'))} ${JSON.stringify(fjson)}`, { timeout: 30000 })
+        if (existsSync(archivo)) { await enviarMediaWhatsApp(target, archivo, s.titulo); n++; glog(`OK grafico ${s.tipo} -> ${target}`) }
+      } catch (e) { glog(`FALLO grafico: ${String(e.message).slice(0, 120)}`) }
+    }
+    return { entregados: n, via: 'whatsapp' }
+  } catch { return { entregados: 0 } }
+}
 async function aliaceResumenMes(fecha) {
   const P = resumenMesPeriodo(fecha)
   const num = (n) => Math.round(Number(n || 0))
@@ -1778,6 +1801,7 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 4) Consulta sii(accion:'job', job_id) hasta que el estado sea 'completado' (avísale al usuario que está bajando).
 5) Cuando termine, usa sii(accion:'documentos', empresa_id) para ubicar el archivo y su "ruta".
 6) ENVÍA EL ARCHIVO de verdad: llama sii(accion:'enviar', empresa_id, ruta) → le llega el PDF/Excel al WhatsApp para abrirlo. NUNCA te limites a escribir el nombre del archivo en el texto; si el usuario quiere el documento, mándalo con 'enviar'. Después confirma en una frase corta que ya se lo enviaste.
+6.b) 📊 **COMPRAS/VENTAS/IVA DE UN MES → resumen_iva, con gráfico.** Si lo que quieren es *revisar* las compras y ventas o el **cálculo del IVA** de un periodo (no tener el archivo en la mano), NO les mandes los PDF a que los interpreten ni sumes tú a ojo: (1) sii(accion:'descargar', docs:['rcv_compra','rcv_venta']) del periodo, (2) espera el job, (3) sii(accion:'resumen_iva', empresa_id, desde, hasta) → te da las cifras reales y **manda el gráfico solo**. En el texto deja el titular (empresa, periodo tal cual viene en periodo_legible, y el IVA a pagar o el remanente); los números finos quedan en el gráfico. Si resumen_iva dice que faltan descargas, baja eso primero: NUNCA des un total incompleto.
 7) BOLETAS — resumen en texto: cuando envíes el PDF de boletas, además agrega UNA línea de texto con el resumen para verificar de un vistazo, usando los totales que vienen en el job (resultados[].resumen, por año). Ej.: "📄 Boletas recibidas — 2026: 13 boletas · $13,78M · 2025: 8 · $5,06M". Si un año no registra, dilo ("2025: sin boletas").
 ⚠️ SII bloquea por logins repetidos: NO dispares varias descargas en paralelo; una a la vez.
 ℹ️ "boletas" = Boletas de Honorarios electrónicas RECIBIDAS (las que terceros le emiten a la empresa, resumen mensual del año actual y el anterior, desde el portal del SII). Si un documento dice "No registra información"/"No registra movimientos" para un periodo, eso es lo que el SII reporta de verdad — NO es falla nuestra ni del sistema; dilo claro y no ofrezcas reintentar por eso.
@@ -2380,11 +2404,11 @@ const HERRAMIENTAS = [
   },
   {
     name: 'sii',
-    description: 'Sistema SII ("Martes"): descarga documentos del SII (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros, y "facturas de compra a detalle") y EMITE facturas. 🏢 DOS EMPRESAS CARGADAS: **ANA CLARA SPA (empresa_id 3)** y **ACE SPA (empresa_id 4)**, las dos pueden descargar Y emitir. ⚠️ Por eso la empresa YA NO tiene default en emitir: si la persona no dijo de cuál es la factura, PREGÚNTASELO — emitir con la razón social equivocada consume un folio de esa empresa y es irreversible. En las descargas, si no lo dice y tiene acceso a las dos, pregunta igual (o usa accion:estado para mostrárselas). 🧾 IMPORTANTE — si te piden "el detalle de la(s) factura(s)", "la factura a detalle", "el PDF de la factura", "las facturas con los productos/ítems" o similar: es el tipo docs:["facturas"] (baja el PDF timbrado de CADA factura de compra recibida, con sus líneas). El RCV solo trae la cabecera (folio/montos/IVA); "facturas" trae el documento completo. Entra solo con la cuenta del facturador (persona autorizada), ya configurada. ⚡ Si piden UNA sola (ej. "la última factura que me enviaron", "mándame la factura de tal proveedor"): NO uses descargar (baja el mes entero y es lento). Usa la vía rápida: facturas_recientes (empresa_id 3, sin fechas = últimos 45 días, ya vienen de la más nueva a la más vieja) → elige el "codigo" que corresponda (la 1ª = la última) → factura_enviar (empresa_id, codigo) y listo, le llega el PDF. Para bajar MUCHAS de un período (ej. "todas las de junio"): descargar docs:["facturas"] → job hasta completado → documentos → enviar cada ruta. Acotado a N documentos por corrida (anti-bloqueo). Acciones: estado (empresas + qué se puede bajar), descargar (dispara la descarga), job (avance de una descarga), documentos (lista lo ya bajado, con su "ruta"), enviar (MANDA el archivo PDF/Excel al WhatsApp del usuario), emitir (EMITE una factura/boleta electrónica — SIMULA PRIMERO: sin confirmado=true solo arma y devuelve el BORRADOR con neto/IVA/total para pedir OK; NUNCA emite sin una confirmación explícita del usuario). Los precios de los ítems son NETOS (sin IVA); el IVA 19% se agrega solo en facturas afectas (33).',
+    description: 'Sistema SII ("Martes"): descarga documentos del SII (RCV compras/ventas, F29, F22, carpeta tributaria, ficha, boletas, libros, y "facturas de compra a detalle") y EMITE facturas. 🏢 DOS EMPRESAS CARGADAS: **ANA CLARA SPA (empresa_id 3)** y **ACE SPA (empresa_id 4)**, las dos pueden descargar Y emitir. ⚠️ Por eso la empresa YA NO tiene default en emitir: si la persona no dijo de cuál es la factura, PREGÚNTASELO — emitir con la razón social equivocada consume un folio de esa empresa y es irreversible. En las descargas, si no lo dice y tiene acceso a las dos, pregunta igual (o usa accion:estado para mostrárselas). 🧾 IMPORTANTE — si te piden "el detalle de la(s) factura(s)", "la factura a detalle", "el PDF de la factura", "las facturas con los productos/ítems" o similar: es el tipo docs:["facturas"] (baja el PDF timbrado de CADA factura de compra recibida, con sus líneas). El RCV solo trae la cabecera (folio/montos/IVA); "facturas" trae el documento completo. Entra solo con la cuenta del facturador (persona autorizada), ya configurada. ⚡ Si piden UNA sola (ej. "la última factura que me enviaron", "mándame la factura de tal proveedor"): NO uses descargar (baja el mes entero y es lento). Usa la vía rápida: facturas_recientes (empresa_id 3, sin fechas = últimos 45 días, ya vienen de la más nueva a la más vieja) → elige el "codigo" que corresponda (la 1ª = la última) → factura_enviar (empresa_id, codigo) y listo, le llega el PDF. Para bajar MUCHAS de un período (ej. "todas las de junio"): descargar docs:["facturas"] → job hasta completado → documentos → enviar cada ruta. Acotado a N documentos por corrida (anti-bloqueo). 📊 **"REVÍSAME LAS COMPRAS/VENTAS Y EL IVA DE TAL MES"** (o "cuánto IVA me toca pagar", "cómo van las ventas de tal periodo en el SII") → la acción es **resumen_iva**, NO mandarle PDFs a que los lea. Devuelve las cifras CALCULADAS del RCV (documentos, neto, IVA, exento, total, desglose por tipo de documento) + IVA débito/crédito/resultado, y **manda el/los gráficos solo**. Requiere que el RCV del periodo ya esté bajado: si falta, te lo dice y ahí sí llamas descargar primero (docs:["rcv_compra","rcv_venta"]) y después resumen_iva. Acciones: estado (empresas + qué se puede bajar), descargar (dispara la descarga), job (avance de una descarga), documentos (lista lo ya bajado, con su "ruta"), enviar (MANDA el archivo PDF/Excel al WhatsApp del usuario), resumen_iva (cifras + IVA + gráfico de un periodo), emitir (EMITE una factura/boleta electrónica — SIMULA PRIMERO: sin confirmado=true solo arma y devuelve el BORRADOR con neto/IVA/total para pedir OK; NUNCA emite sin una confirmación explícita del usuario). Los precios de los ítems son NETOS (sin IVA); el IVA 19% se agrega solo en facturas afectas (33).',
     input_schema: {
       type: 'object',
       properties: {
-        accion: { type: 'string', enum: ['estado', 'descargar', 'job', 'documentos', 'enviar', 'emitir', 'facturas_recientes', 'factura_enviar'] },
+        accion: { type: 'string', enum: ['estado', 'descargar', 'job', 'documentos', 'enviar', 'resumen_iva', 'emitir', 'facturas_recientes', 'factura_enviar'] },
         codigo: { type: 'string', description: 'para "factura_enviar": el codigo de la factura (sale en facturas_recientes)' },
         empresa_id: { type: 'integer', description: 'id de la empresa (lo da accion:estado). ANA CLARA SPA = 3 · ACE SPA = 4. OBLIGATORIO en accion:"emitir" (no hay default): si la persona no dijo la empresa, pregúntale antes. En un "emitir_real=true" pelado se hereda la del borrador que ya armaste, no hace falta repetirla.' },
         desde: { type: 'string', description: 'periodo inicio AAAAMM, ej "202605"' },
@@ -6056,13 +6080,54 @@ async function ejecutar(nombre, input, ctx = {}) {
           const periodo_legible = legibleDesde === legibleHasta ? legibleDesde : `${legibleDesde} a ${legibleHasta}`
           const anioHoy = ymHoy.slice(0, 4)
           const aniosPedidos = [...new Set([body.desde.slice(0, 4), body.hasta.slice(0, 4)])]
-          const anioRaro = aniosPedidos.some((a) => a !== anioHoy && Number(a) !== Number(anioHoy) - 1)
+          // Aviso en CUALQUIER año que no sea el corriente: el resbalón real fue de un año
+          // exacto hacia atrás (2026→2025), que un margen de "año anterior" habría tapado.
+          const anioRaro = aniosPedidos.some((a) => a !== anioHoy)
           const r = await fetch(`${base}/api/empresas/${input.empresa_id}/descargar`, { method: 'POST', headers: H, body: JSON.stringify(body) })
           const j = await r.json()
           return JSON.stringify({
             ...j, periodo_legible, periodo_aaaamm: { desde: body.desde, hasta: body.hasta }, mes_en_curso: enPalabras(ymHoy),
             instruccion: `📅 Estás bajando **${periodo_legible}**. Cuando le cuentes el resultado, di el periodo TAL CUAL sale acá ("${periodo_legible}"), NO como lo entendiste tú: si te equivocaste de año, un "0 documentos" suena a "esa empresa no facturó" siendo mentira.`
               + (anioRaro ? ` ⚠️ OJO: ${periodo_legible} no es de este año (${anioHoy}) ni del anterior. Si la persona te dijo otro año, CANCELA y vuelve a bajar el correcto antes de reportar nada.` : ''),
+          })
+        }
+        if (input.accion === 'resumen_iva') {
+          // 📊 COMPRAS/VENTAS + IVA de un periodo, con números CALCULADOS del RCV ya
+          // bajado (no un modelo leyendo un PDF) y su gráfico saliendo solo. Nace del
+          // incidente del 09-ago-2026: se reportó "sin facturas" por un año equivocado
+          // y nadie pudo notarlo porque no se mostraba ni el periodo ni las cifras.
+          if (!input.empresa_id) return 'Falta empresa_id (consíguelo con accion:estado).'
+          if (empresaBloqueada(input.empresa_id)) return '🔒 No tienes acceso al SII de esa empresa; solo el de tu(s) empresa(s).'
+          const MESES2 = ['enero', 'febrero', 'marzo', 'abril', 'mayo', 'junio', 'julio', 'agosto', 'septiembre', 'octubre', 'noviembre', 'diciembre']
+          const pal = (p) => { const m = /^(\d{4})(\d{2})$/.exec(String(p || '')); return m && +m[2] >= 1 && +m[2] <= 12 ? `${MESES2[+m[2] - 1]} ${m[1]}` : null }
+          if (!pal(input.desde)) return JSON.stringify({ ok: false, error: `El periodo tiene que ser AAAAMM. Recibí desde="${input.desde}".` })
+          const qs = new URLSearchParams({ desde: String(input.desde), hasta: String(input.hasta || input.desde) })
+          const r = await fetch(`${base}/api/empresas/${input.empresa_id}/resumen-rcv?${qs}`, { headers: H })
+          if (!r.ok) return `No pude armar el resumen de IVA (HTTP ${r.status}).`
+          const d = await r.json()
+          const legible = pal(d.periodo?.desde) === pal(d.periodo?.hasta) ? pal(d.periodo?.desde) : `${pal(d.periodo?.desde)} a ${pal(d.periodo?.hasta)}`
+          // Si falta bajar algún periodo, NO se reportan cifras a medias como si fueran el total.
+          if ((d.periodos_sin_datos || []).length) {
+            return JSON.stringify({ ok: false, faltan_descargas: d.periodos_sin_datos, periodo_legible: legible,
+              instruccion: `⛔ NO le des cifras todavía: falta bajar del SII ${d.periodos_sin_datos.join(', ')} de ${d.empresa?.nombre}. Llama primero sii(accion:'descargar', empresa_id, desde, hasta, docs:['rcv_compra','rcv_venta']), espera el job y recién entonces vuelve a pedir resumen_iva. Un total incompleto se lee como "facturó poco", que es falso.` })
+          }
+          const iva = d.iva || {}
+          const especs = [
+            { tipo: 'barra', titulo: `${d.empresa?.nombre} — IVA ${legible}`, subtitulo: 'RCV del SII',
+              etiquetas: ['IVA débito (ventas)', 'IVA crédito (compras)', `IVA ${iva.signo || ''}`.trim()],
+              valores: [Math.abs(iva.debito_ventas || 0), Math.abs(iva.credito_compras || 0), Math.abs(iva.resultado || 0)] },
+          ]
+          // 2º gráfico solo si hay las dos patas: compras vs ventas por monto total.
+          if ((d.compras?.total || 0) > 0 && (d.ventas?.total || 0) > 0) {
+            especs.push({ tipo: 'barra', titulo: `${d.empresa?.nombre} — Compras vs Ventas ${legible}`, subtitulo: 'monto total, RCV del SII',
+              etiquetas: [`Compras (${d.compras.documentos} docs)`, `Ventas (${d.ventas.documentos} docs)`],
+              valores: [d.compras.total, d.ventas.total] })
+          }
+          const g = await entregarGraficos(especs, ctx)
+          return JSON.stringify({
+            ok: true, empresa: d.empresa, periodo_legible: legible, compras: d.compras, ventas: d.ventas, iva,
+            graficos_entregados: g.entregados,
+            instruccion: `📊 Ya ${g.entregados ? 'le mandé' : 'preparé'} ${g.entregados || especs.length} gráfico(s) con estas cifras. En el TEXTO deja solo el titular: la empresa, el periodo **${legible}** tal cual, y el IVA ${iva.signo} ($${Number(iva.resultado || 0).toLocaleString('es-CL')}). NO repitas todos los números que ya están en el gráfico; si te preguntan el detalle, ahí está "por_tipo".`,
           })
         }
         if (input.accion === 'job') {

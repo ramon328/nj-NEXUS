@@ -959,6 +959,72 @@ def descargar_archivo(empresa_id: int, ruta: str, inline: bool = False):
     )
 
 
+@app.get("/api/empresas/{empresa_id}/resumen-rcv")
+def resumen_rcv(empresa_id: int, desde: str, hasta: str = ""):
+    """Totales de COMPRAS y VENTAS con el cálculo de IVA, sumados desde el RCV **ya
+    descargado** (lee los resumen.json en disco, NO vuelve a consultar al SII).
+
+    Existe para que la respuesta a "revísame las compras/ventas y el IVA de tal mes"
+    salga de números CALCULADOS y no de un modelo interpretando un PDF. Informa qué
+    periodos no tienen datos bajados (`periodos_sin_datos`) para no confundir
+    "no lo bajamos" con "la empresa no facturó" — que es justo lo que se leyó mal.
+    """
+    empresa = db.obtener_empresa(empresa_id)
+    if not empresa:
+        raise HTTPException(404, "Empresa no encontrada.")
+    hasta = hasta or desde
+    if not re.fullmatch(r"\d{6}", desde or "") or not re.fullmatch(r"\d{6}", hasta):
+        raise HTTPException(400, "desde/hasta deben ser AAAAMM.")
+    if desde > hasta:
+        desde, hasta = hasta, desde
+    base = _empresa_dir(empresa_id)
+    out = {}
+    faltan = []
+    for op in ("compra", "venta"):
+        tot = {"documentos": 0, "neto": 0, "iva": 0, "exento": 0, "total": 0, "por_tipo": []}
+        acum = {}
+        for periodo in periodos_rango(desde, hasta):
+            f = base / op / periodo / "resumen.json"
+            if not f.exists():
+                faltan.append(f"{op} {periodo}")
+                continue
+            try:
+                filas = (json.loads(f.read_text(encoding="utf-8")) or {}).get("data") or []
+            except Exception:  # noqa: BLE001
+                faltan.append(f"{op} {periodo} (ilegible)")
+                continue
+            for r in filas:
+                n = int(r.get("rsmnTotDoc") or 0)
+                tot["documentos"] += n
+                tot["neto"] += int(r.get("rsmnMntNeto") or 0)
+                tot["iva"] += int(r.get("rsmnMntIVA") or 0)
+                tot["exento"] += int(r.get("rsmnMntExe") or 0)
+                tot["total"] += int(r.get("rsmnMntTotal") or 0)
+                nombre = r.get("dcvNombreTipoDoc") or f"Tipo {r.get('rsmnTipoDocInteger')}"
+                a = acum.setdefault(nombre, {"tipo": nombre, "documentos": 0, "neto": 0, "iva": 0, "exento": 0, "total": 0})
+                a["documentos"] += n
+                a["neto"] += int(r.get("rsmnMntNeto") or 0)
+                a["iva"] += int(r.get("rsmnMntIVA") or 0)
+                a["exento"] += int(r.get("rsmnMntExe") or 0)
+                a["total"] += int(r.get("rsmnMntTotal") or 0)
+        tot["por_tipo"] = sorted(acum.values(), key=lambda x: -x["total"])
+        out[op + "s"] = tot
+    debito, credito = out["ventas"]["iva"], out["compras"]["iva"]
+    return {
+        "empresa": {"id": empresa_id, "nombre": empresa["nombre"], "rut": empresa["rut"]},
+        "periodo": {"desde": desde, "hasta": hasta},
+        "compras": out["compras"],
+        "ventas": out["ventas"],
+        "iva": {"debito_ventas": debito, "credito_compras": credito,
+                "resultado": debito - credito,
+                "signo": "a pagar" if debito >= credito else "remanente a favor"},
+        "periodos_sin_datos": faltan,
+        "nota": ("Calculado desde el RCV ya descargado en disco; no se consultó al SII."
+                 + (" ⚠️ FALTAN periodos por descargar: los totales están INCOMPLETOS."
+                    if faltan else "")),
+    }
+
+
 @app.get("/api/empresas/{empresa_id}/facturas-recibidas")
 def facturas_recibidas_listar(empresa_id: int, desde: str = "", hasta: str = "", limite: int = 40):
     """Lista RÁPIDA (sin bajar PDFs) de facturas de compra recibidas, ordenadas de
