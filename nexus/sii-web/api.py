@@ -256,6 +256,10 @@ class EmpresaUpdate(BaseModel):
     clave: Optional[str] = None
 
 
+class EmisorIn(BaseModel):
+    ciudad: str
+
+
 class DescargaIn(BaseModel):
     desde: str           # YYYYMM
     hasta: str           # YYYYMM
@@ -957,6 +961,46 @@ def descargar_archivo(empresa_id: int, ruta: str, inline: bool = False):
         filename=destino.name,
         content_disposition_type="inline" if inline else "attachment",
     )
+
+
+@app.get("/api/empresas/{empresa_id}/emisor")
+def get_emisor(empresa_id: int):
+    """Datos del emisor configurables por empresa (hoy la ciudad de origen)."""
+    empresa = db.obtener_empresa(empresa_id)
+    if not empresa:
+        raise HTTPException(404, "Empresa no encontrada.")
+    extra = _emisor_extra(empresa_id)
+    return {"empresa": {"id": empresa_id, "nombre": empresa["nombre"], "rut": empresa["rut"]},
+            "ciudad": extra.get("ciudad") or "SANTIAGO",
+            "por_defecto": not extra.get("ciudad"),
+            "nota": "Ciudad que va en el formulario del SII al emitir (EFXP_CIUDAD_ORIGEN). "
+                    "Si nunca se configuró, se usa SANTIAGO."}
+
+
+@app.put("/api/empresas/{empresa_id}/emisor")
+def put_emisor(empresa_id: int, body: EmisorIn):
+    """Cambia la ciudad del emisor. Se puede pedir por WhatsApp: es un dato de forma,
+    no toca montos ni folios. Solo afecta documentos que se emitan DESPUÉS."""
+    empresa = db.obtener_empresa(empresa_id)
+    if not empresa:
+        raise HTTPException(404, "Empresa no encontrada.")
+    ciudad = (body.ciudad or "").strip().upper()
+    if not ciudad or len(ciudad) > 40:
+        raise HTTPException(400, "La ciudad no puede ir vacía y va como máximo 40 caracteres.")
+    f = BASE_DIR / "emisores.json"
+    try:
+        data = json.loads(f.read_text(encoding="utf-8")) if f.exists() else {}
+    except Exception:  # noqa: BLE001
+        data = {}
+    e = data.get(str(empresa_id)) or {}
+    anterior = e.get("ciudad")
+    e.update({"ciudad": ciudad, "nombre": empresa["nombre"]})
+    e.pop("_revisar", None)
+    data[str(empresa_id)] = e
+    f.write_text(json.dumps(data, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    return {"ok": True, "empresa": empresa["nombre"], "ciudad": ciudad, "ciudad_anterior": anterior,
+            "nota": "Aplica a los documentos que se emitan de aquí en adelante; "
+                    "los ya emitidos no cambian."}
 
 
 @app.get("/api/empresas/{empresa_id}/resumen-rcv")
