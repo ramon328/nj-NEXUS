@@ -2669,10 +2669,41 @@ async function leerSaldosTodas(ctx, page, log) {
       }
       resultados.push({ empresa, conecta: !!saldos, cuentas, total_clp: totalCLP, ...(movimientos ? { movimientos } : {}) })
       log(`lector: ${empresa} → ${saldos ? cuentas.length + ' cuentas, $' + totalCLP.toLocaleString('es-CL') : 'SIN saldo (no cargó)'}`)
+      // ESCRITURA INCREMENTAL (10-08-2026, pedido de Ramón). Antes los archivos se escribían
+      // TODOS al final, en leer-saldos.mjs: si la corrida se cortaba (tope, proceso muerto),
+      // se perdía el login entero aunque ya hubiera leído 8 de 9 empresas. Pasó dos veces.
+      // Ahora cada empresa se guarda apenas se lee: un corte solo cuesta lo que faltaba.
+      if (saldos) { try { guardarEmpresaLeida({ empresa, cuentas, total_clp: totalCLP, movimientos }, log) } catch (e) { log('lector: no pude guardar ' + empresa + ':', e.message) } }
     } catch (e) { resultados.push({ empresa, conecta: false, error: e.message }); log(`lector: ${empresa} falló:`, e.message) }
     ctx.off('response', onResp)
   }
   return { total: resultados.length, conectan: resultados.filter((r) => r.conecta).length, empresas: resultados }
+}
+
+/** Guarda el saldo (y movimientos) de UNA empresa apenas se lee — no espera al final.
+ *  Lleva la MISMA guardia de identidad que leer-saldos.mjs: si la cuenta corriente leída no
+ *  es la que cuentas-origen.json dice para esa empresa, el cambio de empresa no prendió y
+ *  estaríamos guardando el saldo de OTRA. En ese caso NO se escribe: un saldo falso es peor
+ *  que uno viejo. (Pasó el 09-08: Importadora Juri quedó con el saldo de Imp. Mineras.) */
+function guardarEmpresaLeida({ empresa, cuentas, total_clp, movimientos }, log) {
+  const slug = String(empresa).toLowerCase().replace(/[^a-z0-9]/g, '')
+  const soloDig = (x) => String(x || '').replace(/\D/g, '')
+  let origenes = {}
+  try { origenes = JSON.parse(readFileSync(join(DATA, 'cuentas-origen.json'), 'utf8')) } catch { /* sin tabla → no valida */ }
+  const esperada = soloDig(origenes[empresa])
+  if (esperada) {
+    const leidas = (cuentas || []).map((c) => soloDig(c.numero))
+    if (leidas.length && !leidas.includes(esperada)) {
+      log(`lector: ⛔ ${empresa}: leí la cuenta ${leidas.join(',')} y NO es la suya (${esperada}) → NO guardo (saldo de otra empresa)`)
+      return
+    }
+  }
+  const now = Date.now()
+  writeFileSync(join(DATA, `emp-${slug}.json`), JSON.stringify({ empresa, cuentas: cuentas || [], total_clp: total_clp || 0, _ts: now, _fuente: 'vivo' }, null, 2))
+  if (Array.isArray(movimientos)) {
+    writeFileSync(join(DATA, `emp-${slug}-movs.json`), JSON.stringify({ empresa, movimientos, total: movimientos.length, _ts: now, _fuente: 'vivo' }, null, 2))
+  }
+  log(`lector: 💾 ${empresa} guardado (${(cuentas || []).length} cuentas${Array.isArray(movimientos) ? ', ' + movimientos.length + ' movs' : ''})`)
 }
 
 // EXPLORAR "Pagos Masivos / Nómina" (TEK_NOMINA=mapear). SOLO LECTURA: navega al módulo,

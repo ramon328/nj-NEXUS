@@ -255,20 +255,19 @@
   "POST apideveloper.santander.cl/sancl/privado/v1/oauth_login_empresa/oauth2/refresh": {
     "url": "https://apideveloper.santander.cl/sancl/privado/v1/oauth_login_empresa/oauth2/refresh",
     "headers": {
-      "accept": "application/json, text/plain, */*",
-      "accept-language": "es-CL",
-      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzY1OTY1LCJpYXQiOjE3ODYzNjQxNjUsImp0aSI6Ik92S3llT0txVDRfczVhS0NrU1pmWHZYSmxSRSIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.JexbmS4a_D0SHssDfEZlhhB3yweOgcsQm2SRaR8IT6nLR5vHD00rTx5qTo1pg9zfbqr6gt-GQQlTBmSgUn0V9xkXeNCSa2RMw-_jOcfXPnsyg0IwHa3SQkNS4ALgh4pvVBcBgSvpuf3-BM8a8A_slaqgeRaspXRwHlc5fVWnvBtvNzYwvac7fEgme7dt03BDFfu5ZYefaG0mKleb7jeFaMLA_D2AYieRAWDVhRgbg8nPWhyDYYdbuK3D5ZhHue380njFr95HN2MOW0Ia0xEx1RcTnnXgesiJDH3dq0l3P5pouvF6VriaAa4TyZsd8XXn9g0noz7Ud7u2o9NyHM5_CA",
-      "content-type": "text/plain",
-      "origin": "https://privado.officebanking.cl",
+      "sec-ch-ua-platform": "\"macOS\"",
+      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzY2NTY5LCJpYXQiOjE3ODYzNjQ3NjksImp0aSI6IndDVXQxU3RvY2F4RU5RTXppa3FXM1Z2N0NiTSIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.PTifzomJ6Z7535DbZ8h6Phf6rRlfShh-PWgX8xLAiRXN-0zG43esccU9GUtUPvF_TEU0u28dj_Yc1b-OS24foGSDFNuxS6TpPb56cyTpJqfu5znNXpUmNBJq4Tq375L08QuNWwJVdOQfqOjjdLoLeK-6FRVFCh3s_QJ5PW3NYXVQDtSbc8MXPRgmFxls6V8O6u2cyGIzm58DMlYwBi-Rm_SLPK7B1yZ_vbT14tG51N4u8idrvYMS4HeMNX0fqEMMrnXkzHTynsHZR0FOn3FmZUau6pwcZYAy_VaWU-ec6JZbMIjKuiRL_EcWW5rqK2-gP-fodIupgHXlVVPamwOnLQ",
       "referer": "https://privado.officebanking.cl/",
-      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-      "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJhdGkiOiJPdkt5ZU9LcVQ0X3M1YUtDa1NaZlh2WEpsUkUiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzY4MzYxLCJpYXQiOjE3ODYzNjQxNjUsImp0aSI6Im1KdTJVckVzbE12ZThRbGxWYW1fZ0lXSk5jMCIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.ebvyH9E-xM1Km7O-42R36D9hJZFicnrSXyDSfrqLvWZPDrWLGPe2DikmmTfUAHuzc80rZqhfNGUXgq4dur_aJHjw_SeyJK-MQoStJPP7ZDGdxUWTGwPyucAtXt_BV6x_YtSs4Xu3Q7iHxrHMhi3TFsOeog5sx1RRXPi4FFVDo4nv6FQas6w18BIyLOkNiciV0Gnw9IIt5uoxkbvbTWIdiqdk1onFbMw2Un9GcULkPjU563fwMKmjjiivTWWCvrBoOpsGCokqtkI8MyNUF_KGW_jcsnvstJ51sNuMOINbtpnSzXDYyxZM8CcF5kC1KNgY-sY1cwB5trf5Qu8F02ssNg",
+      "accept-language": "es-CL",
       "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
       "sec-ch-ua-mobile": "?0",
-      "sec-ch-ua-platform": "\"macOS\""
+      "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/149.0.0.0 Safari/537.36",
+      "accept": "application/json, text/plain, */*",
+      "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJhdGkiOiJ3Q1V0MVN0b2NheEVOUU16aWtxVzNWdjdDYk0iLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzY4MzYxLCJpYXQiOjE3ODYzNjQ3NjksImp0aSI6Im1KdTJVckVzbE12ZThRbGxWYW1fZ0lXSk5jMCIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.fJ0vI6xLZ-8kVwnotqDzr6-tUgETvZsV1vPqgd3YfZEI_C8T_5cShjgtPbACIfPWYdZ0pGyEOjISj9aRNzT6XpHEWJr3qaS0ZVMw9iuLGPFOtqc1UWTQS8jZ1KWmmaEU5djnKe3lEMMgtSWSj67NqoIomJSVySUz_2nHirf_P4-XTYTJBbCunZtBBOBFNziTW5R2KZhyeUtUUeatUMh5LSm94BTo3nB0ahoOezWOjpPDlNscI0P6xmsiO3sTvc5eO7M87iUdFzGe5liFY5cXC2-EiSXGXMVG0db7BFNdVOa4rE-XBlmtLsC2NDtPUGXci0vPBuC_qTDWR2PsLghvTg",
+      "content-type": "text/plain"
     },
     "postData": null,
-    "hits": 26,
+    "hits": 28,
     "ts_grabado": null
   },
   "POST eob.officebanking.cl/TEFM.UI.Services/api/importacion/sesionvalida": {
@@ -477,7 +476,7 @@
     "url": "https://apideveloper.santander.cl/sancl/privado/v1/oauth_login_empresa/oauth2/revoke",
     "headers": {
       "sec-ch-ua-platform": "\"macOS\"",
-      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMjE4OTQ1NzgzIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MTQxODk0LCJpYXQiOjE3ODYxNDAwOTQsImp0aSI6IjlmLTJyQjBwWmZWcEpLT0JOTXMyWmZ6YlRBcyIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMjE4OTQ1NzgzIn0.SW_4Ox5d42_IglFRZUVeZFriuGaMaU3P-1kKqg_qfvyUip9ShYSZWqOSLqjP8ijLfAdJqJIwMRZiQ2wXy3mC7RQTQ5jgbsyEkL476aWMU2wTTx-pHThrKe9YqNJgadtU3NLxgIn4il_Bub351UCQzKfkmzvuurHQWrYmMPI2mR8DLAKFYRzm91avHzILcRe1GMv9lcD_GVC2Gi-msnzXbiIs_XI9UrrhoJIrPIWqBXh-ciNbgYDvgV3h4tI6bt0BVjhcGxzIhh1S2H59j2jLwFjOtBZvz2tAq7fvwgGT5pfmUqXtqK9ftx--umaTVk2OL7All5mrh8mdYUtONOygLg",
+      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzY2NTY5LCJpYXQiOjE3ODYzNjQ3NjksImp0aSI6IndDVXQxU3RvY2F4RU5RTXppa3FXM1Z2N0NiTSIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.PTifzomJ6Z7535DbZ8h6Phf6rRlfShh-PWgX8xLAiRXN-0zG43esccU9GUtUPvF_TEU0u28dj_Yc1b-OS24foGSDFNuxS6TpPb56cyTpJqfu5znNXpUmNBJq4Tq375L08QuNWwJVdOQfqOjjdLoLeK-6FRVFCh3s_QJ5PW3NYXVQDtSbc8MXPRgmFxls6V8O6u2cyGIzm58DMlYwBi-Rm_SLPK7B1yZ_vbT14tG51N4u8idrvYMS4HeMNX0fqEMMrnXkzHTynsHZR0FOn3FmZUau6pwcZYAy_VaWU-ec6JZbMIjKuiRL_EcWW5rqK2-gP-fodIupgHXlVVPamwOnLQ",
       "referer": "https://privado.officebanking.cl/",
       "accept-language": "es-CL",
       "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
@@ -487,7 +486,7 @@
       "content-type": "text/plain"
     },
     "postData": null,
-    "hits": 2,
+    "hits": 3,
     "ts_grabado": null
   },
   "POST eob.officebanking.cl/TEFUN.UI.Services/api/CreacionTransferenciaUnitaria/crearTransferencia": {

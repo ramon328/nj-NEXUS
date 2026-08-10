@@ -68,10 +68,11 @@ fi
 #    TEK_DESDE acota la ventana: sin él, los movimientos se piden en 4 tramos mensuales
 #    (90 días) por empresa y eso NO cabe — el 09-ago reventó el tope en la 1ª empresa.
 #    Con 7 días es UN tramo por empresa. El histórico largo es otro flujo (bajar-historica).
-#    Tope 40 min: hay tiempo de sobra a las 5 AM y la sesión dura 95.
+#    Tope 60 min: las 9 empresas con movimientos tardaron 35 min el 10-ago — 40 quedaba
+#    demasiado justo y un banco lento cortaba la corrida. La sesión dura 95, así que sobra.
 DESDE=$(date -v-7d +%Y-%m-%d)
 echo "[$(ts)] leyendo saldos + movimientos desde $DESDE (1 login)…" >> $LOG
-TEK_TOPE_MS=2400000 TEK_LEER_MOVS=1 TEK_DESDE="$DESDE" \
+TEK_TOPE_MS=3600000 TEK_LEER_MOVS=1 TEK_DESDE="$DESDE" \
   /usr/local/bin/node leer-saldos.mjs --user nico >> $LOG 2>&1
 echo "[$(ts)] ── fin (exit=$?) ──" >> $LOG
 
