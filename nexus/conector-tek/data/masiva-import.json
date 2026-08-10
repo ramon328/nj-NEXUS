@@ -1,9 +1,24 @@
 {
-  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1786322691535",
+  "url": "https://privado.officebanking.cl/dashboard",
   "dump": [
     {
-      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_MSV_C&ts=1786322691535",
-      "inputs": [],
+      "url": "https://privado.officebanking.cl/dashboard",
+      "inputs": [
+        {
+          "type": "text",
+          "id": "",
+          "name": "buscar",
+          "accept": "",
+          "vis": true
+        },
+        {
+          "type": "checkbox",
+          "id": "",
+          "name": "",
+          "accept": "",
+          "vis": false
+        }
+      ],
       "links": [
         {
           "text": "Inicio",
@@ -76,277 +91,55 @@
         {
           "text": "Expandir Menú",
           "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Creación",
+          "href": ""
+        },
+        {
+          "text": "Autorización",
+          "href": ""
+        },
+        {
+          "text": "Histórico",
+          "href": ""
+        },
+        {
+          "text": "Eliminación",
+          "href": ""
         }
       ],
       "botones": [
         "Accesibilidad",
-        "Empresa / Rol"
+        "Empresa / Rol",
+        "Entrar",
+        "Revisa los servicios aún no disponibles"
       ],
-      "textos": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú"
-    },
-    {
-      "url": "https://eob.officebanking.cl/TEFM.UI.Web/Importacion/?servicioId=TRFCTA_MSV_C",
-      "inputs": [
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
-        },
-        {
-          "type": "file",
-          "id": "archivo",
-          "name": "",
-          "accept": ".xls, .xlsx, .txt, .dat",
-          "vis": true
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": true
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
-        },
-        {
-          "type": "text",
-          "id": "email",
-          "name": "email",
-          "accept": "",
-          "vis": true
-        },
-        {
-          "type": "checkbox",
-          "id": "checkRecibirCorreo",
-          "name": "",
-          "accept": "",
-          "vis": false
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": true
-        },
-        {
-          "type": "text",
-          "id": "",
-          "name": "",
-          "accept": "",
-          "vis": false
-        }
-      ],
-      "links": [
-        {
-          "text": "Utilizar cuentas ingresadas en archivo",
-          "href": ""
-        },
-        {
-          "text": "0-000-2754751-6",
-          "href": ""
-        },
-        {
-          "text": "Excel",
-          "href": ""
-        },
-        {
-          "text": "TXT",
-          "href": ""
-        },
-        {
-          "text": "En línea",
-          "href": ""
-        },
-        {
-          "text": "Diferida 24hrs",
-          "href": ""
-        },
-        {
-          "text": "Pago de Asignaciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Dividendos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Pensiones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Proveedores",
-          "href": ""
-        },
-        {
-          "text": "Pago de Reembolsos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Remuneraciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Subsidios",
-          "href": ""
-        },
-        {
-          "text": "Pago de Viáticos",
-          "href": ""
-        },
-        {
-          "text": "Pago Extraordinarios",
-          "href": ""
-        },
-        {
-          "text": "Transferencias Masivas",
-          "href": ""
-        },
-        {
-          "text": "+",
-          "href": ""
-        },
-        {
-          "text": "Liberada a pago",
-          "href": ""
-        },
-        {
-          "text": "Pendiente de liberación",
-          "href": ""
-        },
-        {
-          "text": "Transaccional",
-          "href": ""
-        },
-        {
-          "text": "Obtener desde archivo",
-          "href": ""
-        },
-        {
-          "text": "Fija",
-          "href": ""
-        },
-        {
-          "text": "Obtener desde archivo",
-          "href": ""
-        },
-        {
-          "text": "Fija",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "AQUI",
-          "href": "https://eob.officebanking.cl/TEFM.UI.Web/Content/Formato%20Importacion.pdf"
-        },
-        {
-          "text": "Imprimir",
-          "href": "https://eob.officebanking.cl/TEFM.UI.Web/Importacion/?servicioId=TRFCTA_MSV_C#"
-        },
-        {
-          "text": "www.sbif.cl",
-          "href": "http://www.sbif.cl/"
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "Pago de Remuneraciones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Proveedores",
-          "href": ""
-        },
-        {
-          "text": "Pago de Dividendos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Pensiones",
-          "href": ""
-        },
-        {
-          "text": "Pago de Subsidios",
-          "href": ""
-        },
-        {
-          "text": "Pago de Reembolsos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Viáticos",
-          "href": ""
-        },
-        {
-          "text": "Pago de Asignaciones",
-          "href": ""
-        },
-        {
-          "text": "Pago Extraordinarios",
-          "href": ""
-        },
-        {
-          "text": "Transferencias Masivas",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "×",
-          "href": ""
-        },
-        {
-          "text": "www.sbif.cl",
-          "href": "http://www.sbif.cl/"
-        }
-      ],
-      "botones": [
-        "Utilizar cuentas ingresadas en archivo",
-        "Ver ejemplo",
-        "Examinar",
-        "Examinar",
-        "En línea\n \nEn línea\nDiferida 24hrs",
-        "En línea",
-        "Pago de Asignaciones",
-        "+",
-        "Liberada a pago",
-        "Transaccional\n \nTransaccional",
-        "Transaccional",
-        "Obtener desde archivo",
-        "Obtener desde archivo",
-        "Importar",
-        "Pago de Remuneraciones",
-        "Guardar",
-        "Aceptar",
-        "Aceptar",
-        "Aceptar"
-      ],
-      "textos": "Importación masiva de transferencia de fondos Sr. (a): NICOLAS PATRICIO JURI CABALLERO Empresa: PLATAFORMAS DIGITALES GOAUTO SPA RUT empresa: 78.226.167-3 Fecha: 9 de agosto de 2026 Hora: 20:44 Características importación Cuenta origen Utilizar cuentas ingresadas en archivo Utilizar cuentas ingresadas en archivo 0-000-2754751-6 Seleccione archivo Ver ejemplo Examinar Tipo transferencia En línea En línea Diferida 24hrs Concepto asociado Pago de Asignaciones Pago de Asignaciones Pago de Dividendos Pago de Pensiones Pago de Proveedores Pago de Reembolsos Pago de Remuneraciones Pago de Subsidios Pago de Viáticos Pago Extraordinarios Transferencias Masivas + Estado post autorización Liberada a pago Liberada a pago Pendiente de liberación Tipo autorización Transaccional Transaccional Glosa cartola cliente Obtener desde archivo Obtener desde archivo Fija Glosa cartola beneficiario Obtener desde"
+      "textos": "Inicio Accesibilidad Indicadores Empresa / Rol Menú Cuentas Corrientes Linea de Crédito Resumen de Productos Tarjetas Transferencias Pago de Cuentas y Servicios Vales Vista en Línea PAC - Pago Automático de Cuentas Comercio Exterior Compra y Venta de Divisas Créditos Fondos Mutuos Depósito a Plazo Pagos Masivos Factoring Expandir Menú Transferencias Transferencias Express Creación Autorización Cuenta a Línea de Crédito Creación Autorización Línea de Crédito a Cuenta Creación Autorización Cuenta a Tarjeta de Crédito Creación Autorización Consultas Histórica y Eliminación Histórico Eliminación Tus datos Fecha y Hora: 09/08/2026 20:49 Usuario: NICOLAS PATRICIO JURI CABALLERO Perfil: Transaccional Empresa: FOOD EXPERT SPA RUT Empresa: 76.580.812-K Nº de Contrato: 000690022536470 Saldos Consolidados Ocultar Saldos Nº de Cuenta Tipo Moneda Saldo Línea de Crédito 72253590 CUENTA CORRIENTE CLP $"
     }
   ]
 }
