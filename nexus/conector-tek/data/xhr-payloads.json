@@ -257,18 +257,18 @@
     "headers": {
       "accept": "application/json, text/plain, */*",
       "accept-language": "es-CL",
-      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzI0MjA3LCJpYXQiOjE3ODYzMjI0MDcsImp0aSI6IkJsNXVOejhndUh3cndtekM0NGRueFRmdkpEWSIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.WK4WOPYqMcyDJ-VjqlunFLCGIRrFNAM1msIXRp568iqU1uF_MgKsYR9B9BobKUm2-auJg0NYrN6W0uu2TquLRwLn4bK8yJGwaeYEzF12ptS1putL5XbXX_PoB-k_km6jYsUQfZf_nbUwaoveg5CazqiNFltz5ucjW8mQ7RSmxjVIPKAO2S7sd7pI7tXFR3hypcUeQ_sCaUfaOxpsdlNr4nqeNCiCeyfWI7EIPULZuW7M0XRi2RF6CY___p8_mNwCsOR49kSXjZtvmakh5UKenMdzPZg-O4DvQFcN8jTjEOtr6zAmuOUcluAptWO-SKzEuSafBxvlP0YNrMFfST56OA",
+      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzMwMjk0LCJpYXQiOjE3ODYzMjg0OTQsImp0aSI6ImpTY2c1VnVFV3hMa0ZlVDBlRW9WYUpxdUxhMCIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.U1PNUtogjgJLUXcxihBmxZzAvO18iRkr3XGNeZBngPQi2W8wTzBNfD6GB0MJdfhlIsUZm6U3Ql6i9f85rRM6plHS1pj_gYoT7K7QwsLyhpddEjsGRU_mhIcXubjFaN21v4TJNQCyGtiRXN2C9pDMBqOTnZqA6IkX1DurJw4WvD8bPKWTQw8pRFN-Dr8HG8Sfj-iJcQheytSY0ihErYfnlthOUETtdgCz30KpFMaLg0PS997G0VD_-GvE26AKadni9VEab8wz5s5jPtlSld6Md8mFobX4BUvF6d17sG4S9uR1UxThvEyFfIzWbhdst4VZLZJhwl_ML3TSrluTrRYRHQ",
       "content-type": "text/plain",
       "origin": "https://privado.officebanking.cl",
       "referer": "https://privado.officebanking.cl/",
       "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-      "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJhdGkiOiJCbDV1Tno4Z3VId3J3bXpDNDRkbnhUZnZKRFkiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzI3MjA3LCJpYXQiOjE3ODYzMjI0MDcsImp0aSI6IlBPOUZTLWdmdkV6dVllLTRoUm05OFI4Z0JxayIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.VVQZEHXXUhriLnhM5lHWWZJRiM0CgGVe0b1pDkrSYdmChhauA052jF7jvmSMMzORnW5gQ0yC5H18A6qlaAkCgkstgKnuyi3jyuPLWKyO_wjkEAzV-YK9ln7ixwvT5sOydGx0Kb0KM3Klvbybz_33Bts6cqJRoBvYQbEB2RuyJ-D6Cae3N4scY3MFL_CduatxdVj-YtWnX_ICQYAY06cS95Qv8tNjxSA6k-7VkirlggUhzwMIIAmyOkkoSOq06PqJ70r_A-L9B8_FBRSLvNEs1_ihvGD9ZT2ipCywmf6w_h1rZ5GM9GkBYGxI4xzYKw3XapzELpNo2ic4G8Jh12eD6g",
+      "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJhdGkiOiJqU2NnNVZ1RVd4TGtGZVQwZUVvVmFKcXVMYTAiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzMzODk0LCJpYXQiOjE3ODYzMjg0OTQsImp0aSI6InBWd2RNSWRmdHlBY1lVZ3p6dnZ2SGJHMEJpayIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.a5njTaad3km9RaUzaIji8MvW0A1VTf-Ap9_HF2k3sPIrE03qwvfwrumLLL1SNGiE77TiqQtEQPkIWY_KldtHnNcBcLckxZ48b-LtS2pnDwyw_2IaDUIQLbChzU74_dTWe-2TaA6yhZhUWSDcl9Q24PmljvFfypZS3nJqrfwlY2ZX2c1v0oSNP6jRyyU4h1xxgS37qRR67ioiX_AvpGhX-uQ2zibjRsfEhH26nRstCLmTNEX_Ch-hKCb-lDzi4KmCue80GxjnGm4TPQIO1voFRaBK1M7-Ry3svdVumtpHY70M_C90zRu2BkKS_xHPBJV8iO0ROll-mHq9GyQn9pbciQ",
       "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
       "sec-ch-ua-mobile": "?0",
       "sec-ch-ua-platform": "\"macOS\""
     },
     "postData": null,
-    "hits": 18,
+    "hits": 19,
     "ts_grabado": null
   },
   "POST eob.officebanking.cl/TEFM.UI.Services/api/importacion/sesionvalida": {
