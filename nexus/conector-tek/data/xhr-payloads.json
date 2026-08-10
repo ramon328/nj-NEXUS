@@ -219,7 +219,7 @@
     "headers": {
       "accept": "application/json, text/plain, */*",
       "accept-language": "es-CL",
-      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzMwMjk0LCJpYXQiOjE3ODYzMjg0OTQsImp0aSI6ImpTY2c1VnVFV3hMa0ZlVDBlRW9WYUpxdUxhMCIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.U1PNUtogjgJLUXcxihBmxZzAvO18iRkr3XGNeZBngPQi2W8wTzBNfD6GB0MJdfhlIsUZm6U3Ql6i9f85rRM6plHS1pj_gYoT7K7QwsLyhpddEjsGRU_mhIcXubjFaN21v4TJNQCyGtiRXN2C9pDMBqOTnZqA6IkX1DurJw4WvD8bPKWTQw8pRFN-Dr8HG8Sfj-iJcQheytSY0ihErYfnlthOUETtdgCz30KpFMaLg0PS997G0VD_-GvE26AKadni9VEab8wz5s5jPtlSld6Md8mFobX4BUvF6d17sG4S9uR1UxThvEyFfIzWbhdst4VZLZJhwl_ML3TSrluTrRYRHQ",
+      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzMxOTQxLCJpYXQiOjE3ODYzMzAxNDEsImp0aSI6Ill5Ty1JWU1fSlYxNVdpUmhQT01EaHFIVUtyQSIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.PQV15SE1G8eOvfe11PKEDI3j1oSMTYssAcsfIh2A9WWQVJljgYvDWpDI31UtknGujNXlGKJ1iWuhCH3733V8L2Fmi-XwWGcXPElXZsswhKvv-3xC89TRCALPj3zy3Q6VZdu5aiUecf8OM9Rf6mijPux6-dCCK9rJGCyJ2gcrZB_HtgzbGNLg64BQNmmZ_8VI5nYK9wCVQf6uMUsVBQMgBxuC5GPPDiPrEmTQF5zEzx1yoQWDj2fOLyqgJweBP_hv11LR76v-f7UX4OgHgSYybJX6tOkCUKNbf6Ith6Ri6WcZy6si2G7HQRQe8jtAuKR4h9BHDqNmHlIcR3wizwbf5A",
       "content-type": "application/json",
       "origin": "https://privado.officebanking.cl",
       "referer": "https://privado.officebanking.cl/",
@@ -228,8 +228,8 @@
       "sec-ch-ua-mobile": "?0",
       "sec-ch-ua-platform": "\"macOS\""
     },
-    "postData": "{\"enterpriserut\":\"0767153945\",\"contractcode\":\"000690035185210\",\"personnumber\":\"016142580K\",\"rolcode\":\"3\",\"isSwitchCompany\":false}",
-    "hits": 38,
+    "postData": "{\"enterpriserut\":\"0768675546\",\"contractcode\":\"000690023084710\",\"personnumber\":\"016142580K\",\"rolcode\":\"4\",\"isSwitchCompany\":false}",
+    "hits": 40,
     "ts_grabado": null
   },
   "POST eob.officebanking.cl/COPE.UI.Services/Token": {
@@ -257,18 +257,18 @@
     "headers": {
       "accept": "application/json, text/plain, */*",
       "accept-language": "es-CL",
-      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzMwMjk0LCJpYXQiOjE3ODYzMjg0OTQsImp0aSI6ImpTY2c1VnVFV3hMa0ZlVDBlRW9WYUpxdUxhMCIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.U1PNUtogjgJLUXcxihBmxZzAvO18iRkr3XGNeZBngPQi2W8wTzBNfD6GB0MJdfhlIsUZm6U3Ql6i9f85rRM6plHS1pj_gYoT7K7QwsLyhpddEjsGRU_mhIcXubjFaN21v4TJNQCyGtiRXN2C9pDMBqOTnZqA6IkX1DurJw4WvD8bPKWTQw8pRFN-Dr8HG8Sfj-iJcQheytSY0ihErYfnlthOUETtdgCz30KpFMaLg0PS997G0VD_-GvE26AKadni9VEab8wz5s5jPtlSld6Md8mFobX4BUvF6d17sG4S9uR1UxThvEyFfIzWbhdst4VZLZJhwl_ML3TSrluTrRYRHQ",
+      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzMwODk1LCJpYXQiOjE3ODYzMjkwOTUsImp0aSI6IlB2OFpOTmt5UmRVSlBndDdUNklpRzFoLVg5SSIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.YRfXK3MW5ndWRAXrcgwW1cM3lN6iTmBug6u4GonTmLFUaFACqeWyCCWLtdQYlruwnGwZhGaqprFEZl7AjNUSXTLB9cYQiVHGu1xJqXhW59SGH_qwJqmNi2gZ0bOOUU26W66ok8DpgjIzioT0t73_jFVy8YM5YQlRdNXFwIg76uWzdEfX2ZKEYsLKRDfPrO4iYYy8zkASNdEnyrv7HE3nG7aH5X_1SMsNfPSl7MzM_RGrfTcbxJ-DuKJR92dbXLl_n9hgMPVA6noFMbQTz8V6wrodFGxzSazjd6NEdhlR-I2GJoZyXmTSIeZdpZQGw0ZrOI1M5w0GGMF3QIY6wilAow",
       "content-type": "text/plain",
       "origin": "https://privado.officebanking.cl",
       "referer": "https://privado.officebanking.cl/",
       "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
-      "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJhdGkiOiJqU2NnNVZ1RVd4TGtGZVQwZUVvVmFKcXVMYTAiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzMzODk0LCJpYXQiOjE3ODYzMjg0OTQsImp0aSI6InBWd2RNSWRmdHlBY1lVZ3p6dnZ2SGJHMEJpayIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.a5njTaad3km9RaUzaIji8MvW0A1VTf-Ap9_HF2k3sPIrE03qwvfwrumLLL1SNGiE77TiqQtEQPkIWY_KldtHnNcBcLckxZ48b-LtS2pnDwyw_2IaDUIQLbChzU74_dTWe-2TaA6yhZhUWSDcl9Q24PmljvFfypZS3nJqrfwlY2ZX2c1v0oSNP6jRyyU4h1xxgS37qRR67ioiX_AvpGhX-uQ2zibjRsfEhH26nRstCLmTNEX_Ch-hKCb-lDzi4KmCue80GxjnGm4TPQIO1voFRaBK1M7-Ry3svdVumtpHY70M_C90zRu2BkKS_xHPBJV8iO0ROll-mHq9GyQn9pbciQ",
+      "refresh_token": "eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJhdGkiOiJQdjhaTk5reVJkVUpQZ3Q3VDZJaUcxaC1YOUkiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2MzMzODk0LCJpYXQiOjE3ODYzMjkwOTUsImp0aSI6InBWd2RNSWRmdHlBY1lVZ3p6dnZ2SGJHMEJpayIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.RAYdX3uY_Li6O4MdKMw14vB2PdTtsxcVxQTiFnkbaig7OR5ZteGpgpr_viwjYQVxcpAq8vvJ-hCi8TZbeXKi9B5GVSkcX9ZGObmY83Ysupdzhvzz-CSNj6GVfD-Ps76cKKajDfWeCFwkN0DvF3li8f0elGPjeQ7hc0daFeB1FnE3oaqV8Vc2kQzp3XQHrLAtuYA2kn8L7Dg1qUuYQmeu7fD8UY4WZyG_-JOTF-k3eTN_hA-YM6d8cvykwbDqywYBkW2k7pd-QGMrMEiwYRkh4wmKBNe6N9oklS18ZisxlgHHoVqjaxgqOEqd-H9qimy9EzO7Op49wiSLqSQr2ePpSA",
       "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
       "sec-ch-ua-mobile": "?0",
       "sec-ch-ua-platform": "\"macOS\""
     },
     "postData": null,
-    "hits": 19,
+    "hits": 20,
     "ts_grabado": null
   },
   "POST eob.officebanking.cl/TEFM.UI.Services/api/importacion/sesionvalida": {
