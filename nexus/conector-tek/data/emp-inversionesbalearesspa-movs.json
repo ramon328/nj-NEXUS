@@ -1,0 +1,52 @@
+{
+  "empresa": "INVERSIONES BALEARES SPA",
+  "movimientos": [
+    {
+      "fecha": "2026-08-04",
+      "descripcion": "Impuesto Sobregiro / Uso LCA",
+      "cargo": 66,
+      "abono": 0,
+      "saldo": 60332,
+      "documento": "000000000",
+      "sucursal": "AVDA. LARRAIN",
+      "nroMov": "000000066",
+      "cuenta": "000098471790"
+    },
+    {
+      "fecha": "2026-08-04",
+      "descripcion": "Intereses Línea de Crédito",
+      "cargo": 2302,
+      "abono": 0,
+      "saldo": 60398,
+      "documento": "000000000",
+      "sucursal": "AVDA. LARRAIN",
+      "nroMov": "000000065",
+      "cuenta": "000098471790"
+    },
+    {
+      "fecha": "2026-08-04",
+      "descripcion": "Impuesto Sobregiro / Uso LCA",
+      "cargo": 16,
+      "abono": 0,
+      "saldo": 62700,
+      "documento": "000000000",
+      "sucursal": "AVDA. LARRAIN",
+      "nroMov": "000000064",
+      "cuenta": "000098471790"
+    },
+    {
+      "fecha": "2026-08-04",
+      "descripcion": "Interés Sobregiro Cta.Corriente",
+      "cargo": 707,
+      "abono": 0,
+      "saldo": 62716,
+      "documento": "000000000",
+      "sucursal": "AVDA. LARRAIN",
+      "nroMov": "000000063",
+      "cuenta": "000098471790"
+    }
+  ],
+  "total": 4,
+  "_ts": 1786364982265,
+  "_fuente": "vivo"
+}

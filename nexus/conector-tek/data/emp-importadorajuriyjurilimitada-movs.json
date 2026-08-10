@@ -1,0 +1,140 @@
+{
+  "empresa": "IMPORTADORA JURI Y JURI LIMITADA",
+  "movimientos": [
+    {
+      "fecha": "2026-08-07",
+      "descripcion": "Amortización Periódica LCA N° 000075098782",
+      "cargo": 0,
+      "abono": 3000000,
+      "saldo": 0,
+      "documento": "000000000",
+      "sucursal": "OPERACIONES CENTRALES",
+      "nroMov": "000000129",
+      "cuenta": "75098782"
+    },
+    {
+      "fecha": "2026-08-07",
+      "descripcion": "Amortización Periódica LCA N° 002002538280",
+      "cargo": 3000000,
+      "abono": 0,
+      "saldo": 451293,
+      "documento": "000000000",
+      "sucursal": "OPERACIONES CENTRALES",
+      "nroMov": "000000999",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-07",
+      "descripcion": "Pago Cuota Crédito N° 420051188135",
+      "cargo": 548707,
+      "abono": 0,
+      "saldo": 3451293,
+      "documento": "000000000",
+      "sucursal": "VICUNA MACKENNA",
+      "nroMov": "000000998",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-07",
+      "descripcion": "0761066366 Transf de IMP JURI Y FONTENA",
+      "cargo": 0,
+      "abono": 4000000,
+      "saldo": 4000000,
+      "documento": "000000000",
+      "sucursal": "AGUSTINAS",
+      "nroMov": "000000997",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-06",
+      "descripcion": "Traspaso con la Cuenta N° 000075098782",
+      "cargo": 3000000,
+      "abono": 0,
+      "saldo": 3000000,
+      "documento": "000000000",
+      "sucursal": "OPERACIONES CENTRALES",
+      "nroMov": "000000128",
+      "cuenta": "75098782"
+    },
+    {
+      "fecha": "2026-08-06",
+      "descripcion": "Traspaso con la Cuenta N° 002002538280",
+      "cargo": 0,
+      "abono": 3000000,
+      "saldo": 0,
+      "documento": "000000000",
+      "sucursal": "OPERACIONES CENTRALES",
+      "nroMov": "000000996",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-06",
+      "descripcion": "Pago Cuota Crédito N° 420051188135",
+      "cargo": 3443218,
+      "abono": 0,
+      "saldo": 3000000,
+      "documento": "000000000",
+      "sucursal": "VICUNA MACKENNA",
+      "nroMov": "000000995",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-06",
+      "descripcion": "0773060436 Transf a ANTARTICA FREIGHT FORWARDER CHILE SPA",
+      "cargo": 815150,
+      "abono": 0,
+      "saldo": 443218,
+      "documento": "000000000",
+      "sucursal": "AGUSTINAS",
+      "nroMov": "000000994",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-06",
+      "descripcion": "0760015652 Transf a FACELE SPA",
+      "cargo": 48508,
+      "abono": 0,
+      "saldo": 1258368,
+      "documento": "000000000",
+      "sucursal": "AGUSTINAS",
+      "nroMov": "000000993",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-04",
+      "descripcion": "Impuesto Sobregiro / Uso LCA",
+      "cargo": 777,
+      "abono": 0,
+      "saldo": 1306876,
+      "documento": "000000000",
+      "sucursal": "QUILLOTA",
+      "nroMov": "000000992",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-04",
+      "descripcion": "Intereses Línea de Crédito",
+      "cargo": 3378,
+      "abono": 0,
+      "saldo": 1307653,
+      "documento": "000000000",
+      "sucursal": "QUILLOTA",
+      "nroMov": "000000991",
+      "cuenta": "000075098782"
+    },
+    {
+      "fecha": "2026-08-04",
+      "descripcion": "0761066366 Transf de IMP JURI Y FONTENA",
+      "cargo": 0,
+      "abono": 1000000,
+      "saldo": 1311031,
+      "documento": "000000000",
+      "sucursal": "AGUSTINAS",
+      "nroMov": "000000990",
+      "cuenta": "000075098782"
+    }
+  ],
+  "total": 12,
+  "_ts": 1786364982265,
+  "_fuente": "vivo"
+}
