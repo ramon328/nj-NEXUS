@@ -3196,6 +3196,14 @@ async function main() {
       if (chance(0.6)) await scrollHumano(page, rnd(120, 260))
       return acciones('reuso')
     }
+    // TEK_SOLO_REUSAR=1: "aprovechá la sesión si está viva, pero JAMÁS loguees". Para tareas
+    // oportunistas (refresco de saldos cuando alguien ya está adentro) que deben costar CERO
+    // logins. Sin esto había que adivinar por la fecha del session-<user>.json, y ese archivo
+    // se toca aunque la sesión no sirva → terminaba disparando un login. (09-08-2026.)
+    if (process.env.TEK_SOLO_REUSAR === '1') {
+      log('sesión no reutilizable y TEK_SOLO_REUSAR=1 → NO logueo, salgo')
+      return fin('sin_sesion_reusable', { nota: 'La sesión no se podía reusar y este proceso tiene prohibido loguear (TEK_SOLO_REUSAR=1). No se hizo nada.' })
+    }
     log('sesión no reutilizable → hago login')
     // CANDADO ANTI-BLOQUEO POR CLAVE MALA: si un login anterior ya fue RECHAZADO por credenciales
     // (clave incorrecta / vieja / de prueba), NO reintentamos con la MISMA clave: Santander bloquea

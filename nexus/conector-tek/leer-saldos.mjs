@@ -54,8 +54,25 @@ h.on('exit', () => {
   try {
     const slug = (e) => String(e).toLowerCase().replace(/[^a-z0-9]/g, '')
     const now = Date.now()
+    // ⛔ GUARDIA DE IDENTIDAD (09-08-2026). Si el cambio de empresa NO prendió, el lector
+    // vuelve a leer la empresa ANTERIOR y el saldo se guarda bajo el nombre equivocado.
+    // Pasó de verdad: IMPORTADORA JURI quedó con la cuenta 000072856279 (de IMPORTACIONES
+    // MINERAS) y $10.221.633 en vez de $451.293. Un saldo FALSO es peor que ninguno.
+    // Contraste: la cuenta corriente leída tiene que ser la que cuentas-origen.json dice
+    // para esa empresa. Si no calza, NO se escribe y queda el dato anterior.
+    let origenes = {}
+    try { origenes = JSON.parse(readFileSync(join(DIR, 'data', 'cuentas-origen.json'), 'utf8')) } catch { /* sin tabla → no se valida */ }
+    const soloDig = (x) => String(x || '').replace(/\D/g, '')
     for (const e of (lect?.empresas || [])) {
       if (!e.conecta) continue
+      const esperada = soloDig(origenes[e.empresa])
+      if (esperada) {
+        const leidas = (e.cuentas || []).map((c) => soloDig(c.numero))
+        if (leidas.length && !leidas.includes(esperada)) {
+          console.error(`[leer-saldos] ⛔ ${e.empresa}: la cuenta leída (${leidas.join(',')}) NO es la suya (${esperada}) — el cambio de empresa no prendió. NO guardo para no dejar un saldo falso.`)
+          continue
+        }
+      }
       const out = { empresa: e.empresa, cuentas: e.cuentas || [], total_clp: e.total_clp || 0, _ts: now, _fuente: 'vivo' }
       try { writeFileSync(join(DIR, 'data', 'emp-' + slug(e.empresa) + '.json'), JSON.stringify(out, null, 2)) } catch { /* */ }
       // movimientos por empresa (si se leyeron con TEK_LEER_MOVS)
