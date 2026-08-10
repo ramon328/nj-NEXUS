@@ -1,7 +1,7 @@
 {
   "version": 1,
   "creado": "2026-07-27T20:08:50.212Z",
-  "actualizado": "2026-08-09T11:30:00.532Z",
+  "actualizado": "2026-08-10T11:30:04.385Z",
   "movimientos": {
     "b|2026-01-02|141726002|42750000|Depósito con Vales Vista": {
       "id": "b|2026-01-02|141726002|42750000|Depósito con Vales Vista",
@@ -5106,6 +5106,588 @@
       "signo": "egreso",
       "ruts": [],
       "_visto": "2026-07-27"
+    },
+    "b|2026-08-03|154514491|-395466|Transferencia LXGB26": {
+      "id": "b|2026-08-03|154514491|-395466|Transferencia LXGB26",
+      "fecha": "2026-08-03",
+      "descripcion": "Transferencia LXGB26",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 395466,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|130126055|-25500000|Compra SWPV28": {
+      "id": "b|2026-08-04|130126055|-25500000|Compra SWPV28",
+      "fecha": "2026-08-04",
+      "descripcion": "Compra SWPV28",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 25500000,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|132924654|2800000|0760964816 Transf. SOCIEDAD COMERCIAL AN": {
+      "id": "b|2026-08-04|132924654|2800000|0760964816 Transf. SOCIEDAD COMERCIAL AN",
+      "fecha": "2026-08-04",
+      "descripcion": "0760964816 Transf. SOCIEDAD COMERCIAL ANDES CHILE LIMITADA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 2800000,
+      "signo": "ingreso",
+      "ruts": [
+        "760964816"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|155670541|816900|78.302.808-5 Transf. AUTOMOTOR": {
+      "id": "b|2026-08-04|155670541|816900|78.302.808-5 Transf. AUTOMOTOR",
+      "fecha": "2026-08-04",
+      "descripcion": "78.302.808-5 Transf. AUTOMOTOR",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 816900,
+      "signo": "ingreso",
+      "ruts": [
+        "783028085"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|154853641|339150|78.302.808-5 Transf. AUTOMOTOR": {
+      "id": "b|2026-08-04|154853641|339150|78.302.808-5 Transf. AUTOMOTOR",
+      "fecha": "2026-08-04",
+      "descripcion": "78.302.808-5 Transf. AUTOMOTOR",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 339150,
+      "signo": "ingreso",
+      "ruts": [
+        "783028085"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|155626055|-166000|0760952672 Transf a RENTAS Y SERVICIOS": {
+      "id": "b|2026-08-04|155626055|-166000|0760952672 Transf a RENTAS Y SERVICIOS",
+      "fecha": "2026-08-04",
+      "descripcion": "0760952672 Transf a RENTAS Y SERVICIOS",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 166000,
+      "signo": "egreso",
+      "ruts": [
+        "760952672"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|155792055|121514|78.302.808-5 Transf. AUTOMOTOR": {
+      "id": "b|2026-08-04|155792055|121514|78.302.808-5 Transf. AUTOMOTOR",
+      "fecha": "2026-08-04",
+      "descripcion": "78.302.808-5 Transf. AUTOMOTOR",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 121514,
+      "signo": "ingreso",
+      "ruts": [
+        "783028085"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|130124654|-18135|FACEBK *RHCUHXM222": {
+      "id": "b|2026-08-04|130124654|-18135|FACEBK *RHCUHXM222",
+      "fecha": "2026-08-04",
+      "descripcion": "FACEBK *RHCUHXM222",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 18135,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|130144190|18135|FACEBK *L2TBWXR222": {
+      "id": "b|2026-08-04|130144190|18135|FACEBK *L2TBWXR222",
+      "fecha": "2026-08-04",
+      "descripcion": "FACEBK *L2TBWXR222",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 18135,
+      "signo": "ingreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-04|130142789|-1401|FACEBK *L2TBWXR222": {
+      "id": "b|2026-08-04|130142789|-1401|FACEBK *L2TBWXR222",
+      "fecha": "2026-08-04",
+      "descripcion": "FACEBK *L2TBWXR222",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 1401,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-05|133349038|612675|0782879243 Transf. GRUPO AUTOMOTRIZ SPA": {
+      "id": "b|2026-08-05|133349038|612675|0782879243 Transf. GRUPO AUTOMOTRIZ SPA",
+      "fecha": "2026-08-05",
+      "descripcion": "0782879243 Transf. GRUPO AUTOMOTRIZ SPA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 612675,
+      "signo": "ingreso",
+      "ruts": [
+        "782879243"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-05|132760555|-126210|MARSH RISK CONSULTING": {
+      "id": "b|2026-08-05|132760555|-126210|MARSH RISK CONSULTING",
+      "fecha": "2026-08-05",
+      "descripcion": "MARSH RISK CONSULTING",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 126210,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-05|132905660|-18994|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-05|132905660|-18994|PAYU   *UBER TRIP",
+      "fecha": "2026-08-05",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 18994,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-05|132747361|-13194|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-05|132747361|-13194|PAYU   *UBER TRIP",
+      "fecha": "2026-08-05",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 13194,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-05|132736363|-10998|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-05|132736363|-10998|PAYU   *UBER TRIP",
+      "fecha": "2026-08-05",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 10998,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-05|132894962|-10698|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-05|132894962|-10698|PAYU   *UBER TRIP",
+      "fecha": "2026-08-05",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 10698,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-05|132886765|-8197|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-05|132886765|-8197|PAYU   *UBER TRIP",
+      "fecha": "2026-08-05",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 8197,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|107188468|-27000000|Compra SYFL39": {
+      "id": "b|2026-08-06|107188468|-27000000|Compra SYFL39",
+      "fecha": "2026-08-06",
+      "descripcion": "Compra SYFL39",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 27000000,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|134066954|735210|78.061.874-4 Transf. KARTEK SP": {
+      "id": "b|2026-08-06|134066954|735210|78.061.874-4 Transf. KARTEK SP",
+      "fecha": "2026-08-06",
+      "descripcion": "78.061.874-4 Transf. KARTEK SP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 735210,
+      "signo": "ingreso",
+      "ruts": [
+        "780618744"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106534715|-653753|Transferencia SYFL39": {
+      "id": "b|2026-08-06|106534715|-653753|Transferencia SYFL39",
+      "fecha": "2026-08-06",
+      "descripcion": "Transferencia SYFL39",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 653753,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106687276|250000|007067159K Transf de LUIS PATRICIO JURI": {
+      "id": "b|2026-08-06|106687276|250000|007067159K Transf de LUIS PATRICIO JURI",
+      "fecha": "2026-08-06",
+      "descripcion": "007067159K Transf de LUIS PATRICIO JURI",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 250000,
+      "signo": "ingreso",
+      "ruts": [
+        "7067159K"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|134188468|121514|78.061.874-4 Transf. KARTEK SP": {
+      "id": "b|2026-08-06|134188468|121514|78.061.874-4 Transf. KARTEK SP",
+      "fecha": "2026-08-06",
+      "descripcion": "78.061.874-4 Transf. KARTEK SP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 121514,
+      "signo": "ingreso",
+      "ruts": [
+        "780618744"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106452276|-50000|DL     *STARLINK": {
+      "id": "b|2026-08-06|106452276|-50000|DL     *STARLINK",
+      "fecha": "2026-08-06",
+      "descripcion": "DL     *STARLINK",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 50000,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106484715|-25000|0186728653 Transf a Jorge Munoz": {
+      "id": "b|2026-08-06|106484715|-25000|0186728653 Transf a Jorge Munoz",
+      "fecha": "2026-08-06",
+      "descripcion": "0186728653 Transf a Jorge Munoz",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 25000,
+      "signo": "egreso",
+      "ruts": [
+        "186728653"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106509715|-25000|0115567640 Transf a Sergio Cordova": {
+      "id": "b|2026-08-06|106509715|-25000|0115567640 Transf a Sergio Cordova",
+      "fecha": "2026-08-06",
+      "descripcion": "0115567640 Transf a Sergio Cordova",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 25000,
+      "signo": "egreso",
+      "ruts": [
+        "115567640"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106502276|18135|FACEBK *RHCUHXM222": {
+      "id": "b|2026-08-06|106502276|18135|FACEBK *RHCUHXM222",
+      "fecha": "2026-08-06",
+      "descripcion": "FACEBK *RHCUHXM222",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 18135,
+      "signo": "ingreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|133331744|-17294|TELEFONICA PROVIDENCIA": {
+      "id": "b|2026-08-06|133331744|-17294|TELEFONICA PROVIDENCIA",
+      "fecha": "2026-08-06",
+      "descripcion": "TELEFONICA PROVIDENCIA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 17294,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106437276|-15000|COPEC APP EMPRESA": {
+      "id": "b|2026-08-06|106437276|-15000|COPEC APP EMPRESA",
+      "fecha": "2026-08-06",
+      "descripcion": "COPEC APP EMPRESA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 15000,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106497909|13194|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-06|106497909|13194|PAYU   *UBER TRIP",
+      "fecha": "2026-08-06",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 13194,
+      "signo": "ingreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106473143|-12485|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-06|106473143|-12485|PAYU   *UBER TRIP",
+      "fecha": "2026-08-06",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 12485,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106485628|-12281|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-06|106485628|-12281|PAYU   *UBER TRIP",
+      "fecha": "2026-08-06",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 12281,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-06|106484141|10998|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-06|106484141|10998|PAYU   *UBER TRIP",
+      "fecha": "2026-08-06",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 10998,
+      "signo": "ingreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-07|137842696|17217947|Depósito en Efectivo": {
+      "id": "b|2026-08-07|137842696|17217947|Depósito en Efectivo",
+      "fecha": "2026-08-07",
+      "descripcion": "Depósito en Efectivo",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 17217947,
+      "signo": "ingreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-07|120648448|7000000|0777197754 Transf de VANTECH CHILE SPA": {
+      "id": "b|2026-08-07|120648448|7000000|0777197754 Transf de VANTECH CHILE SPA",
+      "fecha": "2026-08-07",
+      "descripcion": "0777197754 Transf de VANTECH CHILE SPA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "ruts": [
+        "777197754"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-07|113648448|7000000|0777197754 Transf de VANTECH CHILE SPA": {
+      "id": "b|2026-08-07|113648448|7000000|0777197754 Transf de VANTECH CHILE SPA",
+      "fecha": "2026-08-07",
+      "descripcion": "0777197754 Transf de VANTECH CHILE SPA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "ruts": [
+        "777197754"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-07|106667276|-20000|COPEC APP EMPRESA": {
+      "id": "b|2026-08-07|106667276|-20000|COPEC APP EMPRESA",
+      "fecha": "2026-08-07",
+      "descripcion": "COPEC APP EMPRESA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 20000,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-07|106648448|-18828|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-07|106648448|-18828|PAYU   *UBER TRIP",
+      "fecha": "2026-08-07",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 18828,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-07|120636009|-12439|RUTASUR CHILLAN-COLLIP": {
+      "id": "b|2026-08-07|120636009|-12439|RUTASUR CHILLAN-COLLIP",
+      "fecha": "2026-08-07",
+      "descripcion": "RUTASUR CHILLAN-COLLIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 12439,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-07|120624749|-11260|MERPAGO*MERCADOLIBRE": {
+      "id": "b|2026-08-07|120624749|-11260|MERPAGO*MERCADOLIBRE",
+      "fecha": "2026-08-07",
+      "descripcion": "MERPAGO*MERCADOLIBRE",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 11260,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|81639408|-45201537|PAGO EN LINEA FORUM": {
+      "id": "b|2026-08-10|81639408|-45201537|PAGO EN LINEA FORUM",
+      "fecha": "2026-08-10",
+      "descripcion": "PAGO EN LINEA FORUM",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 45201537,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|54840540|-26798868|Pago compra VYWD41": {
+      "id": "b|2026-08-10|54840540|-26798868|Pago compra VYWD41",
+      "fecha": "2026-08-10",
+      "descripcion": "Pago compra VYWD41",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 26798868,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|127650372|-15770553|Pago PGXP70": {
+      "id": "b|2026-08-10|127650372|-15770553|Pago PGXP70",
+      "fecha": "2026-08-10",
+      "descripcion": "Pago PGXP70",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 15770553,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|143420925|6000000|0777197754 Transf de VANTECH CHILE SPA": {
+      "id": "b|2026-08-10|143420925|6000000|0777197754 Transf de VANTECH CHILE SPA",
+      "fecha": "2026-08-10",
+      "descripcion": "0777197754 Transf de VANTECH CHILE SPA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 6000000,
+      "signo": "ingreso",
+      "ruts": [
+        "777197754"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|126848809|-603274|Compra Nacional NP COMUNIDADFELIZ": {
+      "id": "b|2026-08-10|126848809|-603274|Compra Nacional NP COMUNIDADFELIZ",
+      "fecha": "2026-08-10",
+      "descripcion": "Compra Nacional NP COMUNIDADFELIZ",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 603274,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|137420925|-297500|Transf.Internet a 8.529.566-7": {
+      "id": "b|2026-08-10|137420925|-297500|Transf.Internet a 8.529.566-7",
+      "fecha": "2026-08-10",
+      "descripcion": "Transf.Internet a 8.529.566-7",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 297500,
+      "signo": "egreso",
+      "ruts": [
+        "85295667"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|127452083|-138719|COPEC APP EMPRESA": {
+      "id": "b|2026-08-10|127452083|-138719|COPEC APP EMPRESA",
+      "fecha": "2026-08-10",
+      "descripcion": "COPEC APP EMPRESA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 138719,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|137718425|-124271|Transf.Internet a 76.360.993-6": {
+      "id": "b|2026-08-10|137718425|-124271|Transf.Internet a 76.360.993-6",
+      "fecha": "2026-08-10",
+      "descripcion": "Transf.Internet a 76.360.993-6",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 124271,
+      "signo": "egreso",
+      "ruts": [
+        "763609936"
+      ],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|127590802|-50000|COPEC APP EMPRESA": {
+      "id": "b|2026-08-10|127590802|-50000|COPEC APP EMPRESA",
+      "fecha": "2026-08-10",
+      "descripcion": "COPEC APP EMPRESA",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 50000,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|127640802|-9570|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-10|127640802|-9570|PAYU   *UBER TRIP",
+      "fecha": "2026-08-10",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 9570,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
+    },
+    "b|2026-08-10|126840945|-7864|PAYU   *UBER TRIP": {
+      "id": "b|2026-08-10|126840945|-7864|PAYU   *UBER TRIP",
+      "fecha": "2026-08-10",
+      "descripcion": "PAYU   *UBER TRIP",
+      "documento": "000000000",
+      "cuenta": "000080280939",
+      "monto": 7864,
+      "signo": "egreso",
+      "ruts": [],
+      "_visto": "2026-08-10"
     }
   },
   "facturas": {
@@ -15752,6 +16334,762 @@
       "fechaRecepcion": "2026-07-27",
       "monto": 44919664,
       "_visto": "2026-07-27"
+    },
+    "compra|776843490|1342|5465176": {
+      "id": "compra|776843490|1342|5465176",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "776843490",
+      "razon": "Gryphus Rosales SpA",
+      "folio": "1342",
+      "fecha": "2026-07-07",
+      "fechaRecepcion": "2026-07-30",
+      "monto": 5465176,
+      "_visto": "2026-08-10"
+    },
+    "compra|906350009|54792125|17294": {
+      "id": "compra|906350009|54792125|17294",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "906350009",
+      "razon": "Telefonica Chile S.A",
+      "folio": "54792125",
+      "fecha": "2026-07-12",
+      "fechaRecepcion": "2026-07-13",
+      "monto": 17294,
+      "_visto": "2026-08-10"
+    },
+    "compra|781031275|43|60000": {
+      "id": "compra|781031275|43|60000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "781031275",
+      "razon": "SOCIEDAD E INVERSIONES C Y M LIMITADA",
+      "folio": "43",
+      "fecha": "2026-07-13",
+      "fechaRecepcion": "2026-07-13",
+      "monto": 60000,
+      "_visto": "2026-08-10"
+    },
+    "compra|781031275|44|60000": {
+      "id": "compra|781031275|44|60000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "781031275",
+      "razon": "SOCIEDAD E INVERSIONES C Y M LIMITADA",
+      "folio": "44",
+      "fecha": "2026-07-13",
+      "fechaRecepcion": "2026-07-13",
+      "monto": 60000,
+      "_visto": "2026-08-10"
+    },
+    "compra|763760618|3434545|35703": {
+      "id": "compra|763760618|3434545|35703",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "763760618",
+      "razon": "SOCIEDAD CONCESIONARIA VESPUCIO ORIENTE S.A.",
+      "folio": "3434545",
+      "fecha": "2026-07-14",
+      "fechaRecepcion": "2026-07-14",
+      "monto": 35703,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32165041|30000": {
+      "id": "compra|995200007|32165041|30000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32165041",
+      "fecha": "2026-07-14",
+      "fechaRecepcion": "2026-07-14",
+      "monto": 30000,
+      "_visto": "2026-08-10"
+    },
+    "compra|777321811|9|1703000": {
+      "id": "compra|777321811|9|1703000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "777321811",
+      "razon": "NÚCLEO SPA",
+      "folio": "9",
+      "fecha": "2026-07-15",
+      "fechaRecepcion": "2026-07-15",
+      "monto": 1703000,
+      "_visto": "2026-08-10"
+    },
+    "compra|774480870|68|357000": {
+      "id": "compra|774480870|68|357000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "774480870",
+      "razon": "MFSOLAR SPA",
+      "folio": "68",
+      "fecha": "2026-07-15",
+      "fechaRecepcion": "2026-07-15",
+      "monto": 357000,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32172223|129904": {
+      "id": "compra|995200007|32172223|129904",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32172223",
+      "fecha": "2026-07-15",
+      "fechaRecepcion": "2026-07-15",
+      "monto": 129904,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32172111|78433": {
+      "id": "compra|995200007|32172111|78433",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32172111",
+      "fecha": "2026-07-15",
+      "fechaRecepcion": "2026-07-15",
+      "monto": 78433,
+      "_visto": "2026-08-10"
+    },
+    "compra|761066366|33391|29162": {
+      "id": "compra|761066366|33391|29162",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "761066366",
+      "razon": "IMPORTADORA HN SPA",
+      "folio": "33391",
+      "fecha": "2026-07-15",
+      "fechaRecepcion": "2026-07-15",
+      "monto": 29162,
+      "_visto": "2026-08-10"
+    },
+    "compra|777321811|39|1703000": {
+      "id": "compra|777321811|39|1703000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "777321811",
+      "razon": "NÚCLEO SPA",
+      "folio": "39",
+      "fecha": "2026-07-17",
+      "fechaRecepcion": "2026-07-17",
+      "monto": 1703000,
+      "_visto": "2026-08-10"
+    },
+    "compra|780618744|69|535381": {
+      "id": "compra|780618744|69|535381",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "780618744",
+      "razon": "KARTEK SPA",
+      "folio": "69",
+      "fecha": "2026-07-17",
+      "fechaRecepcion": "2026-07-17",
+      "monto": 535381,
+      "_visto": "2026-08-10"
+    },
+    "compra|780618744|70|29750": {
+      "id": "compra|780618744|70|29750",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "780618744",
+      "razon": "KARTEK SPA",
+      "folio": "70",
+      "fecha": "2026-07-17",
+      "fechaRecepcion": "2026-07-17",
+      "monto": 29750,
+      "_visto": "2026-08-10"
+    },
+    "compra|776865451|1556|2500000": {
+      "id": "compra|776865451|1556|2500000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "776865451",
+      "razon": "SERVICIOS PROFESIONALES GALLEGOS Y ASOCIADOS LIMITADA",
+      "folio": "1556",
+      "fecha": "2026-07-18",
+      "fechaRecepcion": "2026-07-18",
+      "monto": 2500000,
+      "_visto": "2026-08-10"
+    },
+    "compra|773350795|87|36800": {
+      "id": "compra|773350795|87|36800",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "773350795",
+      "razon": "ABUS CAR SPA",
+      "folio": "87",
+      "fecha": "2026-07-18",
+      "fechaRecepcion": "2026-07-18",
+      "monto": 36800,
+      "_visto": "2026-08-10"
+    },
+    "compra|777321811|11|1703000": {
+      "id": "compra|777321811|11|1703000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "777321811",
+      "razon": "NÚCLEO SPA",
+      "folio": "11",
+      "fecha": "2026-07-20",
+      "fechaRecepcion": "2026-07-20",
+      "monto": 1703000,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32187718|135509": {
+      "id": "compra|995200007|32187718|135509",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32187718",
+      "fecha": "2026-07-20",
+      "fechaRecepcion": "2026-07-20",
+      "monto": 135509,
+      "_visto": "2026-08-10"
+    },
+    "compra|763246329|16729|133061": {
+      "id": "compra|763246329|16729|133061",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "763246329",
+      "razon": "PRESTADORA DE SERVICIOS JAVERIM SPA",
+      "folio": "16729",
+      "fecha": "2026-07-20",
+      "fechaRecepcion": "2026-07-20",
+      "monto": 133061,
+      "_visto": "2026-08-10"
+    },
+    "compra|761668161|5199545|45046": {
+      "id": "compra|761668161|5199545|45046",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "761668161",
+      "razon": "Autopista Vespucio Norte",
+      "folio": "5199545",
+      "fecha": "2026-07-20",
+      "fechaRecepcion": "2026-07-21",
+      "monto": 45046,
+      "_visto": "2026-08-10"
+    },
+    "compra|969454408|20421684|124329": {
+      "id": "compra|969454408|20421684|124329",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "969454408",
+      "razon": "SOC CONCESIONARIA AUTOPISTA CENTRAL S A",
+      "folio": "20421684",
+      "fecha": "2026-07-21",
+      "fechaRecepcion": "2026-07-21",
+      "monto": 124329,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32195403|86445": {
+      "id": "compra|995200007|32195403|86445",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32195403",
+      "fecha": "2026-07-22",
+      "fechaRecepcion": "2026-07-22",
+      "monto": 86445,
+      "_visto": "2026-08-10"
+    },
+    "compra|795627308|588130|15850": {
+      "id": "compra|795627308|588130|15850",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "795627308",
+      "razon": "TÜV Rheinland Andino S.A.",
+      "folio": "588130",
+      "fecha": "2026-07-22",
+      "fechaRecepcion": "2026-07-22",
+      "monto": 15850,
+      "_visto": "2026-08-10"
+    },
+    "compra|766583415|9005|586075": {
+      "id": "compra|766583415|9005|586075",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "766583415",
+      "razon": "INFORMATICA Y TELECOMUNICACIONES DDC LIMITADA",
+      "folio": "9005",
+      "fecha": "2026-07-23",
+      "fechaRecepcion": "2026-07-23",
+      "monto": 586075,
+      "_visto": "2026-08-10"
+    },
+    "compra|970040005|48052405|29145": {
+      "id": "compra|970040005|48052405|29145",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "970040005",
+      "razon": "Banco de Chile",
+      "folio": "48052405",
+      "fecha": "2026-07-23",
+      "fechaRecepcion": "2026-07-25",
+      "monto": 29145,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32197530|20000": {
+      "id": "compra|995200007|32197530|20000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32197530",
+      "fecha": "2026-07-23",
+      "fechaRecepcion": "2026-07-23",
+      "monto": 20000,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32198221|20000": {
+      "id": "compra|995200007|32198221|20000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32198221",
+      "fecha": "2026-07-23",
+      "fechaRecepcion": "2026-07-23",
+      "monto": 20000,
+      "_visto": "2026-08-10"
+    },
+    "compra|763246329|16740|297381": {
+      "id": "compra|763246329|16740|297381",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "763246329",
+      "razon": "PRESTADORA DE SERVICIOS JAVERIM SPA",
+      "folio": "16740",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 297381,
+      "_visto": "2026-08-10"
+    },
+    "compra|76580812K|21864|148750": {
+      "id": "compra|76580812K|21864|148750",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "76580812K",
+      "razon": "FOOD EXPERT SPA",
+      "folio": "21864",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 148750,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32202084|69134": {
+      "id": "compra|995200007|32202084|69134",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32202084",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 69134,
+      "_visto": "2026-08-10"
+    },
+    "compra|773350795|90|66550": {
+      "id": "compra|773350795|90|66550",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "773350795",
+      "razon": "ABUS CAR SPA",
+      "folio": "90",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 66550,
+      "_visto": "2026-08-10"
+    },
+    "compra|773350795|91|66550": {
+      "id": "compra|773350795|91|66550",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "773350795",
+      "razon": "ABUS CAR SPA",
+      "folio": "91",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 66550,
+      "_visto": "2026-08-10"
+    },
+    "compra|761066366|33518|40192": {
+      "id": "compra|761066366|33518|40192",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "761066366",
+      "razon": "IMPORTADORA HN SPA",
+      "folio": "33518",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 40192,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32202576|40000": {
+      "id": "compra|995200007|32202576|40000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32202576",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 40000,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32204897|40000": {
+      "id": "compra|995200007|32204897|40000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32204897",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 40000,
+      "_visto": "2026-08-10"
+    },
+    "compra|773350795|89|36800": {
+      "id": "compra|773350795|89|36800",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "773350795",
+      "razon": "ABUS CAR SPA",
+      "folio": "89",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 36800,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32202566|30000": {
+      "id": "compra|995200007|32202566|30000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32202566",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 30000,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32202586|30000": {
+      "id": "compra|995200007|32202586|30000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32202586",
+      "fecha": "2026-07-24",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 30000,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32207445|129812": {
+      "id": "compra|995200007|32207445|129812",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32207445",
+      "fecha": "2026-07-25",
+      "fechaRecepcion": "2026-07-25",
+      "monto": 129812,
+      "_visto": "2026-08-10"
+    },
+    "compra|775857943|37177|18970": {
+      "id": "compra|775857943|37177|18970",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "775857943",
+      "razon": "KUANGYE TECHNOLOGY COMPANY SPA",
+      "folio": "37177",
+      "fecha": "2026-07-25",
+      "fechaRecepcion": "2026-07-24",
+      "monto": 18970,
+      "_visto": "2026-08-10"
+    },
+    "compra|965655808|149600|10151400": {
+      "id": "compra|965655808|149600|10151400",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "965655808",
+      "razon": "CIA DE LEASING TATTERSALL S A",
+      "folio": "149600",
+      "fecha": "2026-07-27",
+      "fechaRecepcion": "2026-07-27",
+      "monto": 10151400,
+      "_visto": "2026-08-10"
+    },
+    "compra|760183008|139461|133694": {
+      "id": "compra|760183008|139461|133694",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "760183008",
+      "razon": "COMERCIAL Y SERVICIOS AREMITI LTDA",
+      "folio": "139461",
+      "fecha": "2026-07-27",
+      "fechaRecepcion": "2026-07-27",
+      "monto": 133694,
+      "_visto": "2026-08-10"
+    },
+    "compra|781031275|50|1428000": {
+      "id": "compra|781031275|50|1428000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "781031275",
+      "razon": "SOCIEDAD E INVERSIONES C Y M LIMITADA",
+      "folio": "50",
+      "fecha": "2026-07-28",
+      "fechaRecepcion": "2026-07-28",
+      "monto": 1428000,
+      "_visto": "2026-08-10"
+    },
+    "compra|776824224|514|144460": {
+      "id": "compra|776824224|514|144460",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "776824224",
+      "razon": "JSP DETAILING SPA",
+      "folio": "514",
+      "fecha": "2026-07-28",
+      "fechaRecepcion": "2026-07-28",
+      "monto": 144460,
+      "_visto": "2026-08-10"
+    },
+    "compra|773982201|15242256|118988": {
+      "id": "compra|773982201|15242256|118988",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "773982201",
+      "razon": "MercadoLibre Chile Ltda.",
+      "folio": "15242256",
+      "fecha": "2026-07-28",
+      "fechaRecepcion": "2026-07-29",
+      "monto": 118988,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32548633|60000": {
+      "id": "compra|995200007|32548633|60000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32548633",
+      "fecha": "2026-07-28",
+      "fechaRecepcion": "2026-07-29",
+      "monto": 60000,
+      "_visto": "2026-08-10"
+    },
+    "compra|768337500|208753|53466": {
+      "id": "compra|768337500|208753|53466",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "768337500",
+      "razon": "PAR CUATRO S.A",
+      "folio": "208753",
+      "fecha": "2026-07-28",
+      "fechaRecepcion": "2026-07-28",
+      "monto": 53466,
+      "_visto": "2026-08-10"
+    },
+    "compra|830306005|1279478|41260": {
+      "id": "compra|830306005|1279478|41260",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "830306005",
+      "razon": "ELECTRONICA RETAIL LIMITADA",
+      "folio": "1279478",
+      "fecha": "2026-07-28",
+      "fechaRecepcion": "2026-07-28",
+      "monto": 41260,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32548505|20000": {
+      "id": "compra|995200007|32548505|20000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32548505",
+      "fecha": "2026-07-28",
+      "fechaRecepcion": "2026-07-29",
+      "monto": 20000,
+      "_visto": "2026-08-10"
+    },
+    "compra|966893109|58289910|99608": {
+      "id": "compra|966893109|58289910|99608",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "966893109",
+      "razon": "Transbank S.A",
+      "folio": "58289910",
+      "fecha": "2026-07-29",
+      "fechaRecepcion": "2026-07-31",
+      "monto": 99608,
+      "_visto": "2026-08-10"
+    },
+    "compra|764961307|12376379|23060": {
+      "id": "compra|764961307|12376379|23060",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "764961307",
+      "razon": "Sociedad Concesionaria Costanera Norte S.A.",
+      "folio": "12376379",
+      "fecha": "2026-07-29",
+      "fechaRecepcion": "2026-07-29",
+      "monto": 23060,
+      "_visto": "2026-08-10"
+    },
+    "compra|97036000K|56630292|10829": {
+      "id": "compra|97036000K|56630292|10829",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "97036000K",
+      "razon": "Santander - Chile",
+      "folio": "56630292",
+      "fecha": "2026-07-29",
+      "fechaRecepcion": "2026-07-29",
+      "monto": 10829,
+      "_visto": "2026-08-10"
+    },
+    "compra|97036000K|15436080|5095": {
+      "id": "compra|97036000K|15436080|5095",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "97036000K",
+      "razon": "Santander - Chile",
+      "folio": "15436080",
+      "fecha": "2026-07-29",
+      "fechaRecepcion": "2026-07-30",
+      "monto": 5095,
+      "_visto": "2026-08-10"
+    },
+    "compra|966708409|12309131|145764": {
+      "id": "compra|966708409|12309131|145764",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "966708409",
+      "razon": "DIMERC S.A",
+      "folio": "12309131",
+      "fecha": "2026-07-30",
+      "fechaRecepcion": "2026-07-30",
+      "monto": 145764,
+      "_visto": "2026-08-10"
+    },
+    "compra|995200007|32557142|141248": {
+      "id": "compra|995200007|32557142|141248",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "995200007",
+      "razon": "COPEC S.A.",
+      "folio": "32557142",
+      "fecha": "2026-07-30",
+      "fechaRecepcion": "2026-07-30",
+      "monto": 141248,
+      "_visto": "2026-08-10"
+    },
+    "compra|763246329|16914|113326": {
+      "id": "compra|763246329|16914|113326",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "763246329",
+      "razon": "PRESTADORA DE SERVICIOS JAVERIM SPA",
+      "folio": "16914",
+      "fecha": "2026-07-30",
+      "fechaRecepcion": "2026-07-30",
+      "monto": 113326,
+      "_visto": "2026-08-10"
+    },
+    "compra|970230009|7955912|24108": {
+      "id": "compra|970230009|7955912|24108",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "970230009",
+      "razon": "Banco Itaú Chile",
+      "folio": "7955912",
+      "fecha": "2026-07-30",
+      "fechaRecepcion": "2026-07-31",
+      "monto": 24108,
+      "_visto": "2026-08-10"
+    },
+    "compra|266561601|3999|10080": {
+      "id": "compra|266561601|3999|10080",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "266561601",
+      "razon": "MOISES JACOB KANCEV RODRIGUEZ",
+      "folio": "3999",
+      "fecha": "2026-07-30",
+      "fechaRecepcion": "2026-07-30",
+      "monto": 10080,
+      "_visto": "2026-08-10"
+    },
+    "compra|769711937|12|242500000": {
+      "id": "compra|769711937|12|242500000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "769711937",
+      "razon": "SUN-GROUP SPA",
+      "folio": "12",
+      "fecha": "2026-07-31",
+      "fechaRecepcion": "2026-07-31",
+      "monto": 242500000,
+      "_visto": "2026-08-10"
+    },
+    "compra|761192000|37560|238000": {
+      "id": "compra|761192000|37560|238000",
+      "operacion": "compra",
+      "periodo": "202607",
+      "rut": "761192000",
+      "razon": "TRANSPORTES GUIDO SCHIAPPACASSE LTDA.",
+      "folio": "37560",
+      "fecha": "2026-07-31",
+      "fechaRecepcion": "2026-07-31",
+      "monto": 238000,
+      "_visto": "2026-08-10"
+    },
+    "venta|765058082|311|14280000": {
+      "id": "venta|765058082|311|14280000",
+      "operacion": "venta",
+      "periodo": "202607",
+      "rut": "765058082",
+      "razon": "ALIMENTOS Y ACEITES SPA",
+      "folio": "311",
+      "fecha": "2026-07-28",
+      "fechaRecepcion": "2026-07-28",
+      "monto": 14280000,
+      "_visto": "2026-08-10"
+    },
+    "venta|761831925|254|250000000": {
+      "id": "venta|761831925|254|250000000",
+      "operacion": "venta",
+      "periodo": "202607",
+      "rut": "761831925",
+      "razon": "KURTI SPA",
+      "folio": "254",
+      "fecha": "2026-07-31",
+      "fechaRecepcion": "2026-07-31",
+      "monto": 250000000,
+      "_visto": "2026-08-10"
+    },
+    "venta|784700690|312|34000001": {
+      "id": "venta|784700690|312|34000001",
+      "operacion": "venta",
+      "periodo": "202607",
+      "rut": "784700690",
+      "razon": "VIDEX SPA",
+      "folio": "312",
+      "fecha": "2026-07-31",
+      "fechaRecepcion": "2026-07-31",
+      "monto": 34000001,
+      "_visto": "2026-08-10"
     }
   },
   "calces": [
@@ -17271,6 +18609,325 @@
       ],
       "diferencia": -418,
       "conciliado_en": "2026-07-27T20:08:50.774Z"
+    },
+    {
+      "movimiento_id": "b|2026-07-15|117560818|-60000|0781031275 Transf a INVERSIONES CYM LIMI",
+      "factura_ids": [
+        "compra|781031275|43|60000"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "monto exacto",
+        "2 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-07-15|117977658|-60000|0781031275 Transf a INVERSIONES CYM LIMI",
+      "factura_ids": [
+        "compra|781031275|44|60000"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "monto exacto",
+        "2 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-07-15|118394658|-1703000|FACTURA DE COMPRA 9",
+      "factura_ids": [
+        "compra|777321811|9|1703000"
+      ],
+      "confianza": "baja",
+      "tipo": "1:1",
+      "motivos": [
+        "monto exacto",
+        "0 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-07-20|144380886|-535381|0780618744 Transf a KARTEK SPA",
+      "factura_ids": [
+        "compra|780618744|69|535381"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "nombre \"KARTEK\" en la glosa",
+        "monto exacto",
+        "3 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-07-20|142764174|-29750|0780618744 Transf a KARTEK SPA",
+      "factura_ids": [
+        "compra|780618744|70|29750"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "nombre \"KARTEK\" en la glosa",
+        "monto exacto",
+        "3 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-07-20|144351724|-29162|0761066366 Transf a IMPORTADORA HN SPA",
+      "factura_ids": [
+        "compra|761066366|33391|29162"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "monto exacto",
+        "5 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-07-20|139842056|-18970|DP     *FALABELLA.COM",
+      "factura_ids": [
+        "compra|775857943|37177|18970"
+      ],
+      "confianza": "media",
+      "tipo": "1:1",
+      "motivos": [
+        "monto exacto",
+        "5 días antes"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-04|132924654|2800000|0760964816 Transf. SOCIEDAD COMERCIAL AN",
+      "factura_ids": [
+        "venta|760964816|301|2800000"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "nombre \"ANDES\" en la glosa",
+        "monto exacto",
+        "28 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-04|155792055|121514|78.302.808-5 Transf. AUTOMOTOR",
+      "factura_ids": [
+        "venta|783028085|300|121449"
+      ],
+      "confianza": "media",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "monto ±$65",
+        "34 días después"
+      ],
+      "diferencia": 65,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-05|133349038|612675|0782879243 Transf. GRUPO AUTOMOTRIZ SPA",
+      "factura_ids": [
+        "venta|782879243|237|612345"
+      ],
+      "confianza": "media",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "nombre \"GRUPO\" en la glosa",
+        "monto ±$330",
+        "35 días después"
+      ],
+      "diferencia": 330,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-06|134066954|735210|78.061.874-4 Transf. KARTEK SP",
+      "factura_ids": [
+        "venta|780618744|235|734814"
+      ],
+      "confianza": "media",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "nombre \"KARTEK\" en la glosa",
+        "monto ±$396",
+        "36 días después"
+      ],
+      "diferencia": 396,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-06|134188468|121514|78.061.874-4 Transf. KARTEK SP",
+      "factura_ids": [
+        "venta|780618744|299|121447"
+      ],
+      "confianza": "media",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "nombre \"KARTEK\" en la glosa",
+        "monto ±$67",
+        "36 días después"
+      ],
+      "diferencia": 67,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-06|133331744|-17294|TELEFONICA PROVIDENCIA",
+      "factura_ids": [
+        "compra|906350009|54792125|17294"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "nombre \"TELEFONICA\" en la glosa",
+        "monto exacto",
+        "25 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-06|106452276|-50000|DL     *STARLINK",
+      "factura_ids": [
+        "compra|770738512|2880070|50000"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "nombre \"STARLINK\" en la glosa",
+        "monto exacto",
+        "31 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-06|106437276|-15000|COPEC APP EMPRESA",
+      "factura_ids": [
+        "compra|760183008|136968|15000"
+      ],
+      "confianza": "media",
+      "tipo": "1:1",
+      "motivos": [
+        "monto exacto",
+        "89 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-07|106667276|-20000|COPEC APP EMPRESA",
+      "factura_ids": [
+        "compra|995200007|32548505|20000"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "nombre \"COPEC\" en la glosa",
+        "monto exacto",
+        "10 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-07|120636009|-12439|RUTASUR CHILLAN-COLLIP",
+      "factura_ids": [
+        "compra|777227580|1612430|3946",
+        "compra|777227580|1790193|7249",
+        "compra|777227580|1961550|1244"
+      ],
+      "confianza": "media",
+      "tipo": "agrupado x3",
+      "motivos": [
+        "RUT en la glosa",
+        "3 facturas suman el cargo"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-10|137718425|-124271|Transf.Internet a 76.360.993-6",
+      "factura_ids": [
+        "compra|763609936|368154|124271"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "monto exacto",
+        "40 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-10|137420925|-297500|Transf.Internet a 8.529.566-7",
+      "factura_ids": [
+        "compra|85295667|16|297500"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "RUT en la glosa",
+        "monto exacto",
+        "45 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-10|127590802|-50000|COPEC APP EMPRESA",
+      "factura_ids": [
+        "compra|995200007|32020929|50000"
+      ],
+      "confianza": "alta",
+      "tipo": "1:1",
+      "motivos": [
+        "nombre \"COPEC\" en la glosa",
+        "monto exacto",
+        "60 días después"
+      ],
+      "diferencia": 0,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
+    },
+    {
+      "movimiento_id": "b|2026-08-10|127452083|-138719|COPEC APP EMPRESA",
+      "factura_ids": [
+        "compra|995200007|27641260|118478",
+        "compra|995200007|30657383|20000"
+      ],
+      "confianza": "media",
+      "tipo": "agrupado x2",
+      "motivos": [
+        "RUT en la glosa",
+        "2 facturas suman el cargo"
+      ],
+      "diferencia": 241,
+      "conciliado_en": "2026-08-10T11:30:04.385Z"
     }
   ],
   "corridas": [
@@ -17357,6 +19014,12 @@
       "movs_nuevos": 0,
       "facturas_nuevas": 0,
       "calces_nuevos": 0
+    },
+    {
+      "cuando": "2026-08-10T11:30:04.385Z",
+      "movs_nuevos": 50,
+      "facturas_nuevas": 63,
+      "calces_nuevos": 21
     }
   ]
 }

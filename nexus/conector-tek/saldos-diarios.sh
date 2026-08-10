@@ -22,6 +22,26 @@ ts() { date "+%Y-%m-%d %H:%M:%S" }
 
 echo "[$(ts)] ── inicio ──" >> $LOG
 
+# 0) ¿YA se logró hoy? El trabajo corre a las 5:00 y REINTENTA 7:30 y 10:00, porque el
+#    antifraude del banco rebota intentos sueltos sin razón aparente (10-ago: el de las 5:00
+#    rebotó al muro genérico y el mismo login, misma IP y misma cuenta, entró a las 7:31).
+#    Un solo tiro dejaba los saldos viejos TODO el día. Si ya hay lectura de hoy, no molesta.
+HOY=$(date +%Y-%m-%d)
+YA_HOY=$(/usr/local/bin/node -e '
+const fs=require("fs");
+let masNuevo=0;
+try { for (const f of fs.readdirSync("data")) {
+  if (!/^emp-.*\.json$/.test(f) || /-movs/.test(f)) continue;
+  masNuevo=Math.max(masNuevo, fs.statSync("data/"+f).mtimeMs);
+} } catch(e){}
+const d=new Date(masNuevo);
+const hoy=new Date(); hoy.setHours(0,0,0,0);
+console.log(masNuevo>=hoy.getTime() ? "si" : "no");
+' 2>/dev/null)
+if [ "$YA_HOY" = "si" ]; then
+  echo "[$(ts)] los saldos ya se leyeron hoy → no repito" >> $LOG; exit 0
+fi
+
 # 1) No pisar una operación en curso.
 if pgrep -f "login-humano.mjs" > /dev/null; then
   echo "[$(ts)] hay un login en vuelo → no corro hoy" >> $LOG; exit 0
