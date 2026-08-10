@@ -40,7 +40,12 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
   }
   tomarLock(lf)
   return new Promise((resolve) => {
-    const env = { ...process.env, TEK_COMPROBANTES: modo, TEK_EMPRESA: empresa.replace(/ SPA$/i, '').trim() || 'ANA CLARA', TEK_USER: userId, ...extraEnv }
+    // TEK_FORCE_EMPRESA=1: FUERZA el cambio a esta empresa (volver al selector y entrar).
+    // Sin esto, si la sesión quedaba en el listado de empresas, NO entraba a ninguna y el
+    // scraper devolvía las filas del SELECTOR como si fueran comprobantes — con ok:true.
+    // (09-08-2026: pedí los comprobantes de ACE SPA y salieron 4 "comprobantes" que eran
+    // IMP JURI, Importaciones Mineras, Importadora Juri y Ana Clara.) La masiva ya lo usaba.
+    const env = { ...process.env, TEK_COMPROBANTES: modo, TEK_EMPRESA: empresa.replace(/ SPA$/i, '').trim() || 'ANA CLARA', TEK_FORCE_EMPRESA: '1', TEK_USER: userId, ...extraEnv }
     // AUTO-LOGIN CON CLICS HUMANOS: el spawn de abajo es login-humano en MODO AUTO — si la
     // sesión está viva la reusa, si está dormida LOGUEA SOLO (mouse que viaja a los botones +
     // clic real, lo que ya pasó BioCatch) y corre la operación. Solo si ese login no pudo
@@ -85,9 +90,27 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
 }
 
 /** Lista las transferencias/comprobantes del histórico (para que el usuario elija cuál). */
+/** ¿Lo raspado es en realidad el SELECTOR DE EMPRESAS y no comprobantes?
+ *  Sus filas son [nº contrato, RUT, razón social, rol, "Entrar"]. Devolver eso como
+ *  comprobantes es peor que no devolver nada: el usuario elige "el 1" y baja cualquier cosa. */
+function pareceSelectorEmpresas(filas = []) {
+  if (!filas.length) return false
+  const texto = (f) => (Array.isArray(f) ? f.join(' ') : String(f || ''))
+  const conEntrar = filas.filter((f) => /\bentrar\b/i.test(texto(f))).length
+  const conRut = filas.filter((f) => /\b\d{1,2}\.\d{3}\.\d{3}-[\dkK]\b/.test(texto(f))).length
+  return conEntrar >= Math.max(1, Math.floor(filas.length * 0.6)) && conRut >= 1
+}
+
 export async function listarComprobantes({ userId, empresa } = {}) {
   const r = await correr('listar', {}, userId, empresa)
-  return { ...r, filas: r.comprob?.filas || [], total: r.comprob?.total_filas || 0 }
+  const filas = r.comprob?.filas || []
+  if (pareceSelectorEmpresas(filas)) {
+    return {
+      ...r, ok: false, estado: 'no_entro_a_la_empresa', filas: [], total: 0,
+      error: `No llegué al histórico de "${empresa}": el banco quedó en la pantalla de selección de empresas, así que lo que se leyó eran empresas, no comprobantes. NO te muestro esa lista.`,
+    }
+  }
+  return { ...r, filas, total: r.comprob?.total_filas || 0 }
 }
 
 /**

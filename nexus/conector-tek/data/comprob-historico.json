@@ -1,18 +1,100 @@
 {
-  "url": "https://privado.officebanking.cl/logout/error-seguridad",
+  "url": "https://privado.officebanking.cl/seleccion-empresa",
   "entro": false,
-  "total_filas": 0,
-  "filas": [],
-  "accionInfo": null,
+  "total_filas": 4,
+  "filas": [
+    [
+      "000690022343160",
+      "76.106.636-6",
+      "IMP JURI Y FONTENA ASOCIADOS LIMITADA",
+      "Usuario",
+      "Entrar"
+    ],
+    [
+      "000690023084710",
+      "76.867.554-6",
+      "IMPORTACIONES MINERAS SPA",
+      "Usuario",
+      "Entrar"
+    ],
+    [
+      "000690024634580",
+      "76.188.898-6",
+      "IMPORTADORA JURI Y JURI LIMITADA",
+      "Usuario",
+      "Entrar"
+    ],
+    [
+      "000690026173520",
+      "77.271.121-2",
+      "ANA CLARA SPA",
+      "Usuario",
+      "Entrar"
+    ]
+  ],
+  "accionInfo": {
+    "headers": [
+      "Contrato",
+      "RUT",
+      "Empresa",
+      "Rol",
+      ""
+    ],
+    "lastCellsHTML": [
+      "<td _ngcontent-ng-c3467672272=\"\" class=\"ng-star-inserted\"> IMP JURI Y FONTENA ASOCIADOS LIMITADA <!----><!----></td>",
+      "<td _ngcontent-ng-c3467672272=\"\" class=\"ng-star-inserted\"> Usuario <!----><!----></td>",
+      "<td _ngcontent-ng-c3467672272=\"\" class=\"sop-btns-r ng-star-inserted\"><ob-button-select-company _ngcontent-ng-c3789977162=\"\" style=\"display: flex;\" _nghost-ng-c1870730970=\"\" class=\"ng-star-inserted\"><!----><button _ngcontent-ng-c1870730970=\"\" name=\"entrar\" value=\"Entrar\" class=\"ng-star-inserted\"><span _ngcontent-ng-c1870730970=\"\">Entrar</span><i _ngcontent-ng-c1870730970=\"\" class=\"icon-chevron-right\"></i></button><!----></ob-button-select-company><!----><!----><!----></td>"
+    ]
+  },
   "dump": [
     {
-      "url": "https://privado.officebanking.cl/logout/error-seguridad",
-      "inputs": [],
+      "url": "https://privado.officebanking.cl/seleccion-empresa",
+      "inputs": [
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "buscador",
+          "name": "",
+          "placeholder": "Buscar",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "",
+          "name": "paginaActual",
+          "placeholder": "",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "select",
+          "type": "select-one",
+          "id": "sel-show",
+          "name": "",
+          "placeholder": "",
+          "maxlength": "",
+          "label": "Mostrar",
+          "opciones": [
+            "4"
+          ]
+        }
+      ],
       "botones": [
-        "Aceptar"
+        "Accesibilidad",
+        "logout",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar",
+        "Entrar"
       ],
       "titulos": [
-        "SU SESIÓN HA FINALIZADO"
+        "Listado de Empresas"
       ]
     }
   ]
