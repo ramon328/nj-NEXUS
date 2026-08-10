@@ -44,9 +44,15 @@ if [ "$CUPO" != "si" ]; then
   echo "[$(ts)] sin cupo de login (throttle o device_trust) → no corro hoy" >> $LOG; exit 0
 fi
 
-# 3) Cosecha. Tope 25 min: las 9 empresas tardan ~20.
-echo "[$(ts)] leyendo saldos de las 9 empresas (1 login)…" >> $LOG
-TEK_TOPE_MS=1500000 /usr/local/bin/node leer-saldos.mjs --user nico >> $LOG 2>&1
+# 3) Cosecha: saldos + movimientos RECIENTES de las 9 empresas, en UN login.
+#    TEK_DESDE acota la ventana: sin él, los movimientos se piden en 4 tramos mensuales
+#    (90 días) por empresa y eso NO cabe — el 09-ago reventó el tope en la 1ª empresa.
+#    Con 7 días es UN tramo por empresa. El histórico largo es otro flujo (bajar-historica).
+#    Tope 40 min: hay tiempo de sobra a las 5 AM y la sesión dura 95.
+DESDE=$(date -v-7d +%Y-%m-%d)
+echo "[$(ts)] leyendo saldos + movimientos desde $DESDE (1 login)…" >> $LOG
+TEK_TOPE_MS=2400000 TEK_LEER_MOVS=1 TEK_DESDE="$DESDE" \
+  /usr/local/bin/node leer-saldos.mjs --user nico >> $LOG 2>&1
 echo "[$(ts)] ── fin (exit=$?) ──" >> $LOG
 
 # 4) Recorte del log para que no crezca sin control.
