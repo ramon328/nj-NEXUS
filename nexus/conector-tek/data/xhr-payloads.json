@@ -511,17 +511,19 @@
     "ts_grabado": null
   },
   "POST www.googletagmanager.com/td": {
-    "url": "https://www.googletagmanager.com/td?id=G-4Q7P1YGRZB&v=3&t=t&pid=1818802106&gtm=45je6852v9179543703za200zd9179543703&seq=2&exp=115938466~115938468~118897920~118897930~119527020~119896802&dl=www.officebanking.cl%2Fcampna%2",
+    "url": "https://www.googletagmanager.com/td?id=G-4Q7P1YGRZB&v=3&t=t&pid=1242992929&gtm=45je6852h1v9179543703za200zd9179543703&seq=2&exp=115938466~115938469~118897920~118897930~119527020~119791748~119896803&dl=privado.officebanki",
     "headers": {
-      "sec-ch-ua-platform": "\"macOS\"",
-      "referer": "https://www.officebanking.cl/",
+      "accept": "*/*",
+      "accept-language": "es-CL",
+      "origin": "https://privado.officebanking.cl",
+      "referer": "https://privado.officebanking.cl/",
       "user-agent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/149.0.0.0 Safari/537.36",
       "sec-ch-ua": "\"Google Chrome\";v=\"149\", \"Chromium\";v=\"149\", \"Not)A;Brand\";v=\"24\"",
-      "accept-language": "es-CL",
-      "sec-ch-ua-mobile": "?0"
+      "sec-ch-ua-mobile": "?0",
+      "sec-ch-ua-platform": "\"macOS\""
     },
     "postData": null,
-    "hits": 4,
+    "hits": 5,
     "ts_grabado": null
   },
   "POST eob.officebanking.cl/CTA.UI.Services/Token": {
