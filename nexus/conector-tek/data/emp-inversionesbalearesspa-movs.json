@@ -1,52 +1,72 @@
 {
   "empresa": "INVERSIONES BALEARES SPA",
+  "cuenta": "98471790",
   "movimientos": [
     {
       "fecha": "2026-08-04",
       "descripcion": "Impuesto Sobregiro / Uso LCA",
-      "cargo": 66,
-      "abono": 0,
+      "monto": -66,
+      "signo": "egreso",
       "saldo": 60332,
       "documento": "000000000",
-      "sucursal": "AVDA. LARRAIN",
-      "nroMov": "000000066",
-      "cuenta": "000098471790"
+      "cuenta": "98471790"
     },
     {
       "fecha": "2026-08-04",
       "descripcion": "Intereses Línea de Crédito",
-      "cargo": 2302,
-      "abono": 0,
+      "monto": -2302,
+      "signo": "egreso",
       "saldo": 60398,
       "documento": "000000000",
-      "sucursal": "AVDA. LARRAIN",
-      "nroMov": "000000065",
-      "cuenta": "000098471790"
+      "cuenta": "98471790"
     },
     {
       "fecha": "2026-08-04",
       "descripcion": "Impuesto Sobregiro / Uso LCA",
-      "cargo": 16,
-      "abono": 0,
+      "monto": -16,
+      "signo": "egreso",
       "saldo": 62700,
       "documento": "000000000",
-      "sucursal": "AVDA. LARRAIN",
-      "nroMov": "000000064",
-      "cuenta": "000098471790"
+      "cuenta": "98471790"
     },
     {
       "fecha": "2026-08-04",
       "descripcion": "Interés Sobregiro Cta.Corriente",
-      "cargo": 707,
-      "abono": 0,
+      "monto": -707,
+      "signo": "egreso",
       "saldo": 62716,
       "documento": "000000000",
-      "sucursal": "AVDA. LARRAIN",
-      "nroMov": "000000063",
-      "cuenta": "000098471790"
+      "cuenta": "98471790"
+    },
+    {
+      "fecha": "2026-07-29",
+      "descripcion": "COM.MANTENCION PLAN",
+      "monto": -12246,
+      "signo": "egreso",
+      "saldo": 63423,
+      "documento": "000000000",
+      "cuenta": "98471790"
+    },
+    {
+      "fecha": "2026-07-21",
+      "descripcion": "0768648352 Transf a INVERSIONES BALEARE",
+      "monto": -100000,
+      "signo": "egreso",
+      "saldo": 75669,
+      "documento": "000000000",
+      "cuenta": "98471790"
+    },
+    {
+      "fecha": "2026-07-21",
+      "descripcion": "0772711212 Transf de ANA CLARA SPA",
+      "monto": 200000,
+      "signo": "ingreso",
+      "saldo": 175669,
+      "documento": "000000000",
+      "cuenta": "98471790"
     }
   ],
-  "total": 4,
-  "_ts": 1786364982265,
-  "_fuente": "vivo"
+  "total": 7,
+  "_ts": 1786427071510,
+  "_fuente": "endpoint"
 }

@@ -1,0 +1,27 @@
+{
+  "empresa": "FOOD EXPERT SPA",
+  "cuenta": "72253590",
+  "movimientos": [
+    {
+      "fecha": "2026-08-06",
+      "descripcion": "PAC Seg. Fraude 000005100877671",
+      "monto": -5726,
+      "signo": "egreso",
+      "saldo": 408038,
+      "documento": "000000000",
+      "cuenta": "72253590"
+    },
+    {
+      "fecha": "2026-07-29",
+      "descripcion": "COM.MANTENCION PLAN",
+      "monto": -36330,
+      "signo": "egreso",
+      "saldo": 413764,
+      "documento": "000000000",
+      "cuenta": "72253590"
+    }
+  ],
+  "total": 2,
+  "_ts": 1786426831467,
+  "_fuente": "endpoint"
+}

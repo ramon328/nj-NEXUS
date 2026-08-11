@@ -223,11 +223,33 @@ function mapMovEmpresa(m, empresa) {
 // lo llenaba el cron de la mañana; al eliminarse los crons (decisión de Ramón: "que entre al
 // banco enseguida"), los movimientos se habrían congelado para siempre. Ahora, si no hay
 // dato o está más viejo que EMP_FRESH_MS, entra al banco igual que los saldos.
-async function movimientosEmpresaVivo(empresa) {
+// Usa el LECTOR POR ENDPOINT (movs-rapido.mjs): cambia de empresa y pide el rango con una
+// sola llamada. Medido el 11-08-2026: 0,4 s la lectura, ~31 s con cambio de empresa incluido,
+// contra >150 s de la vía anterior (que además ni alcanzaba y caía al caché).
+// Ese lector NO loguea a propósito: si la sesión está muerta devuelve sesion_muerta y acá se
+// cae a la vía completa (que sí puede loguear), para no dejar al usuario sin dato.
+function movimientosEmpresaVivo(empresa) {
   const owner = cred.dueñoDeEmpresa(empresa)
-  if (!owner) return false
-  const r = await runLeerSaldos(owner, empresa, { movs: true })
-  return Boolean(r.ok)
+  if (!owner) return Promise.resolve(false)
+  return new Promise((resolve) => {
+    const h = spawn(process.execPath, [join(TEK_DIR, 'movs-rapido.mjs'), '--user', owner, '--empresa', empresa, '--dias', '30'], { cwd: TEK_DIR })
+    let out = ''
+    h.stdout.on('data', (d) => { out += d }); h.stderr.on('data', () => {})
+    const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, 120_000)
+    h.on('exit', async () => {
+      clearTimeout(kill)
+      let j = null
+      try { const m = out.match(/RESULTADO:\s*(\{[\s\S]*\})/); if (m) j = JSON.parse(m[1]) } catch { /* */ }
+      if (j?.ok) return resolve(true)
+      // Sesión dormida → el camino largo (puede loguear). Cualquier otro fallo NO se reintenta:
+      // "empresa_equivocada" significa dato de otra empresa y hay que dejarlo pasar como error.
+      if (j?.estado === 'sesion_muerta') {
+        try { const r = await runLeerSaldos(owner, empresa, { movs: true }); return resolve(Boolean(r.ok)) } catch { return resolve(false) }
+      }
+      resolve(false)
+    })
+    h.on('error', () => resolve(false))
+  })
 }
 async function movimientosEmpresa(empresa, { buscar, desde, hasta, limite = 30 } = {}) {
   let c = leerMovsCache(empresa)

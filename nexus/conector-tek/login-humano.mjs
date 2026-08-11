@@ -2076,6 +2076,15 @@ async function comprobantesConsulta(page, log) {
   await sleep(6000)
   log('comprob: cerrarPopups…')
   await cerrarPopups(page, log)
+  // VOLVER AL SELECTOR antes de entrar (11-08-2026). entrarEmpresa() solo funciona si la
+  // página YA está mostrando el listado de empresas: si la sesión estaba DENTRO de otra,
+  // se salía sin hacer nada y el scraper terminaba leyendo la pantalla equivocada — devolvía
+  // las filas del selector como si fueran comprobantes. Mismo preámbulo que usan la masiva,
+  // la nómina y el lector de movimientos, que sí cambian de empresa bien.
+  if (process.env.TEK_EMPRESA) {
+    try { const ok = await irAlSelectorEmpresas(page, log); log('comprob: al selector de empresas → ' + (ok ? 'ok' : 'NO llegué')) } catch (e) { log('comprob: selector err', e.message) }
+    await sleep(rnd(2000, 3200))
+  }
   log('comprob: entrarEmpresa…')
   await entrarEmpresa(page, log, process.env.TEK_EMPRESA || 'ANA CLARA')
   await sleep(rnd(2000, 3500)); await idle(page, rnd(600, 1200))

@@ -54,6 +54,39 @@ try {
     salir({ ok: false, estado: 'sesion_muerta', nota: 'La sesión del banco no está viva. Hay que loguear antes (esto NO loguea a propósito: es un lector barato).' })
   }
 
+  // ── CAMBIO DE EMPRESA (11-08-2026) ────────────────────────────────────────────────
+  // Sin esto el lector devolvía los movimientos de la empresa que estuviera abierta CON EL
+  // NOMBRE DE OTRA (se pidió FOOD EXPERT y salieron los de ACE). Se usa el mecanismo YA
+  // PROBADO de login-humano —volver al selector y entrar por la fila— con clics de mouse
+  // reales (regla de oro del banco: el mouse VIAJA, nunca teleport). El endpoint directo
+  // se usa DESPUÉS, que es donde está la ganancia de velocidad.
+  if (EMPRESA) {
+    const enSelector = async () => {
+      const t = await page.evaluate(() => document.body?.innerText || '').catch(() => '')
+      return /seleccion-empresa|listado de empresas|selecciona.*empresa|selector de empresas/i.test(page.url() + ' ' + t)
+    }
+    if (!await enSelector()) {
+      await page.goto('https://privado.officebanking.cl/dashboard', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
+      await page.waitForTimeout(4500)
+      const btnRol = page.getByText(/Empresa\s*\/\s*Rol/i).first()
+      if (await btnRol.count().catch(() => 0)) { await btnRol.click({ delay: 60 }).catch(() => {}); await page.waitForTimeout(2500) }
+      const volver = page.getByText(/volver al?\s*selector de empresas/i).first()
+      if (await volver.count().catch(() => 0)) { await volver.click({ delay: 60 }).catch(() => {}); await page.waitForTimeout(4500) }
+    }
+    if (!await enSelector()) salir({ ok: false, estado: 'sin_selector', nota: 'No pude llegar al selector de empresas para cambiar a ' + EMPRESA })
+    // Fila de la empresa objetivo → su botón "Entrar". Se busca la FILA exacta, no un
+    // ancestro que englobe todas (ese bug entraba siempre a la primera de la lista).
+    const fila = page.locator('tr, [role="row"], [class*="row"], li').filter({ hasText: new RegExp(EMPRESA.split(' ').slice(0, 2).join('.*'), 'i') }).first()
+    let entrar = fila.getByText(/entrar/i).first()
+    if (!(await entrar.count().catch(() => 0))) entrar = fila.locator('a, button, [role="button"], [class*="btn"]').last()
+    if (!(await entrar.count().catch(() => 0))) salir({ ok: false, estado: 'empresa_no_esta', nota: `No encontré "${EMPRESA}" en el listado de empresas de ${USER}.` })
+    await entrar.scrollIntoViewIfNeeded({ timeout: 3000 }).catch(() => {})
+    const box = await entrar.boundingBox().catch(() => null)
+    if (box) { await page.mouse.move(box.x + box.width * 0.4, box.y + box.height * 0.5, { steps: 18 }); await page.waitForTimeout(180); await page.mouse.down(); await page.waitForTimeout(70); await page.mouse.up() }
+    else await entrar.click({ delay: 60 }).catch(() => {})
+    await page.waitForTimeout(8000)
+  }
+
   // Cargar la cartola UNA vez para que la app genere el token y el DatosHash.
   await page.goto('https://eob.officebanking.cl/CTA.UI.Web/saldoctacte/', { waitUntil: 'domcontentloaded', timeout: 30_000 }).catch(() => {})
   for (let i = 0; i < 25 && !cap; i++) await page.waitForTimeout(1000)
