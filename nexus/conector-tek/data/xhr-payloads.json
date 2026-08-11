@@ -219,7 +219,7 @@
     "headers": {
       "accept": "application/json, text/plain, */*",
       "accept-language": "es-CL",
-      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMjE4OTQ1NzgzIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2NDI3MjI0LCJpYXQiOjE3ODY0MjU0MjQsImp0aSI6IndCLXU1cnZkNzhFS3psVzlLci11ZHpraXJNdyIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMjE4OTQ1NzgzIn0.e41jNkBeUT32GY2lBPasKEi8ooyPHoXRk60_9XTHCY4nALXrBDsdzJRFwlbIrpzqQFgrEpWg2jtSvkhiMZiZ2vX7_ARyzbpLV-caYzXjgSkpwVmM4iih6oSotpr5aXXWHay2sW5hEwcbbHaEcxA9xF52zTB8MO2uRTYvtswPAfe49DkMc3L51L-5Bc-V71cmzl_wj8AZBZBvQ3PRWYxw96-dWJWqi8_F_JxX1eJzSJpVnaI3hzCEbnYODA3FOHL9LznwO1tsk4ZqdItG3_QriXRU6sjKJEwO1y98lWh2GP0x8f95Jo_EwfYnsl81VqxP7yg9haA5nxUojKuhGhPz9Q",
+      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMTYxNDI1ODBLIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg2NDI3NjAxLCJpYXQiOjE3ODY0MjU4MDEsImp0aSI6IllqRDZUX3JfVEhSYzNTXzNKTEs3VnJuNHJFVSIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMTYxNDI1ODBLIn0.YxpHfAntKsq1eujaJCowsQ39pokNI9nEVfO9JFNfOI3HbzuQd5xIyabk1oAVdAO6fTSYI-NDKgOWTj_4YmRyAEK9BgruJubKlmXTeprVhsD04WjW_zmLlVSY5lDLzEnAjx34Hyb6K8yb1cQq8Qs2Bu8PjQoUHrf7vku1CxDhxd6YQyMP6hvg0ke5790L2PynqQJMPJDNFNuYwo8s1fwMqVRdSb1k_EcWBQvmyudcSc1u51aOpbu_lD5jbW01hhiTOTkQtOgPvFyF5r9oPSPTPr219L1tvtkWPl1ZcylPFWbdkYZa-ifoQZWpIbdv-4vPKqsCsMGvnOIHx4vj8EXZfQ",
       "content-type": "application/json",
       "origin": "https://privado.officebanking.cl",
       "referer": "https://privado.officebanking.cl/",
@@ -228,8 +228,8 @@
       "sec-ch-ua-mobile": "?0",
       "sec-ch-ua-platform": "\"macOS\""
     },
-    "postData": "{\"enterpriserut\":\"0761888986\",\"contractcode\":\"000690024634580\",\"personnumber\":\"0218945783\",\"rolcode\":\"1\",\"isSwitchCompany\":false}",
-    "hits": 79,
+    "postData": "{\"enterpriserut\":\"0767153929\",\"contractcode\":\"000690035183400\",\"personnumber\":\"016142580K\",\"rolcode\":\"4\",\"isSwitchCompany\":false}",
+    "hits": 80,
     "ts_grabado": null
   },
   "POST eob.officebanking.cl/COPE.UI.Services/Token": {

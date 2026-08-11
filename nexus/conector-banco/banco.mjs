@@ -211,7 +211,12 @@ function saldoEmpresaCache(empresa) {
 const movsCacheFile = (e) => join(TEK_DIR, 'data', `emp-${empSlug(e)}-movs.json`)
 function leerMovsCache(e) { try { return JSON.parse(readFileSync(movsCacheFile(e), 'utf8')) } catch { return null } }
 function mapMovEmpresa(m, empresa) {
-  const monto = Number(m.abono || 0) - Number(m.cargo || 0)   // ingreso +, egreso −
+  // DOS FORMATOS conviven (11-08-2026): el lector viejo guarda abono/cargo por separado; el
+  // lector por ENDPOINT (movs-rapido.mjs) guarda un solo "monto" ya con signo. Si solo se
+  // miraba abono/cargo, los del endpoint salían TODOS en $0 — peor que no mostrarlos.
+  const monto = (m.monto != null && m.abono == null && m.cargo == null)
+    ? Number(m.monto || 0)
+    : Number(m.abono || 0) - Number(m.cargo || 0)   // ingreso +, egreso −
   return { fecha: m.fecha, descripcion: m.descripcion, tipo: null, monto, monto_fmt: fmt(monto, 'CLP'), signo: monto < 0 ? 'egreso' : 'ingreso', estado: 'confirmado', banco: 'Santander', empresa, cuenta: m.cuenta, ...(m.documento ? { documento: m.documento } : {}) }
 }
 // LEE EN VIVO si lo guardado está viejo (11-08-2026). Antes esto era SOLO caché y el caché

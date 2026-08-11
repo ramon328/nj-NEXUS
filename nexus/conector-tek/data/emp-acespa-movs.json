@@ -2,84 +2,430 @@
   "empresa": "ACE SPA",
   "movimientos": [
     {
+      "fecha": "2026-08-10",
+      "descripcion": "0770967945 Transf. GLOBAL CARD S A-cuenta-de-tercero",
+      "monto": 4000000,
+      "signo": "ingreso",
+      "saldo": 62390683,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-08-10",
+      "descripcion": "0770967945 Transf. GLOBAL CARD S A-cuenta-de-tercero",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "saldo": 58390683,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-08-10",
+      "descripcion": "0770967945 Transf. GLOBAL CARD S A-cuenta-de-tercero",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "saldo": 51390683,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-08-10",
+      "descripcion": "0770967945 Transf. GLOBAL CARD S A-cuenta-de-tercero",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "saldo": 44390683,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
       "fecha": "2026-08-07",
       "descripcion": "0804329005 PAGO PROVEEDOR  Grez y Ullo",
-      "cargo": 0,
-      "abono": 20825000,
+      "monto": 20825000,
+      "signo": "ingreso",
       "saldo": 37390683,
       "documento": "000000000",
-      "sucursal": "G. FINANZAS",
-      "nroMov": "000000393",
-      "cuenta": "000098510656"
+      "cuenta": "98510656"
     },
     {
       "fecha": "2026-08-07",
       "descripcion": "00772617984 GGCC Agosto Los Militares",
-      "cargo": 0,
-      "abono": 1500000,
+      "monto": 1500000,
+      "signo": "ingreso",
       "saldo": 16565683,
       "documento": "000000000",
-      "sucursal": "OPERACIONES CENTRALES",
-      "nroMov": "000000392",
-      "cuenta": "000098510656"
+      "cuenta": "98510656"
     },
     {
       "fecha": "2026-08-07",
       "descripcion": "00772617984 Arriendo Agosto OF los militares",
-      "cargo": 0,
-      "abono": 2450687,
+      "monto": 2450687,
+      "signo": "ingreso",
       "saldo": 15065683,
       "documento": "000000000",
-      "sucursal": "OPERACIONES CENTRALES",
-      "nroMov": "000000391",
-      "cuenta": "000098510656"
+      "cuenta": "98510656"
     },
     {
       "fecha": "2026-08-06",
       "descripcion": "0761066366 Transf a IMPORTADORA HN SPA",
-      "cargo": 90070,
-      "abono": 0,
+      "monto": -90070,
+      "signo": "egreso",
       "saldo": 12614996,
       "documento": "000000000",
-      "sucursal": "AGUSTINAS",
-      "nroMov": "000000390",
-      "cuenta": "000098510656"
+      "cuenta": "98510656"
     },
     {
       "fecha": "2026-08-06",
       "descripcion": "0761066366 Transf a IMPORTADORA HN SPA",
-      "cargo": 287550,
-      "abono": 0,
+      "monto": -287550,
+      "signo": "egreso",
       "saldo": 12705066,
       "documento": "000000000",
-      "sucursal": "AGUSTINAS",
-      "nroMov": "000000389",
-      "cuenta": "000098510656"
-    },
-    {
-      "fecha": "2026-08-05",
-      "descripcion": "Cheque Pagado por Caja",
-      "cargo": 6419,
-      "abono": 0,
-      "saldo": 4224.64,
-      "documento": "000000009",
-      "sucursal": "EL CORTIJO",
-      "nroMov": "000000054",
-      "cuenta": "000098510656"
+      "cuenta": "98510656"
     },
     {
       "fecha": "2026-08-03",
       "descripcion": "0199682709 Transf de CRISTIAN ALEJANDRO",
-      "cargo": 0,
-      "abono": 279166,
+      "monto": 279166,
+      "signo": "ingreso",
       "saldo": 12992616,
       "documento": "000000000",
-      "sucursal": "OTRAS GERENCIAS",
-      "nroMov": "000000388",
-      "cuenta": "000098510656"
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "0763509869 Transf a Inverco spa",
+      "monto": -7500000,
+      "signo": "egreso",
+      "saldo": 12713450,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "0773324891 Transf. LIA TECH SPA",
+      "monto": 2900000,
+      "signo": "ingreso",
+      "saldo": 20213450,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "0772711212 Transf a ANA CLARA SPA",
+      "monto": -10500000,
+      "signo": "egreso",
+      "saldo": 17313450,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "0211633433 Transf a LEE . EUN",
+      "monto": -12000000,
+      "signo": "egreso",
+      "saldo": 27813450,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "RENDICION JULIO",
+      "monto": -4000000,
+      "signo": "egreso",
+      "saldo": 39813450,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "HONORARIOS JULIO",
+      "monto": -23700100,
+      "signo": "egreso",
+      "saldo": 43813450,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "0211633433 Transf a LEE . EUN",
+      "monto": -10000000,
+      "signo": "egreso",
+      "saldo": 67513550,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "0765058082 Transf de ALIMENTOS Y ACEITES",
+      "monto": 46445000,
+      "signo": "ingreso",
+      "saldo": 77513550,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-31",
+      "descripcion": "0762579049 Transf. CAPITARIA LATAM SPA",
+      "monto": 3643455,
+      "signo": "ingreso",
+      "saldo": 31068550,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-29",
+      "descripcion": "COM.MANTENCION PLAN",
+      "monto": -8168,
+      "signo": "egreso",
+      "saldo": 27425095,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-29",
+      "descripcion": "COM.MANT.PROD.OPC.CTA.CTE.",
+      "monto": -3266,
+      "signo": "egreso",
+      "saldo": 27433263,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-29",
+      "descripcion": "PAGO HONORARIOS  EXTRAS",
+      "monto": -500000,
+      "signo": "egreso",
+      "saldo": 27436529,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-27",
+      "descripcion": "0781730289 Transf. TRACKING TABLE SPA",
+      "monto": 835088,
+      "signo": "ingreso",
+      "saldo": 27936529,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-23",
+      "descripcion": "PAGOS EXTRAORDINARIOS",
+      "monto": -334685,
+      "signo": "egreso",
+      "saldo": 27101441,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-23",
+      "descripcion": "PAGOS EXTRAORDINARIOS",
+      "monto": -8415315,
+      "signo": "egreso",
+      "saldo": 27436126,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-21",
+      "descripcion": "0763509869 Transf a Inverco spa",
+      "monto": -6250000,
+      "signo": "egreso",
+      "saldo": 35851441,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-20",
+      "descripcion": "PAGO EN LINEA S.I.I.",
+      "monto": -12892171,
+      "signo": "egreso",
+      "saldo": 42101441,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-20",
+      "descripcion": "0211633433 Transf a LEE . EUN",
+      "monto": -20000000,
+      "signo": "egreso",
+      "saldo": 54993612,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-20",
+      "descripcion": "0211633433 Transf a LEE . EUN",
+      "monto": -1279015,
+      "signo": "egreso",
+      "saldo": 74993612,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-17",
+      "descripcion": "Rendicion Factura 176 RUT 760145181",
+      "monto": -6686819,
+      "signo": "egreso",
+      "saldo": 76272627,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-17",
+      "descripcion": "Rendicion Factura 328 RUT 76235327k",
+      "monto": -2500000,
+      "signo": "egreso",
+      "saldo": 82959446,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-17",
+      "descripcion": "0765058082 Transf de ALIMENTOS Y ACEITES",
+      "monto": 14040000,
+      "signo": "ingreso",
+      "saldo": 85459446,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-17",
+      "descripcion": "78.041.637-8 Transf. EI SPA",
+      "monto": 3570000,
+      "signo": "ingreso",
+      "saldo": 71419446,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-17",
+      "descripcion": "78.041.637-8 Transf. EI SPA",
+      "monto": 3570000,
+      "signo": "ingreso",
+      "saldo": 67849446,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-17",
+      "descripcion": "PAGO EN LINEA ENTEL SA",
+      "monto": -464105,
+      "signo": "egreso",
+      "saldo": 64279446,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-15",
+      "descripcion": "0213493205 Transf a MARQUEZ JORQUERA SE",
+      "monto": -102713,
+      "signo": "egreso",
+      "saldo": 64743551,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-15",
+      "descripcion": "0211633433 Transf a LEE . EUN",
+      "monto": -2377910,
+      "signo": "egreso",
+      "saldo": 64846264,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-15",
+      "descripcion": "0781914339 Transf. ADVISORAI SPA",
+      "monto": 2650000,
+      "signo": "ingreso",
+      "saldo": 67224174,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-15",
+      "descripcion": "0781914339 Transf. ADVISORAI SPA",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "saldo": 64574174,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-14",
+      "descripcion": "0770967945 Transf. GLOBAL CARD S A-cuenta-de-tercero",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "saldo": 57574174,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-14",
+      "descripcion": "0770967945 Transf. GLOBAL CARD S A-cuenta-de-tercero",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "saldo": 50574174,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-14",
+      "descripcion": "0770967945 Transf. GLOBAL CARD S A-cuenta-de-tercero",
+      "monto": 4000000,
+      "signo": "ingreso",
+      "saldo": 43574174,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-14",
+      "descripcion": "0770967945 Transf. GLOBAL CARD S A-cuenta-de-tercero",
+      "monto": 7000000,
+      "signo": "ingreso",
+      "saldo": 39574174,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-13",
+      "descripcion": "RENDICION MAYO",
+      "monto": -2652927,
+      "signo": "egreso",
+      "saldo": 32574174,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-13",
+      "descripcion": "0199682709 Transf de CRISTIAN ALEJANDRO",
+      "monto": 79166,
+      "signo": "ingreso",
+      "saldo": 35227101,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-13",
+      "descripcion": "0199682709 Transf de CRISTIAN ALEJANDRO",
+      "monto": 200000,
+      "signo": "ingreso",
+      "saldo": 35147935,
+      "documento": "000000000",
+      "cuenta": "98510656"
+    },
+    {
+      "fecha": "2026-07-13",
+      "descripcion": "0763515419 Transf a Inversiones coiro sa",
+      "monto": -3250000,
+      "signo": "egreso",
+      "saldo": 34947935,
+      "documento": "000000000",
+      "cuenta": "98510656"
     }
   ],
-  "total": 7,
-  "_ts": 1786364982265,
-  "_fuente": "vivo"
+  "total": 47,
+  "_ts": 1786425832905,
+  "_fuente": "endpoint"
 }
