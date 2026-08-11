@@ -21,7 +21,7 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { writeFileSync } from 'node:fs'
+import { writeFileSync, statSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import * as cred from '../conector-tek/credenciales.mjs'
 
@@ -124,6 +124,19 @@ async function tekResumen({ anio } = {}) {
 // datos sola, sin depender de nadie ni de config manual.
 const TEK_DIR = join(__dirname, '..', 'conector-tek')
 const EMP_FRESH_MS = (Number(envDe('TEK_EMP_FRESH_MIN')) || 240) * 60_000
+// Ventana en la que se prefiere el dato guardado ANTES que gastar un login, cuando la sesión
+// está dormida. Solo aplica si la sesión NO está viva: con sesión viva se lee en vivo igual,
+// porque leer no cuesta nada.
+const GRACIA_SIN_LOGIN_MS = (Number(envDe('TEK_GRACIA_SIN_LOGIN_MIN')) || 30) * 60_000
+// ¿La sesión de esa persona está viva? Mismo criterio que la puerta (12 min de frescura del
+// session-<user>.json). Si no se puede saber, se asume MUERTA: preferir el caché es lo seguro.
+function sesionViva(user) {
+  try {
+    const slug = String(user || 'ramon').toLowerCase().replace(/[^a-z0-9]/g, '')
+    const f = join(TEK_DIR, slug === 'ramon' ? 'session.json' : `session-${slug}.json`)
+    return Date.now() - statSync(f).mtimeMs < 12 * 60_000
+  } catch { return false }
+}
 const empSlug = (e) => String(e || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 const empCacheFile = (e) => join(TEK_DIR, 'data', `emp-${empSlug(e)}.json`)
 function leerEmpCache(e) { try { return JSON.parse(readFileSync(empCacheFile(e), 'utf8')) } catch { return null } }
@@ -160,6 +173,16 @@ async function saldoEmpresa(empresa) {
   if (cached && Date.now() - (cached._ts || 0) < EMP_FRESH_MS) return { ...cached, _fuente: 'cache' }
   const owner = cred.dueñoDeEmpresa(empresa)
   if (!owner) return cached ? { ...cached, _stale: true } : { error: `"${empresa}" no está conectada a ninguna sesión de banco.` }
+  // 💤 NO QUEMAR UN LOGIN POR UN DATO DE HACE UN RATO (11-08-2026, pedido de Ramón).
+  // Si la sesión está MUERTA (habría que loguear) pero lo guardado tiene menos de
+  // GRACIA_SIN_LOGIN, se sirve eso. Un saldo de hace 20 min casi nunca cambia la decisión
+  // de quien pregunta, y un login sí cuesta: cupo (4/hora) y riesgo de rebote del antifraude.
+  // Si el dato es más viejo que eso, ahí sí vale la pena entrar.
+  if (!sesionViva(owner) && cached && Date.now() - (cached._ts || 0) < GRACIA_SIN_LOGIN_MS) {
+    const min = Math.round((Date.now() - (cached._ts || 0)) / 60000)
+    return { ...cached, _fuente: 'cache', _sin_login: true,
+      _nota: `dato de hace ${min} min. La sesión del banco está dormida y no la desperté por esto (un login se gasta y se puede quemar). Si necesitas el saldo AL SEGUNDO, pídemelo explícito y entro.` }
+  }
   const r = await runLeerSaldos(owner, empresa)
   if (r.ok && r.empresa) {
     const out = { empresa, cuentas: r.empresa.cuentas || [], total_clp: r.empresa.total_clp || 0, _ts: Date.now(), _fuente: 'vivo' }
