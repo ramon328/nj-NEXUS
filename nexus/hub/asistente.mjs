@@ -3948,6 +3948,20 @@ async function ejecutar(nombre, input, ctx = {}) {
       const bo = arm.borrador
       const ultima = (typeof tr.leerUltimaTransferencia === 'function') ? tr.leerUltimaTransferencia() : null
       if (input.accion === 'enviar') {
+        // 💾 GUARDAR EL BENEFICIARIO **ANTES** DE TOCAR EL BANCO (11-08-2026). Ya se guardaba
+        // en la rama "preparar", pero cuando la persona da TODOS los datos de una, el modelo
+        // arma el borrador en texto y llama DIRECTO a "enviar" — así que ese guardado nunca
+        // corría. Pasó de verdad: Joaquín dictó a Carlos Ortega (RUT, Tenpo, cuenta), el banco
+        // rebotó y los datos se perdieron; habría tenido que dictarlos otra vez.
+        if (bo.nuevo && bo.beneficiario?.rut && bo.beneficiario?.cuenta) {
+          try {
+            tr.guardarBeneficiario({
+              nombre: bo.beneficiario.nombre, rut: bo.beneficiario.rut, banco: bo.beneficiario.banco,
+              tipo_cuenta: bo.beneficiario.tipo_cuenta, cuenta: bo.beneficiario.cuenta,
+              email: bo.beneficiario.email || undefined, origen: 'usuario',
+            })
+          } catch { /* que la libreta no impida la transferencia */ }
+        }
         await avisarTrabajando(ctx, `💸 Creando la transferencia de $${Number(bo.monto).toLocaleString('es-CL')} a ${bo.beneficiario.nombre} en el banco… dame ~1-2 min, sigo trabajando 🏦`)
         const res = await escrituraBancoAutoSana(() => tr.ejecutar(bo, { userId, empresa }))
         // ── SESIÓN DORMIDA: el motor ya abrió el login y le enganchó la transferencia ──
