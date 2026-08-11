@@ -129,12 +129,26 @@ const empCacheFile = (e) => join(TEK_DIR, 'data', `emp-${empSlug(e)}.json`)
 function leerEmpCache(e) { try { return JSON.parse(readFileSync(empCacheFile(e), 'utf8')) } catch { return null } }
 
 // Lanza leer-saldos.mjs para UNA empresa (reusa la sesión del dueño; on-demand login si duerme).
-function runLeerSaldos(user, empresa) {
+function runLeerSaldos(user, empresa, { movs = false } = {}) {
   return new Promise((resolve) => {
-    const h = spawn(process.execPath, [join(TEK_DIR, 'leer-saldos.mjs'), '--user', user, '--empresas', empresa], { cwd: TEK_DIR })
+    // Con movs:true además trae los movimientos recientes (TEK_LEER_MOVS) acotados a 7 días
+    // (TEK_DESDE): sin acotar, el lector pide 4 tramos mensuales y tarda de más.
+    const env = { ...process.env }
+    if (movs) {
+      env.TEK_LEER_MOVS = '1'
+      const d = new Date(Date.now() - 7 * 864e5)
+      env.TEK_DESDE = d.toISOString().slice(0, 10)
+    }
+    const h = spawn(process.execPath, [join(TEK_DIR, 'leer-saldos.mjs'), '--user', user, '--empresas', empresa], { cwd: TEK_DIR, env })
     let out = ''
     h.stdout.on('data', (d) => { out += d }); h.stderr.on('data', () => {})
-    const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, 60_000)
+    // 60s NO alcanzaba para el caso FRÍO y era un corte a ciegas: medido el 11-08-2026,
+    // un login en frío tarda 70-90s, así que la lectura se mataba SIEMPRE justo antes de
+    // entregar y caía al caché ("no pude refrescar en vivo"). Con la sesión ya establecida
+    // la misma lectura tarda 29s. 150s cubre el frío sin dejar el proceso colgado.
+    // Ajustable con TEK_LECTURA_TIMEOUT_MS.
+    const TOPE_LECTURA = Number(process.env.TEK_LECTURA_TIMEOUT_MS) || 150_000
+    const kill = setTimeout(() => { try { h.kill('SIGKILL') } catch { /* */ } }, TOPE_LECTURA)
     h.on('exit', () => { clearTimeout(kill); try { const j = JSON.parse(out); resolve({ ok: j.ok, empresa: (j.empresas || [])[0], estado_login: j.estado_login }) } catch { resolve({ ok: false }) } })
   })
 }
@@ -174,9 +188,21 @@ function mapMovEmpresa(m, empresa) {
   const monto = Number(m.abono || 0) - Number(m.cargo || 0)   // ingreso +, egreso −
   return { fecha: m.fecha, descripcion: m.descripcion, tipo: null, monto, monto_fmt: fmt(monto, 'CLP'), signo: monto < 0 ? 'egreso' : 'ingreso', estado: 'confirmado', banco: 'Santander', empresa, cuenta: m.cuenta, ...(m.documento ? { documento: m.documento } : {}) }
 }
-function movimientosEmpresa(empresa, { buscar, desde, hasta, limite = 30 } = {}) {
-  const c = leerMovsCache(empresa)
-  if (!c || !Array.isArray(c.movimientos)) return { error: `Todavía no tengo el detalle de MOVIMIENTOS de ${empresa} (se leen en el refresco de cada mañana). Saldos de esa empresa sí tengo. En ANA CLARA tengo movimientos completos.`, sin_cache: true }
+// LEE EN VIVO si lo guardado está viejo (11-08-2026). Antes esto era SOLO caché y el caché
+// lo llenaba el cron de la mañana; al eliminarse los crons (decisión de Ramón: "que entre al
+// banco enseguida"), los movimientos se habrían congelado para siempre. Ahora, si no hay
+// dato o está más viejo que EMP_FRESH_MS, entra al banco igual que los saldos.
+async function movimientosEmpresaVivo(empresa) {
+  const owner = cred.dueñoDeEmpresa(empresa)
+  if (!owner) return false
+  const r = await runLeerSaldos(owner, empresa, { movs: true })
+  return Boolean(r.ok)
+}
+async function movimientosEmpresa(empresa, { buscar, desde, hasta, limite = 30 } = {}) {
+  let c = leerMovsCache(empresa)
+  const viejo = !c || !Array.isArray(c.movimientos) || (Date.now() - (c._ts || 0) >= EMP_FRESH_MS)
+  if (viejo) { try { if (await movimientosEmpresaVivo(empresa)) c = leerMovsCache(empresa) } catch { /* sirve lo que haya */ } }
+  if (!c || !Array.isArray(c.movimientos)) return { error: `No pude leer los MOVIMIENTOS de ${empresa} del banco ahora (la sesión pudo no levantar). Reintenta en un momento; no tengo dato guardado de esa empresa.`, sin_cache: true }
   let movs = c.movimientos.slice()
   if (buscar) { const q = String(buscar).toLowerCase(); movs = movs.filter((m) => `${m.descripcion || ''}`.toLowerCase().includes(q)) }
   if (desde) movs = movs.filter((m) => (m.fecha || '') >= desde)
