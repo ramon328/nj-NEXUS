@@ -268,6 +268,13 @@ async function textoVisible(page, re) {
   return false
 }
 const DEVICE_RE = /revisa tu conexi[oó]n|reinicia tu wifi|no te permitir[aá] ingresar/i
+// ⚠️ DEVICE_RE detecta el MURO GENÉRICO de Incapsula ("la señal que estás usando…"), que NO
+// es prueba de un device-trust real. Verificado el 10-08-2026 con un recon SIN credenciales:
+// desde esta misma IP, Incapsula y BioCatch responden 200 y se llega al form — o sea que ese
+// texto sale por rebotes pasajeros, no por un dispositivo marcado. Tratarlo como device_trust
+// nos auto-imponía 25 min de castigo por nada (pasó dos veces: 05:01 y 02:04 del 11-08).
+// El device-trust DE VERDAD es otra pantalla: pide VALIDAR el dispositivo con un código.
+const DEVICE_TRUST_REAL_RE = /validar? (tu )?dispositivo|c[oó]digo de verificaci[oó]n|dispositivo no reconocido|autoriza(r)? este dispositivo/i
 const MFA_RE = /superclave|clave din[aá]mica|coordenada|tarjeta de coordenad|c[oó]digo de seguridad|segundo factor/i
 // La sesión se CAYÓ/finalizó (expiró, o el banco la botó) — pantalla "SU SESIÓN HA FINALIZADO"
 // o URL de logout/login. Se usa para CORTAR flujos (transferencia/masiva) que si no se cuelgan
@@ -3059,8 +3066,14 @@ async function main() {
   const fin = async (estado, extra = {}) => {
     // device_trust real (muro Incapsula) SIEMPRE cuenta. error_seguridad SOLO si veníamos de
     // enviar un login (rebote real); si no, es una sesión que terminó normal → no es golpe.
-    const esGolpe = /device_trust/.test(estado) || (/error_seguridad/.test(estado) && loginIntentado)
+    // Solo un device-trust REAL (pantalla que pide validar el dispositivo) o un rebote de
+    // seguridad tras enviar credenciales cuentan como golpe. El muro genérico "reinicia tu
+    // wifi" NO: es pasajero y castigarlo 25 min nos dejaba sin banco sin motivo.
+    let dtReal = false
+    try { dtReal = await textoVisible(page, DEVICE_TRUST_REAL_RE) } catch { /* */ }
+    const esGolpe = (/device_trust/.test(estado) && dtReal) || (/error_seguridad/.test(estado) && loginIntentado)
     if (esGolpe) { try { registrarDeviceTrust(userSlug) } catch { /* */ } }
+    if (/device_trust/.test(estado) && !dtReal) extra = { ...extra, rebote_generico: true, nota: (extra.nota || '') + ' [Muro GENÉRICO de Incapsula, no un dispositivo marcado: NO se cuenta como golpe. Suele pasar solo; se puede reintentar respetando el gap de 8 min.]' }
     // Flag de RECONEXIÓN (para la página /vnc): avisa si conectó bien → la web muestra "✅ conectado".
     if (process.env.TEK_OTP_FILE) {
       try {
