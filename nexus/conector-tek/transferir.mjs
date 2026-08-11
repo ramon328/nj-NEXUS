@@ -197,13 +197,27 @@ export function armarBorrador({ userId, nombre, monto, motivo, rut, banco, cuent
     }
     nuevo = true
   } else {
-    const r = resolver(nombre)
+    // BUSCAR POR RUT ANTES QUE POR NOMBRE (10-08-2026, pedido de Nico). El RUT no se repite;
+    // los nombres sí ("Joaquín Elías" está dos veces). Si vino RUT, manda el RUT — así no se
+    // le transfiere a otra persona/empresa de nombre parecido. Si no está en la libreta, se
+    // pide la cuenta en vez de mandar a buscar por nombre (que daría un error confuso).
+    const buscarPorRut = Boolean(rutFmt)
+    const r = resolver(buscarPorRut ? rutFmt : nombre)
     if (!r.ok) {
       // Propagamos la ambigüedad tal cual (con candidatos) para que Nexus pregunte cuál.
-      if (r.ambiguo) return { ok: false, ambiguo: true, candidatos: r.candidatos, error: r.error }
+      if (r.ambiguo) return { ok: false, ambiguo: true, candidatos: r.candidatos, por_rut: r.por_rut === true, error: r.error }
+      if (buscarPorRut) {
+        return { ok: false, falta_datos: true, rut_no_guardado: true,
+          error: `No tengo guardado a nadie con el RUT ${rutFmt}. Para transferirle igual, pásame el BANCO y el NÚMERO DE CUENTA (y el nombre/razón social); queda guardado para la próxima.` }
+      }
       return { ok: false, error: r.error, falta_datos: true }
     }
     b = r.beneficiario
+    // Coherencia: si dieron nombre Y RUT y el guardado no coincide en nombre, se avisa —
+    // pero manda el RUT, que es el identificador duro.
+    if (buscarPorRut && nombre && !String(b.nombre || '').toLowerCase().includes(String(nombre).toLowerCase().split(' ')[0] || ' ')) {
+      b = { ...b, _aviso_nombre: `Buscaste "${nombre}" pero el RUT ${rutFmt} está guardado como "${b.nombre}". Uso el del RUT.` }
+    }
   }
 
   const m = Math.trunc(Number(monto))

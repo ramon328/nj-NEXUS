@@ -1404,7 +1404,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'tek_sesion', 'reconectar_banco', 'vincular_banco', 'mis_bancos_conectados'],
+  banco: ['banco', 'tek_transferir', 'tek_beneficiarios', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'tek_sesion', 'reconectar_banco', 'vincular_banco', 'mis_bancos_conectados'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -3074,6 +3074,36 @@ const HERRAMIENTAS = [
       required: ['accion', 'proveedor', 'rut', 'monto'],
     },
   },
+  // ── BACKLOG de mejoras pedidas a Nexus (para que "quedó guardado" sea VERDAD) ──
+  {
+    name: 'pendientes_sistema',
+    description: 'BACKLOG de mejoras pedidas a NEXUS sobre sí mismo (cosas que todavía no sabe hacer). Úsalo en DOS momentos: (1) SIEMPRE que le pidan algo que NO puedes hacer y la persona quiera que quede anotado, o diga "anótalo", "que quede pendiente", "sería bueno que…", "deberías poder…" → accion:"anotar". ⛔ NUNCA digas "quedó guardado como pendiente" sin llamar esta tool: si no la llamas, NO se guardó nada y es una promesa falsa (pasó el 10-08-2026). (2) Cuando pregunten "¿qué quedó pendiente?", "¿qué mejoras hay en cola?", "¿qué no puedes hacer todavía?" → accion:"listar". También accion:"listo" con el id cuando una mejora YA se implementó. NO confundir con guardar_recordatorio, que es la lista PERSONAL de Ramón/Nico: esto es el backlog del sistema.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['anotar', 'listar', 'listo'], description: 'anotar = guarda una mejora pedida. listar = las abiertas. listo = marcar implementada (requiere id).' },
+        texto: { type: 'string', description: 'Para "anotar": qué se pidió, en una frase clara y accionable (ej. "que la libreta busque por RUT además de por nombre").' },
+        area: { type: 'string', description: 'Opcional: banco, sii, autos, whatsapp, general…' },
+        prioridad: { type: 'string', enum: ['alta', 'media', 'baja'], description: 'Opcional. "alta" si es riesgo de plata o bloquea trabajo.' },
+        id: { type: 'string', description: 'Para "listo": el id del pendiente.' },
+        incluir_listos: { type: 'boolean', description: 'Para "listar": incluir también los ya implementados.' },
+      },
+      required: ['accion'],
+    },
+  },
+  // ── tek · LIBRETA de beneficiarios: ver a quién tenemos guardado (solo lectura) ──
+  {
+    name: 'tek_beneficiarios',
+    description: 'LIBRETA DE DESTINATARIOS guardados para transferir (sistema "tek"). SOLO LECTURA: no transfiere ni modifica nada, no entra al banco (es instantáneo, sale de un archivo local). Úsala cuando pregunten "¿a quiénes tengo guardados?", "¿qué destinatarios hay?", "¿está guardado X?", "¿tienes el RUT de Y?", o antes de transferir para confirmar a quién le van a mandar la plata. Acciones: "listar" = todos los guardados (nombre, RUT, banco, tipo y número de cuenta); "buscar" = uno puntual, y **acepta NOMBRE o RUT** (el RUT en cualquier formato: 19.689.228-1, 19689228-1 o 196892281). 🔎 BUSCAR POR RUT ES LO SEGURO: los nombres se repiten (hay dos "Joaquín Elías" guardados), el RUT no. Si un RUT tiene VARIAS cuentas guardadas, te devuelve los candidatos para que la persona ELIJA — mostráselos numerados con banco, tipo y número de cuenta, y NUNCA elijas tú. ⚠️ Esta es la libreta LOCAL de Nexus, no la lista de destinatarios inscritos dentro del banco: si alguien no está acá puede igual existir en el banco, y de hecho se le puede transferir dando RUT + banco + cuenta.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['listar', 'buscar'], description: 'listar = todos. buscar = uno por nombre o RUT.' },
+        query: { type: 'string', description: 'Solo para "buscar": el NOMBRE (o alias) o el RUT del destinatario.' },
+      },
+      required: ['accion'],
+    },
+  },
   // ── tek · TRANSFERIR plata a una PERSONA guardada (Santander Empresa) ─────────
   {
     name: 'tek_transferir',
@@ -3847,6 +3877,44 @@ async function ejecutar(nombre, input, ctx = {}) {
       })
     }
     // ── tek · TRANSFERIR a una persona guardada (crea PENDIENTE por liberar, no mueve plata) ──
+    if (nombre === 'pendientes_sistema') {
+      try {
+        const pend = await import('./pendientes-sistema.mjs')
+        const quien = (usuarioDe(ctx.de)?.nombre || '').trim() || null
+        if (String(input.accion) === 'anotar') {
+          const r = pend.anotar({ texto: input.texto, quien, area: input.area, prioridad: input.prioridad })
+          return JSON.stringify({ ok: true, guardado: r,
+            instruccion: r.repetido
+              ? `Ya estaba anotado (van ${r.pedido_veces} veces que lo piden). Díselo así — que ya está en la cola y que se repitió el pedido.`
+              : 'Quedó anotado DE VERDAD en el backlog. Confírmaselo con el texto tal como quedó.' })
+        }
+        if (String(input.accion) === 'listo') {
+          return JSON.stringify(pend.marcarListo(String(input.id || ''), input.texto || ''))
+        }
+        const l = pend.listar({ incluir_listos: input.incluir_listos === true })
+        return JSON.stringify({ ok: true, total: l.length, pendientes: l,
+          instruccion: l.length ? 'Muéstralos agrupados por prioridad, con quién lo pidió y cuántas veces. Si algo se pidió varias veces, destácalo.' : 'No hay pendientes abiertos: dilo tal cual.' })
+      } catch (e) { return JSON.stringify({ ok: false, error: 'No pude usar el backlog: ' + e.message }) }
+    }
+    if (nombre === 'tek_beneficiarios') {
+      // Libreta LOCAL de tek. No toca el banco: instantáneo y sin costo de login.
+      try {
+        const ben = await import('../conector-tek/beneficiarios.mjs')
+        if (String(input.accion) === 'buscar') {
+          const q = String(input.query || '').trim()
+          if (!q) return JSON.stringify({ ok: false, error: 'Dime el nombre o el RUT a buscar.' })
+          const r = ben.buscar(q)
+          if (r.ok) return JSON.stringify({ ok: true, encontrado: r.beneficiario, por_rut: r.por_rut === true })
+          if (r.ambiguo) return JSON.stringify({ ok: false, ambiguo: true, por_rut: r.por_rut === true, candidatos: r.candidatos,
+            instruccion: 'Hay VARIOS guardados que calzan. Muéstraselos NUMERADOS con banco, tipo y número de cuenta, y pregúntale cuál. ⛔ NO elijas tú: transferirle a la cuenta equivocada es plata perdida.' })
+          return JSON.stringify({ ok: false, error: r.error,
+            instruccion: 'No está en la libreta. Aclárale que igual se le puede transferir si te da RUT + banco + número de cuenta, y que queda guardado para la próxima.' })
+        }
+        const lista = ben.listar()
+        return JSON.stringify({ ok: true, total: lista.length, beneficiarios: lista,
+          instruccion: 'Muéstraselos en lista con nombre, RUT y cuenta. Aclara que es la libreta de Nexus, NO los destinatarios inscritos dentro del banco: alguien puede no estar acá y aun así recibir transferencias dando RUT + banco + cuenta.' })
+      } catch (e) { return JSON.stringify({ ok: false, error: 'No pude leer la libreta: ' + e.message }) }
+    }
     if (nombre === 'tek_transferir') {
       if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
       let tr

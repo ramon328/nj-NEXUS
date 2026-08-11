@@ -16,8 +16,10 @@ export function cargar() {
   try { return JSON.parse(readFileSync(FILE, 'utf8')).beneficiarios || [] } catch { return [] }
 }
 
+// Se devuelve el RUT y el tipo de cuenta, no solo nombre/banco: sin el RUT no se distingue a
+// dos contactos de nombre parecido, que es justo el riesgo que hay que evitar al transferir.
 export function listar() {
-  return cargar().map((b) => ({ id: b.id, nombre: b.nombre, banco: b.banco, cuenta: b.cuenta }))
+  return cargar().map((b) => ({ id: b.id, nombre: b.nombre, rut: b.rut, banco: b.banco, tipo_cuenta: b.tipo_cuenta, cuenta: b.cuenta }))
 }
 
 /**
