@@ -360,8 +360,32 @@ export async function saldos({ userId, rut, banco, empresa } = {}) {
 // NO abre el banco (abrir 9 sesiones en serie colgaba el turno hasta ~27 min). Cada empresa
 // da su último saldo guardado; el que nunca se leyó sale marcado. Para el saldo EN VIVO de
 // una empresa puntual, se pregunta por esa empresa (ahí sí refresca con su sesión).
-export async function saldosTodas({ userId } = {}) {
+// vivo:true → refresca EN VIVO todas las empresas antes de armar el cuadro. Solo tiene
+// sentido con la sesión despierta: cada empresa son ~30 s (cambio de empresa + endpoint),
+// así que 9 empresas ≈ 4-5 min. Por defecto NO se hace: "dame todos los saldos" tiene que
+// contestar al instante con el último dato y su hora, no colgar al usuario 5 minutos.
+// Se pide explícito ("léelos todos en vivo") y Nexus avisa cuánto va a tardar.
+
+// Fuerza la lectura EN VIVO de una empresa, ignorando la frescura del caché y la gracia de
+// "no gastar login": se usa solo cuando alguien pide explícitamente el dato al segundo.
+async function saldoEmpresaVivoForzado(empresa) {
+  const owner = cred.dueñoDeEmpresa(empresa)
+  if (!owner) return false
+  const r = await runLeerSaldos(owner, empresa)
+  if (r.ok && r.empresa) {
+    const out = { empresa, cuentas: r.empresa.cuentas || [], total_clp: r.empresa.total_clp || 0, _ts: Date.now(), _fuente: 'vivo' }
+    try { writeFileSync(empCacheFile(empresa), JSON.stringify(out, null, 2)) } catch { /* */ }
+    return true
+  }
+  return false
+}
+export async function saldosTodas({ userId, vivo = false } = {}) {
   const conns = userId ? cred.listar(userId) : []
+  if (vivo) {
+    for (const c of conns) {
+      try { await saldoEmpresaVivoForzado(c.empresa) } catch { /* una que falle no bota al resto */ }
+    }
+  }
   const vistas = new Set(); const empresasOut = []
   for (const c of conns) {
     // Dedup normalizando (ANA CLARA SPA y ANA CLARA = la misma empresa) → no la muestres 2 veces.

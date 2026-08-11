@@ -258,7 +258,11 @@ export async function ejecutarMasivo(transfers, { concepto, cuentaOrigen, stamp,
     // login-humano en MODO AUTO: reusa si viva, LOGUEA SOLO con clics humanos si dormida, y
     // sube el lote. Solo si el login NO pudo entrar por sí mismo (Superclave / rebote) — y por
     // lo tanto el lote NO se subió — caemos al ASISTIDO en el close.
-    const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
+    // detached:true → el proceso del banco SOBREVIVE si se reinicia el hub. Sin esto, un
+    // reinicio mataba la MASIVA a mitad de camino y el usuario quedaba sin saber
+    // cómo terminó (pasó dos veces el 10-08-2026, una con un lote de $15,7M en vuelo).
+    // No se hace unref(): seguimos esperando su 'close' para leer el RESULTADO.
+    const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env, detached: true })
     let out = '', err = ''
     hijo.stdout.on('data', (d) => { out += d.toString() })
     hijo.stderr.on('data', (d) => { err += d.toString() })

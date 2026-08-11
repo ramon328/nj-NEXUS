@@ -32,26 +32,30 @@
     "texto": "Saldos \"en vivo\" de verdad: al pedir todas, hoy mezcla cachés de distinta hora en vez de leer al momento",
     "area": "banco",
     "prioridad": "media",
-    "estado": "abierto",
+    "estado": "listo",
     "pedido_por": [
       "Nico"
     ],
     "pedido_veces": 1,
     "fecha": "2026-08-11",
-    "ultima_vez": "2026-08-11"
+    "ultima_vez": "2026-08-11",
+    "listo_el": "2026-08-11",
+    "nota_cierre": "11-08-2026: saldosTodas acepta vivo:true y el tool tiene el param en_vivo; por defecto instantaneo con la hora de cada empresa, en vivo solo si lo piden explicito (avisa que tarda 4-5 min)"
   },
   {
     "id": "p_66262b",
     "texto": "Comprobantes de pago no funcionan: no llega al histórico de la empresa (se queda en el selector)",
     "area": "banco",
     "prioridad": "alta",
-    "estado": "abierto",
+    "estado": "listo",
     "pedido_por": [
       "Ramon"
     ],
     "pedido_veces": 1,
     "fecha": "2026-08-11",
-    "ultima_vez": "2026-08-11"
+    "ultima_vez": "2026-08-11",
+    "listo_el": "2026-08-11",
+    "nota_cierre": "resuelto 11-08-2026: faltaba volver al selector de empresas antes de entrar (TEK_FORCE_EMPRESA + irAlSelectorEmpresas). Probado: 20 comprobantes reales de ACE SPA"
   },
   {
     "id": "p_67de21",

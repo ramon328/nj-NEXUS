@@ -2445,6 +2445,7 @@ const HERRAMIENTAS = [
         accion: { type: 'string', enum: ['empresas', 'saldos', 'movimientos', 'resumen', 'conexiones'] },
         empresa: { type: 'string', description: 'Nombre de la empresa (ej "ACE SPA", "ANA CLARA SPA"). Sale en accion:empresas. Para todas, usa todas:true.' },
         todas: { type: 'boolean', description: 'saldos: true = saldos de TODAS las empresas conectadas del usuario, de una.' },
+        en_vivo: { type: 'boolean', description: 'Solo con todas:true. false (default) = último dato guardado, INSTANTÁNEO, con la hora de cada empresa. true = entra al banco y relee TODAS al momento: tarda ~4-5 min (una lectura por empresa). Ponlo en true SOLO si la persona pide explícitamente el dato al segundo de todas, y AVÍSALE cuánto va a tardar antes de lanzarlo.' },
         rut: { type: 'string', description: 'RUT del titular (ej "77271121-2"). Sale en accion:empresas.' },
         banco: { type: 'string', description: 'Filtra por banco (ej "santander", "bancoestado").' },
         anio: { type: 'string', description: 'resumen: acota a un año (ej "2026").' },
@@ -6693,7 +6694,11 @@ async function ejecutar(nombre, input, ctx = {}) {
         }
         else if (input.accion === 'saldos') {
           const quiereTodas = input.todas === true || /^(todas|todos|cada|all)\b/i.test(String(input.empresa || ''))
-          r = quiereTodas ? await b.saldosTodas({ userId }) : await b.saldos(opts)
+          // vivo:true SOLO si lo piden explícito: leer las 9 en vivo son ~4-5 min (cambio de
+          // empresa + lectura por cada una). Por defecto "dame todos los saldos" contesta al
+          // instante con el último dato y la hora de cada uno, que es lo que se quiere el 99%
+          // de las veces. Ver el campo "en_vivo" del input.
+          r = quiereTodas ? await b.saldosTodas({ userId, vivo: input.en_vivo === true }) : await b.saldos(opts)
           if (quiereTodas && r && Array.isArray(r.empresas)) r = { ...r, empresas: filtEmp(r.empresas, 'empresa') }
         }
         else if (input.accion === 'movimientos') r = await b.movimientos(opts)

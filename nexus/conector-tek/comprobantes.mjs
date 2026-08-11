@@ -50,7 +50,11 @@ function correr(modo, extraEnv = {}, userId = 'ramon', empresa = 'ANA CLARA SPA'
     // sesión está viva la reusa, si está dormida LOGUEA SOLO (mouse que viaja a los botones +
     // clic real, lo que ya pasó BioCatch) y corre la operación. Solo si ese login no pudo
     // entrar por sí mismo (Superclave / rebote antifraude) caemos al ASISTIDO (link + PIN).
-    const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env })
+    // detached:true → el proceso del banco SOBREVIVE si se reinicia el hub. Sin esto, un
+    // reinicio mataba los COMPROBANTES a mitad de camino y el usuario quedaba sin saber
+    // cómo terminó (pasó dos veces el 10-08-2026, una con un lote de $15,7M en vuelo).
+    // No se hace unref(): seguimos esperando su 'close' para leer el RESULTADO.
+    const hijo = spawn(process.execPath, [join(DIR, 'login-humano.mjs')], { cwd: DIR, env, detached: true })
     let out = '', err = ''
     hijo.stdout.on('data', (d) => { out += d.toString() })
     hijo.stderr.on('data', (d) => { err += d.toString() })

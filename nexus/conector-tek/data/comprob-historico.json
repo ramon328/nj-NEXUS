@@ -1,61 +1,297 @@
 {
-  "url": "https://privado.officebanking.cl/seleccion-empresa",
-  "entro": false,
-  "total_filas": 4,
+  "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_HTCTRF&ts=1786429112585",
+  "entro": true,
+  "total_filas": 20,
   "filas": [
     [
-      "000690022343160",
+      "0-000-9851065-6",
+      "000-000002-0582042-7",
+      "BANCO ITAU CHILE",
+      "76.110.978-2",
+      "INVERSIONES NM SPA",
+      "$ 4.901.375",
+      "TEF Masiva",
+      "09/08/2026 21:51:00",
+      "Por Autorizar",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-070-3142297-8",
+      "BANCO SANTANDER",
+      "19.689.228-1",
+      "ELIAS MALUK JOAQUIN ALFONSO",
+      "$ 1",
+      "TEF Masiva",
+      "09/08/2026 20:41:00",
+      "Por Autorizar",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-070-3142297-8",
+      "BANCO SANTANDER",
+      "19.689.228-1",
+      "ELIAS MALUK JOAQUIN ALFONSO",
+      "$ 1",
+      "TEF Express",
+      "09/08/2026 20:39:00",
+      "Por Autorizar",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-000-7201947-4",
+      "BANCO SANTANDER",
       "76.106.636-6",
-      "IMP JURI Y FONTENA ASOCIADOS LIMITADA",
-      "Usuario",
-      "Entrar"
+      "IMPORTADORA HN SPA",
+      "$ 90.070",
+      "TEF Express",
+      "05/08/2026 15:47:00",
+      "Realizada",
+      ""
     ],
     [
-      "000690023084710",
-      "76.867.554-6",
-      "IMPORTACIONES MINERAS SPA",
-      "Usuario",
-      "Entrar"
+      "0-000-9851065-6",
+      "0-000-7201947-4",
+      "BANCO SANTANDER",
+      "76.106.636-6",
+      "IMPORTADORA HN SPA",
+      "$ 287.550",
+      "TEF Express",
+      "05/08/2026 15:46:00",
+      "Realizada",
+      ""
     ],
     [
-      "000690024634580",
-      "76.188.898-6",
-      "IMPORTADORA JURI Y JURI LIMITADA",
-      "Usuario",
-      "Entrar"
+      "0-000-9851065-6",
+      "000-000010-1283480-2",
+      "BANCO DE CHILE",
+      "76.350.986-9",
+      "Inverco spa",
+      "$ 7.500.000",
+      "TEF Express",
+      "31/07/2026 12:50:00",
+      "Realizada",
+      ""
     ],
     [
-      "000690026173520",
+      "0-000-9851065-6",
+      "0-000-8028093-9",
+      "BANCO SANTANDER",
       "77.271.121-2",
       "ANA CLARA SPA",
-      "Usuario",
-      "Entrar"
+      "$ 10.500.000",
+      "TEF Express",
+      "31/07/2026 12:04:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-000-9309949-4",
+      "BANCO SANTANDER",
+      "21.163.343-3",
+      "LEE . EUN",
+      "$ 12.000.000",
+      "TEF Express",
+      "31/07/2026 12:02:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-000-9309949-4",
+      "BANCO SANTANDER",
+      "21.163.343-3",
+      "LEE . EUN",
+      "$ 12.000.000",
+      "TEF Express",
+      "31/07/2026 12:01:00",
+      "Eliminada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "000-000173-7001247-5",
+      "BANCO FALABELLA",
+      "14.703.163-7",
+      "yeon hwa park",
+      "$ 4.000.000",
+      "TEF Masiva",
+      "31/07/2026 11:47:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-000-9309949-4",
+      "BANCO SANTANDER",
+      "21.163.343-3",
+      "LEE . EUN",
+      "$ 10.000.000",
+      "TEF Express",
+      "31/07/2026 11:42:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "000-000155-6002512-5",
+      "BANCO FALABELLA",
+      "14.757.297-2",
+      "KEON HO",
+      "$ 3.500.000",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-000-8891077-0",
+      "BANCO SANTANDER",
+      "16.978.152-4",
+      "HERRERA GONZALEZ JESUS NICOLAS",
+      "$ 200.000",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-000-7914627-7",
+      "BANCO SANTANDER",
+      "19.968.270-9",
+      "UGARTE TRONCOSO CRISTIAN ALEJANDRO",
+      "$ 1.800.000",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "000-000198-4103508-1",
+      "BANCO FALABELLA",
+      "20.100.723-2",
+      "Lucas Cisternas",
+      "$ 2.000.100",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "000-000000-2015162-7",
+      "BANCO DEL ESTADO DE CHILE",
+      "20.151.627-7",
+      "DIEGO ALBERTO VALDES DIAZ",
+      "$ 600.000",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "000-000100-1379107-0",
+      "BANCO FALABELLA",
+      "20.680.129-8",
+      "JOEL ESTEBAN ARIAS PARRA",
+      "$ 2.000.000",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "0-000-8026643-0",
+      "BANCO SANTANDER",
+      "20.808.991-9",
+      "MANDIOLA DIAZ FELIPE",
+      "$ 1.800.000",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "000-000198-2215326-5",
+      "BANCO FALABELLA",
+      "20.818.267-6",
+      "BENJAMIN IGNACIO FUENTES MILLA",
+      "$ 1.100.000",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
+    ],
+    [
+      "0-000-9851065-6",
+      "000-000000-2098895-6",
+      "BANCO DEL ESTADO DE CHILE",
+      "20.988.956-0",
+      "MATIAS JESUS VARAS AQUIN",
+      "$ 1.300.000",
+      "TEF Masiva",
+      "31/07/2026 11:41:00",
+      "Realizada",
+      ""
     ]
   ],
   "accionInfo": {
     "headers": [
-      "Contrato",
-      "RUT",
-      "Empresa",
-      "Rol",
-      ""
+      "Cuenta origen",
+      "Cuenta destino",
+      "Banco destino",
+      "Rut titular destino",
+      "Nombre titular destino",
+      "Monto",
+      "Tipo transferencia",
+      "Fecha",
+      "Estado",
+      "Impresos"
     ],
     "lastCellsHTML": [
-      "<td _ngcontent-ng-c3467672272=\"\" class=\"ng-star-inserted\"> IMP JURI Y FONTENA ASOCIADOS LIMITADA <!----><!----></td>",
-      "<td _ngcontent-ng-c3467672272=\"\" class=\"ng-star-inserted\"> Usuario <!----><!----></td>",
-      "<td _ngcontent-ng-c3467672272=\"\" class=\"sop-btns-r ng-star-inserted\"><ob-button-select-company _ngcontent-ng-c3789977162=\"\" style=\"display: flex;\" _nghost-ng-c1870730970=\"\" class=\"ng-star-inserted\"><!----><button _ngcontent-ng-c1870730970=\"\" name=\"entrar\" value=\"Entrar\" class=\"ng-star-inserted\"><span _ngcontent-ng-c1870730970=\"\">Entrar</span><i _ngcontent-ng-c1870730970=\"\" class=\"icon-chevron-right\"></i></button><!----></ob-button-select-company><!----><!----><!----></td>"
+      "<td data-th=\"Fecha\"><span class=\"bt-content\"><span data-bind=\"text: fechaGeneracion\">09/08/2026 21:51:00</span></span></td>",
+      "<td data-th=\"Estado\"><span class=\"bt-content\"><span data-bind=\"text: estado\">Por Autorizar</span></span></td>",
+      "<td class=\"td-btn-inner-table\" data-th=\"Impresos\"><span class=\"bt-content\"><a role=\"button\" class=\"btn-inner-table btn-ripple btn-popover\" rel=\"popover\" data-trigger=\"focus\" data-popover-content=\"#list-popover\" data-placement=\"left\" data-bind=\"click: $parent.setTransferenciaSeleccionada\" data-original-title=\"\" title=\"\"><i class=\"icon-SYS030 btn-popover\"></i></a></span></td>"
     ]
   },
   "dump": [
     {
-      "url": "https://privado.officebanking.cl/seleccion-empresa",
+      "url": "https://privado.officebanking.cl/portal-fob?type=EOB&dest=TRFCTA_HTCTRF&ts=1786429112585",
+      "inputs": [],
+      "botones": [
+        "Accesibilidad",
+        "Empresa / Rol",
+        "logout"
+      ],
+      "titulos": []
+    },
+    {
+      "url": "https://eob.officebanking.cl/TEFT.UI.Web/Historico/?servicioId=TRFCTA_HTCTRF",
       "inputs": [
         {
           "tag": "input",
           "type": "text",
-          "id": "buscador",
+          "id": "datepicker1",
           "name": "",
-          "placeholder": "Buscar",
+          "placeholder": "",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "text",
+          "id": "datepicker2",
+          "name": "",
+          "placeholder": "",
           "maxlength": "",
           "label": ""
         },
@@ -63,38 +299,39 @@
           "tag": "input",
           "type": "text",
           "id": "",
-          "name": "paginaActual",
-          "placeholder": "",
+          "name": "",
+          "placeholder": " ",
           "maxlength": "",
           "label": ""
         },
         {
-          "tag": "select",
-          "type": "select-one",
-          "id": "sel-show",
+          "tag": "input",
+          "type": "text",
+          "id": "",
+          "name": "",
+          "placeholder": " ",
+          "maxlength": "",
+          "label": ""
+        },
+        {
+          "tag": "input",
+          "type": "number",
+          "id": "",
           "name": "",
           "placeholder": "",
           "maxlength": "",
-          "label": "Mostrar",
-          "opciones": [
-            "4"
-          ]
+          "label": ""
         }
       ],
       "botones": [
-        "Accesibilidad",
-        "logout",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar",
-        "Entrar"
+        "Aceptar",
+        "Descargar",
+        "Ir"
       ],
       "titulos": [
-        "Listado de Empresas"
+        "Histórico de transferencias\nMartes 11 de agosto de 2026, 2:18 hrs.",
+        "Opciones de búsqueda",
+        "Detalle de movimientos"
       ]
     }
   ]
