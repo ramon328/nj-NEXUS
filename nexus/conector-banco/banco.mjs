@@ -240,7 +240,27 @@ async function movimientosEmpresa(empresa, { buscar, desde, hasta, limite = 30 }
   if (hasta) movs = movs.filter((m) => (m.fecha || '') <= hasta)
   movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
   const total = movs.length
-  return { empresa, total_encontrados: total, mostrando: Math.min(total, Number(limite) || 30), movimientos: movs.slice(0, Number(limite) || 30).map((m) => mapMovEmpresa(m, empresa)), actualizado: tsCL(c._ts), actualizado_nota: 'hora de Chile, mostrala TAL CUAL', fuente: 'cache' }
+  // TOTALES CALCULADOS POR EL CÓDIGO, NO POR EL MODELO (11-08-2026). Al resumir movimientos
+  // a mano, Nexus reportó "3x Global Card = $18.000.000" cuando eran 4 por $25.000.000: se
+  // comió uno de $7 millones. En cifras financieras no se admite que el modelo sume de ojo.
+  const mapeados = movs.map((m) => mapMovEmpresa(m, empresa))
+  const ingresos = mapeados.filter((m) => m.monto > 0).reduce((a, m) => a + m.monto, 0)
+  const egresos = mapeados.filter((m) => m.monto < 0).reduce((a, m) => a + m.monto, 0)
+  // Agrupado por descripción normalizada: para que "3 transferencias de X" salga contado bien.
+  const porGlosa = {}
+  for (const m of mapeados) {
+    const k = String(m.descripcion || '').replace(/^\d+\s*/, '').slice(0, 40).trim() || '(sin glosa)'
+    if (!porGlosa[k]) porGlosa[k] = { glosa: k, veces: 0, total: 0 }
+    porGlosa[k].veces++; porGlosa[k].total += m.monto
+  }
+  const agrupado = Object.values(porGlosa).sort((a, b) => Math.abs(b.total) - Math.abs(a.total)).slice(0, 12)
+    .map((g) => ({ ...g, total_fmt: fmt(g.total, 'CLP') }))
+  return { empresa, total_encontrados: total, mostrando: Math.min(total, Number(limite) || 30),
+    movimientos: mapeados.slice(0, Number(limite) || 30),
+    totales: { n: total, ingresos, ingresos_fmt: fmt(ingresos, 'CLP'), egresos, egresos_fmt: fmt(egresos, 'CLP'), neto: ingresos + egresos, neto_fmt: fmt(ingresos + egresos, 'CLP') },
+    agrupado_por_glosa: agrupado,
+    instruccion: '⛔ NO sumes ni cuentes movimientos tú: usa "totales" y "agrupado_por_glosa", que vienen calculados. Si agrupas por tu cuenta te equivocas (pasó: dijiste 3 movimientos cuando eran 4).',
+    actualizado: tsCL(c._ts), actualizado_nota: 'hora de Chile, mostrala TAL CUAL', fuente: 'cache' }
 }
 function resumenEmpresa(empresa, { anio } = {}) {
   const c = leerMovsCache(empresa)
