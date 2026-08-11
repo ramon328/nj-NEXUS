@@ -27,6 +27,10 @@ export function listar() {
  * - match exacto de alias → gana.
  * - si no, puntúa por tokens compartidos (nombre + alias). Empate/ambiguo → candidatos.
  */
+// Fecha de Chile, no UTC (después de las 20:00 el día UTC ya es el siguiente). Antes la
+// fecha de creación estaba escrita a mano como '2026-07-21' y TODO contacto nuevo nacía con
+// esa fecha, así que no se sabía cuándo entró realmente ninguno.
+const hoyCL = () => new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
 /** RUT comparable: solo dígitos + dv en minúscula. "19.689.228-1" y "196892281" → "196892281" */
 const rutClave = (x) => String(x || '').replace(/[^0-9kK]/g, '').toLowerCase()
 /** ¿El texto es un RUT? (8-9 dígitos + dv, con o sin puntos/guion) */
@@ -88,9 +92,18 @@ export function buscar(query) {
 /** Alta/edición de un beneficiario (para "guardá a <persona>"). */
 export function guardar(b) {
   const lista = cargar()
-  const i = lista.findIndex((x) => x.id === b.id || norm(x.nombre) === norm(b.nombre))
-  if (i >= 0) lista[i] = { ...lista[i], ...b }
-  else lista.push({ id: b.id || norm(b.nombre).replace(/ /g, '-'), creado: '2026-07-21', ...b })
+  // DEDUP POR RUT + CUENTA, no por nombre (10-08-2026). Antes bastaba con que coincidiera el
+  // NOMBRE para pisar un contacto: dos personas o empresas homónimas se fusionaban y se
+  // terminaba transfiriendo a la cuenta equivocada — el riesgo exacto que levantó Nico.
+  // El par RUT+cuenta es lo único que identifica de verdad un destino de plata.
+  const rk = rutClave(b.rut), ck = String(b.cuenta || '').replace(/\D/g, '')
+  let i = -1
+  if (b.id) i = lista.findIndex((x) => x.id === b.id)
+  if (i < 0 && rk && ck) i = lista.findIndex((x) => rutClave(x.rut) === rk && String(x.cuenta || '').replace(/\D/g, '') === ck)
+  // Sin RUT ni cuenta (contacto viejo incompleto) se cae al nombre, como antes.
+  if (i < 0 && !rk) i = lista.findIndex((x) => norm(x.nombre) === norm(b.nombre))
+  if (i >= 0) lista[i] = { ...lista[i], ...b, actualizado: hoyCL() }
+  else lista.push({ id: b.id || norm(b.nombre).replace(/ /g, '-'), creado: hoyCL(), ...b })
   const raw = JSON.parse(readFileSync(FILE, 'utf8'))
   raw.beneficiarios = lista
   writeFileSync(FILE, JSON.stringify(raw, null, 2))
