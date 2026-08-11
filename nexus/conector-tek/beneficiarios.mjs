@@ -25,12 +25,37 @@ export function listar() {
  * - match exacto de alias → gana.
  * - si no, puntúa por tokens compartidos (nombre + alias). Empate/ambiguo → candidatos.
  */
+/** RUT comparable: solo dígitos + dv en minúscula. "19.689.228-1" y "196892281" → "196892281" */
+const rutClave = (x) => String(x || '').replace(/[^0-9kK]/g, '').toLowerCase()
+/** ¿El texto es un RUT? (8-9 dígitos + dv, con o sin puntos/guion) */
+const pareceRut = (x) => /^[0-9.\-]{7,12}[0-9kK]$/i.test(String(x || '').trim()) && rutClave(x).length >= 8
+
 export function buscar(query) {
   const q = norm(query)
-  if (!q) return { ok: false, error: 'Decime a quién (nombre).' }
-  const qtok = new Set(q.split(' '))
+  if (!q) return { ok: false, error: 'Decime a quién (nombre o RUT).' }
   const lista = cargar()
   if (!lista.length) return { ok: false, error: 'La libreta de beneficiarios está vacía.' }
+
+  // ── BÚSQUEDA POR RUT (10-08-2026, pedido de Nico) ────────────────────────────────
+  // Antes solo se buscaba por nombre, y dos personas/empresas de nombre parecido podían
+  // confundirse — con plata de por medio. El RUT es el identificador que NO se repite.
+  // Ojo: un mismo RUT puede tener VARIAS cuentas guardadas (la libreta tiene dos Joaquín
+  // con el mismo RUT: Cuenta Vista y Cuenta Corriente) → eso también se desambigua.
+  if (pareceRut(query)) {
+    const rq = rutClave(query)
+    const porRut = lista.filter((b) => rutClave(b.rut) === rq)
+    if (!porRut.length) return { ok: false, error: `No tengo a nadie guardado con el RUT ${query}.` }
+    if (porRut.length > 1) {
+      return {
+        ok: false, ambiguo: true, por_rut: true,
+        error: `Tengo ${porRut.length} cuentas guardadas con el RUT ${query}. ¿Cuál?`,
+        candidatos: porRut.map((b, i) => ({ n: i + 1, id: b.id, nombre: b.nombre, rut: b.rut, banco: b.banco, tipo_cuenta: b.tipo_cuenta, cuenta: b.cuenta })),
+      }
+    }
+    return { ok: true, beneficiario: porRut[0], por_rut: true }
+  }
+
+  const qtok = new Set(q.split(' '))
 
   const scored = lista.map((b) => {
     const aliases = [norm(b.nombre), ...(b.alias || []).map(norm)]
