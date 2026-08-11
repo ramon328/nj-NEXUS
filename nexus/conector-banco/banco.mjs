@@ -137,6 +137,9 @@ function sesionViva(user) {
     return Date.now() - statSync(f).mtimeMs < 12 * 60_000
   } catch { return false }
 }
+// Marca de tiempo SIEMPRE en hora de Chile y ya formateada. Nunca se entrega ISO con "Z":
+// el modelo la mostraba tal cual y salían 4 horas de más (Ramón vio "05:00 hrs" a la 1:00 AM).
+const tsCL = (t) => (t ? new Date(t).toLocaleString('es-CL', { timeZone: 'America/Santiago', dateStyle: 'short', timeStyle: 'short' }) : undefined)
 const empSlug = (e) => String(e || '').toLowerCase().replace(/[^a-z0-9]/g, '')
 const empCacheFile = (e) => join(TEK_DIR, 'data', `emp-${empSlug(e)}.json`)
 function leerEmpCache(e) { try { return JSON.parse(readFileSync(empCacheFile(e), 'utf8')) } catch { return null } }
@@ -232,7 +235,7 @@ async function movimientosEmpresa(empresa, { buscar, desde, hasta, limite = 30 }
   if (hasta) movs = movs.filter((m) => (m.fecha || '') <= hasta)
   movs.sort((a, b) => (b.fecha || '').localeCompare(a.fecha || ''))
   const total = movs.length
-  return { empresa, total_encontrados: total, mostrando: Math.min(total, Number(limite) || 30), movimientos: movs.slice(0, Number(limite) || 30).map((m) => mapMovEmpresa(m, empresa)), actualizado: c._ts ? new Date(c._ts).toISOString() : undefined, fuente: 'cache' }
+  return { empresa, total_encontrados: total, mostrando: Math.min(total, Number(limite) || 30), movimientos: movs.slice(0, Number(limite) || 30).map((m) => mapMovEmpresa(m, empresa)), actualizado: tsCL(c._ts), actualizado_nota: 'hora de Chile, mostrala TAL CUAL', fuente: 'cache' }
 }
 function resumenEmpresa(empresa, { anio } = {}) {
   const c = leerMovsCache(empresa)
@@ -260,7 +263,7 @@ function shapeSaldoEmpresa(empresa, r) {
   const totalCLP = r.total_clp ?? cuentas.filter((c) => (c.moneda || 'CLP') === 'CLP').reduce((s, c) => s + Number(c.disponible || 0), 0)
   return {
     empresa, cuentas, total_disponible_clp: totalCLP, total_disponible_clp_fmt: fmt(totalCLP, 'CLP'),
-    fuente: r._fuente || 'sesion', actualizado: r._ts ? new Date(r._ts).toISOString() : undefined,
+    fuente: r._fuente || 'sesion', actualizado: tsCL(r._ts), actualizado_nota: 'hora de Chile, mostrala TAL CUAL',
     ...(r._stale ? { nota: r._nota || 'último dato conocido (no pude refrescar ahora)' } : {}),
   }
 }
@@ -321,7 +324,7 @@ export async function saldosTodas({ userId } = {}) {
     // salía de la tek-api (quedaba en 24-jul) mientras las otras eran de hoy → dato mezclado.
     const r = saldoEmpresaCache(c.empresa)
     if (!r && esAnaClara(null, c.empresa)) { try { const t = await tekSaldos(); empresasOut.push(t); continue } catch { /* */ } }
-    empresasOut.push(r ? { ...shapeSaldoEmpresa(c.empresa, r), _ts: r._ts || null } : { empresa: c.empresa, sin_dato: true, nota: 'aún sin leer — se actualiza en el refresco de la mañana o al consultar esa empresa puntual' })
+    empresasOut.push(r ? { ...shapeSaldoEmpresa(c.empresa, r), _ts: r._ts || null, actualizado: tsCL(r._ts) } : { empresa: c.empresa, sin_dato: true, nota: 'aún sin leer — se actualiza en el refresco de la mañana o al consultar esa empresa puntual' })
   }
   const totalCLP = empresasOut.reduce((s, e) => s + Number(e.total_disponible_clp || 0), 0)
   // Hora del dato MÁS VIEJO (para que el modelo diga "actualizado a las …" y no lo pase por "ahora").
