@@ -3896,8 +3896,14 @@ async function ejecutar(nombre, input, ctx = {}) {
           return JSON.stringify(pend.marcarListo(String(input.id || ''), input.texto || ''))
         }
         const l = pend.listar({ incluir_listos: input.incluir_listos === true })
-        return JSON.stringify({ ok: true, total: l.length, pendientes: l,
-          instruccion: l.length ? 'Muéstralos agrupados por prioridad, con quién lo pidió y cuántas veces. Si algo se pidió varias veces, destácalo.' : 'No hay pendientes abiertos: dilo tal cual.' })
+        // Cuántos ya se implementaron: sin este dato, al no ver un pendiente que se anotó
+        // antes, el modelo creía que "se había perdido" y ofrecía re-anotarlo (pasó al probar).
+        const listos = pend.listar({ incluir_listos: true }).filter((p) => p.estado === 'listo')
+        return JSON.stringify({ ok: true, total: l.length, pendientes: l, ya_implementados: listos.length,
+          implementados: listos.map((p) => ({ texto: p.texto, listo_el: p.listo_el })),
+          instruccion: l.length
+            ? `Muéstralos agrupados por prioridad, con quién lo pidió. Cierra diciendo que además hay ${listos.length} ya implementados. ⛔ Si echas de menos alguno que se anotó antes, NO digas que "se perdió": revisa la lista de implementados — lo más probable es que ya esté resuelto.`
+            : 'No hay pendientes abiertos: dilo tal cual, y menciona cuántos ya se implementaron.' })
       } catch (e) { return JSON.stringify({ ok: false, error: 'No pude usar el backlog: ' + e.message }) }
     }
     if (nombre === 'tek_beneficiarios') {
@@ -6293,8 +6299,32 @@ async function ejecutar(nombre, input, ctx = {}) {
           })
         }
         if (input.accion === 'job') {
-          const r = await fetch(`${base}/api/jobs/${encodeURIComponent(input.job_id)}`, { headers: H })
-          return JSON.stringify(await r.json())
+          // ESPERA a que el job TERMINE en vez de devolver una foto instantánea.
+          // Antes devolvía el estado del momento: el modelo consultaba 3-4 veces, seguía
+          // viendo "descargando" y concluía que estaba trabado. El 10-08-2026 le dijo a la
+          // persona que la carpeta tributaria había fallado… mientras el PDF (38 págs) se
+          // generaba bien 40 segundos después. Un job del SII tarda ~1 min; esperar acá es
+          // más fiable que confiar en que el modelo insista.
+          const t0 = Date.now()
+          const TOPE = 4 * 60_000
+          let j = null
+          while (Date.now() - t0 < TOPE) {
+            const r = await fetch(`${base}/api/jobs/${encodeURIComponent(input.job_id)}`, { headers: H })
+            j = await r.json().catch(() => null)
+            const est = String(j?.estado || j?.status || '')
+            if (/completado|error|listo|finalizado|fallido/i.test(est)) break
+            await new Promise((res) => setTimeout(res, 5000))
+          }
+          const est = String(j?.estado || j?.status || 'desconocido')
+          const seg = Math.round((Date.now() - t0) / 1000)
+          const logTxt = (j?.log || []).map((l) => (typeof l === 'string' ? l : l?.msg || '')).filter(Boolean)
+          const exito = logTxt.some((m) => /✅/.test(m))
+          return JSON.stringify({ ...j, espera_seg: seg,
+            instruccion: /completado|listo|finalizado/i.test(est)
+              ? (exito
+                ? '✅ El job TERMINÓ BIEN. Ahora llama accion:"documentos" para ver el archivo y accion:"enviar" con su "ruta" para mandárselo. ⛔ NO digas que falló ni que quedó trabado: mira el log, hay líneas con ✅.'
+                : 'El job terminó pero el log NO muestra ✅ de éxito. Revisa el log y dile a la persona lo que dice, sin inventar la causa. Igual chequea accion:"documentos" por si el archivo quedó.')
+              : `El job sigue en "${est}" tras ${seg}s. NO afirmes que falló: dile que sigue procesando y que lo revisas en un momento.` })
         }
         if (input.accion === 'documentos') {
           if (empresaBloqueada(input.empresa_id)) return '🔒 No tienes acceso al SII de esa empresa; solo el de tu(s) empresa(s).'

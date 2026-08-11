@@ -95,5 +95,20 @@
     "ultima_vez": "2026-08-11",
     "listo_el": "2026-08-11",
     "nota_cierre": "implementado 10-08-2026: tool tek_beneficiarios accion listar"
+  },
+  {
+    "id": "p_a72443",
+    "texto": "La descarga de carpeta tributaria del SII (docs:[\"carpeta_oficial\"]) sigue trabada: se queda pegada indefinidamente en \"Validando sesión para la carpeta tributaria (reutiliza)\" y nunca completa el job (probado de nuevo el 11-08-2026 con ACE SPA, periodo agosto 2026, job 985ef343ed71). El pendiente anterior se había marcado \"listo\" pero el problema persiste igual.",
+    "area": "sii",
+    "prioridad": "alta",
+    "estado": "listo",
+    "pedido_por": [
+      "Ramon"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-11",
+    "ultima_vez": "2026-08-11",
+    "listo_el": "2026-08-11",
+    "nota_cierre": "FALSO POSITIVO: el PDF si se generaba; el bug era que Nexus no esperaba a que el job terminara. Arreglado 10-08-2026."
   }
 ]
