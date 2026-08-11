@@ -2416,7 +2416,11 @@ const HERRAMIENTAS = [
         empresa_id: { type: 'integer', description: 'id de la empresa (lo da accion:estado). ANA CLARA SPA = 3 · ACE SPA = 4. OBLIGATORIO en accion:"emitir" (no hay default): si la persona no dijo la empresa, pregúntale antes. En un "emitir_real=true" pelado se hereda la del borrador que ya armaste, no hace falta repetirla.' },
         desde: { type: 'string', description: 'periodo inicio AAAAMM, ej "202605"' },
         hasta: { type: 'string', description: 'periodo fin AAAAMM (si es uno solo, igual a desde)' },
-        docs: { type: 'array', items: { type: 'string' }, description: 'tipos a bajar, ej ["rcv_compra"] o ["f29","rcv_venta"]. Para el DETALLE de las facturas (PDF timbrado con líneas de productos de cada factura de compra recibida): ["facturas"].' },
+        docs: { type: 'array', items: { type: 'string' }, description: 'tipos a bajar: "rcv_compra", "rcv_venta", "f29", "f22", "ficha", "boletas", "libros", "facturas" (PDF timbrado con líneas de cada factura de compra recibida) y **"carpeta_oficial"** = CARPETA TRIBUTARIA, el PDF oficial del SII de 44 págs con timbre que piden los bancos para CRÉDITOS. ⚠️ "carpeta_oficial" EXIGE además dest_rut (y ojalá email): sin eso el SII no genera nada.' },
+        dest_rut: { type: 'string', description: 'Solo para docs:["carpeta_oficial"]: RUT del DESTINATARIO de la carpeta tributaria. DEBE ser distinto al de la empresa (el SII le manda un aviso por correo). Suele ser el banco/institución que la pide, o el RUT personal de quien la va a reenviar.' },
+        dest_nombre: { type: 'string', description: 'Solo para "carpeta_oficial": nombre o razón social del destinatario (opcional).' },
+        email: { type: 'string', description: 'Solo para "carpeta_oficial": correo del destinatario, donde el SII avisa que la carpeta fue generada.' },
+        institucion: { type: 'string', description: 'Solo para "carpeta_oficial": institución a la que se le entrega (ej. "Banco de Chile"). Si no se sabe, queda "USO INTERNO".' },
         job_id: { type: 'string', description: 'id del job (lo da accion:descargar)' },
         ruta: { type: 'string', description: 'para "enviar": la ruta del archivo tal cual sale en accion:documentos' },
         titulo: { type: 'string', description: 'para "enviar": texto/caption opcional junto al archivo' },
@@ -6127,6 +6131,25 @@ async function ejecutar(nombre, input, ctx = {}) {
           if (!input.empresa_id) return 'Falta empresa_id (consíguelo con accion:estado).'
           if (empresaBloqueada(input.empresa_id)) return '🔒 No tienes acceso al SII de esa empresa; solo el de tu(s) empresa(s).'
           const body = { desde: input.desde, hasta: input.hasta || input.desde, docs: input.docs || [] }
+          // 📁 CARPETA TRIBUTARIA (arreglo 10-08-2026). El tipo "carpeta_oficial" EXISTE en el
+          // backend y es estable, pero exige destinatario (dest_rut/dest_nombre/email) porque el
+          // SII genera el documento y le manda un aviso por correo a ese RUT. Esos campos NO
+          // estaban en el schema ni se enviaban: el job corría, terminaba "completado" y no
+          // generaba archivo. Nico la pidió para un crédito y Nexus concluyó —mal— que el
+          // documento "no está soportado". Sí está: lo que faltaba era pasar el destinatario.
+          const pideCarpeta = (input.docs || []).includes('carpeta_oficial')
+          if (pideCarpeta) {
+            const dr = String(input.dest_rut || '').trim()
+            if (!dr) {
+              return JSON.stringify({ ok: false, falta_dato: true,
+                error: 'La carpeta tributaria necesita un DESTINATARIO con RUT DISTINTO al de la empresa (el SII le manda un aviso por correo).',
+                instruccion: 'Pídele a la persona el RUT y el correo del destinatario (suele ser el banco/institución que la pide, o su propio RUT personal si la va a reenviar). Después vuelve a llamar con dest_rut, email y, si lo sabes, dest_nombre e institucion.' })
+            }
+            body.dest_rut = dr
+            if (input.dest_nombre) body.dest_nombre = String(input.dest_nombre).trim()
+            if (input.email) body.email = String(input.email).trim()
+            body.institucion = String(input.institucion || 'USO INTERNO').trim()
+          }
           // 📅 GUARDIA DE PERIODO (incidente real 09-ago-2026): Nico pidió "julio 2026" de
           // ACE y el modelo mandó desde:"202507" (julio 2025) — un mes sin documentos. El
           // SII respondió 0 correctamente y Nexus reportó "julio 2026: sin facturas", que

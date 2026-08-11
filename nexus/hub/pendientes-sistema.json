@@ -1,0 +1,99 @@
+[
+  {
+    "id": "p_4657dc",
+    "texto": "La carpeta tributaria del SII todavía no se puede descargar (falta habilitar esa descarga en la herramienta sii)",
+    "area": "sii",
+    "prioridad": "alta",
+    "estado": "listo",
+    "pedido_por": [
+      "Ramon"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-11",
+    "ultima_vez": "2026-08-11",
+    "listo_el": "2026-08-11",
+    "nota_cierre": "implementado 10-08-2026: faltaban los campos de destinatario (dest_rut/email/institucion); probado, PDF de 38 pags generado"
+  },
+  {
+    "id": "p_6a8125",
+    "texto": "Listar los destinatarios inscritos DENTRO del banco (no solo la libreta local de Nexus)",
+    "area": "banco",
+    "prioridad": "media",
+    "estado": "abierto",
+    "pedido_por": [
+      "Nico"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-11",
+    "ultima_vez": "2026-08-11"
+  },
+  {
+    "id": "p_6c4fef",
+    "texto": "Saldos \"en vivo\" de verdad: al pedir todas, hoy mezcla cachés de distinta hora en vez de leer al momento",
+    "area": "banco",
+    "prioridad": "media",
+    "estado": "abierto",
+    "pedido_por": [
+      "Nico"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-11",
+    "ultima_vez": "2026-08-11"
+  },
+  {
+    "id": "p_66262b",
+    "texto": "Comprobantes de pago no funcionan: no llega al histórico de la empresa (se queda en el selector)",
+    "area": "banco",
+    "prioridad": "alta",
+    "estado": "abierto",
+    "pedido_por": [
+      "Ramon"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-11",
+    "ultima_vez": "2026-08-11"
+  },
+  {
+    "id": "p_67de21",
+    "texto": "Masiva falla en Inversiones Baleares y Food Expert: falta perfilar la cuenta origen para el servicio (tramite del ejecutivo del banco)",
+    "area": "banco",
+    "prioridad": "media",
+    "estado": "abierto",
+    "pedido_por": [
+      "Ramon"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-11",
+    "ultima_vez": "2026-08-11"
+  },
+  {
+    "id": "p_7347e8",
+    "texto": "Buscar destinatario por RUT ademas de por nombre",
+    "area": "banco",
+    "prioridad": "alta",
+    "estado": "listo",
+    "pedido_por": [
+      "Nico"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-11",
+    "ultima_vez": "2026-08-11",
+    "listo_el": "2026-08-11",
+    "nota_cierre": "implementado 10-08-2026: la libreta acepta RUT en cualquier formato y el RUT manda sobre el nombre"
+  },
+  {
+    "id": "p_2ed56a",
+    "texto": "Poder listar los destinatarios guardados",
+    "area": "banco",
+    "prioridad": "media",
+    "estado": "listo",
+    "pedido_por": [
+      "Nico"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-11",
+    "ultima_vez": "2026-08-11",
+    "listo_el": "2026-08-11",
+    "nota_cierre": "implementado 10-08-2026: tool tek_beneficiarios accion listar"
+  }
+]
