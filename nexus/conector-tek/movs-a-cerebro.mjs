@@ -34,7 +34,15 @@ function volcar(archivo) {
     if (!/^\d{4}-\d{2}$/.test(mes)) continue
     ;(porMes[mes] ||= []).push(m)
   }
-  const carpeta = join(CEREBRO, `Cartolas ${empresa}`)
+  // REUSAR la carpeta que YA existe en vez de crear una casi igual. "ANA CLARA" (con enero
+  // a julio) y "ANA CLARA SPA" convivían como si fueran dos empresas distintas — el histórico
+  // quedaba partido en dos y nadie lo notaba. Se busca por nombre normalizado (sin SPA/LTDA).
+  const norm = (x) => String(x).toUpperCase().replace(/\b(SPA|S\.A\.?|LTDA|LIMITADA|ASOCIADOS)\b/g, '').replace(/[^A-Z0-9]/g, '')
+  let carpeta = join(CEREBRO, `Cartolas ${empresa}`)
+  try {
+    const existente = readdirSync(CEREBRO).find((d) => d.startsWith('Cartolas ') && norm(d.slice(9)) === norm(empresa))
+    if (existente) carpeta = join(CEREBRO, existente)
+  } catch { /* si no se puede listar, se usa el nombre tal cual */ }
   mkdirSync(carpeta, { recursive: true })
   const escritos = []
   for (const [mes, movs] of Object.entries(porMes)) {
