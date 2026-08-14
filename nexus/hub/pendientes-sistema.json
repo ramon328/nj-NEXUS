@@ -114,5 +114,18 @@
     "ultima_vez": "2026-08-11",
     "listo_el": "2026-08-11",
     "nota_cierre": "FALSO POSITIVO: el PDF si se generaba; el bug era que Nexus no esperaba a que el job terminara. Arreglado 10-08-2026."
+  },
+  {
+    "id": "p_529606",
+    "texto": "Falta una herramienta para ELIMINAR/corregir un gasto ya registrado (tabla gastos de la BD nueva) — pasó con un gasto de $89.059 (permiso circulación KXTK54) que se cargó como general por error y hay que reasignarlo a un auto, pero no hay forma de borrar el duplicado general.",
+    "area": "mallorca",
+    "prioridad": "media",
+    "estado": "abierto",
+    "pedido_por": [
+      "Joaquin"
+    ],
+    "pedido_veces": 1,
+    "fecha": "2026-08-14",
+    "ultima_vez": "2026-08-14"
   }
 ]
