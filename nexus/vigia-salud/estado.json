@@ -1,5 +1,5 @@
 {
-  "ts": "2026-08-14T16:02:44.306Z",
+  "ts": "2026-08-14T16:11:47.114Z",
   "estado": "AMARILLO",
   "nivel": 1,
   "razones": [
@@ -7,10 +7,10 @@
     "Disco alto (86%)"
   ],
   "metricas": {
-    "load1": 1.41,
+    "load1": 1.38,
     "nucleos": 6,
-    "loadPorNucleo": 0.24,
-    "ramLibreMB": 6552,
+    "loadPorNucleo": 0.23,
+    "ramLibreMB": 6514,
     "ramTotalMB": 32768,
     "swapUsedMB": 1602,
     "compresorMB": 2036,
