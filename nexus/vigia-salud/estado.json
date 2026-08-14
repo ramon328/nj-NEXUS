@@ -1,5 +1,5 @@
 {
-  "ts": "2026-08-14T19:15:38.331Z",
+  "ts": "2026-08-14T19:24:41.024Z",
   "estado": "AMARILLO",
   "nivel": 1,
   "razones": [
@@ -7,15 +7,15 @@
     "Disco alto (86%)"
   ],
   "metricas": {
-    "load1": 1.29,
+    "load1": 1.17,
     "nucleos": 6,
-    "loadPorNucleo": 0.21,
-    "ramLibreMB": 6818,
+    "loadPorNucleo": 0.2,
+    "ramLibreMB": 6829,
     "ramTotalMB": 32768,
     "swapUsedMB": 1602,
     "compresorMB": 2006,
     "discoPct": 86,
-    "procesos": 737,
+    "procesos": 738,
     "sesionesClaude": 0,
     "sesionesClaudeViejas": 0
   },
