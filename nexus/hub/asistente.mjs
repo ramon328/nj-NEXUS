@@ -5251,19 +5251,23 @@ async function ejecutar(nombre, input, ctx = {}) {
           // hace rato o que el hub se haya reiniciado (la memoria de adjuntos es RAM, 20 min).
           const docsEmpresa = {}
           if (esEmpresa) {
-            const esPdf = (f) => /\.pdf$/i.test(String(f))
-            let pdfs = (Array.isArray(ctx.media) ? ctx.media : []).filter(esPdf)
+            // Acepta PDF **e IMÁGENES**: el e-RUT casi siempre llega como foto/captura de
+            // la app del SII, no como PDF (15-08-2026: por filtrar solo PDF, el e-RUT de
+            // Trade Marketing nunca se subió).
+            const esDoc = (f) => /\.(pdf|jpe?g|png|webp|heic)$/i.test(String(f))
+            const esImagen = (f) => /\.(jpe?g|png|webp|heic)$/i.test(String(f))
+            let pdfs = (Array.isArray(ctx.media) ? ctx.media : []).filter(esDoc)
             if (!pdfs.length && ctx.de) {
-              try { pdfs = historial.adjuntosDe(ctx.de, { horas: 72 }).filter(esPdf) } catch { /* seguimos sin documentos */ }
+              try { pdfs = historial.adjuntosDe(ctx.de, { horas: 72 }).filter(esDoc) } catch { /* seguimos sin documentos */ }
             }
             const clasificar = (ruta) => {
               const n = String(ruta).split('/').pop().toLowerCase()
               if (/constituc/.test(n)) return 'societyConstitution'
               if (/poder/.test(n)) return 'validityOfPowers'
-              if (/sociedad|vigencia_soc/.test(n)) return 'validityOfSociety'
+              if (/sociedad|vigencia[_ -]?soc/.test(n)) return 'validityOfSociety'
               if (/modificac/.test(n)) return 'societyModifications'
               if (/estatuto/.test(n)) return 'updatedStatute'
-              if (/e-?rut|rut_/.test(n)) return 'eRutSii'
+              if (/e-?rut|rut[_ -]|_rut|sii/.test(n)) return 'eRutSii'
               return null
             }
             // Lo que diga el modelo manda por sobre el nombre del archivo.
@@ -5274,6 +5278,11 @@ async function ejecutar(nombre, input, ctx = {}) {
               const campo = clasificar(ruta)
               if (campo && !docsEmpresa[campo]) docsEmpresa[campo] = ruta
             }
+            // Una IMAGEN suelta que no calzó con ningún nombre es casi siempre el e-RUT
+            // (la captura de la app del SII). No se manda a ciegas: se propone y la
+            // persona la ve en el borrador antes de confirmar.
+            const sueltas = pdfs.filter((f) => esImagen(f) && !Object.values(docsEmpresa).includes(f))
+            if (!docsEmpresa.eRutSii && sueltas.length === 1) docsEmpresa.eRutSii = sueltas[0]
           }
           const vendedor = esEmpresa
             ? {
