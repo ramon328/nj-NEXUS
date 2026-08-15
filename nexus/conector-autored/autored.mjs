@@ -923,3 +923,117 @@ Escritura (cobra) solo vía import + AUTORED_PERMITIR_ESCRITURA=1 + { confirmar:
 }
 
 if (import.meta.url === `file://${process.argv[1]}`) cli();
+
+// ============================================================
+//  CONTRATO DE EMPRESA (B2B) — el formato que Mallorca usa DE VERDAD
+// ============================================================
+// Ramón, 15-08-2026: "tiene que ser contrato de empresa nada más". Las solicitudes
+// reales de la cuenta lo confirman: el Contrato Abierto (B2B_OC) NO es lo que usan.
+// Lo que usan es `kind:'B2B'` con:
+//   · createdBy 'buyers'  → AUTOMOTORA COMPRA: ANA CLARA SPA va de COMPRADORA
+//                           (ej. solicitud 513 / GPBT31, vendedora Elisa Prado).
+//   · createdBy 'sellers' → AUTOMOTORA VENDE: ANA CLARA SPA va de VENDEDORA
+//                           (ej. solicitud 473 / SPCT11, compradora WINDMADE SPA).
+// El B2B es más corto que el Contrato Abierto: `editableSteps` = ["uploadDocuments",
+// "enterInfo"], sin mandato irrevocable a Autosafe ni firma previa del vendedor.
+
+// Datos de la empresa, copiados TAL CUAL de cómo quedó guardada en la solicitud 513
+// (que la hizo Joaquín a mano en la web de AutoRed y llegó a PAY_TAXES sin rebotar).
+// Los campos autogenerados del representante (id, companyId, createdAt, ...) NO se
+// re-envían: el backend los resuelve por RUT contra la empresa registrada (id 506).
+export const ANA_CLARA = {
+  rut: '77.271.121-2',
+  socialReason: 'ANA CLARA SPA',
+  street: 'Caupolican',
+  houseNumber: '9291',
+  dpto: '',
+  commune: { id: '100', name: 'Quilicura', region: { id: '7', name: 'Metropolitana de Santiago' } },
+  isPublicDeed: false,
+  constitutionDate: '2020-12-03',
+  companyNotaryName: '',
+  companyNotaryCommune: '',
+  legalRepresentative: [{
+    name: 'Nicolás Patricio',
+    fLastName: 'Juri',
+    mLastName: 'Caballero',
+    rut: '16.142.580-K',
+    // El email aparece distinto entre contratos (njuri@mallorcautos.cl en el 473,
+    // nicolas.juri@importhn.com en el 513). Se deja el de Mallorca por ser el de la
+    // empresa del contrato; se puede pisar con AUTORED_REP_EMAIL en el .env.
+    email: process.env.AUTORED_REP_EMAIL || 'njuri@mallorcautos.cl',
+    phone: '+56975481858',
+  }],
+};
+
+export const MODOS_B2B = {
+  compra: { clientType: 'buyers', titulo: 'Automotora Compra', ladoEmpresa: 'buyers', ladoContraparte: 'sellers' },
+  venta: { clientType: 'sellers', titulo: 'Automotora Vende', ladoEmpresa: 'sellers', ladoContraparte: 'buyers' },
+};
+
+// Paso 1 — crear la solicitud B2B. ⚠️ COBRA igual que el Contrato Abierto: 1 crédito + el CAV.
+export async function crearContratoEmpresa(patente, { modo = 'compra', prohibicion = null, forzar = false, confirmar = false } = {}) {
+  const m = MODOS_B2B[modo];
+  if (!m) throw new Error(`Modo inválido "${modo}": usa "compra" o "venta".`);
+  const pat = String(patente || '').toUpperCase().replace(/[\s.\-]/g, '');
+  const payload = {
+    email: EMAIL,
+    licensePlate: pat,
+    phone: '',
+    clientType: m.clientType,
+    kind: 'B2B',
+    creditor: { name: prohibicion?.name || '', rut: prohibicion?.rut || '' },
+    forceCreation: Boolean(forzar),
+  };
+  const g = guardia('initialize', payload, confirmar);
+  if (g) return { ...g, nota: `Crea el contrato de empresa (${m.titulo}): 1 crédito + la compra del CAV.` };
+  const r = await api(`${API_TR}/business/transfers/initialize`, { method: 'POST', body: payload });
+  anotarMapeo('initialize-b2b', { patente: pat, modo, clientType: m.clientType, respuesta: JSON.stringify(r).slice(0, 400) });
+  return r;
+}
+
+// ¿De qué lado va la empresa en esta solicitud? Se lee del propio contrato (`createdBy`),
+// nunca se adivina: es lo que decide si ANA CLARA es compradora o vendedora.
+export function modoDeContrato(estado) {
+  if (estado?.kind !== 'B2B') return null;
+  if (estado.createdBy === 'buyers') return 'compra';
+  if (estado.createdBy === 'sellers') return 'venta';
+  return null;
+}
+
+// Paso 2 — `enter-info` del B2B. Mismo endpoint y mismo multipart que el Contrato Abierto:
+// manda AMBOS lados juntos y el backend los reemplaza. La diferencia es que un lado ya lo
+// sabemos (ANA CLARA) y el otro es la contraparte que nos dicta la persona.
+export async function ingresarPartesB2B(publicId, contraparte, { confirmar = false } = {}) {
+  const estado = await estadoTransferencia(publicId);
+  const modo = modoDeContrato(estado);
+  if (!modo) throw new Error(`La solicitud ${publicId} no es un contrato de empresa B2B (kind ${estado?.kind}, createdBy ${estado?.createdBy}). Para un Contrato Abierto usa ingresarCompradorOC.`);
+  const m = MODOS_B2B[modo];
+  const payload = {
+    [m.ladoEmpresa]: [ANA_CLARA],
+    [m.ladoContraparte]: [armarComprador(contraparte)],
+  };
+  const g = guardia('enterInfo', { publicId, endpoint: 'enter-info', modo, titulo: m.titulo, empresa: m.ladoEmpresa, contraparte: payload[m.ladoContraparte] }, confirmar);
+  if (g) return { ...g, modo, titulo: m.titulo, nota: `${m.titulo}: ANA CLARA SPA va como ${m.ladoEmpresa === 'buyers' ? 'COMPRADORA' : 'VENDEDORA'} y la contraparte del otro lado.` };
+  if (ESTADOS_MUERTOS.includes(estado.status)) throw new Error(`No se escribe sobre una solicitud ${estado.status}: enter-info cancelado (${publicId}). Escribirle la REVIVE.`);
+  const fd = new FormData();
+  aplanarEnFormData(fd, payload);
+  const r = await fetch(`${API_TR}/business/transfers/${publicId}/enter-info`, {
+    method: 'POST', headers: { accept: 'application/json', cookie: `authorization=${await jwt()}` }, body: fd,
+  });
+  const txt = await r.text();
+  anotarMapeo('enter-info-b2b', { publicId, modo, claves: [...fd.keys()], http: r.status, respuesta: txt.slice(0, 600) });
+  // Igual que en el OC: puede tardar y devolver 504 sin haber guardado. No concluir solo.
+  if (!r.ok) throw new Error(`HTTP ${r.status} enter-info (${m.titulo}): ${txt.slice(0, 300)}`);
+  return { ok: true, publicId, modo, titulo: m.titulo, respuesta: (() => { try { return JSON.parse(txt); } catch { return txt; } })() };
+}
+
+// Previsualiza las claves planas del enter-info B2B sin mandar nada (control del mapeo).
+export async function clavesEnterInfoB2B(publicId, contraparte) {
+  const estado = await estadoTransferencia(publicId);
+  const modo = modoDeContrato(estado);
+  if (!modo) throw new Error(`La solicitud ${publicId} no es B2B.`);
+  const m = MODOS_B2B[modo];
+  const fd = new FormData();
+  aplanarEnFormData(fd, { [m.ladoEmpresa]: [ANA_CLARA], [m.ladoContraparte]: [armarComprador(contraparte)] });
+  return [...fd.entries()].map(([k, v]) => `${k} = ${v}`);
+}
