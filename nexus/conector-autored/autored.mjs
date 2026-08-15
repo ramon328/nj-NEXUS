@@ -370,17 +370,35 @@ export async function ingresarVendedorEmpresaOC(publicId, empresa, { confirmar =
     plano[`sellers.0.legalRepresentative.${i}.email`] = r.email || '';
   });
 
-  const g = guardia('enterInfo', { publicId, ...plano }, confirmar);
+  // DOCUMENTOS DE SOCIEDAD: van como ARCHIVO en la misma clave punteada
+  // (`sellers.0.<campo>`); el backend los reconoce por el nombre del campo. Son
+  // opcionales — en GYWL24 fueron todos false y el contrato avanzó igual —, pero
+  // cargarlos evita que los pidan más adelante.
+  const docs = e.documentos || {};
+  const adjuntos = {};
+  for (const campo of DOCS_EMPRESA) {
+    const ruta = docs[campo];
+    if (!ruta) continue;
+    if (!fs.existsSync(ruta)) throw new Error(`No encuentro el documento ${NOMBRE_DOC_EMPRESA[campo] || campo}: ${ruta}`);
+    adjuntos[campo] = ruta;
+  }
+  const g = guardia('enterInfo', { publicId, ...plano, documentos: Object.fromEntries(Object.entries(adjuntos).map(([k, ruta]) => [k, path.basename(ruta)])) }, confirmar);
   if (g) return g;
   const fd = new FormData();
   for (const [k, val] of Object.entries(plano)) fd.append(k, val);
+  for (const [campo, ruta] of Object.entries(adjuntos)) {
+    // El MIME va SÍ o SÍ: un Blob sin `type` viaja como octet-stream y AutoRed lo rechaza.
+    fd.append(`sellers.0.${campo}`, new Blob([fs.readFileSync(ruta)], { type: mimeDeArchivo(ruta) }), path.basename(ruta));
+  }
   const r = await fetch(`${API_TR}/business/transfers/${publicId}/enter-seller-info`, {
     method: 'POST',
     headers: { accept: 'application/json', cookie: `authorization=${await jwt()}` },
     body: fd,
   });
-  if (!r.ok) throw new Error(`HTTP ${r.status} enter-seller-info (empresa): ${(await r.text()).slice(0, 200)}`);
-  return { ok: true, publicId, tipo: 'empresa', firmante: reps[0] };
+  const txt = await r.text();
+  anotarMapeo('enter-seller-info-empresa', { publicId, claves: [...fd.keys()], documentos: Object.keys(adjuntos), http: r.status, respuesta: txt.slice(0, 600) });
+  if (!r.ok) throw new Error(`HTTP ${r.status} enter-seller-info (empresa): ${txt.slice(0, 200)}`);
+  return { ok: true, publicId, tipo: 'empresa', firmante: reps[0], documentos_subidos: Object.keys(adjuntos) };
 }
 
 // Paso C (lectura): link de firma del mandato + estado del firmante.
@@ -509,6 +527,17 @@ export function mimeDeArchivo(ruta) {
   return MIMES[path.extname(String(ruta || '')).toLowerCase()] || 'application/octet-stream';
 }
 export const FORMATOS_PERMISO = Object.keys(MIMES);
+
+// Documentos de sociedad que acepta el formulario de EMPRESA (vendedor o comprador).
+export const DOCS_EMPRESA = ['societyConstitution', 'validityOfPowers', 'validityOfSociety', 'societyModifications', 'updatedStatute', 'eRutSii'];
+export const NOMBRE_DOC_EMPRESA = {
+  societyConstitution: 'Escritura de constitución',
+  validityOfPowers: 'Vigencia de poderes',
+  validityOfSociety: 'Vigencia de sociedad',
+  societyModifications: 'Modificaciones de la sociedad',
+  updatedStatute: 'Estatuto actualizado',
+  eRutSii: 'e-RUT del SII',
+};
 
 // PASO 1 — Permiso de circulación + tasación + precio + formas de pago.
 // multipart: drivingPermit (archivo), commune, siiCode, taxationPrice, expirationDate,
