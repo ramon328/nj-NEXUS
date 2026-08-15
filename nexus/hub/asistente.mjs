@@ -5320,6 +5320,7 @@ async function ejecutar(nombre, input, ctx = {}) {
             let tasaciones = null
             if (c.paso === 'permiso') { try { tasaciones = await autored.impuestosVehiculo(publicId) } catch { /* opcional */ } }
             const alertas = []
+            if (c.paso === 'permiso' && Array.isArray(tasaciones) && !tasaciones.length) alertas.push('AutoRed no tiene tasaciones fiscales para este auto (pasa con los del año en curso): el código SII y el monto hay que sacarlos del permiso de circulación, no de una lista.')
             if (c.limitaciones_dominio) alertas.push('El auto tiene LIMITACIONES AL DOMINIO: la transferencia puede quedar trabada.')
             if (c.vendedor_invalido) alertas.push('AutoRed marcó al vendedor como inválido.')
             if (c.deuda_pension_vendedor) alertas.push('El VENDEDOR tiene deuda de pensión de alimentos (Ley 21.389): bloquea la transferencia.')
@@ -5368,7 +5369,15 @@ async function ejecutar(nombre, input, ctx = {}) {
             if (!archivo) falta.push('el permiso de circulación (que lo mande por WhatsApp, foto o PDF)')
             if (!p.comuna) falta.push('la comuna donde se pagó el permiso')
             if (!p.vencimiento) falta.push('la fecha de vencimiento del permiso')
-            if (!elegida && !p.siiCode) falta.push('cuál de las tasaciones fiscales corresponde (mostrale la lista con versión y precio)')
+            // AutoRed devuelve la lista VACÍA en autos del año en curso (visto el 15-08-2026
+            // con dos 2026: el SII aún no publica su tasación). No es un error: la salida es
+            // tomar el código y el monto del propio permiso de circulación, que los imprime.
+            const sinTasaciones = !tasaciones.length
+            if (!elegida && !p.siiCode) {
+              falta.push(sinTasaciones
+                ? 'el CÓDIGO SII y el MONTO de la tasación, sacados del propio permiso de circulación (AutoRed no tiene tasaciones para este auto)'
+                : 'cuál de las tasaciones fiscales corresponde (mostrale la lista con versión y precio)')
+            }
             if (!precio) falta.push('el precio de venta')
             if (sumaPagos === 0) falta.push('las formas de pago (efectivo / crédito / tarjeta / al contado / cheque / vale vista)')
             const tasacionPrecio = elegida?.price ?? p.tasacionPrecio ?? null
@@ -5395,6 +5404,7 @@ async function ejecutar(nombre, input, ctx = {}) {
                   suma_formas_pago: plata(sumaPagos),
                 },
                 tasaciones_disponibles: tasaciones.map((t) => ({ codigo: t.code, version: t.version, precio: plata(t.price) })),
+                sin_tasaciones: sinTasaciones ? 'AutoRed NO tiene tasaciones fiscales para este auto (pasa con los del año en curso). NO le pidas que elija de una lista vacía: el permiso de circulación trae impreso el código SII y el monto — el código son las 2 letras + los 7 dígitos que siguen (ej. "VN176007320" → siiCode "VN1760073"). Pásalos como siiCode y tasacionPrecio.' : null,
                 impuesto_estimado: `${plata(costo.impuesto)} (1,5% sobre ${plata(costo.base)}) + ${plata(costo.registro_civil)} de Registro Civil = ${plata(costo.total)}`,
                 falta: falta.length ? falta : null,
                 aviso_vencimiento: avisoVencimiento,

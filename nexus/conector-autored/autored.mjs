@@ -81,7 +81,7 @@ async function jwt() {
   return s.jwt;
 }
 
-async function api(url, { method = 'GET', body, params } = {}) {
+async function api(url, { method = 'GET', body, params, _reintento = false } = {}) {
   const u = new URL(url);
   if (params) for (const [k, v] of Object.entries(params)) if (v != null) u.searchParams.set(k, v);
   const r = await fetch(u, {
@@ -95,6 +95,12 @@ async function api(url, { method = 'GET', body, params } = {}) {
   });
   const txt = await r.text();
   let data; try { data = JSON.parse(txt); } catch { data = txt; }
+  // Sesión caída antes de su `exp` (AutoRed puede invalidar la cookie): re-loguear
+  // UNA vez y repetir. Solo en LECTURAS (GET): un POST reintentado podría cobrar dos veces.
+  if (r.status === 401 && !_reintento && method === 'GET') {
+    try { fs.unlinkSync(SESION_FILE); } catch { /* no había sesión guardada */ }
+    return api(url, { method, body, params, _reintento: true });
+  }
   if (!r.ok) throw new Error(`HTTP ${r.status} ${method} ${u.pathname}: ${txt.slice(0, 200)}`);
   return data;
 }
@@ -103,7 +109,20 @@ async function api(url, { method = 'GET', body, params } = {}) {
 //  LECTURAS (libres, no cobran)
 // ============================================================
 export const quienSoy = () => api(`${API_TR}/sso/check-auth`);
-export const creditos = () => api(`${API_TR}/business/transfers/wallet/credits`);
+// El wallet devolvió `{credits:0}` de forma espuria el 15-08-2026 (misma sesión, la
+// llamada siguiente dio 10). Un falso "0 créditos" hace que Nexus le diga a la persona
+// que no puede crear el contrato, así que un 0 se reconsulta una vez antes de creerlo.
+export async function creditos() {
+  const r = await api(`${API_TR}/business/transfers/wallet/credits`);
+  const n = r?.credits ?? r?.available ?? r?.balance;
+  if (n !== 0) return r;
+  try {
+    const r2 = await api(`${API_TR}/business/transfers/wallet/credits`);
+    const n2 = r2?.credits ?? r2?.available ?? r2?.balance;
+    if (Number(n2) > 0) return r2;
+  } catch { /* nos quedamos con la primera lectura */ }
+  return r;
+}
 export const resumen = () => api(`${API_TR}/business/transfers/resume`);
 export const estadoRegistroCivil = () => api(`${API_TR}/info/rc-status`);
 
