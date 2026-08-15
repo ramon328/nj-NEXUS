@@ -761,6 +761,12 @@ export async function ultimoContrato(patente = '') {
 //   'CAV'                      -> reportType 'CAV_RAW'   (el CAV rápido; se genera al instante)
 //   'Informe Autored'          -> reportType 'CAV'
 //   'Informe Autored Completo' -> reportType 'NMP'
+// Compras de informes vivas en este proceso, para que dos turnos simultáneos del mismo
+// usuario no compren dos veces lo mismo (ver el candado en comprarInforme).
+const _comprasEnVuelo = new Map();
+// Si ya se compró ese informe hace menos de esto, se reusa en vez de volver a cobrar.
+const VENTANA_REUSO_MS = Number(process.env.AUTORED_VENTANA_REUSO_MIN || 10) * 60000;
+
 export const TIPOS_INFORME = { CAV: 'CAV_RAW', INFORME: 'CAV', COMPLETO: 'NMP' };
 export const NOMBRE_INFORME = { CAV_RAW: 'CAV', CAV: 'Informe Autored', NMP: 'Informe Autored Completo' };
 
@@ -881,6 +887,49 @@ export async function comprarInforme(patente, tipo = 'CAV', { confirmar = false,
     };
   }
   const previos = await informesRepetidos(patente).catch(() => []);
+  // ── CANDADO ANTI-DOBLE-COMPRA ────────────────────────────────────────────────
+  // 15-08-2026: Joaquín mandó "genera informe completo" y 11 s después otro mensaje;
+  // el hub abrió DOS turnos en paralelo y cada uno compró un NMP de TFDY46 (ids
+  // 331147 y 331148, 12 s de diferencia). El chequeo de "hay uno en curso" miraba
+  // ready:false en la lista y perdió la carrera: cuando el segundo turno consultó, la
+  // compra del primero todavía no figuraba. Ahora hay dos redes:
+  //   1) COMPRAS EN VUELO: si ya hay una compra viva del mismo (patente, tipo) en este
+  //      proceso, se devuelve LA MISMA promesa en vez de disparar otra.
+  //   2) COMPRA RECIENTE: si ya se compró ese mismo informe hace poco, se reusa.
+  const clave = `${patente}|${reportType}`;
+  if (_comprasEnVuelo.has(clave)) {
+    const enVuelo = await _comprasEnVuelo.get(clave);
+    return { ...enVuelo, reusado: 'compra_en_vuelo', nota: 'Ya había una compra de este mismo informe en curso; se reusó en vez de comprar otro.' };
+  }
+  const reciente = (previos || []).find?.((r) => {
+    if (String(r.reportType) !== String(reportType)) return false;
+    const t = Date.parse(r.createdAt || r.created_at || '');
+    return Number.isFinite(t) && (Date.now() - t) < VENTANA_REUSO_MS;
+  });
+  if (reciente) {
+    // `check-repeated` solo trae {reportType, createdAt}: hay que ir a buscar la fila
+    // completa (id + url) para poder devolver el PDF. Si el informe reciente todavía no
+    // está listo, se espera igual que una compra propia en vez de comprar otro.
+    const buscarFila = async () => {
+      const lst = await listarInformes({ patente, filas: 20 }).catch(() => ({}));
+      const rows = lst.rows || lst || [];
+      return (Array.isArray(rows) ? rows : [])
+        .filter((x) => String(x.reportType) === String(reportType))
+        .sort((a, b) => String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0] || null;
+    };
+    const nota = `Ya había un ${NOMBRE_INFORME[reportType] || reportType} de ${patente} comprado hace menos de ${Math.round(VENTANA_REUSO_MS / 60000)} min; se reusó en vez de comprar otro (NO se cobró de nuevo).`;
+    let fila = await buscarFila();
+    if (esperar) {
+      const t0 = Date.now();
+      while ((!fila || !fila.ready || !(fila.url || fila.publicUrl)) && Date.now() - t0 < timeoutMs) {
+        await new Promise((r) => setTimeout(r, 8000));
+        fila = await buscarFila();
+      }
+    }
+    if (fila) return { ...fila, url: fila.url || fila.publicUrl, repetidos_previos: previos, reusado: 'compra_reciente', nota };
+    return { ...reciente, repetidos_previos: previos, reusado: 'compra_reciente', ready: false, nota };
+  }
+  const tarea = (async () => {
   const res = await api(`${API_AUTH}/reports/buy`, { method: 'POST', body: { license_plate: patente, reportType } });
   const rep = Array.isArray(res) ? res[0] : res;
   if (!esperar) return { ...rep, repetidos_previos: previos };
@@ -896,6 +945,9 @@ export async function comprarInforme(patente, tipo = 'CAV', { confirmar = false,
     await new Promise((r) => setTimeout(r, 8000));
   }
   return { ...rep, ready: false, nota: 'no quedó listo en el timeout', repetidos_previos: previos };
+  })();
+  _comprasEnVuelo.set(clave, tarea);
+  try { return await tarea; } finally { _comprasEnVuelo.delete(clave); }
 }
 
 // ============================================================
