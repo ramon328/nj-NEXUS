@@ -4,7 +4,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json",
-    "hits": 311,
+    "hits": 315,
     "muestra": "{\n  \"application\": {\n    \"VERSION\": \"2.1.7\",\n    \"LOG_LEVEL\": 6,\n    \"AMBIENTE\": \"Produccion\",\n    \"IS_PRODUCTION\": true,\n    \"IS_LOCAL\": false\n  },\n\n  \"apiConfig\": {\n    \"API_CONNECT_URL\": \"https://apideveloper.santander.cl/\",\n    \"API_GEE_URL\": \"https://api.officebanking.cl/\",\n    \"API_GEE_CLIENT_ID\": \"foswmIcjMiDqueAOqCpNe5b9ASeW2NL6\"\n  },\n\n  \"sitios\": {\n    \"DOMAIN\": \".officebanking.cl\",\n    \"PRIVATE_PORTAL_URL\": \"https://privado.officebanking.cl\",\n    \"PUBLIC_PORTAL_URL\": \"https://empresas."
   },
   "POST wup-7b4df495.santander.cl/client/v3/web/wup": {
@@ -12,7 +12,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json",
-    "hits": 1262,
+    "hits": 1273,
     "muestra": "{\"sts\":\"gAAAAABqbGvAOvOxUKXhVjzVCJN9YsiZvatf6Cihxe-wmzFI2mh2Xj9ScW5eHLXQQ-TTxGNGA3f8jJNc4T0PTrP-ZgoyHxYLcNLkb3-pY6mo1lAvzPY4alTaL_9sRWHX9SBlJI7WO1JZsr3gXvZC6_1RPRZnx3_aQzMqhp-4R5xoTq66s_hQMwMAvbdKwI4RctXwHR0bY25z6sIlhmQOs_Jx_T0COyyL_dIh27PKO_s3pUH4fV4mbiYacHwvzAwZFhBaxfR-o_Pvxf-_otwzZQQLPptOLihW2qxem2YSbXOR3mB7ZK2rWAhfOayFSjX4u0EOTy1BRLfamGIZZAx6Ls5NJ8EmPK6rNg==\",\"std\":\"gAAAAABqbGvA5RPuSp1YVyqFjrWRH0EaCNZOEXVb4_4E5_5MyFt0_YwwYCbPVX0nnIMci489hHfv4h0bJTEaoxOM6po-OyJSAB7rDQvJsCpaCCCG5gWbSdR_RhGoFeN"
   },
   "POST log-7b4df495.santander.cl/api/v1/sendLogs": {
@@ -20,7 +20,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json; charset=utf-8",
-    "hits": 471,
+    "hits": 475,
     "muestra": "{\"status\":\"success\"}"
   },
   "GET empresas.officebanking.cl/assets/params.json": {
@@ -28,7 +28,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json",
-    "hits": 74,
+    "hits": 76,
     "muestra": "{\n  \"APP_ENV\": \"pro\",\n  \"APP_URL\": \"http://privado.officebanking.cl\",\n  \"APP_VERSION\": \"2.0.0\",\n  \"APP_TITLE\": \"Office Banking\",\n  \"OFFICE_BANKING_URL\": \"https://www.officebanking.cl\",\n  \"WSLOGIN_BASE_URL\": \"https://wslogin.officebanking.cl\",\n  \"WSLOGIN_PASS_RECOVERY_PATH\": \"/autogestion-clave\",\n  \"WSLOGIN_ALISON_DESKTOP_INSTALL\": \"https://alison.certisur.com/santandercl\",\n  \"WSLOGIN_ACTIVATE_SUPER_CLAVE\": \"https://www.officebanking.cl/tarjetadecoordenadas/index_activar.htm\"\n}\n"
   },
   "POST wup-7b4df495.santander.cl/client/v3.1/web/wup": {
@@ -36,7 +36,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json",
-    "hits": 657,
+    "hits": 666,
     "muestra": "{\"sts\":\"gAAAAABqbMDhqT_ynitTkgmktTIKWkrtYfIG6MjY-daCZOcDilUDzBRctA1pPQjy_PvAWchqlh-9BoMdAZ4bFfPjFM9xCSFEudYFmXMpNbVcEy3md7w_QcURQfsrczqlV6TOkBB8L9sZY-kIRDZ5JlFzfPpiBhA1stuquQpz8NYOLU2HkkUgoC_cqO-8ITB_JIl8MY--SAKbYsmoAZMWqjRCdA0vLmSdVcpWUdt7UTniIfAQlQVnGRvMZ9VahakiJ74FRdklK0N_OVstO_b44CfmlLwC7S1uNG0LGxWL4ANVkOu9AV-6KhLKTpQJnD4ffm4IMXSuPt-K-TdoP0Di_NOWNWEKvDcFNw==\",\"std\":\"gAAAAABqbMDhtCqrv55BEGfLq_UwpDs-70oFHRxAPg74abSgtmNIuEop8BBa5FZsEDwISipS0qVuYUgY5KQjnPmdM1hwKlYAgWohH2bgH16lsm1j79-EHvvhnXyqhyz"
   },
   "GET empresas.officebanking.cl/assets/huincha.json": {
@@ -44,7 +44,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json",
-    "hits": 74,
+    "hits": 76,
     "muestra": "[{\n  \"active\": true,\n  \"type\": \"estafa\",\n  \"title\": \"\",\n  \"message\": \"<b>Información importante:</b><br/>Recuerda que nuestros números oficiales son <b>solo para que tú nos llames</b>. Si recibes una llamada solicitando tus claves o autorizar una devolución o compra, <b>es una estafa.</b> Si tienes dudas, corta la llamada y contáctanos a través de nuestros canales oficiales.<br/><b>Banco Santander nunca te pedirá tus claves por teléfono.</b>\",\n  \"start_time\": \"2026-07-24T08:00:00.000Z\",\n  \"end_t"
   },
   "POST wslogin.officebanking.cl/b9pX_x1AG1YZRBPV4iQxGXVV/DabOkf5h5h1rf8iEXY/YDtUAQ/ADk7YFxH/HX0B": {
@@ -60,7 +60,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "text/html;charset=UTF-8",
-    "hits": 37,
+    "hits": 38,
     "muestra": null
   },
   "GET api.officebanking.cl/ruxitagentjs_ICA7NVfghqrux_10341260622154106.js": {
@@ -76,7 +76,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 37,
+    "hits": 38,
     "muestra": "{\"access_token\":\"eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMjE4OTQ1NzgzIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg1NzI5OTQwLCJpYXQiOjE3ODU3MjgxNDAsImp0aSI6InlFeC1iOHh2MGVQTTI1blN6eVpkNldjOTJfOCIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMjE4OTQ1NzgzIn0.LQB-9lB7iNwGVlYVtUuxIqtxaYB_A2PfJNh5Z9P2M6oCZ_dFUgAPNUZrP5zbxXg2bjeM9_PxkMQvdjVuKiPxm3g18XJ"
   },
   "POST apideveloper.santander.cl/sancl/privado/party_authentication/behavioral_biometrics/v1/customers/biocatch_init": {
@@ -84,7 +84,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 73,
+    "hits": 75,
     "muestra": "{\"bcStatus\":\"initiated\"}"
   },
   "GET apideveloper.santander.cl/sancl/privado/v1/users/0218945783/company": {
@@ -92,7 +92,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 26,
+    "hits": 27,
     "muestra": "{\"listUserInfo\":[{\"numUserExtOb\":\"0218945783\",\"glsNameUserEx\":\"Ramon                         \",\"glsSurPatUserExt\":\"Molina                        \",\"glsSurMatUserExt\":\"Fierro                        \",\"flgSexMale\":\"1\",\"glsMailOb\":\"\",\"namUserEtcdo\":\"Ramon Molina Fierro\",\"codHalfSafety\":\"NRM\",\"codKindAuthorization\":\"TCC\"}]}"
   },
   "GET apideveloper.santander.cl/sancl/privado/customer_ref_data_mgt/v1/customers/0218945783/basic-contact-information": {
@@ -100,7 +100,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json;charset=utf-8",
-    "hits": 26,
+    "hits": 27,
     "muestra": "{\"DATA\":{\"rut\":\"00218945783\",\"numper\":\"15707348\",\"phoneNumber\":\"932945240\",\"email\":\"rm004607@gmail.com\",\"name\":\"RAMON EDUARDO\",\"paternalLastName\":\"MOLINA\",\"maternalLastName\":\"FIERRO\",\"address\":\"PRI DEL GASFITER 2976 645 PUENTE ALTO 8150000\"},\"METADATA\":{\"STATUS\":\"0\",\"DESCRIPTION\":\"Consulta Exitosa\"}}"
   },
   "GET apideveloper.santander.cl/sancl/privado/v1/users/0218945783/companys/12/services": {
@@ -108,7 +108,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 26,
+    "hits": 27,
     "muestra": "{\"dataContractByUser\":[{\"contractCode\":\"000690022343160\",\"enterprisePeopleNumber\":\"0761066366\",\"etcdoPeopleNumber\":\"IMP JURI Y FONTENA ASOCIADOS LIMITADA\",\"codRolClientPlard\":\"             \",\"codIdfUsr\":\"\",\"codIdfCia\":\"\",\"roles\":[{\"rolCode\":\"1\",\"rolName\":\"Usuario\"}]},{\"contractCode\":\"000690023084710\",\"enterprisePeopleNumber\":\"0768675546\",\"etcdoPeopleNumber\":\"IMPORTACIONES MINERAS SPA\",\"codRolClientPlard\":\"             \",\"codIdfUsr\":\"\",\"codIdfCia\":\"\",\"roles\":[{\"rolCode\":\"1\",\"rolName\":\"Usuario\"}]}"
   },
   "POST apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/data_preparation": {
@@ -116,7 +116,7 @@
     "method": "POST",
     "status": 200,
     "content_type": "application/json, application/json; charset=UTF-8",
-    "hits": 99,
+    "hits": 100,
     "muestra": "{\"contextid\":\"df72a251-d7d5-446a-b481-dd93f5b4e044\",\"dppsession\":null}"
   },
   "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/df72a251-d7d5-446a-b481-dd93f5b4e044": {
@@ -956,7 +956,7 @@
     "method": "GET",
     "status": 200,
     "content_type": "text/javascript; charset=utf-8",
-    "hits": 30,
+    "hits": 31,
     "muestra": null
   },
   "GET apideveloper.santander.cl/sancl/privado/v1/users/0196892281/company": {
@@ -2332,7 +2332,7 @@
     "method": "POST",
     "status": 201,
     "content_type": "application/json",
-    "hits": 17,
+    "hits": 26,
     "muestra": "{\"success\": true}"
   },
   "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/8a796513-5f61-4d10-b79b-2477ee926bbc": {
@@ -2345,6 +2345,14 @@
   },
   "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/2568961b-f216-4941-b569-0e91f63614f3": {
     "url": "https://apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/2568961b-f216-4941-b569-0e91f63614f3",
+    "method": "GET",
+    "status": 204,
+    "content_type": "application/x-www-form-urlencoded",
+    "hits": 1,
+    "muestra": null
+  },
+  "GET apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/e1e8c415-2f75-4b1a-bcdb-1e003927a832": {
+    "url": "https://apideveloper.santander.cl/sancl/privado/cash_mgt/v1/cash_mgt_services_ms/news/e1e8c415-2f75-4b1a-bcdb-1e003927a832",
     "method": "GET",
     "status": 204,
     "content_type": "application/x-www-form-urlencoded",
