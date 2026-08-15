@@ -5338,6 +5338,9 @@ async function ejecutar(nombre, input, ctx = {}) {
           // ── Brújula: en qué paso va y qué hay que pedirle a la persona ──
           if (accion === 'siguiente') {
             const pedir = {
+              vendedor: 'los DATOS DEL VENDEDOR (el titular del auto, o sea a QUIEN se le está comprando). PRIMERO fíjate en el titular que trae el informe/CAV: si es una razón social (SpA, SA, Ltda, EIRL) o el RUT es sobre 50 millones, es una EMPRESA y hay que pedir: domicilio social (calle + número + comuna) y el REPRESENTANTE LEGAL completo (nombres, apellidos, RUT de persona, email y teléfono), que es quien firma — la razón social y el RUT de la empresa ya los tienes del informe, no los preguntes de nuevo. Si es persona natural: nombres, apellidos, RUT, email, teléfono y dirección con comuna. Después llama accion:"vendedor".',
+              contraparte: 'los DATOS DE LA CONTRAPARTE — la EMPRESA o persona A QUIEN se le está comprando el auto (o a quien se le vende, si Mallorca vende). Si el titular del informe es una razón social, trátala como EMPRESA: razón social y RUT ya los tienes del informe; pide el domicilio social (calle + número + comuna) y el REPRESENTANTE LEGAL (nombres, apellidos, RUT de persona, email, teléfono). ⛔ Del lado de ANA CLARA SPA no preguntes NADA: va automático. Después llama accion:"contraparte".',
+              firma: 'nada: el vendedor tiene que firmar el mandato. Llama accion:"firma" para sacar el link y mandárselo.',
               permiso: 'el PERMISO DE CIRCULACIÓN (foto o PDF), la comuna donde se pagó, su fecha de vencimiento, el precio de venta, cuál de las tasaciones fiscales corresponde, y cómo se paga (efectivo / crédito / tarjeta / al contado / cheque / vale vista). Cuando lo tengas, llama accion:"permiso" SIN confirmar para armar el borrador.',
               comprador: 'los DATOS DEL COMPRADOR: RUT, nombres y apellidos (o razón social si es empresa), email, teléfono, y domicilio con calle, número y comuna. Con el RUT yo relleno lo que ya tengamos en GoAutos. Llama accion:"comprador" SIN confirmar para armar el borrador.',
               firma_comprador: 'nada: solo hay que mandarle el link de firma al comprador. Llama accion:"firma_comprador".',
@@ -5347,6 +5350,10 @@ async function ejecutar(nombre, input, ctx = {}) {
             }
             let tasaciones = null
             if (c.paso === 'permiso') { try { tasaciones = await autored.impuestosVehiculo(publicId) } catch { /* opcional */ } }
+            // ¿A quién se le compra el auto? Sale del informe YA comprado (gratis). Con
+            // esto Nexus NO pregunta "¿es persona o empresa?" cuando el informe ya lo dice.
+            let titular = null
+            if (['vendedor', 'contraparte'].includes(c.paso)) { try { titular = await autored.titularDelAuto(c.patente) } catch { /* seguimos preguntando a mano */ } }
             const alertas = []
             if (c.paso === 'permiso' && Array.isArray(tasaciones) && !tasaciones.length) alertas.push('AutoRed no tiene tasaciones fiscales para este auto (pasa con los del año en curso): el código SII y el monto hay que sacarlos del permiso de circulación, no de una lista.')
             if (c.limitaciones_dominio) alertas.push('El auto tiene LIMITACIONES AL DOMINIO: la transferencia puede quedar trabada.')
@@ -5361,6 +5368,12 @@ async function ejecutar(nombre, input, ctx = {}) {
               vendedores: c.vendedores, compradores: c.compradores,
               datos_ya_cargados: { precio_venta: c.precio_venta, tasacion: c.tasacion, sii_code: c.sii_code, comuna_permiso: c.comuna_permiso, vence_permiso: c.vence_permiso, formas_pago: c.formas_pago },
               tasaciones_disponibles: tasaciones,
+              titular_del_auto: titular && titular.ok ? titular : null,
+              instruccion_titular: titular && titular.ok
+                ? (titular.es_empresa
+                  ? `El titular del auto es ${titular.titular}${titular.rut ? ' (' + titular.rut + ')' : ''}, que es una EMPRESA (sale del ${titular.fuente}). ⛔ NO preguntes si es persona o empresa: YA LO SABES. Dile a la persona que, como se le está comprando a ${titular.titular}, necesitas el DOMICILIO SOCIAL (calle + número + comuna) y el REPRESENTANTE LEGAL (nombres, apellidos, RUT de persona, email y teléfono), que es quien firma. La razón social y el RUT ya los tienes: dáselos por sabidos y muéstraselos para que los confirme.`
+                  : `El titular del auto es ${titular.titular}${titular.rut ? ' (' + titular.rut + ')' : ''}, persona natural (sale del ${titular.fuente}). NO preguntes si es persona o empresa. Pide lo que falte: RUT si no lo tienes, email, teléfono y dirección con comuna.`)
+                : null,
               alertas: alertas.length ? alertas : null,
               instruccion: `Contrato de ${c.patente} (${c.auto}). Los 4 pasos del cierre son: 1) subir el permiso de circulación, 2) completar la información del comprador, 3) que el comprador firme el contrato, 4) pagar los impuestos. AHORA va el paso "${c.titulo_paso}". Muéstrale a la persona el tablero de los 4 pasos marcando cuáles ya están (usa "hitos") y pídele ${pedir[c.paso] || 'que te diga cómo seguir'}${alertas.length ? ' ⚠️ AVÍSALE ANTES estas alertas: ' + alertas.join(' | ') : ''}`,
             })

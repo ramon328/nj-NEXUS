@@ -690,6 +690,13 @@ export async function volverAPaso(publicId, paso, { confirmar = false } = {}) {
 // Lee el estado y traduce en qué paso del CIERRE está la solicitud y qué falta.
 // Es la brújula del orquestador: nunca adivinamos el paso, se lo preguntamos a AutoRed.
 export const PASOS_CIERRE = {
+  // Estado inicial del Contrato Abierto: falta cargar al vendedor y generar el mandato.
+  // Faltaba en este mapa, así que la brújula devolvía paso "desconocido" y Nexus se
+  // quedaba sin saber qué pedir (visto el 15-08-2026 en la solicitud 516 / TFDY46).
+  ENTER_SELLER_INFO: { paso: 'vendedor', titulo: 'Cargar los datos del vendedor y generar el mandato' },
+  GENERATING_MANDATE: { paso: 'esperar', titulo: 'AutoRed está generando el mandato' },
+  SIGN_MANDATE: { paso: 'firma', titulo: 'El vendedor debe firmar el mandato' },
+  GENERATING_CAV: { paso: 'esperar', titulo: 'AutoRed está generando el CAV' },
   UPLOAD_DOCUMENTS: { paso: 'permiso', titulo: 'Subir el permiso de circulación' },
   ENTER_INFO: { paso: 'comprador', titulo: 'Completar la información del comprador' },
   VERIFYING_DOCUMENTS: { paso: 'esperar', titulo: 'AutoRed está verificando los documentos' },
@@ -1100,4 +1107,40 @@ export async function clavesEnterInfoB2B(publicId, contraparte) {
   const fd = new FormData();
   aplanarEnFormData(fd, { [m.ladoEmpresa]: [ANA_CLARA], [m.ladoContraparte]: [armarComprador(contraparte)] });
   return [...fd.entries()].map(([k, v]) => `${k} = ${v}`);
+}
+
+// ¿A QUIÉN se le está comprando el auto? Titular del vehículo según el informe/CAV YA
+// COMPRADO — NO compra nada. Sirve para que Nexus no pregunte "¿el vendedor es persona o
+// empresa?" cuando el propio informe ya dice que es una SpA (Ramón, 15-08-2026: hay que
+// pedirle los datos de la EMPRESA a la que se le compra, no preguntar lo que ya sabemos).
+export async function titularDelAuto(patente) {
+  const pat = String(patente || '').toUpperCase().replace(/[\s.\-]/g, '');
+  if (!pat) return { ok: false, error: 'Falta la patente.' };
+  const lst = await listarInformes({ patente: pat, filas: 30 }).catch(() => ({}));
+  const rows = lst.rows || lst || [];
+  const listos = (Array.isArray(rows) ? rows : []).filter((r) => String(r.ready) === 'true' && (r.url || r.publicUrl));
+  // CAV primero: el titular sale más limpio ahí; el NMP también lo trae embebido.
+  const orden = { CAV_RAW: 0, CAV: 1, NMP: 2 };
+  const elegido = listos.sort((a, b) =>
+    (orden[a.reportType] ?? 9) - (orden[b.reportType] ?? 9) ||
+    String(b.createdAt || '').localeCompare(String(a.createdAt || '')))[0];
+  if (!elegido) return { ok: false, sin_informe: true, patente: pat, nota: 'No hay ningún informe comprado de esta patente; no se compra automáticamente.' };
+  const dest = path.join('/tmp', `titular_${pat}.pdf`);
+  await descargarInforme(elegido.url || elegido.publicUrl, dest);
+  let campos;
+  try {
+    campos = JSON.parse(execFileSync('python3', [path.join(__dirname, 'leer_cav.py'), dest], { encoding: 'utf8', maxBuffer: 8 * 1024 * 1024 })).campos || {};
+  } catch (e) {
+    return { ok: false, error: `No pude leer el informe: ${e.message}` };
+  }
+  const nombre = campos.propietario || '';
+  const rut = campos.rut_propietario || '';
+  // Empresa por RUT (≥ 50 millones, como esRutEmpresa) o por la razón social.
+  const porRut = rut ? esRutEmpresa(rut) : false;
+  const porNombre = /\b(SPA|S\.A\.?|SA|LTDA|LIMITADA|EIRL|E\.I\.R\.L\.?|SOCIEDAD|INVERSIONES|COMERCIAL)\b/i.test(nombre);
+  return {
+    ok: true, patente: pat, titular: nombre || null, rut: rut || null,
+    es_empresa: Boolean(porRut || porNombre),
+    fuente: `${NOMBRE_INFORME[elegido.reportType] || elegido.reportType} del ${String(elegido.createdAt || '').slice(0, 10)} (ya comprado, no se cobró)`,
+  };
 }
