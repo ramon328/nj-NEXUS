@@ -2812,7 +2812,7 @@ const HERRAMIENTAS = [
       properties: {
         accion: { type: 'string', enum: ['crear', 'vendedor', 'firma', 'estado', 'siguiente', 'permiso', 'comprador', 'contraparte', 'firma_comprador', 'impuestos'], description: 'siguiente = LEE el estado real y dice en qué paso va y qué falta (empieza SIEMPRE por acá si el contrato ya existe). crear = crea el contrato (cobra; confirm-first). vendedor = datos del vendedor + link de firma del mandato. permiso = sube el permiso de circulación + tasación + precio + formas de pago (borrador-first). comprador = datos del comprador (borrador-first, reusa GoAutos). firma_comprador = link de firma del contrato (gratis). impuestos = desglose y link de pago (borrador-first). firma/estado = link de firma del mandato y documentos (gratis).' },
         patente: { type: 'string', description: 'Patente del auto. En accion:"crear" es obligatoria. En el resto sirve para que yo ubique solo el contrato más reciente de ese auto si no tienes el publicId a mano.' },
-        confirmar: { type: 'boolean', description: 'true = ejecutar DE VERDAD. Solo tras el OK explícito de la persona sobre el borrador que le mostraste. Ausente/false = devuelve el BORRADOR sin escribir nada.' },
+        confirmar: { type: 'boolean', description: 'true = ejecutar DE VERDAD. Solo tras el OK explícito de la persona sobre el borrador que le mostraste. Ausente/false = devuelve el BORRADOR sin escribir nada. Vale para TODAS las acciones que escriben, incluida "vendedor" (que genera el mandato irrevocable).' },
         modo: { type: 'string', enum: ['compra', 'venta'], description: 'Solo para accion:"crear" del contrato de empresa. "compra" (por defecto) = Mallorca COMPRA el auto, ANA CLARA SPA queda de compradora y la contraparte es quien vende. "venta" = Mallorca VENDE, Ana Clara queda de vendedora.' },
         tipo: { type: 'string', enum: ['empresa', 'abierto'], description: 'Formato del contrato. Por defecto "empresa" (Automotora Compra/Vende), que es el que usa Mallorca: ANA CLARA SPA va de parte y son 2 pasos. Usa "abierto" SOLO si la persona pide expresamente un Contrato Abierto (el del mandato irrevocable a Autosafe, en que el vendedor firma primero y el comprador es un tercero).' },
         publicId: { type: 'string', description: 'UUID de la solicitud. Si no lo tienes, pasa la patente y yo lo ubico.' },
@@ -2909,6 +2909,7 @@ const HERRAMIENTAS = [
               items: { type: 'object', properties: { nombres: { type: 'string' }, apellidoPaterno: { type: 'string' }, apellidoMaterno: { type: 'string' }, rut: { type: 'string' }, email: { type: 'string' }, telefono: { type: 'string' } } },
             },
             numeroWhatsapp: { type: 'string', description: 'Opcional: número al que mandar el link de firma. Por defecto no lo manda (te devuelve el link para que lo pegues).' },
+            documentos: { type: 'object', description: 'EMPRESA (opcional): rutas de los documentos de sociedad si querés mapearlos a mano. Normalmente NO hace falta — tomo los PDF que mandó la persona por WhatsApp y los clasifico por el nombre del archivo. Claves: societyConstitution (escritura de constitución), validityOfPowers (vigencia de poderes), validityOfSociety (vigencia de sociedad), societyModifications, updatedStatute, eRutSii.', properties: { societyConstitution: { type: 'string' }, validityOfPowers: { type: 'string' }, validityOfSociety: { type: 'string' }, societyModifications: { type: 'string' }, updatedStatute: { type: 'string' }, eRutSii: { type: 'string' } } },
           },
         },
       },
@@ -5245,9 +5246,38 @@ async function ejecutar(nombre, input, ctx = {}) {
           let comuna = null
           try { comuna = await autored.buscarComuna(v.comuna) } catch { /* */ }
           if (!comuna) return `No encontré la comuna "${v.comuna}" en AutoRed. Pídele a la persona el nombre exacto de la comuna del domicilio del vendedor y re-llama.`
+          // DOCUMENTOS DE SOCIEDAD: los PDF que mandó la persona por WhatsApp. Se clasifican
+          // por el nombre del archivo; el respaldo del historial cubre que los haya mandado
+          // hace rato o que el hub se haya reiniciado (la memoria de adjuntos es RAM, 20 min).
+          const docsEmpresa = {}
+          if (esEmpresa) {
+            const esPdf = (f) => /\.pdf$/i.test(String(f))
+            let pdfs = (Array.isArray(ctx.media) ? ctx.media : []).filter(esPdf)
+            if (!pdfs.length && ctx.de) {
+              try { pdfs = historial.adjuntosDe(ctx.de, { horas: 72 }).filter(esPdf) } catch { /* seguimos sin documentos */ }
+            }
+            const clasificar = (ruta) => {
+              const n = String(ruta).split('/').pop().toLowerCase()
+              if (/constituc/.test(n)) return 'societyConstitution'
+              if (/poder/.test(n)) return 'validityOfPowers'
+              if (/sociedad|vigencia_soc/.test(n)) return 'validityOfSociety'
+              if (/modificac/.test(n)) return 'societyModifications'
+              if (/estatuto/.test(n)) return 'updatedStatute'
+              if (/e-?rut|rut_/.test(n)) return 'eRutSii'
+              return null
+            }
+            // Lo que diga el modelo manda por sobre el nombre del archivo.
+            for (const [campo, ruta] of Object.entries(v.documentos || {})) {
+              if (autored.DOCS_EMPRESA.includes(campo) && ruta) docsEmpresa[campo] = ruta
+            }
+            for (const ruta of pdfs) {
+              const campo = clasificar(ruta)
+              if (campo && !docsEmpresa[campo]) docsEmpresa[campo] = ruta
+            }
+          }
           const vendedor = esEmpresa
             ? {
-              tipo: 'empresa', razonSocial: v.razonSocial, rut: v.rut,
+              tipo: 'empresa', razonSocial: v.razonSocial, rut: v.rut, documentos: docsEmpresa,
               calle: v.calle, numero: String(v.numero), depto: v.depto || '', comuna,
               escrituraPublica: Boolean(v.escrituraPublica),
               fechaConstitucion: v.fechaConstitucion || '', fechaModificacion: v.fechaModificacion || '',
@@ -5263,6 +5293,31 @@ async function ejecutar(nombre, input, ctx = {}) {
               calle: v.calle, numero: String(v.numero), depto: v.depto || '',
               comuna, conyuge: false, representante: false,
             }
+          // BORRADOR ANTES DE ENVIAR — este paso era el único que se saltaba la regla y
+          // escribía de una (15-08-2026: se pidió "muéstrame el borrador, no lo envíes" y
+          // el vendedor quedó ingresado igual, con el mandato ya generado). Ahora, sin
+          // `confirmar`, devuelve lo que se mandaría y no toca AutoRed.
+          if (!input.confirmar) {
+            return JSON.stringify({
+              borrador: true, paso: 'Datos del vendedor', publicId, vendedor_es_empresa: esEmpresa,
+              se_va_a_enviar: esEmpresa
+                ? {
+                  tipo: 'Empresa', razon_social: vendedor.razonSocial, rut: vendedor.rut,
+                  domicilio: [vendedor.calle, vendedor.numero, vendedor.depto, comuna?.name].filter(Boolean).join(' '),
+                  escritura_publica: vendedor.escrituraPublica, constitucion: vendedor.fechaConstitucion || null,
+                  notaria: [vendedor.notarioNombre, vendedor.notarioComuna, vendedor.notarioNumero].filter(Boolean).join(' · ') || null,
+                  representante_que_firma: vendedor.representantes.map((r) => `${[r.nombres, r.apellidoPaterno, r.apellidoMaterno].filter(Boolean).join(' ')} · ${r.rut} · ${r.email} · ${r.telefono}`),
+                }
+                : {
+                  tipo: 'Persona', nombre: [vendedor.nombres, vendedor.apellidoPaterno, vendedor.apellidoMaterno].filter(Boolean).join(' '),
+                  rut: vendedor.rut, email: vendedor.email, telefono: vendedor.telefono,
+                  domicilio: [vendedor.calle, vendedor.numero, vendedor.depto, comuna?.name].filter(Boolean).join(' '),
+                },
+              documentos_que_se_adjuntan: Object.entries(docsEmpresa).map(([k, ruta]) => `${autored.NOMBRE_DOC_EMPRESA[k] || k}: ${String(ruta).split('/').pop()}`),
+              documentos_que_no_tengo: esEmpresa ? autored.DOCS_EMPRESA.filter((d) => !docsEmpresa[d]).map((d) => autored.NOMBRE_DOC_EMPRESA[d] || d) : null,
+              instruccion: `BORRADOR — no mandé nada todavía. Muéstraselo campo por campo${esEmpresa ? ', incluyendo QUIÉN va a firmar el mandato y qué documentos se adjuntan' : ''}, y pídele que lo apruebe. ⚠️ Avísale que al confirmar se genera el MANDATO IRREVOCABLE a favor de Autosafe y sale el link de firma: esto no se deshace. Solo con su OK explícito vuelve a llamar accion:"vendedor" con los MISMOS datos y confirmar:true.`,
+            })
+          }
           const ri = await autored.ingresarVendedorOC(publicId, vendedor, { confirmar: true })
           if (ri && ri.dry_run) return `No pude ingresar al vendedor: la escritura en AutoRed está bloqueada (${ri.motivo}).`
           // el mandato se genera solo (~10s); esperamos y buscamos el link de firma
@@ -5293,6 +5348,8 @@ async function ejecutar(nombre, input, ctx = {}) {
           const rutEmpresaFirmando = esEmpresa && firmante?.rut && autored.esRutEmpresa(firmante.rut)
           return JSON.stringify({
             ok: true, vendedor_ingresado: true, publicId, vendedor_es_empresa: esEmpresa,
+            documentos_subidos: ((ri && ri.documentos_subidos) || []).map((d) => autored.NOMBRE_DOC_EMPRESA[d] || d),
+            documentos_que_faltan: esEmpresa ? autored.DOCS_EMPRESA.filter((d) => !((ri && ri.documentos_subidos) || []).includes(d)).map((d) => autored.NOMBRE_DOC_EMPRESA[d] || d) : null,
             estado: 'mandato generado', link_firma: link, firmante: firmante ? { nombre: firmante.nombre, rut: firmante.rut, estado: firmante.estado } : null,
             link_enviado_al_vendedor: enviado,
             aviso: rutEmpresaFirmando ? 'OJO: el mandato quedó a nombre del RUT de la EMPRESA, no del representante legal. Una empresa no puede firmar con Clave Única. Avísale a la persona que hay que rehacer el paso del vendedor antes de que intenten firmar.' : null,
