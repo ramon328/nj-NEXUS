@@ -708,9 +708,21 @@ export async function estadoCierre(publicId) {
   const e = await estadoTransferencia(publicId);
   const mapa = PASOS_CIERRE[e.status] || { paso: 'desconocido', titulo: e.status };
   const v = e.vehicle || {};
+  // En un contrato de EMPRESA (B2B) el paso `comprador` no es "cargar al comprador":
+  // es cargar a la CONTRAPARTE, que según el modo es el vendedor (si Mallorca compra)
+  // o el comprador (si vende). El otro lado ya lo sabemos: es ANA CLARA SPA.
+  const modo = e.kind === 'B2B' ? modoDeContrato(e) : (e.kind === 'B2B_OC' ? 'abierto' : null);
+  let paso = mapa.paso;
+  let titulo = mapa.titulo;
+  if (modo === 'compra' && paso === 'comprador') { paso = 'contraparte'; titulo = 'Completar los datos del VENDEDOR (Ana Clara SPA es la compradora)'; }
+  if (modo === 'venta' && paso === 'comprador') { paso = 'contraparte'; titulo = 'Completar los datos del COMPRADOR (Ana Clara SPA es la vendedora)'; }
   return {
     publicId, id: e.id, kind: e.kind, estado: e.status,
-    paso: mapa.paso, titulo_paso: mapa.titulo,
+    modo, creado_por: e.createdBy,
+    tipo_contrato: modo === 'compra' ? 'Automotora Compra (contrato de empresa)'
+      : modo === 'venta' ? 'Automotora Vende (contrato de empresa)'
+      : modo === 'abierto' ? 'Contrato Abierto' : (e.kind || 'desconocido'),
+    paso, titulo_paso: titulo,
     patente: v.licensePlate, auto: [v.brandName, v.modelName, v.year].filter(Boolean).join(' '),
     precio_venta: v.sellingPrice, tasacion: v.taxationPrice, sii_code: v.siiCode,
     comuna_permiso: v.permitCommune, vence_permiso: v.expirationCirculationPermit,
