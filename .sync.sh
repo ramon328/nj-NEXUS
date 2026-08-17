@@ -52,7 +52,7 @@ EXCLUDES=(
   --exclude 'historial.db*' --exclude 'bin/bore' --exclude 'bin/cloudflared'
   --exclude '*.onnx' --exclude 'voices-*.bin' --exclude 'kokoro-*.onnx'
   # --- SECRETOS ---
-  --exclude '.env' --exclude '.env.*' --exclude '*.pem' --exclude '*.pfx' --exclude '*.p12'
+  --exclude '.env' --exclude '.env.local' --exclude '.env.bak*' --exclude '.env.*.bak*' --exclude '*.pem' --exclude '*.pfx' --exclude '*.p12'
   --exclude '*.key' --exclude '*.crt' --exclude '*.cer' --exclude 'secretos-facturacion/'
   --exclude '*creds*' --exclude '*cred*.json' --exclude 'credenciales*' --exclude 'credentials*'
   --exclude '.centro-cred.json' --exclude 'api_token.txt' --exclude '.api-token' --exclude '*.enc.json'
