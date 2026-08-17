@@ -12,8 +12,8 @@ const HOOK = process.env.HOOK_TOKEN || 'x'            // webhook ChileAutos (POS
 const STORE = join(os.homedir(), 'nexus', 'leads-webhook.json')  // solo para /hook
 
 // ── Supabase (AutoHighLevel — mismo proyecto que goautos/autos) ──
-const SUPA = 'https://miuiujntdjrjhhcysiba.supabase.co'
-const ANON = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pdWl1am50ZGpyamhoY3lzaWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwODEzNjcsImV4cCI6MjA1MDY1NzM2N30.CqgUmrnmGSLDc6tg2aCHdD7tB-q9YL2utHPzXSIo6gI'
+const SUPA = process.env.ALIACE_SUPABASE_URL || process.env.SUPABASE_URL || ''
+const ANON = process.env.ALIACE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
 let _jwt = null, _jwtExp = 0
 async function jwt() {
   if (_jwt && Date.now() < _jwtExp) return _jwt

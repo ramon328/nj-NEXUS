@@ -1,238 +1,218 @@
-# Nexus — Infraestructura 24/7 (Mac mini de NICOLAS)
+# Nexus
 
-Orquestador y servicios siempre encendidos para **IMPOMIN** y **HN**.
-Todo corre como **daemons nativos de macOS** (`launchd`): arrancan solos al encender,
-se reinician solos si se caen, y siguen vivos sin ninguna ventana ni terminal abierta.
+Orquestador de agentes e integraciones de negocio. Corre 24/7 en un Mac (o cualquier máquina Unix) y se opera principalmente por **WhatsApp** (Kapso / Meta Cloud API) y un hub web local.
 
-> **Hardware:** Mac mini 2018 **Intel** (x86_64). Homebrew vive en `/usr/local` (no `/opt/homebrew`).
-> **Cerebro:** Claude por **API en la nube** (no hay modelos locales). El Mac solo orquesta.
+Este README sirve para **levantar Nexus en cualquier PC** desde el código del repo, **sin** copiar secretos ni datos de producción.
 
 ---
 
-## 🗺️ Qué corre aquí
+## Qué vas a necesitar
 
-| Servicio | Qué es | Puerto | Daemon (launchd) |
-|---|---|---|---|
-| **Hub Nexus** | Panel de control web (React + servidor Node) | `:3000` | `com.nexus.hub` |
-| **OpenClaw** | Gateway de agentes (WhatsApp ↔ Claude) | `:18789` | `com.nexus.openclaw` |
-| **Comisiones** | App de comisiones (cuando se clone el repo) | `:3001` | `com.nexus.comisiones` |
-| **Conector SII** | Servicio SII (cuando exista) | `:8080` | `com.nexus.sii` |
-| **Segundo Cerebro** | Conector de la bóveda Obsidian (busca/lee/escribe notas) | `:8081` | `com.nexus.cerebro` |
-| **Menu bar** | Semáforo visual en la barra (sin lógica) | — | `com.nexus.menubar` |
-
-Todos escuchan en **`127.0.0.1` (loopback)** — nada expuesto a internet.
-El acceso remoto será vía **Tailscale** (red privada), nunca abriendo puertos.
-
----
-
-## 🚦 Operación diaria
-
-```bash
-# Ver el estado de todo (semáforo + daemons + health-checks)
-~/nexus/scripts/estado.sh
-
-# Reiniciar UN servicio (ejemplo: el hub)
-launchctl kickstart -k gui/$(id -u)/com.nexus.hub
-#   labels: com.nexus.hub | com.nexus.openclaw | com.nexus.comisiones | com.nexus.sii | com.nexus.menubar
-
-# Actualizar dependencias y recargar todos los daemons
-~/nexus/scripts/actualizar.sh
-
-# Respaldar configuración y código (los DATOS viven en Supabase)
-~/nexus/scripts/respaldar.sh
-
-# (Re)instalar / cargar todos los LaunchAgents — idempotente
-~/nexus/scripts/instalar.sh
-```
-
-El **Hub** se abre en el navegador: **http://127.0.0.1:3000**
-
-> 🖥️ **Ícono en el Escritorio:** hay una app **`Nexus`** en el Escritorio. Doble clic =
-> asegura que los daemons estén cargados y abre el Hub. (Primera vez: si macOS bloquea
-> "desarrollador no identificado", clic derecho sobre el ícono → **Abrir** → **Abrir**.)
-
-### 💬 Probar el agente por chat web (modo actual, sin WhatsApp)
-
-Mientras no haya número de WhatsApp, se prueba el cerebro desde el navegador:
-
-- Desde el Hub: botón **"💬 Hablar con el agente (chat web)"**.
-- O directo (Control UI de OpenClaw con token):
-  `http://127.0.0.1:18789/#token=<gateway.auth.token de ~/.openclaw/openclaw.json>`
-  (o `openclaw dashboard` para abrirlo automáticamente).
-
-Cuando llegue el número, se conecta WhatsApp con `openclaw channels` (QR) y conviven ambos.
-
----
-
-## 📜 Logs
-
-| Servicio | Log |
+| Requisito | Notas |
 |---|---|
-| Hub | `/tmp/nexus-hub.log` |
-| OpenClaw | `/tmp/nexus-openclaw.log` (detalle interno en `/tmp/openclaw/`) |
-| Menu bar | `/tmp/nexus-menubar.log` |
+| macOS o Linux | En producción actual: macOS + `launchd`. En otro PC puedes usar `launchd`, `systemd` o solo `node` a mano |
+| Node.js **20+** (recomendado 22/24) | `node -v` |
+| npm | Viene con Node |
+| Python **3.9+** | Solo si usas SII-web, Mallorca API, menubar o TTS |
+| Cuenta Anthropic | API key |
+| Proyecto Supabase | URL + anon + service_role |
+| WhatsApp Cloud API (Kapso u otro) | Si quieres canal WhatsApp |
+| Chrome / Chromium | Para conectores de banco y navegador |
+
+**No copies** desde otra máquina: `.env`, perfiles `chrome-profile*`, `session*.json`, `*.db`, certificados `.pfx`, tokens OAuth, `usuarios.json` con números reales.
+
+---
+
+## 1. Clonar
 
 ```bash
-tail -f /tmp/nexus-openclaw.log      # seguir en vivo
-openclaw logs                        # logs del gateway vía CLI
-openclaw status                      # estado de gateway/canales/modelos
+git clone https://github.com/ramon328/nj-NEXUS.git
+cd nj-NEXUS/nexus
 ```
+
+Si trabajas solo el árbol de Nexus (este directorio como repo raíz), clona/copia la carpeta `nexus/` del monorepo.
 
 ---
 
-## 🧠 Segundo Cerebro (bóveda Obsidian) y Enlaces
-
-El **conocimiento empresarial** vive en una bóveda de notas Markdown en `~/nexus/cerebro`.
-Es una bóveda de **Obsidian** normal: ábrela con la app (Obsidian → *Abrir carpeta como
-bóveda* → elige `~/nexus/cerebro`, ponle de nombre **`cerebro`**) y escribe libremente.
-
-El daemon **Conector Segundo Cerebro** (`:8081`, `com.nexus.cerebro`) expone una API local
-sobre esa carpeta para que el **Hub** y el **agente** la usen:
-
-```
-GET  /health             estado + nº de notas
-GET  /listar             todas las notas (.md)
-GET  /buscar?q=texto     búsqueda en título + contenido, con fragmento
-GET  /nota?ruta=...      leer una nota
-POST /nota               crear / agregar / sobrescribir (modo: crear|agregar|sobrescribir)
-```
-
-- **Desde el Hub:** sección **🧠 Segundo Cerebro** → buscador que lee la bóveda en vivo.
-- **Desde el agente (`2cerebro`):** la bóveda está enlazada en su workspace
-  (`~/.openclaw/workspace/cerebro` → `~/nexus/cerebro`), así que **lee y escribe** notas
-  directamente con sus herramientas de archivos. Cada escritura queda auditada en Supabase
-  (`log_acciones`, acción `cerebro:*`).
-- **Seguridad:** toda ruta se valida para no salir de la bóveda; en modo `crear` el agente
-  **no pisa** una nota existente (crea copia con fecha). Solo loopback `127.0.0.1`.
-
-### 🔗 Enlaces (SII · internos · conocimiento)
-
-El Hub muestra un catálogo de accesos editable en **`~/nexus/enlaces.json`**
-(cámbialo y recarga el Hub, sin reiniciar nada):
-
-- **SII** — precargado con los accesos estándar (Mi SII, F29, F22, RCV, boletas, etc.).
-- **Servicios internos** — IMPOMIN / HN. Hay ejemplos en gris (`"pendiente": true`):
-  reemplázalos por tus URLs reales.
-- **Conocimiento empresarial** — abre la bóveda y notas clave directo en Obsidian
-  (enlaces `obsidian://`).
-
-> Para que funcione el botón *"Abrir bóveda en Obsidian"* debes haber agregado la carpeta
-> como bóveda con el nombre **`cerebro`** al menos una vez en la app.
-
----
-
-## 🧠 Ruteo de modelos y control de costos
-
-Configurado en OpenClaw (`~/.openclaw/openclaw.json`) para **gastar lo mínimo sin perder calidad**:
-
-- **Por defecto: Claude Haiku 4.5** (`anthropic/claude-haiku-4-5`) — lo barato y de alto volumen
-  (clasificar correo, resumir, extraer, enrutar, respuestas simples). $1/$5 por millón de tokens.
-- **Escalar a Sonnet 4.6** solo para criterio/consecuencias. Hay un alias listo: **`escalado`** → `anthropic/claude-sonnet-4-6`.
-  Para que un agente concreto use Sonnet:
-  ```bash
-  openclaw config set agents.list[<i>].model anthropic/claude-sonnet-4-6
-  ```
-- **Opus 4.8** queda fuera del uso habitual (solo casos excepcionales).
-- **Pensamiento adaptativo:** `agents.defaults.thinkingDefault = adaptive` (razona profundo solo cuando vale la pena).
-- **Prompt caching:** activado en el modelo Haiku (`compat.supportsPromptCacheKey = true`) — ahorra ~90% del input repetido (system prompts).
-- **Batch API (50% off):** para trabajo NO urgente (reportes nocturnos, reprocesos del día) usar `openclaw cron` + batch. El tiempo real (WhatsApp) va por API normal.
-
-**Auditoría de gasto:** cada acción/llamada se registra en Supabase (tablas `log_acciones` y `consumo_api`),
-y el Hub muestra el costo estimado del mes de un vistazo.
-
-> ⚠️ **Pon un tope de gasto mensual** en https://console.anthropic.com → Billing → Usage limits,
-> antes de dejar los agentes corriendo solos.
-
-Ver/cambiar el modelo por defecto:
-```bash
-openclaw models status          # modelo actual
-openclaw models set anthropic/claude-haiku-4-5
-openclaw models aliases list
-```
-
----
-
-## 🔐 Seguridad
-
-- **FileVault:** activo (disco cifrado). ✅
-- **Secretos:** solo en `~/nexus/.env` (`chmod 600`, en `.gitignore`). La API key de Anthropic vive
-  además en el store cifrado de OpenClaw (`~/.openclaw/.../openclaw-agent.sqlite`, 600). Nunca en el repo.
-- **Red:** todo en loopback. Acceso remoto solo por **Tailscale** (pendiente de instalar). No abrir puertos.
-- **Supabase RLS:** activado en todas las tablas. Los daemons leen/escriben con la `service_role` key
-  (salta RLS); nadie con la anon/publishable key puede leer datos sensibles.
-- **Aprobación humana para acciones críticas:** el helper `registrarAccion({ requiere_aprobacion: true })`
-  deja la acción en `pendiente` hasta que un humano la apruebe (futuro: confirmación por WhatsApp).
-- **Prompt injection:** el agente que lee correo externo (**Nestor**) trata el contenido como dato
-  NO confiable y **no** ejecuta acciones sensibles sin aprobación. Separar lectura de ejecución.
-
----
-
-## 🔑 Secretos (`~/nexus/.env`)
-
-```
-ANTHROPIC_API_KEY          # cerebro (Claude). También en el store de OpenClaw.
-MODELO_DEFAULT/_ESCALADO   # ruteo de modelos
-SUPABASE_URL / _ANON_KEY / _SERVICE_ROLE_KEY
-PUERTO_HUB/_COMISIONES/_SII/_OPENCLAW
-WHATSAPP_NUMERO            # número dedicado (pendiente)
-```
-
-> 🔁 **Recomendado:** rotar la `ANTHROPIC_API_KEY` y la `service_role` de Supabase una vez,
-> porque se pegaron en un chat durante la instalación.
-
----
-
-## 📦 Estructura
-
-```
-~/nexus/
-  hub/              Panel de control (React/Vite + server.js)    :3000
-  comisiones/       App de comisiones (pendiente de repo)        :3001
-  conector-sii/     Servicio SII (pendiente)                     :8080
-  conector-obsidian/ Segundo Cerebro: API sobre la bóveda        :8081
-  cerebro/          Bóveda Obsidian (notas .md, conocimiento)    —
-  enlaces.json      Catálogo de enlaces del Hub (editable)       —
-  shared/           Cliente Supabase + helpers (supabase.mjs) + esquema SQL
-  menubar/        App de barra de menú (rumps / Python)
-  scripts/        instalar.sh · estado.sh · actualizar.sh · respaldar.sh
-  logs/           (efímeros)
-  .env            secretos (chmod 600, NO en git)
-```
-
-OpenClaw: binario en `~/.npm-global/bin/openclaw`, config y estado en `~/.openclaw/`.
-
----
-
-## ✅ Estado de la instalación
-
-**Funcionando 24/7:**
-- [x] Hub Nexus (daemon, KeepAlive)
-- [x] OpenClaw (daemon, KeepAlive, Haiku + escalado + caching + thinking adaptativo)
-- [x] Supabase (esquema, lectura y escritura desde el Hub)
-
-**Pendiente (necesita acción):**
-- [ ] **Command Line Tools** → `xcode-select --install` (desbloquea Homebrew, Tailscale, menu bar)
-- [ ] **Homebrew + Tailscale** (tras las CLT; Homebrew necesita la contraseña de macOS)
-- [ ] **Menu bar** → crear venv de Python y cargar `com.nexus.menubar`
-- [ ] **WhatsApp** → conectar canal con un número dedicado: `openclaw channels` (escanear QR)
-- [ ] **Tope de gasto** en console.anthropic.com
-- [ ] **Prueba post-reinicio** (reiniciar el Mac y confirmar que todo vuelve solo)
-
----
-
-## 🔧 Cómo terminar lo pendiente
+## 2. Secretos (obligatorio)
 
 ```bash
-# 1) Command Line Tools (abre ventana → Instalar)
-xcode-select --install
-
-# 2) Homebrew (pide contraseña de macOS) + Tailscale
-/bin/bash -c "$(curl -fsSL https://raw.githubusercontent.com/Homebrew/install/HEAD/install.sh)"
-brew install --cask tailscale
-
-# 3) Menu bar (tras las CLT)
-~/nexus/scripts/instalar.sh        # crea el venv e instala rumps, carga los daemons
-
-# 4) WhatsApp (número dedicado, escanear QR)
-openclaw channels        # seguir el flujo del canal whatsapp
+cp .env.example .env
+chmod 600 .env
+# Edita .env y rellena al menos:
+#   ANTHROPIC_API_KEY
+#   SUPABASE_URL / SUPABASE_ANON_KEY / SUPABASE_SERVICE_ROLE_KEY
+#   KAPSO_*  (si usas WhatsApp)
 ```
+
+El archivo `.env` está en `.gitignore`. **Nunca** lo subas ni lo pegues en chats.
+
+Plantilla completa de variables: [`.env.example`](./.env.example).
+
+Esquema SQL inicial (Supabase):
+
+```bash
+# En el SQL Editor de Supabase, ejecuta:
+# shared/supabase-schema.sql
+```
+
+---
+
+## 3. Instalar dependencias
+
+```bash
+# Núcleo
+cd hub && npm install && cd ..
+cd shared && npm install && cd ..
+
+# Conectores que uses (instala solo los que necesites)
+for d in conector-tek conector-navegador conector-obsidian conector-sii \
+         conector-correo conector-autored conector-reservo \
+         claude-web novnc-web tag-web; do
+  [ -f "$d/package.json" ] && (cd "$d" && npm install)
+done
+
+# Frontends opcionales
+[ -f sii-frontend/package.json ] && (cd sii-frontend && npm install)
+[ -f sii-web/requirements.txt ] && (cd sii-web && python3 -m venv .venv && .venv/bin/pip install -r requirements.txt)
+```
+
+En Mac Intel Homebrew vive en `/usr/local`; en Apple Silicon en `/opt/homebrew`. Ajusta el `PATH` de los LaunchAgents si migras de arquitectura.
+
+---
+
+## 4. Arranque mínimo (sin daemons)
+
+Para probar en cualquier PC sin `launchd`:
+
+```bash
+# Terminal 1 — Hub (API + agente + panel)
+cd hub && node server.js
+# → http://127.0.0.1:3000
+
+# Terminal 2 — Segundo Cerebro (opcional)
+cd conector-obsidian && node server.js
+# → http://127.0.0.1:8081
+
+# Terminal 3 — Navegador genérico (opcional)
+cd conector-navegador && node server.js
+# → http://127.0.0.1:8082
+```
+
+Chat local: `POST http://127.0.0.1:3000/api/chat`  
+Salud: `GET http://127.0.0.1:3000/api/health`
+
+---
+
+## 5. Arranque 24/7 en macOS (`launchd`)
+
+Los plists viven en `~/Library/LaunchAgents/com.nexus.*.plist` (no van en el repo con secretos embebidos).
+
+Plantillas / scripts:
+
+```bash
+# Instalar / recargar agentes (idempotente; revisa antes qué labels existen)
+./scripts/instalar.sh
+
+# Estado
+./scripts/estado.sh
+
+# Tras un reinicio (espera Tailscale, Funnel, webhook)
+./scripts/arranque.sh
+```
+
+**Importante al migrar a otro Mac:**
+
+1. Copia el código (git) y crea un `.env` nuevo.
+2. **No** copies plists con tokens en claro; regenera tokens y escribe plists nuevos o carga secretos solo desde `.env`.
+3. Reinstala dependencias (`npm install` / venvs).
+4. Vuelve a vincular WhatsApp / Kapso webhook a la URL pública nueva.
+5. Sesiones de banco: hay que volver a hacer login (los `chrome-profile*` no viajan).
+
+---
+
+## 6. Exponer a internet (opcional)
+
+En producción se usa **Tailscale Funnel** hacia `127.0.0.1` (hub `/wa`, centro-pub, widgets, etc.). Alternativas: Cloudflare Tunnel, bore, reverse proxy.
+
+El webhook de WhatsApp debe apuntar a algo como:
+
+```text
+https://<tu-host-publico>/wa/kapso
+```
+
+Firma HMAC: `KAPSO_WEBHOOK_SECRET` (fail-closed si falta).
+
+Script de ayuda (si usas Kapso + Funnel estable):
+
+```bash
+node scripts/asegurar-webhook.mjs
+```
+
+---
+
+## 7. Estructura (mapa rápido)
+
+```text
+nexus/
+  hub/                 Cerebro (asistente.mjs) + Express + UI React
+  shared/              Cliente Supabase + SQL
+  conector-tek/        Banco (Chrome + candado + corazón)
+  conector-sii/        Impuestos
+  conector-goautos/    Automotora
+  conector-navegador/  Playwright genérico
+  conector-obsidian/   API bóveda Markdown
+  tag-web/             Google / TAG
+  sii-web/             Backend Python SII
+  scripts/             Arranque, watchdogs, instalación
+  .env.example         Variables (sin valores)
+```
+
+Documentación de arquitectura más amplia (si la generaste): ver PDF / docs aparte. Este README es la guía operativa de bootstrap.
+
+---
+
+## 8. Seguridad — checklist antes de `git push`
+
+- [ ] No hay `.env` ni `.env.bak*` en el commit  
+- [ ] No hay `chrome-profile*`, `session*.json`, `*.pfx`, `*.pem`  
+- [ ] No hay `historial.db`, `usuarios.json`, `recordatorios.json` con datos reales  
+- [ ] No hay tokens en plists versionados  
+- [ ] `.env.example` solo tiene nombres y valores vacíos / defaults no secretos  
+
+El monorepo de respaldo (`nj-NEXUS`) además redacta patrones tipo `sk-ant-…` al sincronizar.
+
+---
+
+## 9. Operación diaria
+
+```bash
+# Logs típicos (macOS)
+tail -f /tmp/nexus-hub.log
+
+# Reiniciar un servicio
+launchctl kickstart -k gui/$(id -u)/com.nexus.hub
+
+# Alertar por WhatsApp (requiere Kapso + plantilla aprobada)
+cd hub && node alertar.mjs "+569XXXXXXXX" "mensaje de prueba"
+```
+
+---
+
+## 10. Qué NO está en este repo (a propósito)
+
+| Excluido | Por qué |
+|---|---|
+| `.env`, tokens, certs | Secretos |
+| Perfiles Chrome / sesiones banco | Cookies y login |
+| SQLite / JSON de usuarios y recordatorios | Datos personales y de negocio |
+| Modelos TTS / binarios (`*.onnx`, `bore`, …) | Pesados / regenerables |
+| `node_modules`, `.venv`, builds | Se reinstalan |
+
+Los datos de negocio viven en **Supabase** (y en el Mac de producción). El repo es **solo código**.
+
+---
+
+## Licencia / uso
+
+Privado. Uso interno. No publicar forks con `.env` ni dumps de producción.

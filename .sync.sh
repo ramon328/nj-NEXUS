@@ -46,6 +46,11 @@ EXCLUDES=(
   --exclude 'ffmpeg' --exclude 'ffprobe' --exclude 'obscura' --exclude 'kokoro/' --exclude 'chrome-headless-shell*'
   --exclude 'chrome-profile/' --exclude '*-chrome/' --exclude '.wwebjs_auth/' --exclude '.wwebjs_cache/'
   --exclude 'user-data-dir/'
+  --exclude 'chrome-profile-*/' --exclude 'session-*.json' --exclude 'session.json'
+  --exclude 'usuarios.json' --exclude 'recordatorios.json' --exclude 'recordatorios-*.json'
+  --exclude 'contactos-externos.json' --exclude 'wa-guardian-state.json'
+  --exclude 'historial.db*' --exclude 'bin/bore' --exclude 'bin/cloudflared'
+  --exclude '*.onnx' --exclude 'voices-*.bin' --exclude 'kokoro-*.onnx'
   # --- SECRETOS ---
   --exclude '.env' --exclude '.env.*' --exclude '*.pem' --exclude '*.pfx' --exclude '*.p12'
   --exclude '*.key' --exclude '*.crt' --exclude '*.cer' --exclude 'secretos-facturacion/'
@@ -66,7 +71,8 @@ for entry in "${PROJECTS[@]}"; do
   src="${entry%%:*}"; dst="${entry##*:}"
   [ -d "$src" ] || continue
   mkdir -p "$BK/$dst"
-  rsync -a --delete "${EXCLUDES[@]}" "$src/" "$BK/$dst/" 2>>"$LOG"
+  # .env.* está excluido; re-incluimos solo .env.example (plantilla sin secretos)
+  rsync -a --delete "${EXCLUDES[@]}"     --include='.env.example' --include='*/' --exclude='.env.*'     "$src/" "$BK/$dst/" 2>>"$LOG"
 done
 
 # --- scrub: redactar secretos embebidos en el código copiado ---

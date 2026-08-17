@@ -1,83 +1,170 @@
-# === Secretos — NUNCA subir al repo ===
+# =====================================================================
+# NEXUS — qué NUNCA va al repo
+# =====================================================================
+
+# --- Secretos / credenciales ---
 .env
-.env.local
+.env.*
+!.env.example
 *.pem
 *.key
 *.p12
+*.pfx
 *.cer
+*.crt
 credentials.json
 credenciales.json
+**/.creds.json
+**/*creds*
+**/api_token.txt
+**/.api-token
+**/*token*.json
+!**/*token*.example.json
+hub/.centro-cred.json
+hub/.centro-secret
+secretos-facturacion/
+reservo/.creds.json
 
-# === Dependencias ===
+# --- Dependencias / entornos ---
 node_modules/
 .venv/
 venv/
+env/
 __pycache__/
 *.pyc
+.mypy_cache/
+.pytest_cache/
 
-# === Builds ===
+# --- Builds ---
 dist/
 build/
 .vite/
+.next/
+**/.next/
+out/
+coverage/
 
-# === Efímeros / runtime ===
-logs/*.log
-*.pid
-.DS_Store
-.cache/
-
-# === OpenClaw / sesiones WhatsApp (contienen tokens de sesión) ===
-.openclaw/
-*.session
-auth_info*/
-
-# === ENDURECIDO (Claude) — datos/runtime/secretos que NO van a GitHub ===
-# Bases de datos locales (¡app.db tiene claves tributarias SII en claro!)
+# --- Bases de datos y WAL ---
 *.db
+*.db-shm
+*.db-wal
 *.sqlite
 *.sqlite-shm
 *.sqlite-wal
-# Documentos tributarios descargados y datos de runtime
-sii-web/data/
-**/data/empresas/
-# Perfiles de navegador (cookies/sesiones)
+
+# --- Perfiles de navegador / sesiones (cookies, login banco) ---
 .perfil/
 **/.perfil/
-# Tokens OAuth de correo / Google
+chrome-profile/
+chrome-profile-*/
+**/chrome-profile*/
+session.json
+session-*.json
+*.session
+session.lock
+session-*.lock
+.openclaw/
+auth_info*/
+.wwebjs_auth/
+.wwebjs_cache/
+user-data-dir/
+*-chrome/
+
+# --- Runtime / estado local / PII ---
+logs/
+*.log
+*.pid
+.DS_Store
+.cache/
+uploads/
+shots/
+tmp/
+hub/.media-cache/
+hub/.factura-pendiente.json
+hub/.factura-compra-ultima.json
+hub/.compras-pendientes.json
+hub/.ventas-pendientes.json
+hub/.transferencias-vistas.json
+usuarios.json
+**/usuarios.json
+contactos-externos.json
+recordatorios.json
+recordatorios-*.json
+wa-guardian-state.json
+leads-chileautos.json
+documentos-autos.json
+historial.db*
+conector-mallorca/cache/
 conector-correo/google/
-**/*token*.json
+conector-correo/descargas/
+sii-web/data/
+**/data/empresas/
+conector-tek/data/
+conector-tek/descubrimiento/
+conector-conciliador/data/
+estado-*.json
 **/.last-good
-# Builds del frontend
-.next/
-**/.next/
-# Respaldos automáticos
+
+# --- Modelos de IA / binarios pesados ---
+*.onnx
+*.bin
+*.gguf
+*.pt
+*.pth
+*.safetensors
+*.wasm
+bin/bore
+bin/cloudflared
+**/chrome-headless-shell*
+hub/kokoro/*.onnx
+hub/kokoro/*.bin
+
+# --- Respaldos locales ---
 *.bak
 *.bak.*
 *.bak-*
-# Estados con posibles tokens
-estado-*.json
+backups/
+**/*.bak.*
 
-# Caché de adjuntos del Hub (fotos/documentos entrantes)
-hub/.media-cache/
+# --- Certs / noVNC OTP / miscelánea sensible ---
+certs/
+**/.novnc-otp
+novnc-web/certs/
+COBRANZA-OFF
 
-# Conector Mallorca: entorno y cache del Excel (no versionar)
-conector-mallorca/.venv/
-conector-mallorca/cache/
-
-# === Claude: excluidos por Ramon (datos de usuarios / logs de runtime) ===
-usuarios.json
-**/usuarios.json
-conector-navegador/diagnostico.log
+# --- Logs de diagnóstico ---
 **/diagnostico.log
 
-# Certificados digitales de facturación (NUNCA a GitHub)
-*.pfx
-secretos-facturacion/
-conector-tek/.creds.json
-conector-tek/chrome-profile
-session.json
-reservo/.creds.json
-conector-reservo/session.json
-
-# Estado de emisión de facturas pendientes (por usuario)
-hub/.factura-pendiente.json
+# --- Datos locales con PII / negocio ---
+hub/accesos-sii.json
+conector-cobranza/cola.json
+conector-cobranza/estado.json
+conector-cobranza/envios.log
+conector-goautos/cav-guardados.json
+novnc-web/
+conector-reservo/.health-estado.json
+conector-reservo/auditoria-escritura.jsonl
+conector-autored/mapeo-cierre.jsonl
+tag-web/*token*.json
+tag-web/**/*token*
+# Binarios / datos runtime que no deben ir al repo
+conector-tek/obscura
+**/obscura
+vigia-salud/historial.jsonl
+vigia-salud/estado.json
+tag-web/*.xlsx
+tag-web/stock-*.xlsx
+reservo/*.pdf
+conector-tek/doc-img.html
+conector-tek/PAUSADO-*.txt
+# Runtime TAG / vigía / estados
+tag-web/*.json
+!tag-web/package.json
+tag-web/cache/
+tag-web/*.xlsx
+tag-web/*.docx
+tag-web/*.png
+vigia-salud/estado.json
+conector-tek/PAUSADO-*.txt
+conector-tek/doc-img.html
+conector-tek/mapa-banco/
