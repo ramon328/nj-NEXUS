@@ -1,0 +1,153 @@
+<!doctype html><html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Conectar el correo de Clivox</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#fafafa;color:#18181b;font:15px/1.6 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+  .caja{max-width:440px;margin:0 auto;padding:38px 20px 70px}
+  h1{font-size:23px;letter-spacing:-.5px;margin:0 0 6px}
+  .sub{color:#71717a;font-size:14px;margin:0 0 26px}
+  label{display:block;font-size:13px;font-weight:600;margin:16px 0 6px;color:#3f3f46}
+  input,select{width:100%;padding:13px 14px;border:1px solid #d4d4d8;border-radius:10px;font:inherit;background:#fff;-webkit-appearance:none}
+  input:focus,select:focus{outline:0;border-color:#18181b;box-shadow:0 0 0 3px rgba(24,24,27,.08)}
+  .pin{letter-spacing:9px;text-align:center;font-size:24px;font-weight:600}
+  button{width:100%;margin-top:22px;padding:15px;background:#18181b;color:#fff;border:0;border-radius:10px;font:600 15px/1 inherit;cursor:pointer}
+  button:disabled{opacity:.5}
+  .ayuda{color:#71717a;font-size:12.5px;line-height:1.6;margin-top:7px}
+  .ayuda a{color:#18181b}
+  .aviso{background:#fff;border:1px solid #e4e4e7;border-radius:12px;padding:15px 17px;margin:20px 0;font-size:13.5px;line-height:1.65;color:#3f3f46}
+  .malo{background:#fef2f2;border-color:#fecaca;color:#991b1b}
+  .bueno{background:#f0fdf4;border-color:#bbf7d0;color:#166534}
+  .oculto{display:none}
+  .paso{color:#a1a1aa;font-size:12px;font-weight:600;letter-spacing:.8px;text-transform:uppercase;margin-bottom:8px}
+  .cargando{opacity:.6;pointer-events:none}
+</style></head><body><div class="caja">
+
+<div id="p1">
+  <p class="paso">Paso 1 de 2</p>
+  <h1>Conectar el correo de Clivox</h1>
+  <p class="sub">Escribe el PIN de 6 dígitos que te compartieron junto con este enlace.</p>
+  <input id="pin" class="pin" inputmode="numeric" maxlength="6" placeholder="······" autocomplete="one-time-code">
+  <div id="errpin" class="aviso malo oculto"></div>
+  <button onclick="verPin()">Continuar</button>
+</div>
+
+<div id="p2" class="oculto">
+  <p class="paso">Paso 2 de 2</p>
+  <h1>Datos del correo</h1>
+  <p class="sub">Con esto Clivox va a poder mandar los avisos de pedidos.</p>
+
+  <label>¿Por dónde se envía?</label>
+  <select id="proveedor" onchange="cambio()">
+    <option value="gmail">Google Workspace / Gmail (recomendado)</option>
+    <option value="ses">Amazon SES</option>
+    <option value="smtp">Otro servidor SMTP</option>
+  </select>
+
+  <div id="ayudaGmail" class="aviso">
+    <strong>Ojo:</strong> no sirve la contraseña normal de la cuenta. Hay que crear una
+    <strong>clave de aplicación</strong> en
+    <a href="https://myaccount.google.com/apppasswords" target="_blank" rel="noopener">myaccount.google.com/apppasswords</a>
+    (requiere verificación en dos pasos activada). Son 16 letras.
+  </div>
+
+  <div id="campoHost" class="oculto">
+    <label>Servidor SMTP</label>
+    <input id="host" placeholder="smtp.midominio.cl" autocapitalize="off">
+    <label>Puerto</label>
+    <input id="puerto" inputmode="numeric" value="587">
+  </div>
+
+  <label>Correo que envía</label>
+  <input id="usuario" type="email" placeholder="no-responder@clivox.cl" autocapitalize="off" autocorrect="off">
+  <p class="ayuda">La casilla desde la que salen los correos a los clientes.</p>
+
+  <label id="lblClave">Clave de aplicación</label>
+  <input id="clave" type="password" placeholder="••••••••••••••••" autocapitalize="off" autocorrect="off">
+
+  <label>Mandar la prueba a</label>
+  <input id="destino" type="email" placeholder="tu@correo.cl" autocapitalize="off" autocorrect="off">
+  <p class="ayuda">Te llega un correo para confirmar que quedó funcionando. Si no llega, no se guarda nada.</p>
+
+  <div id="res" class="aviso oculto"></div>
+  <button id="btn" onclick="conectar()">Probar y conectar</button>
+</div>
+
+<div id="p3" class="oculto">
+  <h1>Correo conectado</h1>
+  <div class="aviso bueno" id="okmsg"></div>
+  <p class="sub">Ya puedes cerrar esta página. Este enlace no vuelve a funcionar.</p>
+</div>
+
+</div><script>
+const $ = (s) => document.querySelector(s);
+const TOKEN = location.pathname.split('/').filter(Boolean).pop();
+const BASE = location.pathname.replace(/\/$/, '');
+let sesion = null;
+
+function cambio(){
+  const p = $('#proveedor').value;
+  $('#ayudaGmail').classList.toggle('oculto', p !== 'gmail');
+  $('#campoHost').classList.toggle('oculto', p !== 'smtp');
+  $('#lblClave').textContent = p === 'gmail' ? 'Clave de aplicación' : 'Contraseña / Secret key';
+}
+
+async function verPin(){
+  const pin = $('#pin').value.trim();
+  const r = await fetch(BASE + '/pin', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify({pin})});
+  const j = await r.json();
+  if (!j.ok) {
+    const e = $('#errpin'); e.classList.remove('oculto');
+    e.textContent = j.error === 'pin_malo'
+      ? 'PIN incorrecto. Te quedan ' + j.quedan + ' intento(s).'
+      : 'Este enlace ya no sirve. Pide uno nuevo.';
+    return;
+  }
+  sesion = j.sesion;
+  $('#p1').classList.add('oculto'); $('#p2').classList.remove('oculto');
+}
+
+async function conectar(){
+  const cuerpo = {
+    sesion, guardar: true,
+    proveedor: $('#proveedor').value,
+    usuario: $('#usuario').value.trim(),
+    clave: $('#clave').value,
+    remitente: $('#usuario').value.trim(),
+    destinoPrueba: $('#destino').value.trim() || $('#usuario').value.trim(),
+    host: $('#host').value.trim(),
+    puerto: $('#puerto').value.trim(),
+  };
+  if (!cuerpo.usuario || !cuerpo.clave) { muestra('Falta el correo o la clave.', false); return; }
+
+  $('#btn').textContent = 'Probando…'; $('#p2').classList.add('cargando');
+  try {
+    const r = await fetch(BASE + '/probar', {method:'POST', headers:{'content-type':'application/json'}, body: JSON.stringify(cuerpo)});
+    const j = await r.json();
+    if (j.ok) {
+      $('#p2').classList.add('oculto'); $('#p3').classList.remove('oculto');
+      $('#okmsg').textContent = 'Mandamos un correo de prueba a ' + j.para + '. Si llegó, está todo listo.';
+    } else {
+      muestra(traducir(j.error), false);
+    }
+  } catch(e){ muestra('No se pudo conectar con el servidor.', false); }
+  $('#btn').textContent = 'Probar y conectar'; $('#p2').classList.remove('cargando');
+}
+
+function traducir(e){
+  const t = String(e||'');
+  if (/Invalid login|535|BadCredentials/i.test(t)) return 'El correo o la clave no son correctos. Si es Gmail, recuerda que necesitas una clave de aplicación, no la contraseña normal.';
+  if (/ENOTFOUND|EAI_AGAIN/i.test(t)) return 'No se encontró ese servidor SMTP. Revisa el nombre.';
+  if (/ETIMEDOUT|ECONNREFUSED/i.test(t)) return 'El servidor no respondió. Revisa el puerto.';
+  if (/certificate/i.test(t)) return 'Problema con el certificado del servidor.';
+  return 'No resultó: ' + t;
+}
+
+function muestra(msg, ok){
+  const d = $('#res'); d.classList.remove('oculto');
+  d.className = 'aviso ' + (ok ? 'bueno' : 'malo');
+  d.textContent = msg;
+}
+$('#pin').addEventListener('keydown', e => { if (e.key === 'Enter') verPin(); });
+cambio();
+</script></body></html>

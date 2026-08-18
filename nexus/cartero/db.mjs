@@ -69,6 +69,18 @@ CREATE TABLE IF NOT EXISTS llaves (
 
 -- Ultimo estado conocido de cada pedido de Clivox. El vigia compara
 -- contra esto para saber si el estado cambio de verdad.
+-- Invitaciones de un solo uso para conectar el correo desde una URL compartible.
+CREATE TABLE IF NOT EXISTS invitaciones (
+  token     TEXT PRIMARY KEY,
+  pin       TEXT NOT NULL,
+  nota      TEXT,
+  intentos  INTEGER NOT NULL DEFAULT 0,
+  usada     INTEGER NOT NULL DEFAULT 0,
+  expira    INTEGER NOT NULL,
+  creado    INTEGER NOT NULL,
+  resultado TEXT
+);
+
 CREATE TABLE IF NOT EXISTS pedidos_vistos (
   order_id     TEXT PRIMARY KEY,
   status       TEXT,

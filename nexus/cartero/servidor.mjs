@@ -4,11 +4,12 @@ import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { db, ahora } from './db.mjs';
-import { encolar, registrarEvento, firmaValida, deB64, leerTokenBaja, suprimir, estaSuprimido } from './correo.mjs';
+import { encolar, registrarEvento, firmar, firmaValida, deB64, leerTokenBaja, suprimir, estaSuprimido } from './correo.mjs';
+import { leerInvitacion, pinCorrecto, marcarUsada, probar, guardarConexion } from './conexion.mjs';
 import { arrancarCola, vaciar, resumen } from './cola.mjs';
 import { arrancarVigia, revisar } from './vigia.mjs';
 import { validar } from './llaves.mjs';
-import { verificar, modo } from './transporte.mjs';
+import { verificar, modoActual, recargar } from './transporte.mjs';
 import { pedido as traerPedido } from './clivox.mjs';
 
 const raiz = path.dirname(fileURLToPath(import.meta.url));
@@ -56,7 +57,7 @@ const servidor = http.createServer(async (req, res) => {
 
   try {
     // ---------- salud ----------
-    if (ruta === '/salud') return json(res, 200, { ok: true, modo, cola: resumen() });
+    if (ruta === '/salud') return json(res, 200, { ok: true, modo: modoActual(), cola: resumen() });
 
     // ---------- pixel de apertura ----------
     if (ruta.startsWith('/t/a/')) {
@@ -101,10 +102,65 @@ const servidor = http.createServer(async (req, res) => {
         </div>`);
     }
 
+    // ---------- conectar el correo (URL compartible) ----------
+    if (ruta.startsWith('/conectar/')) {
+      const partes = ruta.split('/');           // ['', 'conectar', token, accion?]
+      const token = partes[2] || '';
+      const accion = partes[3] || '';
+      const estado = leerInvitacion(token);
+
+      if (!accion) {
+        if (!estado.ok) {
+          const razon = { no_existe: 'Este enlace no existe.', ya_usada: 'Este enlace ya se usó.',
+            vencida: 'Este enlace caducó.', bloqueada: 'Se agotaron los intentos de PIN.' }[estado.error];
+          return html(res, 410, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+            <div style="font-family:-apple-system,system-ui,sans-serif;max-width:420px;margin:16vh auto;padding:0 24px;text-align:center;color:#18181b">
+            <h1 style="font-size:20px">${razon}</h1>
+            <p style="color:#71717a;line-height:1.6">Pídele a Ramón que genere uno nuevo.</p></div>`);
+        }
+        return html(res, 200, fs.readFileSync(path.join(raiz, 'panel', 'conectar.html'), 'utf8'));
+      }
+
+      if (req.method !== 'POST') return json(res, 405, { error: 'metodo no permitido' });
+
+      if (accion === 'pin') {
+        const c = await leerCuerpo(req);
+        const r = pinCorrecto(token, c.pin);
+        if (!r.ok) return json(res, 401, r);
+        // Ticket corto para los pasos siguientes: asi no se gastan los intentos de PIN.
+        return json(res, 200, { ok: true, sesion: firmar('conectar:' + token) });
+      }
+
+      if (accion === 'probar') {
+        const c = await leerCuerpo(req);
+        if (!firmaValida('conectar:' + token, c.sesion)) return json(res, 401, { error: 'sesion invalida' });
+        if (!estado.ok) return json(res, 410, { error: estado.error });
+        try {
+          const r = await probar(c);
+          // Solo se guarda si el correo de prueba SALIO de verdad.
+          if (c.guardar) {
+            guardarConexion(c);
+            recargar();
+            marcarUsada(token, 'conectado: ' + c.proveedor);
+          }
+          return json(res, 200, { ok: true, ...r, guardado: !!c.guardar, modo: modoActual() });
+        } catch (e) {
+          return json(res, 400, { ok: false, error: e.message });
+        }
+      }
+
+      return json(res, 404, { error: 'accion desconocida' });
+    }
+
     // ---------- vista previa de plantillas ----------
     // /vista?plantilla=pedido-enviado[&pedido=<id>]  -> renderiza sin enviar nada.
     // Solo escucha en loopback, asi que no queda expuesta.
     if (ruta === '/vista') {
+      // Pide llave: con el tunel abierto, sin esto cualquiera que adivine un
+      // UUID de pedido veria los datos del cliente.
+      if (!autorizar(req) && !url.searchParams.get('llave')) return json(res, 401, { error: 'falta la llave de API' });
+      if (url.searchParams.get('llave') && !validar(url.searchParams.get('llave')))
+        return json(res, 401, { error: 'llave invalida' });
       const { armar } = await import('./plantillas.mjs');
       const nombre = url.searchParams.get('plantilla') || 'pedido-enviado';
       const idPedido = url.searchParams.get('pedido');
@@ -179,7 +235,7 @@ const servidor = http.createServer(async (req, res) => {
                                 FROM mensajes ORDER BY creado DESC LIMIT 50`).all();
         const ev = db.prepare(`SELECT tipo, COUNT(*) n FROM eventos GROUP BY tipo`).all();
         return json(res, 200, {
-          modo, cola: resumen(),
+          modo: modoActual(), cola: resumen(),
           eventos: Object.fromEntries(ev.map((e) => [e.tipo, e.n])),
           suprimidos: db.prepare('SELECT COUNT(*) n FROM supresiones').get().n,
           ultimos: ult,
@@ -220,7 +276,7 @@ servidor.on('error', (e) => {
 });
 
 servidor.listen(PUERTO, '127.0.0.1', async () => {
-  console.log(`[cartero] escuchando en http://127.0.0.1:${PUERTO}  (transporte: ${modo})`);
+  console.log(`[cartero] escuchando en http://127.0.0.1:${PUERTO}  (transporte: ${modoActual()})`);
   const v = await verificar();
   console.log('[cartero] transporte:', JSON.stringify(v));
   arrancarCola(15000);

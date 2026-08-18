@@ -1,6 +1,6 @@
 // Worker de la cola: toma pendientes, los entrega y reintenta con espera creciente.
 import { db, ahora } from './db.mjs';
-import { entregar, modo } from './transporte.mjs';
+import { entregar, modoActual } from './transporte.mjs';
 import { registrarEvento, suprimir, PUBLICA, tokenBaja } from './correo.mjs';
 
 // Esperas entre reintentos: 1min, 5min, 15min, 1h, 6h. Despues se rinde.
@@ -72,7 +72,7 @@ export async function vaciar(lote = 20) {
       const r = await despachar(m);
       r.ok ? res.enviados++ : res.fallidos++;
       // Un respiro entre envios: los relays castigan las rafagas.
-      if (modo !== 'log') await new Promise((s) => setTimeout(s, 250));
+      if (modoActual() !== 'log') await new Promise((s) => setTimeout(s, 250));
     }
   } finally { corriendo = false; }
   return res;

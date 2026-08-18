@@ -24,6 +24,7 @@ function dkim() {
 }
 
 function construir() {
+  const tipo = modoActual();
   const comun = { dkim: dkim(), pool: true, maxConnections: 3, maxMessages: 100 };
 
   switch (tipo) {
@@ -67,15 +68,27 @@ function construir() {
 let _t = null;
 const trans = () => (_t ||= construir());
 
-export const modo = tipo;
+// Se relee el .env y se rehace el transporte: sirve para que al conectar el
+// correo desde la web tome efecto al toque, sin reiniciar el servicio.
+export function recargar() {
+  process.loadEnvFile(path.join(raiz, '.env'));
+  try { _t?.close?.(); } catch { /* daba lo mismo */ }
+  _t = null;
+  return modoActual();
+}
+
+export const modoActual = () => (process.env.CARTERO_TRANSPORTE || 'log').toLowerCase();
+export const modo = tipo;   // el modo al arrancar (informativo)
 
 export async function verificar() {
+  const tipo = modoActual();
   if (tipo === 'log') return { ok: true, modo: tipo, nota: 'modo prueba: no sale nada a internet' };
   try { await trans().verify(); return { ok: true, modo: tipo, dkim: !!dkim() }; }
   catch (e) { return { ok: false, modo: tipo, error: e.message }; }
 }
 
 export async function entregar(sobre) {
+  const tipo = modoActual();
   const r = await trans().sendMail(sobre);
 
   if (tipo === 'log') {
