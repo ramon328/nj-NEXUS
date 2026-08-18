@@ -1,15 +1,15 @@
 {
-  "ts": "2026-08-18T14:45:33.946Z",
+  "ts": "2026-08-18T14:57:37.745Z",
   "estado": "ROJO",
   "nivel": 2,
   "razones": [
     "Disco casi lleno (92%)"
   ],
   "metricas": {
-    "load1": 1.98,
+    "load1": 2.21,
     "nucleos": 6,
-    "loadPorNucleo": 0.33,
-    "ramLibreMB": 2058,
+    "loadPorNucleo": 0.37,
+    "ramLibreMB": 1539,
     "ramTotalMB": 32768,
     "swapUsedMB": 819,
     "compresorMB": 1840,
