@@ -115,6 +115,12 @@ export function arrancarVigia(cadaMs = 60000) {
     revisar().then((a) => {
       const utiles = a.filter((x) => x.accion === 'encolado');
       if (utiles.length) console.log('[vigia]', JSON.stringify(utiles));
+      // Un pedido sin correo es plata que entro y un cliente que no supo nada:
+      // tiene que quedar a la vista, no pasar en silencio.
+      for (const x of a.filter((y) => y.accion === 'sin_email'))
+        console.error(`[vigia] OJO: el pedido ${x.pedido} (${x.estado}) no tiene correo, nadie fue avisado`);
+      for (const x of a.filter((y) => y.accion === 'rechazado'))
+        console.error(`[vigia] OJO: pedido ${x.pedido} rechazado: ${x.motivo}`);
     }).catch((e) => console.error('[vigia]', e.message));
   }, cadaMs);
   reloj.unref?.();
