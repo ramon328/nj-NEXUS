@@ -72,10 +72,18 @@ export async function normalizar(fila) {
 
   const partes = [dir.direccion, dir.comuna, dir.ciudad, dir.region].filter(Boolean);
 
+  const creado = new Date(fila.created_at);
+  const fecha = creado.toLocaleDateString('es-CL', {
+    day: 'numeric', month: 'long', year: 'numeric', timeZone: 'America/Santiago',
+  });
+
   return {
     id: fila.id,
     email,
     estado: fila.status,
+    created_at: fila.created_at,
+    sin_items: (fila.order_items || []).length === 0,
+    fecha,
     tracking: fila.tracking || '',
     carrier: fila.carrier || '',
     updated_at: fila.updated_at,

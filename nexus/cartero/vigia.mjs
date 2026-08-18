@@ -52,7 +52,16 @@ export async function revisar({ sembrar = false, simular = false, desde = '2000-
     // Pedido nuevo para el Cartero.
     if (!visto) {
       if (sembrar) { guardarVisto(p); acciones.push({ pedido: p.pedido_corto, accion: 'sembrado', estado: p.estado }); continue; }
-      // Sin sembrar, un pedido recien creado si merece su correo de bienvenida.
+
+      // La web crea la orden y mete los productos un instante despues. Si el
+      // vigia cae justo en medio, mandaria una confirmacion sin nada adentro.
+      // Se deja pasar una vuelta; si al rato sigue vacio, se manda igual.
+      const edad = Date.now() - new Date(p.created_at).getTime();
+      if (p.sin_items && edad < 3 * 60 * 1000) {
+        acciones.push({ pedido: p.pedido_corto, accion: 'esperando_productos', estado: p.estado });
+        continue;   // sin guardarVisto: se vuelve a mirar en la proxima vuelta
+      }
+      // Sin sembrar, un pedido recien creado si merece su correo de confirmacion.
     } else {
       const cambioEstado = normal(visto.status) !== normal(p.estado);
       const cambioTracking = (visto.tracking || '') !== (p.tracking || '') && !!p.tracking;
