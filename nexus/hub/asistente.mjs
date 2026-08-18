@@ -1400,7 +1400,7 @@ async function programarRecargaOpenclaw(numero, mensaje) {
 const SCOPE_TOOLS = {
   aliace: ['aliace_rpc', 'aliace_sql', 'aliace_margen', 'aliace_mover_nv', 'aliace_pago', 'aliace_editar_nv', 'aliace_crear_nv', 'guia_aliace', 'navegar', 'ver_pestanas', 'cambiar_pestana', 'leer_pagina', 'captura_pantalla', 'escribir_en_campo', 'clic', 'esperar', 'leer_tabla', 'iniciar_sesion', 'guardar_credencial', 'listar_sitios'],
   sii: ['sii', 'sii_boleta_honorarios', 'sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras', 'factura_compra'],
-  mallorca: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_contrato', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'venta', 'gasto', 'conciliacion', 'cartola'],
+  mallorca: ['consultar_goautos', 'editar_goautos', 'espejo_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'documentos_autos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_contrato', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'solicitar_tag', 'autos_con_tag', 'generar_cav', 'descargar_informe', 'datos_auto_cav', 'compra', 'venta', 'gasto', 'conciliacion', 'cartola'],
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
@@ -1644,6 +1644,7 @@ FUENTE DE DATOS (CRÍTICO — no te equivoques de origen):
 - EDITAR / MODIFICAR / CAMBIAR un auto de MallorcAutos (estado, ubicación local/online, precio, km, descuento, patente, etc.) = herramienta editar_goautos (agente "Meme"). SOLO MallorcAutos. Necesitas el ID del auto: si no lo tienes, primero ubícalo con consultar_goautos/buscar (por marca/modelo/patente) y CONFIRMA con el usuario cuál es antes de cambiarlo. Ej.: "cambia el Musso a reservado" → buscar 'musso' → editar_goautos id=4810 estado='reservado'. "pásalo al local" → ubicacion='local'. "bájalo a 22.9" → precio=22900000. Pasa SOLO los campos que cambian y reporta el antes/después que devuelve.
 - DATOS DE ADQUISICIÓN de un auto YA EXISTENTE (precio de COMPRA + datos del VENDEDOR/proveedor: nombre, RUT, teléfono, dirección) = herramienta adquisicion_goautos (agente "Meme"), NO el navegador. Ej.: "el Audi Q3 lo compramos en 15M a Matías Silva, RUT 18.973.697-5, fono +56962941802" → ubica el id con consultar_goautos/buscar y llama adquisicion_goautos id=… precio_compra=15000000 proveedor='Matías Silva' proveedor_rut='18.973.697-5' proveedor_fono='+56962941802'. Esto YA NO requiere navegador ni ser admin (cualquiera con acceso a Mallorca puede).
 - CLIENTES / VENDEDORES de MallorcAutos: AGREGAR uno nuevo, BUSCAR o EDITAR sus datos = herramienta cliente_goautos (accion: buscar | crear | editar). Ej.: "agrega al vendedor Juan Pérez, RUT 11.111.111-1, fono +569…" → cliente_goautos accion=crear nombre='Juan' apellido='Pérez' rut='11.111.111-1' telefono='+569…'. Para empresa usa "empresa". NO uses el navegador para esto.
+- LA APP DE MALLORCAUTOS (nj-mallorc-autos, la que usan Joaquin y el equipo) se alimenta SOLA de GoAutos: cada auto, compra, venta o gasto que se sube o edita en GoAutos se refleja en la BD de la app al tiro, y ademas hay un sync cada 10 minutos por si alguien lo hizo directo en el portal. O sea: se carga UNA sola vez, en GoAutos, y aparece en la app. NO le pidas a nadie que lo cargue dos veces. Si preguntan si la app esta al dia o piden actualizarla ahora, usa espejo_goautos (accion estado o sincronizar).
 - EDITAR UNA NOTA DE VENTA existente (cambiar precio, estado, comprador, forma de pago, comisión, financiera, fecha) = herramienta editar_venta_goautos (necesita el id de la venta; ubícalo con consultar_goautos/vendidos). CONFIRMA con el usuario antes de cambiar montos o estado. SOLO MallorcAutos.
 - VENDER un auto / REGISTRAR VENTA o NOTA DE VENTA de MallorcAutos = herramienta vender_goautos (agente "Meme"). SOLO MallorcAutos. Crea la nota de venta y deja el auto "Vendido" (cambia el estado y NO se deshace sola → pide UNA confirmación corta antes de crearla, sin marear). Sé ÁGIL: no te des vueltas ni hagas pasos de más.
   DATOS de la nota: OBLIGATORIOS = (a) el AUTO y (b) el PRECIO de venta. RECOMENDADOS = comprador (nombre+apellido, o rut/cliente_id si ya está en GoAutos) y método de pago (si no lo dicen, asume EFECTIVO). OPCIONALES = fecha (si no, hoy), financiera (si es a crédito), abonos, valor de transferencia, notas.
@@ -2103,6 +2104,18 @@ const HERRAMIENTAS = [
         direccion: { type: 'string' },
       },
       required: ['accion'],
+    },
+  },
+  {
+    name: 'espejo_goautos',
+    description: 'ESPEJO GoAutos -> BD de la app de MallorcAutos (la que usan Joaquin y el equipo: autos, compras, ventas, gastos). accion "estado" dice cuando fue el ultimo sync y si la app esta al dia; accion "sincronizar" la pone al dia AHORA (opcional: patente o id de un auto puntual). El espejo ya corre solo cada 10 minutos y despues de cada escritura de Nexus en GoAutos, asi que uselo solo si preguntan por el estado del sync o piden actualizar la app al tiro.',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['estado', 'sincronizar'], description: 'estado (default) o sincronizar' },
+        id: { type: 'integer', description: 'id del auto en GoAutos (opcional, para sincronizar solo ese)' },
+      },
+      required: [],
     },
   },
   {
@@ -5965,6 +5978,17 @@ async function ejecutar(nombre, input, ctx = {}) {
         return stdout.slice(0, 16000)
       } catch (e) { return `No pude gestionar el cliente en GoAutos: ${e.message}` }
     }
+    if (nombre === 'espejo_goautos') {
+      // Estado / sincronizacion manual del espejo GoAutos -> BD de la app.
+      const acc = input.accion === 'sincronizar' ? 'sincronizar' : 'estado'
+      const script = join(__dirname, '..', 'conector-goautos', 'espejo.mjs')
+      const id = Number(input.id)
+      const cmd = acc === 'estado' ? 'estado' : (Number.isFinite(id) && id > 0 ? `auto --id ${id}` : 'sync')
+      try {
+        const { stdout } = await ejecCmd(`node ${JSON.stringify(script)} ${cmd}`, { timeout: 120000, maxBuffer: 4 * 1024 * 1024 })
+        return stdout.slice(0, 16000)
+      } catch (e) { return `No pude revisar el espejo de GoAutos: ${e.message}` }
+    }
     if (nombre === 'editar_venta_goautos') {
       // EDITA una nota de venta de MallorcAutos. El conector verifica que la venta
       // sea de un auto client_id=32 ANTES de escribir.
@@ -7181,7 +7205,7 @@ function backstopTamano(mensajes) {
 const PERSONAS = [
   { linea: 'Me conecté a *Martes* y me dijo:', tools: ['sii', 'sii_boleta_honorarios'] },
   { linea: 'Le pregunté a *Néstor* y me dijo:', tools: ['correo', 'gmail_documentos'] },
-  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_contrato', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'venta', 'factura_compra', 'gasto', 'conciliacion', 'cartola'] },
+  { linea: 'Me comuniqué con *Meme* y me dijo:', tools: ['consultar_goautos', 'editar_goautos', 'espejo_goautos', 'adquisicion_goautos', 'cliente_goautos', 'editar_venta_goautos', 'vender_goautos', 'gasto_goautos', 'subir_auto', 'consultar_mallorca', 'documentos_autos', 'enviar_fotos_autos', 'leads_goautos', 'lead_estado_goautos', 'citas_goautos', 'financiamiento_goautos', 'documentos_goautos', 'marketing_goautos', 'equipo_goautos', 'gastos_fijos_goautos', 'config_goautos', 'tasar_auto', 'crear_contrato', 'crear_tarea_goautos', 'crear_cotizacion_goautos', 'crear_reserva_goautos', 'compra', 'venta', 'factura_compra', 'gasto', 'conciliacion', 'cartola'] },
   { linea: 'Me conecté con *Ali* y me dijo:', tools: ['aliace_resumen', 'aliace_margen', 'aliace_rpc', 'aliace_sql', 'aliace_mover_nv', 'navegar', 'iniciar_sesion', 'leer_tabla', 'leer_pagina', 'clic', 'esperar', 'guia_aliace', 'escribir_en_campo', 'ver_pestanas', 'cambiar_pestana'] },
   { linea: 'Me comuniqué con *SAI* y me dijo:', tools: ['sai_conciliacion', 'sai_buscar_factura', 'sai_movimientos_banco', 'sai_mallorca_compras'] },
   { linea: 'Me comuniqué con *Leo* y me dijo:', tools: ['banco'] },

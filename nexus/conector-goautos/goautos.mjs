@@ -1030,6 +1030,24 @@ function fmtVeh(v, ext = false) {
   return out
 }
 
+// ── ESPEJO A LA BD DE MALLORCAUTOS (la app que usa Joaquín) ──────────────────
+// Todo lo que se ESCRIBE en GoAutos (auto nuevo, edición, venta, gasto, compra) se
+// refleja al tiro en la BD de la app (Supabase cwspnqzrhdunwmqontjp) para que ahí
+// esté el mismo inventario, las mismas compras/ventas y los mismos gastos.
+// Nunca rompe la operación: si el espejo falla, la respuesta lo dice en `espejo`.
+// Apagar con GOAUTOS_ESPEJO=0. El detalle del mapeo vive en espejo.mjs.
+async function espejar(res, idAuto) {
+  if (process.env.GOAUTOS_ESPEJO === '0') return res
+  if (!res || res.ok === false || res.simulacion || !idAuto) return res
+  try {
+    const { espejarAuto } = await import('./espejo.mjs')
+    const r = await espejarAuto(idAuto)
+    return { ...res, espejo: r.ok ? { ok: true, en: 'BD MallorcAutos', nuevos: r.nuevos, actualizados: r.actualizados } : r }
+  } catch (e) {
+    return { ...res, espejo: { ok: false, error: e.message } }
+  }
+}
+
 async function main() {
   let [cmd, ...rest_] = process.argv.slice(2)
   await cargarEstados().catch(() => {})   // catálogo de estados (id → nombre)
@@ -1203,7 +1221,8 @@ async function main() {
       proveedor_empresa: arg('proveedor_empresa'), proveedor_fono: arg('proveedor_fono') || arg('proveedor_telefono'),
       proveedor_email: arg('proveedor_email'), proveedor_dir: arg('proveedor_dir') || arg('proveedor_direccion'),
     }
-    const res = await crearVehiculo(d).catch((e) => ({ ok: false, error: e.message }))
+    let res = await crearVehiculo(d).catch((e) => ({ ok: false, error: e.message }))
+    res = await espejar(res, res.creado && res.creado.id)
     console.log(JSON.stringify({ concesionaria: 'MallorcAutos', ...res }, null, 2))
     return
   }
@@ -1226,7 +1245,8 @@ async function main() {
       transferencia: arg('transferencia'), transferencia_cobrada: arg('transferencia_cobrada'),
     }
     // --dry / --simular / --simulacion: previsualiza sin escribir nada (alias defensivos).
-    const res = await crearNotaVenta(d, has('dry') || has('simular') || has('simulacion')).catch((e) => ({ ok: false, error: e.message }))
+    let res = await crearNotaVenta(d, has('dry') || has('simular') || has('simulacion')).catch((e) => ({ ok: false, error: e.message }))
+    res = await espejar(res, id)
     console.log(JSON.stringify({ concesionaria: 'MallorcAutos', ...res }, null, 2))
     return
   }
@@ -1247,7 +1267,8 @@ async function main() {
       nro_factura: arg('nro_factura') || arg('factura_numero') || arg('num_factura') || arg('numero_factura'),
       fecha: arg('fecha'),
     }
-    const res = await crearGasto(d, has('dry') || has('simular') || has('simulacion')).catch((e) => ({ ok: false, error: e.message }))
+    let res = await crearGasto(d, has('dry') || has('simular') || has('simulacion')).catch((e) => ({ ok: false, error: e.message }))
+    res = await espejar(res, id)
     console.log(JSON.stringify({ concesionaria: 'MallorcAutos', ...res }, null, 2))
     return
   }
@@ -1271,7 +1292,8 @@ async function main() {
       console.log(JSON.stringify({ error: 'No indicaste qué cambiar.', uso: 'editar --id N --estado Reservado --ubicacion local --precio 22900000', editables: Object.keys(EDITABLES) }))
       return
     }
-    const res = await editarVehiculo(id, cambios).catch((e) => ({ ok: false, error: e.message }))
+    let res = await editarVehiculo(id, cambios).catch((e) => ({ ok: false, error: e.message }))
+    res = await espejar(res, id)
     console.log(JSON.stringify({ concesionaria: 'MallorcAutos', ...res }, null, 2))
     return
   }
@@ -1281,7 +1303,7 @@ async function main() {
     // Ej: adquisicion --id 5169 --precio_compra 15000000 --proveedor "Matías Silva" --proveedor_rut 18.973.697-5 --proveedor_fono "+56962941802" --proveedor_dir "Uspallata 15599, Los Andes"
     const id = arg('id')
     if (!id) { console.log(JSON.stringify({ error: 'Falta --id' })); return }
-    const res = await editarAdquisicion(id, {
+    let res = await editarAdquisicion(id, {
       precio_compra: arg('precio_compra') ?? arg('precio'),
       proveedor: arg('proveedor') ?? arg('vendedor'),
       proveedor_nombre: arg('proveedor_nombre') ?? arg('nombre'),
@@ -1292,6 +1314,7 @@ async function main() {
       proveedor_dir: arg('proveedor_dir') ?? arg('direccion'),
       proveedor_email: arg('proveedor_email') ?? arg('email'),
     }, has('simular') || has('dry')).catch((e) => ({ ok: false, error: e.message }))
+    res = await espejar(res, id)
     console.log(JSON.stringify({ concesionaria: 'MallorcAutos', ...res }, null, 2))
     return
   }
@@ -1318,7 +1341,8 @@ async function main() {
       cliente_id: arg('cliente_id'), comision: arg('comision'), comision_pct: arg('comision_pct'),
       financiera: arg('financiera'), transferencia: arg('transferencia'), notas: arg('notas'),
     }
-    const res = await editarVenta(id, cambios).catch((e) => ({ ok: false, error: e.message }))
+    let res = await editarVenta(id, cambios).catch((e) => ({ ok: false, error: e.message }))
+    res = await espejar(res, res.venta && res.venta.vehicle_id)
     console.log(JSON.stringify({ concesionaria: 'MallorcAutos', ...res }, null, 2))
     return
   }

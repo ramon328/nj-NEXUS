@@ -156,12 +156,22 @@ function armarFila(v, ctx, actual) {
   // adicionales de venta e ingresos no son gasto y quedan fuera (igual que la app).
   const extras = (ctx.extras.get(v.id) || []).filter((e) => e.type === 'expense' || e.type === 'document')
   const previos = Array.isArray(actual && actual.gastos) ? actual.gastos : []
+  const enGo = new Map(extras.map((e) => [`gox_${e.id}`, e]))
+  // Los previos mandan (pueden traer la categoría corregida a mano en la app, o ser
+  // gastos `nx_` que cargó Nexus y que GoAutos no conoce). De GoAutos solo se toma:
+  //   • el MONTO, si allá lo corrigieron (de eso dependen el costo y el margen);
+  //   • los gastos NUEVOS, que se suman al final sin reordenar (si se reordenaran,
+  //     cada sync "cambiaría" todos los autos sin que cambie nada de fondo);
+  //   • y se sacan los `gox_` que ya no existen en GoAutos (los borraron allá).
+  const conservados = previos.filter((g) => !String(g.id || '').startsWith('gox_') || enGo.has(g.id)).map((g) => {
+    const e = enGo.get(g.id)
+    if (!e) return g
+    const monto = Math.round(Number(e.amount) || 0)
+    return monto === Math.round(Number(g.monto) || 0) ? g : { ...g, monto }
+  })
   const yaEstan = new Set(previos.map((g) => g.id))
   const nuevos = extras.filter((e) => !yaEstan.has(`gox_${e.id}`)).map(mapGasto)
-  // Los previos mandan (pueden traer categoría corregida a mano o ser gastos `nx_`
-  // cargados por Nexus); solo se suman los nuevos, al final y sin reordenar (si se
-  // reordenaran, cada sync "cambiaría" todos los autos sin que cambie nada de fondo).
-  const gastos = [...previos, ...nuevos]
+  const gastos = [...conservados, ...nuevos]
 
   const esConsignado = !!(consGo || v.is_consigned)
   const estado = ventaGo ? 'vendido' : (ESTADOS[v.status_id] || 'stock')
