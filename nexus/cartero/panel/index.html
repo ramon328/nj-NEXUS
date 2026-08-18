@@ -1,0 +1,90 @@
+<!doctype html><html lang="es"><head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Cartero · Clivox</title>
+<style>
+  *{box-sizing:border-box}
+  body{margin:0;background:#0b0b0d;color:#e4e4e7;font:14px/1.55 -apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif}
+  .env{max-width:1000px;margin:0 auto;padding:26px 18px 60px}
+  h1{font-size:20px;letter-spacing:-.4px;margin:0 0 2px}
+  .sub{color:#71717a;font-size:13px;margin:0 0 22px}
+  .fila{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:22px}
+  input{flex:1;min-width:220px;background:#18181b;border:1px solid #27272a;color:#e4e4e7;padding:10px 12px;border-radius:9px;font:inherit}
+  button{background:#e4e4e7;color:#0b0b0d;border:0;padding:10px 18px;border-radius:9px;font:600 14px/1 inherit;cursor:pointer}
+  button.g{background:#27272a;color:#e4e4e7}
+  .tarjetas{display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:10px;margin-bottom:22px}
+  .t{background:#141416;border:1px solid #232326;border-radius:12px;padding:14px 16px}
+  .t b{display:block;font-size:26px;font-weight:700;letter-spacing:-1px;margin-bottom:2px}
+  .t span{color:#71717a;font-size:11px;text-transform:uppercase;letter-spacing:.7px}
+  table{width:100%;border-collapse:collapse;background:#141416;border:1px solid #232326;border-radius:12px;overflow:hidden}
+  th{text-align:left;color:#71717a;font-size:11px;text-transform:uppercase;letter-spacing:.7px;padding:11px 14px;border-bottom:1px solid #232326;font-weight:600}
+  td{padding:11px 14px;border-bottom:1px solid #1c1c1f;font-size:13px;vertical-align:top}
+  tr:last-child td{border-bottom:0}
+  .p{display:inline-block;padding:2px 9px;border-radius:99px;font-size:11px;font-weight:600}
+  .enviado{background:#052e1a;color:#4ade80}.pendiente{background:#2e2405;color:#fbbf24}
+  .fallido,.rebotado{background:#2e0808;color:#f87171}.enviando{background:#08222e;color:#38bdf8}
+  .m{color:#71717a;font-size:12px}
+  .vacio{padding:40px;text-align:center;color:#52525b}
+</style></head><body><div class="env">
+  <h1>Cartero</h1>
+  <p class="sub">Correo transaccional de Clivox · <span id="modo">…</span></p>
+
+  <div class="fila">
+    <input id="llave" type="password" placeholder="Llave de API (ck_…)" autocomplete="off">
+    <button onclick="guardar()">Conectar</button>
+    <button class="g" onclick="cargar()">Refrescar</button>
+    <button class="g" onclick="revisar()">Revisar pedidos ahora</button>
+  </div>
+
+  <div class="tarjetas" id="tarjetas"></div>
+  <table><thead><tr><th>Cuándo</th><th>Para</th><th>Asunto</th><th>Plantilla</th><th>Estado</th></tr></thead>
+  <tbody id="filas"><tr><td colspan="5" class="vacio">Pega tu llave de API para ver los envíos.</td></tr></tbody></table>
+</div><script>
+const $ = (s) => document.querySelector(s);
+let llave = localStorage.getItem('cartero_llave') || '';
+if (llave) $('#llave').value = llave;
+
+function guardar(){ llave = $('#llave').value.trim(); localStorage.setItem('cartero_llave', llave); cargar(); }
+const api = (ruta, op={}) => fetch(ruta, {...op, headers:{...(op.headers||{}), authorization:'Bearer '+llave}});
+
+const cuando = (ms) => {
+  if(!ms) return '—';
+  const s = Math.floor((Date.now()-ms)/1000);
+  if (s<60) return 'hace '+s+'s';
+  if (s<3600) return 'hace '+Math.floor(s/60)+' min';
+  if (s<86400) return 'hace '+Math.floor(s/3600)+' h';
+  return new Date(ms).toLocaleDateString('es-CL');
+};
+const esc = (t) => String(t??'').replace(/[<>&"]/g, c=>({'<':'&lt;','>':'&gt;','&':'&amp;','"':'&quot;'}[c]));
+
+async function cargar(){
+  if(!llave) return;
+  const r = await api('/api/estado');
+  if(!r.ok){ $('#filas').innerHTML='<tr><td colspan=5 class=vacio>Llave rechazada.</td></tr>'; return; }
+  const d = await r.json();
+  $('#modo').textContent = 'transporte: '+d.modo;
+
+  const c = d.cola||{}, e = d.eventos||{};
+  const tarjetas = [
+    ['Enviados', c.enviado||0], ['En cola', c.pendiente||0],
+    ['Fallidos', (c.fallido||0)+(c.rebotado||0)],
+    ['Aperturas', e.abierto||0], ['Clics', e.clic||0], ['Dados de baja', d.suprimidos||0],
+  ];
+  $('#tarjetas').innerHTML = tarjetas.map(([n,v])=>'<div class="t"><b>'+v+'</b><span>'+n+'</span></div>').join('');
+
+  $('#filas').innerHTML = (d.ultimos||[]).length ? d.ultimos.map(m =>
+    '<tr><td class="m">'+cuando(m.creado)+'</td><td>'+esc(m.para)+'</td>'+
+    '<td>'+esc(m.asunto)+(m.error?'<br><span class="m">'+esc(m.error.slice(0,90))+'</span>':'')+'</td>'+
+    '<td class="m">'+esc(m.plantilla||'—')+'</td>'+
+    '<td><span class="p '+m.estado+'">'+m.estado+'</span></td></tr>').join('')
+    : '<tr><td colspan=5 class=vacio>Todavía no hay envíos.</td></tr>';
+}
+
+async function revisar(){
+  const r = await api('/api/revisar', {method:'POST', headers:{'content-type':'application/json'}, body:'{}'});
+  const j = await r.json();
+  alert(Array.isArray(j) && j.length ? j.map(a=>a.pedido+': '+a.accion).join('\n') : 'Sin cambios de estado.');
+  cargar();
+}
+if(llave) cargar();
+setInterval(()=>{ if(llave) cargar(); }, 15000);
+</script></body></html>
