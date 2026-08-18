@@ -1,20 +1,20 @@
 {
-  "ts": "2026-08-18T19:19:59.291Z",
+  "ts": "2026-08-18T19:29:02.082Z",
   "estado": "ROJO",
   "nivel": 2,
   "razones": [
     "Disco casi lleno (94%)"
   ],
   "metricas": {
-    "load1": 1.32,
+    "load1": 1.23,
     "nucleos": 6,
-    "loadPorNucleo": 0.22,
-    "ramLibreMB": 4460,
+    "loadPorNucleo": 0.2,
+    "ramLibreMB": 4397,
     "ramTotalMB": 32768,
     "swapUsedMB": 819,
     "compresorMB": 1840,
     "discoPct": 94,
-    "procesos": 743,
+    "procesos": 744,
     "sesionesClaude": 2,
     "sesionesClaudeViejas": 0
   },
