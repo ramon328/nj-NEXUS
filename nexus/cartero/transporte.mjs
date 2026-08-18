@@ -4,6 +4,7 @@
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import dnsp from 'node:dns/promises';
 import nodemailer from 'nodemailer';
 
 const raiz = path.dirname(fileURLToPath(import.meta.url));
@@ -11,11 +12,28 @@ process.loadEnvFile(path.join(raiz, '.env'));
 
 const tipo = (process.env.CARTERO_TRANSPORTE || 'log').toLowerCase();
 
-// Firma DKIM: si existe la llave privada, se firma. Es lo que separa
-// "llega a la bandeja" de "llega a spam".
+// Firma DKIM. Solo se firma si el selector esta PUBLICADO en el DNS:
+// firmar con un selector que no existe no suma nada y los filtros de spam
+// lo puntuan en contra. Con Workspace, Google ya firma con su propio selector.
+let dkimPublicado = null;   // null = sin comprobar todavia
+
+export async function comprobarDkim() {
+  const llave = path.join(raiz, 'dkim', 'privada.pem');
+  if (!fs.existsSync(llave)) { dkimPublicado = false; return { firma: false, motivo: 'sin llave local' }; }
+  const dominio = process.env.CARTERO_DOMINIO || (process.env.CARTERO_DE || '').split('@')[1];
+  const selector = process.env.CARTERO_DKIM_SELECTOR || 'cartero';
+  try {
+    const r = await dnsp.resolveTxt(`${selector}._domainkey.${dominio}`);
+    dkimPublicado = r.flat().join('').includes('p=');
+  } catch { dkimPublicado = false; }
+  return dkimPublicado
+    ? { firma: true, selector, dominio }
+    : { firma: false, motivo: `${selector}._domainkey.${dominio} no esta publicado en el DNS` };
+}
+
 function dkim() {
   const llave = path.join(raiz, 'dkim', 'privada.pem');
-  if (!fs.existsSync(llave)) return undefined;
+  if (!fs.existsSync(llave) || dkimPublicado !== true) return undefined;
   return {
     domainName: process.env.CARTERO_DOMINIO || (process.env.CARTERO_DE || '').split('@')[1],
     keySelector: process.env.CARTERO_DKIM_SELECTOR || 'cartero',
@@ -72,6 +90,7 @@ const trans = () => (_t ||= construir());
 // correo desde la web tome efecto al toque, sin reiniciar el servicio.
 export function recargar() {
   process.loadEnvFile(path.join(raiz, '.env'));
+  dkimPublicado = null;
   try { _t?.close?.(); } catch { /* daba lo mismo */ }
   _t = null;
   return modoActual();
@@ -83,7 +102,12 @@ export const modo = tipo;   // el modo al arrancar (informativo)
 export async function verificar() {
   const tipo = modoActual();
   if (tipo === 'log') return { ok: true, modo: tipo, nota: 'modo prueba: no sale nada a internet' };
-  try { await trans().verify(); return { ok: true, modo: tipo, dkim: !!dkim() }; }
+  try {
+    const d = await comprobarDkim();
+    _t = null;                       // se rehace con la decision de firma ya tomada
+    await trans().verify();
+    return { ok: true, modo: tipo, dkim: d };
+  }
   catch (e) { return { ok: false, modo: tipo, error: e.message }; }
 }
 
