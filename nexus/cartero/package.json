@@ -1,0 +1,16 @@
+{
+  "name": "cartero",
+  "version": "1.0.0",
+  "description": "Servicio de correo transaccional propio (SendGrid casero) para ecommerce",
+  "type": "module",
+  "main": "servidor.mjs",
+  "scripts": {
+    "start": "node servidor.mjs",
+    "dkim": "node dkim.mjs",
+    "llave": "node llaves.mjs",
+    "dns": "node revisar-dns.mjs"
+  },
+  "dependencies": {
+    "nodemailer": "^7.0.5"
+  }
+}

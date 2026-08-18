@@ -1,0 +1,6 @@
+<!--asunto: Actualización de tu pedido #{{pedido_corto}} -->
+<h1 style="margin:0 0 14px 0;font-size:23px;font-weight:700;letter-spacing:-.5px;color:#18181b;">Actualización de tu pedido</h1>
+<p style="margin:0 0 8px 0;">{{cliente}}, tu pedido #{{pedido_corto}} cambió de estado a <strong>{{estado}}</strong>.</p>
+{{#si tracking}}<p style="margin:0 0 8px 0;">Seguimiento: <strong>{{tracking}}</strong>{{#si carrier}} ({{carrier}}){{/si}}</p>{{/si}}
+{{>resumen-pedido}}
+{{>boton}}

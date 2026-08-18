@@ -1,0 +1,18 @@
+<!--asunto: Tu pedido #{{pedido_corto}} va en camino -->
+<h1 style="margin:0 0 14px 0;font-size:23px;font-weight:700;letter-spacing:-.5px;color:#18181b;">Tu pedido va en camino</h1>
+<p style="margin:0 0 8px 0;">{{cliente}}, tu pedido salió de bodega{{#si carrier}} con {{carrier}}{{/si}}.</p>
+{{#si tracking}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:20px 0;background:#f4f4f5;border-radius:10px;">
+  <tr><td style="padding:16px 18px;">
+    <p style="margin:0 0 4px 0;color:#71717a;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Número de seguimiento</p>
+    <p style="margin:0;font-size:19px;font-weight:700;color:#18181b;letter-spacing:.5px;font-family:ui-monospace,SFMono-Regular,Menlo,monospace;">{{tracking}}</p>
+    {{#si carrier}}<p style="margin:6px 0 0 0;color:#71717a;font-size:13px;">Transportista: {{carrier}}</p>{{/si}}
+  </td></tr>
+</table>
+{{/si}}
+{{#si direccion}}
+<p style="margin:0 0 4px 0;color:#71717a;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Dirección de entrega</p>
+<p style="margin:0 0 8px 0;font-size:14px;line-height:1.6;">{{direccion}}</p>
+{{/si}}
+{{>resumen-pedido}}
+{{>boton}}

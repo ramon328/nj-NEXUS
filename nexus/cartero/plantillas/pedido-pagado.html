@@ -1,0 +1,10 @@
+<!--asunto: Pago confirmado — pedido #{{pedido_corto}} -->
+<h1 style="margin:0 0 14px 0;font-size:23px;font-weight:700;letter-spacing:-.5px;color:#18181b;">Pago confirmado</h1>
+<p style="margin:0 0 8px 0;">Listo {{cliente}}, tu pago vía {{pago}} quedó confirmado y tu pedido pasó a preparación.</p>
+<p style="margin:0;color:#71717a;font-size:14px;">Cuando salga de bodega te mandamos el número de seguimiento.</p>
+{{>resumen-pedido}}
+{{#si direccion}}
+<p style="margin:0 0 4px 0;color:#71717a;font-size:12px;font-weight:600;letter-spacing:.5px;text-transform:uppercase;">Se despacha a</p>
+<p style="margin:0 0 8px 0;font-size:14px;line-height:1.6;">{{direccion}}</p>
+{{/si}}
+{{>boton}}

@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{titulo}}</title>
+</head>
+<body style="margin:0;padding:0;background:#f4f4f5;-webkit-font-smoothing:antialiased;">
+  <!-- preencabezado: lo que se ve en la bandeja antes de abrir -->
+  <div style="display:none;max-height:0;overflow:hidden;opacity:0;">{{preview}}&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;&nbsp;&zwnj;</div>
+
+  <table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="background:#f4f4f5;">
+    <tr><td align="center" style="padding:32px 12px;">
+
+      <table role="presentation" width="600" cellpadding="0" cellspacing="0" border="0" style="width:600px;max-width:100%;background:#ffffff;border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,.07);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;">
+
+        <tr>
+          <td style="background:#0f0f11;padding:22px 32px;">
+            <a href="{{url_sitio}}" style="color:#ffffff;font-size:21px;font-weight:700;letter-spacing:-.4px;text-decoration:none;">{{marca}}</a>
+          </td>
+        </tr>
+
+        <tr><td style="padding:36px 32px 12px 32px;color:#18181b;font-size:15px;line-height:1.65;">
+{{{contenido}}}
+        </td></tr>
+
+        <tr><td style="padding:8px 32px 32px 32px;">
+          <hr style="border:0;border-top:1px solid #e4e4e7;margin:0 0 18px 0;">
+          <p style="margin:0 0 6px 0;color:#71717a;font-size:12px;line-height:1.6;">
+            ¿Dudas con tu compra? Responde este correo y te contestamos.
+          </p>
+          <p style="margin:0;color:#a1a1aa;font-size:11px;line-height:1.6;">
+            {{marca}} · Este es un correo automático sobre tu pedido.<br>
+            <a href="{{url_baja}}" style="color:#a1a1aa;text-decoration:underline;">Dejar de recibir estos avisos</a>
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
