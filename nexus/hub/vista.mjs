@@ -79,8 +79,10 @@ export async function datosAliace() {
 }
 
 // ── GOAUTOS / MALLORCA (Supabase, client_id=32) ───────────────────────────────
-const SUPA = process.env.ALIACE_SUPABASE_URL || process.env.SUPABASE_URL || ''
-const ANON = process.env.ALIACE_SUPABASE_ANON_KEY || process.env.SUPABASE_ANON_KEY || ''
+// URL + anon key públicas del bundle GoAutos (NO son el proyecto Aliace).
+// Override opcional: GOAUTOS_SUPABASE_URL / GOAUTOS_SUPABASE_ANON_KEY.
+const SUPA = process.env.GOAUTOS_SUPABASE_URL || 'https://miuiujntdjrjhhcysiba.supabase.co'
+const ANON = process.env.GOAUTOS_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Im1pdWl1am50ZGpyamhoY3lzaWJhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3MzUwODEzNjcsImV4cCI6MjA1MDY1NzM2N30.CqgUmrnmGSLDc6tg2aCHdD7tB-q9YL2utHPzXSIo6gI'
 const CLIENT_ID = 32
 
 let _go = null
