@@ -1,22 +1,23 @@
 {
-  "ts": "2026-08-18T14:57:37.745Z",
+  "ts": "2026-08-18T15:06:40.544Z",
   "estado": "ROJO",
   "nivel": 2,
   "razones": [
+    "RAM libre baja (934 MB)",
     "Disco casi lleno (92%)"
   ],
   "metricas": {
-    "load1": 2.21,
+    "load1": 2.28,
     "nucleos": 6,
-    "loadPorNucleo": 0.37,
-    "ramLibreMB": 1539,
+    "loadPorNucleo": 0.38,
+    "ramLibreMB": 934,
     "ramTotalMB": 32768,
     "swapUsedMB": 819,
-    "compresorMB": 1840,
+    "compresorMB": 1839,
     "discoPct": 92,
     "procesos": 750,
     "sesionesClaude": 2,
     "sesionesClaudeViejas": 0
   },
-  "ultimaAlerta": "2026-08-18T14:36:31.330Z"
+  "ultimaAlerta": "2026-08-18T15:06:40.544Z"
 }
