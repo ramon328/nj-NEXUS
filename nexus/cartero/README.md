@@ -57,13 +57,39 @@ node servidor.mjs                    # levanta API + panel + vigia + cola
 mandar correos**. Si arrancas sin sembrar, el vigia ve todos los pedidos
 historicos como "nuevos" y les manda correo a clientes de hace meses.
 
+## Dos tiendas, dos casillas
+
+El Cartero atiende **Clivox** (es-CL, pesos) y **TheArsenale** (en, USD). Cada
+una manda desde SU correo: las credenciales viven en `.env` con un prefijo por
+marca (`marcas.mjs` manda). Clivox no lleva prefijo porque llego primero:
+
+| Marca | Transporte | Usuario | Plantillas |
+|---|---|---|---|
+| `clivox` | `CARTERO_TRANSPORTE` | `GMAIL_USUARIO` | `plantillas/` |
+| `arsenale` | `ARSENALE_CARTERO_TRANSPORTE` | `ARSENALE_GMAIL_USUARIO` | `plantillas/arsenale/` |
+
+Una marca sin casilla conectada queda en modo `log`: escribe el correo en
+`datos/salida/` y **no manda nada a internet**. Nunca sale con la casilla de
+otra tienda. Ver el estado de las dos: `GET /api/transporte`.
+
+Al encolar se elige la tienda con `marca`, y la plantilla se busca primero en
+la carpeta de esa marca:
+
+```js
+encolar({ para, marca: 'arsenale', plantilla: 'order-shipped' })
+// -> plantillas/arsenale/order-shipped.html, desde el correo de TheArsenale
+```
+
 ## Conectar el correo desde el celular
 
 ```bash
-node invitar.mjs "para Ramon"
+node invitar.mjs "para Ramon"              # Clivox
+node invitar.mjs arsenale "para Ramon"     # TheArsenale
 ```
 
-Imprime un enlace publico y un PIN de 6 digitos. Quien lo abra elige el
+Imprime un enlace publico y un PIN de 6 digitos. El enlace queda amarrado a la
+tienda con que se creo: la pagina dice de que marca es y las claves se guardan
+bajo el prefijo de esa marca, sin pisar las de la otra. Quien lo abra elige el
 proveedor, pone el correo y la clave de aplicacion, y el Cartero **prueba las
 credenciales de verdad**: conecta y manda un correo real. Solo si ese correo
 sale, guarda la configuracion y se recarga solo (sin reiniciar el servicio).
