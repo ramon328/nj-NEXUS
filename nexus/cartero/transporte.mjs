@@ -9,6 +9,7 @@ import { fileURLToPath } from 'node:url';
 import dnsp from 'node:dns/promises';
 import nodemailer from 'nodemailer';
 import { marcaODefecto, env as envMarca, POR_DEFECTO } from './marcas.mjs';
+import { enviarPorGmail, tokenGuardado } from './google.mjs';
 
 const raiz = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.join(raiz, '.env'));
@@ -60,6 +61,11 @@ function construir(m) {
   const v = (n) => envMarca(m, n);
 
   switch (tipo) {
+    // Cuenta de Google conectada con "Continuar con Google": no hay SMTP ni
+    // clave de aplicacion, se envia por la API de Gmail (ver google.mjs).
+    case 'google':
+      return null;
+
     // Desarrollo: no envia nada, escribe el correo a disco para revisarlo.
     case 'log':
       return nodemailer.createTransport({ jsonTransport: true });
@@ -129,7 +135,12 @@ export function modoActual(marca) {
 // correo de TheArsenale habria salido desde info@clivox.cl.
 export function exigirConectada(marca) {
   const m = marcaODefecto(marca);
-  if (modoActual(m) === 'log') return;                     // modo prueba: no sale nada
+  const tipo = modoActual(m);
+  if (tipo === 'log') return;                              // modo prueba: no sale nada
+  if (tipo === 'google') {
+    if (!tokenGuardado(m)) throw new Error(`${m.nombre} no tiene cuenta de Google conectada`);
+    return;
+  }
   const de = envMarca(m, 'CARTERO_DE') || envMarca(m, 'GMAIL_USUARIO') || envMarca(m, 'SMTP_USUARIO');
   if (!de) throw new Error(`${m.nombre} no tiene correo conectado (falta ${m.prefijo}CARTERO_DE)`);
 }
@@ -140,6 +151,11 @@ export async function verificar(marca) {
   if (tipo === 'log') return { ok: true, marca: m.clave, modo: tipo, nota: 'modo prueba: no sale nada a internet' };
   try {
     exigirConectada(m);
+    if (tipo === 'google') {
+      const { accessToken } = await import('./google.mjs');
+      const { email } = await accessToken(m);
+      return { ok: true, marca: m.clave, modo: tipo, cuenta: email };
+    }
     const d = await comprobarDkim(m);
     transportes.delete(m.clave);     // se rehace con la decision de firma ya tomada
     await trans(m).verify();
@@ -152,6 +168,7 @@ export async function entregar(sobre, marca) {
   const m = marcaODefecto(marca);
   const tipo = modoActual(m);
   exigirConectada(m);
+  if (tipo === 'google') return enviarPorGmail(sobre, m);
   const r = await trans(m).sendMail(sobre);
 
   if (tipo === 'log') {

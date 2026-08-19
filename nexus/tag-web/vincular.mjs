@@ -110,6 +110,15 @@ const server = createServer(async (req, res) => {
     if (u.pathname === '/oauth/start') return redir(res, urlAuth())
 
     if (u.pathname === '/oauth/callback') {
+      // Puente para el Cartero (correo de Clivox / TheArsenale): Google solo
+      // acepta redirects registrados, y el que esta autorizado es este. Si el
+      // state viene marcado como "cartero.", la vuelta se reenvia tal cual y
+      // aca no se toca nada del vinculo de Mallorca.
+      if (String(u.searchParams.get('state') || '').startsWith('cartero.')) {
+        const destino = (process.env.CARTERO_PUBLIC_URL
+          || 'https://mac-mini-de-nicolas.tailee0068.ts.net/cartero').replace(/\/+$/, '')
+        return redir(res, `${destino}/oauth/callback?${u.searchParams.toString()}`)
+      }
       const err = u.searchParams.get('error')
       if (err) return redir(res, `${BASE}/?error=` + encodeURIComponent(err))
       const code = u.searchParams.get('code')

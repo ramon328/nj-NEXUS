@@ -100,7 +100,10 @@ export function guardarConexion(d, marca) {
   const m = marcaODefecto(marca ?? d.marca);
   const P = m.prefijo;
   const cambios = { [P + 'CARTERO_TRANSPORTE']: d.proveedor };
-  if (d.proveedor === 'gmail') { cambios[P + 'GMAIL_USUARIO'] = d.usuario; cambios[P + 'GMAIL_CLAVE_APP'] = d.clave; }
+  // Con "Continuar con Google" no hay clave que guardar: el vinculo vive en
+  // datos/google-<marca>.json y aca solo queda de quien es la casilla.
+  if (d.proveedor === 'google') { /* solo transporte + remitente */ }
+  else if (d.proveedor === 'gmail') { cambios[P + 'GMAIL_USUARIO'] = d.usuario; cambios[P + 'GMAIL_CLAVE_APP'] = d.clave; }
   else if (d.proveedor === 'ses') { cambios[P + 'SES_USUARIO'] = d.usuario; cambios[P + 'SES_CLAVE'] = d.clave; if (d.host) cambios[P + 'SES_HOST'] = d.host; }
   else {
     cambios[P + 'SMTP_HOST'] = d.host; cambios[P + 'SMTP_PUERTO'] = String(d.puerto || 587);

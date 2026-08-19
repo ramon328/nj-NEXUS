@@ -87,6 +87,18 @@ node invitar.mjs "para Ramon"              # Clivox
 node invitar.mjs arsenale "para Ramon"     # TheArsenale
 ```
 
+La pagina ofrece **Continuar con Google** (OAuth, se elige la casilla en la
+pantalla de Google y no se guarda ninguna contrasena; el correo sale por la API
+de Gmail con scope `gmail.send`) y, plegado abajo, el camino a mano con clave de
+aplicacion / SMTP.
+
+> El redirect que Google tiene autorizado es el del vinculador de TAG. Por eso
+> la vuelta entra a `/tag/oauth/callback`, que reenvia al Cartero cuando el
+> `state` empieza con `cartero.` (ver `vincular.mjs` en `tag-web`). Si algun dia
+> hay acceso a la consola de Google, se registra
+> `https://…/cartero/oauth/callback` y se borra el puente.
+> El vinculo de cada tienda queda en `datos/google-<marca>.json` (600).
+
 Imprime un enlace publico y un PIN de 6 digitos. El enlace queda amarrado a la
 tienda con que se creo: la pagina dice de que marca es y las claves se guardan
 bajo el prefijo de esa marca, sin pisar las de la otra. Quien lo abra elige el
@@ -138,6 +150,9 @@ estados, reintenta, mide y avisa al dueño) y sacar la llamada a
 - `gmail` — Google Workspace. Clivox ya lo usa. Limite ~2.000 al dia.
 - `ses` — Amazon SES. ~US$0,10 por cada 1.000 correos. Para crecer.
 - `smtp` — cualquier otro SMTP.
+- `google` — cuenta conectada con "Continuar con Google": envia por la API de
+  Gmail con el refresh_token de `datos/google-<marca>.json`, sin clave de
+  aplicacion ni SMTP.
 
 ## Arranque automatico
 

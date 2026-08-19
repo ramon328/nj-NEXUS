@@ -12,6 +12,7 @@ import { validar } from './llaves.mjs';
 import { verificar, modoActual, recargar } from './transporte.mjs';
 import { pedido as traerPedido } from './clivox.mjs';
 import { marcaODefecto, remitente as remitenteDe, claves as clavesMarca, conectada } from './marcas.mjs';
+import * as google from './google.mjs';
 
 const raiz = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.join(raiz, '.env'));
@@ -124,8 +125,23 @@ const servidor = http.createServer(async (req, res) => {
         const m = marcaODefecto(estado.invitacion.marca);
         const pagina = fs.readFileSync(path.join(raiz, 'panel', 'conectar.html'), 'utf8')
           .replaceAll('{{MARCA}}', m.nombre)
-          .replaceAll('{{CORREO_EJEMPLO}}', m.correoEjemplo);
+          .replaceAll('{{CORREO_EJEMPLO}}', m.correoEjemplo)
+          .replaceAll('{{GOOGLE}}', google.disponible() ? '1' : '');
         return html(res, 200, pagina);
+      }
+
+      // ---- Continuar con Google (OAuth): el navegador se va a Google y
+      // vuelve por /oauth/callback. El PIN ya se valido, y el state va firmado
+      // para que la vuelta no se pueda inventar desde afuera.
+      if (accion === 'google') {
+        if (!estado.ok) return json(res, 410, { error: estado.error });
+        if (!google.disponible()) return json(res, 501, { error: 'falta configurar el cliente de Google' });
+        if (!firmaValida('conectar:' + token, url.searchParams.get('sesion') || '')) {
+          return json(res, 401, { error: 'sesion invalida' });
+        }
+        const st = `cartero.${token}.${firmar('oauth:' + token)}`;
+        res.writeHead(302, { Location: google.urlAuth(st) });
+        return res.end();
       }
 
       if (req.method !== 'POST') return json(res, 405, { error: 'metodo no permitido' });
@@ -160,6 +176,50 @@ const servidor = http.createServer(async (req, res) => {
       }
 
       return json(res, 404, { error: 'accion desconocida' });
+    }
+
+    // ---------- vuelta de Google (OAuth) ----------
+    // Llega reenviada desde /tag/oauth/callback, que es el redirect que Google
+    // tiene autorizado.
+    if (ruta === '/oauth/callback') {
+      const paginaMala = (t) => html(res, 400, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+        <div style="font-family:-apple-system,system-ui,sans-serif;max-width:440px;margin:14vh auto;padding:0 24px;text-align:center;color:#18181b">
+        <h1 style="font-size:20px">No se pudo conectar</h1>
+        <p style="color:#71717a;line-height:1.6">${t}</p></div>`);
+
+      const err = url.searchParams.get('error');
+      if (err) return paginaMala('Google respondió: ' + err);
+      const code = url.searchParams.get('code');
+      const st = String(url.searchParams.get('state') || '');
+      const [marcador, tk, firma] = st.split('.');
+      if (marcador !== 'cartero' || !tk || !firmaValida('oauth:' + tk, firma)) {
+        return paginaMala('El enlace de vuelta no es válido.');
+      }
+      const inv = leerInvitacion(tk);
+      if (!inv.ok) return paginaMala('Este enlace ya no sirve. Pide uno nuevo.');
+      const m = marcaODefecto(inv.invitacion.marca);
+      try {
+        const reg = await google.canjear(code, m.clave);
+        guardarConexion({ proveedor: 'google', remitente: reg.email }, m.clave);
+        recargar(m.clave);
+        // La prueba se manda con la cuenta recien conectada: si no sale, no
+        // sirve de nada haber guardado el vinculo.
+        let prueba = null;
+        try { await google.probarEnvio(m.clave, reg.email); prueba = reg.email; }
+        catch (e) { prueba = 'ERROR: ' + e.message; }
+        marcarUsada(tk, `conectado: ${m.clave}/google/${reg.email}`);
+        const malo = String(prueba).startsWith('ERROR');
+        return html(res, 200, `<!doctype html><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+          <div style="font-family:-apple-system,system-ui,sans-serif;max-width:440px;margin:14vh auto;padding:0 24px;color:#18181b">
+          <h1 style="font-size:22px;letter-spacing:-.5px">Correo de ${m.nombre} conectado</h1>
+          <p style="color:#3f3f46;line-height:1.6">Quedó conectada la cuenta <strong>${reg.email}</strong>.</p>
+          <p style="color:${malo ? '#991b1b' : '#166534'};line-height:1.6">${malo
+            ? 'Ojo: el correo de prueba no salió. ' + prueba
+            : 'Te mandamos un correo de prueba a ' + prueba + '.'}</p>
+          <p style="color:#a1a1aa;font-size:13px">Ya puedes cerrar esta página. Este enlace no vuelve a funcionar.</p></div>`);
+      } catch (e) {
+        return paginaMala(e.message);
+      }
     }
 
     // ---------- vista previa de plantillas ----------
