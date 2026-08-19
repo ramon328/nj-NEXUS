@@ -27,9 +27,12 @@ async function despachar(m) {
       html: m.html,
       text: m.texto,
       headers: {
-        // Deja que Gmail/Outlook muestren el boton de baja nativo: suma reputacion.
-        'List-Unsubscribe': `<${PUBLICA}/baja/${tokenBaja(m.para)}>`,
-        'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        // Los avisos internos no llevan baja: si el dueno le da sin querer,
+        // se suprime su propia casilla y deja de enterarse de las ventas.
+        ...(String(m.origen).startsWith('interno') ? {} : {
+          'List-Unsubscribe': `<${PUBLICA}/baja/${tokenBaja(m.para)}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click',
+        }),
         'X-Entity-Ref-ID': m.id,
       },
     });

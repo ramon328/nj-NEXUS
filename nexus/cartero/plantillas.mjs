@@ -98,13 +98,19 @@ export function armar(nombre, ctx = {}) {
   const crudo = leer(limpio);
   const m = crudo.match(/<!--\s*asunto:\s*([\s\S]*?)-->/);
   const asunto = m ? render(m[1].trim(), ctx) : '';
-  const cuerpo = render(crudo.replace(/<!--\s*asunto:[\s\S]*?-->/, '').trim(), ctx);
+  // La plantilla puede pedir otro layout con: <!--layout: base-interno-->
+  const l = crudo.match(/<!--\s*layout:\s*([\w-]+)\s*-->/);
+  const layout = l ? l[1] : 'base';
+  const cuerpo = render(crudo
+    .replace(/<!--\s*asunto:[\s\S]*?-->/, '')
+    .replace(/<!--\s*layout:[\s\S]*?-->/, '').trim(), ctx);
   // El cuerpo se inyecta en un marcador HTML, no en una llave de plantilla:
   // asi el motor no lo borra ni reinterpreta datos del cliente que traigan llaves.
-  const html = render(leer('base'), ctx).replace('<!--CONTENIDO-->', () => cuerpo);
+  const html = render(leer(layout), ctx).replace('<!--CONTENIDO-->', () => cuerpo);
   // El texto plano sale del CUERPO, no del layout: sin preencabezado ni menus.
-  const texto = aTexto(cuerpo) +
-    `\n\n—\n${ctx.marca || ''}\nDejar de recibir estos avisos: ${ctx.url_baja || ''}`;
+  const texto = aTexto(cuerpo) + (layout === 'base-interno'
+    ? `\n\n—\n${ctx.marca || ''} · aviso interno`
+    : `\n\n—\n${ctx.marca || ''}\nDejar de recibir estos avisos: ${ctx.url_baja || ''}`);
   return { asunto, html, texto };
 }
 

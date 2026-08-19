@@ -55,6 +55,20 @@ function primerNombre(completo) {
 }
 
 // Convierte una fila cruda de orders en el contexto que usan las plantillas.
+// Estados que implican que la plata ya entro.
+const ESTADOS_PAGADOS = new Set(['pagado', 'pagada', 'paid', 'preparando', 'procesando',
+  'processing', 'enviado', 'enviada', 'shipped', 'entregado', 'entregada', 'delivered']);
+
+// No hay un solo campo confiable: se mira paid_at, el id de pago de Mercado Pago
+// y el propio estado. Con cualquiera de los tres, la venta se da por hecha.
+function estaPagado(fila) {
+  if (fila.paid_at) return true;
+  if (fila.mp_payment_id) return true;
+  const e = String(fila.status || '').toLowerCase().trim()
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '');
+  return ESTADOS_PAGADOS.has(e);
+}
+
 export async function normalizar(fila) {
   const dir = fila.shipping_address || {};
   const [u, p] = await Promise.all([usuario(fila.user_id), perfil(fila.user_id)]);
@@ -82,6 +96,8 @@ export async function normalizar(fila) {
     email,
     estado: fila.status,
     created_at: fila.created_at,
+    pagado: estaPagado(fila),
+    paid_at: fila.paid_at || null,
     sin_items: (fila.order_items || []).length === 0,
     fecha,
     tracking: fila.tracking || '',

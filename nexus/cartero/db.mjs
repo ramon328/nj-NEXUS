@@ -87,8 +87,13 @@ CREATE TABLE IF NOT EXISTS pedidos_vistos (
   tracking     TEXT,
   carrier      TEXT,
   updated_at   TEXT,
+  pagado       INTEGER NOT NULL DEFAULT 0,
   actualizado  INTEGER NOT NULL
 );
 `);
+
+// Migracion suave para bases creadas antes de esta columna.
+try { db.exec('ALTER TABLE pedidos_vistos ADD COLUMN pagado INTEGER NOT NULL DEFAULT 0'); }
+catch { /* ya existia */ }
 
 export const ahora = () => Date.now();
