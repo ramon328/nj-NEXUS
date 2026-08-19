@@ -92,8 +92,15 @@ CREATE TABLE IF NOT EXISTS pedidos_vistos (
 );
 `);
 
-// Migracion suave para bases creadas antes de esta columna.
-try { db.exec('ALTER TABLE pedidos_vistos ADD COLUMN pagado INTEGER NOT NULL DEFAULT 0'); }
-catch { /* ya existia */ }
+// Migraciones suaves para bases creadas antes de estas columnas.
+// (SQLite no tiene "ADD COLUMN IF NOT EXISTS": se intenta y se ignora el error.)
+for (const sql of [
+  'ALTER TABLE pedidos_vistos ADD COLUMN pagado INTEGER NOT NULL DEFAULT 0',
+  // De que tienda es cada cosa. Lo viejo es de Clivox, que fue la unica marca.
+  "ALTER TABLE mensajes ADD COLUMN marca TEXT NOT NULL DEFAULT 'clivox'",
+  "ALTER TABLE invitaciones ADD COLUMN marca TEXT NOT NULL DEFAULT 'clivox'",
+]) {
+  try { db.exec(sql); } catch { /* ya existia */ }
+}
 
 export const ahora = () => Date.now();

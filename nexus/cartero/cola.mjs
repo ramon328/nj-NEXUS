@@ -35,7 +35,7 @@ async function despachar(m) {
         }),
         'X-Entity-Ref-ID': m.id,
       },
-    });
+    }, m.marca);
     db.prepare("UPDATE mensajes SET estado='enviado', enviado=?, message_id=?, error=NULL WHERE id=?")
       .run(ahora(), r.messageId || null, m.id);
     registrarEvento(m.id, 'enviado', r.messageId || null);
@@ -75,7 +75,7 @@ export async function vaciar(lote = 20) {
       const r = await despachar(m);
       r.ok ? res.enviados++ : res.fallidos++;
       // Un respiro entre envios: los relays castigan las rafagas.
-      if (modoActual() !== 'log') await new Promise((s) => setTimeout(s, 250));
+      if (modoActual(m.marca) !== 'log') await new Promise((s) => setTimeout(s, 250));
     }
   } finally { corriendo = false; }
   return res;

@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { db, ahora } from './db.mjs';
 import { armar, aTexto, existe } from './plantillas.mjs';
+import { marcaODefecto, remitente } from './marcas.mjs';
 
 const raiz = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.join(raiz, '.env'));
@@ -13,9 +14,9 @@ const SECRETO = process.env.CARTERO_SECRETO;
 if (!SECRETO) throw new Error('Falta CARTERO_SECRETO en .env');
 
 export const PUBLICA = (process.env.CARTERO_URL_PUBLICA || 'http://localhost:7695').replace(/\/+$/, '');
-const DE = process.env.CARTERO_DE || 'no-responder@clivox.cl';
-const DE_NOMBRE = process.env.CARTERO_DE_NOMBRE || 'Clivox';
-const SITIO = process.env.CLIVOX_SITIO || 'https://clivox.cl';
+
+// El remitente y el sitio salen de la MARCA del correo, no de una variable
+// global: Clivox y TheArsenale mandan desde casillas distintas.
 
 const b64 = (s) => Buffer.from(String(s)).toString('base64url');
 const deB64 = (s) => Buffer.from(String(s), 'base64url').toString('utf8');
@@ -62,6 +63,16 @@ function inyectarTracking(html, id) {
 
 const validoEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || '').trim());
 
+// Una marca puede tener su propia version de una plantilla:
+// plantillas/arsenale/order-shipped.html. Si se pide 'order-shipped' con la
+// marca arsenale, se usa la de la marca; si no tiene, la generica.
+function plantillaDe(nombre, m) {
+  const n = String(nombre || '');
+  if (!n || n.includes('/')) return n;              // ya viene con carpeta
+  const propia = m.plantillas + n;
+  return (m.plantillas && existe(propia)) ? propia : n;
+}
+
 /**
  * Deja un correo en la cola.
  * @param {object} o
@@ -72,8 +83,11 @@ const validoEmail = (e) => /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(e || '').
  * @param {string} [o.html]         cuerpo directo (si no hay plantilla)
  * @param {string} [o.idempotencia] clave unica: evita el correo duplicado
  * @param {boolean}[o.forzar]       ignora la lista de supresion (solo transaccional critico)
+ * @param {string} [o.marca]        tienda que envia: 'clivox' (por defecto) o 'arsenale'
  */
 export function encolar(o) {
+  const m = marcaODefecto(o.marca);
+  const rem = remitente(m);
   const para = String(o.para || '').trim().toLowerCase();
   if (!validoEmail(para)) return { ok: false, motivo: 'email_invalido', para };
 
@@ -88,10 +102,10 @@ export function encolar(o) {
   const id = crypto.randomUUID();
   const ctx = {
     ...(o.datos || {}),
-    marca: DE_NOMBRE,
-    url_sitio: SITIO,
+    marca: rem.nombre,
+    url_sitio: m.sitio(),
     url_baja: `${PUBLICA}/baja/${tokenBaja(para)}`,
-    url_boton: o.datos?.url_boton || `${SITIO}/cuenta/pedidos`,
+    url_boton: o.datos?.url_boton || `${m.sitio()}/cuenta/pedidos`,
     texto_boton: o.datos?.texto_boton || 'Ver mi pedido',
     titulo: o.asunto || '',
     preview: o.datos?.preview || '',
@@ -102,9 +116,10 @@ export function encolar(o) {
   let textoPlantilla = '';
   let html = o.html || '';
 
-  if (o.plantilla) {
-    if (!existe(o.plantilla)) return { ok: false, motivo: 'plantilla_inexistente', detalle: o.plantilla };
-    const hecho = armar(o.plantilla, ctx);
+  const plantilla = plantillaDe(o.plantilla, m);
+  if (plantilla) {
+    if (!existe(plantilla)) return { ok: false, motivo: 'plantilla_inexistente', detalle: plantilla };
+    const hecho = armar(plantilla, ctx);
     asunto = asunto || hecho.asunto;
     html = hecho.html;
     textoPlantilla = hecho.texto;
@@ -117,17 +132,17 @@ export function encolar(o) {
 
   db.prepare(`INSERT INTO mensajes
     (id, idempotencia, para, para_nombre, de, de_nombre, responder_a, asunto, html, texto,
-     plantilla, datos, estado, intentos, prox_intento, origen, creado)
-    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'pendiente',0,0,?,?)`)
+     plantilla, datos, estado, intentos, prox_intento, origen, marca, creado)
+    VALUES (?,?,?,?,?,?,?,?,?,?,?,?,'pendiente',0,0,?,?,?)`)
     .run(id, o.idempotencia || null, para, o.para_nombre || null,
-      o.de || DE, o.de_nombre || DE_NOMBRE, o.responder_a || process.env.CARTERO_RESPONDER_A || null,
-      asunto, html, texto, o.plantilla || null,
-      JSON.stringify(o.datos || {}), o.origen || 'api', ahora());
+      o.de || rem.de, o.de_nombre || rem.nombre, o.responder_a || rem.responder_a,
+      asunto, html, texto, plantilla || null,
+      JSON.stringify(o.datos || {}), o.origen || 'api', m.clave, ahora());
 
   db.prepare('INSERT INTO eventos (mensaje_id, tipo, detalle, creado) VALUES (?,?,?,?)')
     .run(id, 'encolado', o.plantilla || 'html', ahora());
 
-  return { ok: true, id, asunto, para };
+  return { ok: true, id, asunto, para, marca: m.clave };
 }
 
 export function registrarEvento(mensajeId, tipo, detalle, ip, agente) {

@@ -11,6 +11,7 @@ import { arrancarVigia, revisar } from './vigia.mjs';
 import { validar } from './llaves.mjs';
 import { verificar, modoActual, recargar } from './transporte.mjs';
 import { pedido as traerPedido } from './clivox.mjs';
+import { marcaODefecto, remitente as remitenteDe, claves as clavesMarca, conectada } from './marcas.mjs';
 
 const raiz = path.dirname(fileURLToPath(import.meta.url));
 process.loadEnvFile(path.join(raiz, '.env'));
@@ -118,7 +119,13 @@ const servidor = http.createServer(async (req, res) => {
             <h1 style="font-size:20px">${razon}</h1>
             <p style="color:#71717a;line-height:1.6">Pídele a Ramón que genere uno nuevo.</p></div>`);
         }
-        return html(res, 200, fs.readFileSync(path.join(raiz, 'panel', 'conectar.html'), 'utf8'));
+        // La pagina se arma con la tienda de ESTA invitacion: si el enlace es de
+        // TheArsenale, no puede decir "Clivox" ni proponer un correo de Clivox.
+        const m = marcaODefecto(estado.invitacion.marca);
+        const pagina = fs.readFileSync(path.join(raiz, 'panel', 'conectar.html'), 'utf8')
+          .replaceAll('{{MARCA}}', m.nombre)
+          .replaceAll('{{CORREO_EJEMPLO}}', m.correoEjemplo);
+        return html(res, 200, pagina);
       }
 
       if (req.method !== 'POST') return json(res, 405, { error: 'metodo no permitido' });
@@ -135,15 +142,18 @@ const servidor = http.createServer(async (req, res) => {
         const c = await leerCuerpo(req);
         if (!firmaValida('conectar:' + token, c.sesion)) return json(res, 401, { error: 'sesion invalida' });
         if (!estado.ok) return json(res, 410, { error: estado.error });
+        // La marca la manda la invitacion, no el navegador: si no, cualquiera
+        // con el link podria pisar las claves de otra tienda.
+        const dueno = marcaODefecto(estado.invitacion.marca);
         try {
-          const r = await probar(c);
+          const r = await probar({ ...c, marca: dueno.clave });
           // Solo se guarda si el correo de prueba SALIO de verdad.
           if (c.guardar) {
-            guardarConexion(c);
-            recargar();
-            marcarUsada(token, 'conectado: ' + c.proveedor);
+            guardarConexion(c, dueno.clave);
+            recargar(dueno.clave);
+            marcarUsada(token, `conectado: ${dueno.clave}/${c.proveedor}`);
           }
-          return json(res, 200, { ok: true, ...r, guardado: !!c.guardar, modo: modoActual() });
+          return json(res, 200, { ok: true, ...r, marca: dueno.nombre, guardado: !!c.guardar, modo: modoActual(dueno.clave) });
         } catch (e) {
           return json(res, 400, { ok: false, error: e.message });
         }
@@ -198,9 +208,12 @@ const servidor = http.createServer(async (req, res) => {
       datos = esInterno
         ? vg.contextoInterno(datos, url.searchParams.get('tipo') || 'venta', nombre.startsWith('arsenale') ? 'en' : 'es')
         : (idPedido ? vg.contextoCliente(datos) : datos);
+      // La marca sale de la plantilla que se esta viendo: las de arsenale/ son
+      // de TheArsenale, no de Clivox.
+      const mv = marcaODefecto(nombre.startsWith('arsenale') ? 'arsenale' : 'clivox');
       const ctx = {
-        ...datos, marca: process.env.CARTERO_DE_NOMBRE || 'Clivox',
-        url_sitio: process.env.CLIVOX_SITIO || 'https://clivox.cl',
+        ...datos, marca: remitenteDe(mv).nombre,
+        url_sitio: mv.sitio(),
         url_baja: '#',
         // no se pisan si la plantilla ya los trae: la vista debe mostrar lo mismo que se envia
         url_boton: datos.url_boton || '#',
@@ -259,14 +272,23 @@ const servidor = http.createServer(async (req, res) => {
                                 FROM mensajes ORDER BY creado DESC LIMIT 50`).all();
         const ev = db.prepare(`SELECT tipo, COUNT(*) n FROM eventos GROUP BY tipo`).all();
         return json(res, 200, {
-          modo: modoActual(), cola: resumen(),
+          modo: modoActual(),
+          marcas: Object.fromEntries(clavesMarca().map((c) => [c, { modo: modoActual(c), conectada: conectada(c) }])),
+          cola: resumen(),
           eventos: Object.fromEntries(ev.map((e) => [e.tipo, e.n])),
           suprimidos: db.prepare('SELECT COUNT(*) n FROM supresiones').get().n,
           ultimos: ult,
         });
       }
 
-      if (ruta === '/api/transporte') return json(res, 200, await verificar());
+      // Estado del correo de CADA tienda: si una no esta conectada, se ve aqui.
+      if (ruta === '/api/transporte') {
+        const una = url.searchParams.get('marca');
+        if (una) return json(res, 200, await verificar(una));
+        const todas = {};
+        for (const c of clavesMarca()) todas[c] = await verificar(c);
+        return json(res, 200, todas);
+      }
 
       if (ruta === '/api/suprimidos') {
         if (req.method === 'POST') {
@@ -301,8 +323,9 @@ servidor.on('error', (e) => {
 
 servidor.listen(PUERTO, '127.0.0.1', async () => {
   console.log(`[cartero] escuchando en http://127.0.0.1:${PUERTO}  (transporte: ${modoActual()})`);
-  const v = await verificar();
-  console.log('[cartero] transporte:', JSON.stringify(v));
+  for (const c of clavesMarca()) {
+    console.log(`[cartero] correo de ${c}:`, JSON.stringify(await verificar(c)));
+  }
   arrancarCola(15000);
   arrancarVigia(Number(process.env.CARTERO_VIGIA_MS || 60000));
   console.log('[cartero] cola cada 15s · vigia cada', (Number(process.env.CARTERO_VIGIA_MS || 60000) / 1000), 's');
