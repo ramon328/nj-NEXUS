@@ -44,9 +44,10 @@ const guardarVisto = (p) => db.prepare(
 ).run(p.id, p.estado, p.tracking || null, p.carrier || null, p.updated_at, p.pagado ? 1 : 0, ahora());
 
 // ---------- aviso al dueño ----------
-function avisarInterno(p, tipo, simular) {
+// Exportado para que la vista previa muestre lo mismo que se envia.
+export function contextoInterno(p, tipo = 'venta') {
   const venta = tipo === 'venta';
-  const datos = {
+  return {
     ...p,
     etiqueta: venta ? 'Venta confirmada' : 'Pedido nuevo',
     color_barra: venta ? '#15803d' : '#0f0f11',
@@ -56,11 +57,14 @@ function avisarInterno(p, tipo, simular) {
       : 'Todavía sin confirmar el pago. Te avisamos de nuevo cuando se confirme.',
     prefijo_asunto: venta ? 'Venta confirmada' : 'Pedido nuevo',
     estado_texto: venta ? 'pago confirmado' : 'esperando pago',
-    url_boton: `${ADMIN}`,
+    url_boton: `${ADMIN}/${p.id}`,
     texto_boton: 'Ver en el panel',
     preview: `${p.items?.length || 0} producto(s) · ${p.cliente_completo || p.email || ''}`,
   };
+}
 
+function avisarInterno(p, tipo, simular) {
+  const datos = contextoInterno(p, tipo);
   const hechos = [];
   for (const destino of INTERNOS) {
     if (simular) { hechos.push({ interno: destino, tipo, accion: 'simulado' }); continue; }
@@ -75,6 +79,17 @@ function avisarInterno(p, tipo, simular) {
     hechos.push({ interno: destino, tipo, accion: r.ok ? (r.duplicado ? 'ya_avisado' : 'avisado') : 'rechazado', motivo: r.motivo });
   }
   return hechos;
+}
+
+// Contexto del correo al CLIENTE. Exportado para que el reenvio manual y la
+// vista previa manden exactamente lo mismo que el vigia.
+export function contextoCliente(p) {
+  return {
+    ...p,
+    url_boton: `${SITIO}/cuenta/pedidos/${p.id}`,
+    texto_boton: normal(p.estado) === 'enviado' ? 'Seguir mi envío' : 'Ver mi pedido',
+    preview: `Pedido #${p.pedido_corto} · ${p.total_f}`,
+  };
 }
 
 /**
@@ -127,12 +142,7 @@ export async function revisar({ sembrar = false, simular = false, desde = '2000-
         acciones.push({ pedido: p.pedido_corto, accion: 'sin_email', estado: p.estado });
       } else {
         const plantilla = plantillaDe(p.estado);
-        const datos = {
-          ...p,
-          url_boton: `${SITIO}/pedidos/${p.id}`,
-          texto_boton: normal(p.estado) === 'enviado' ? 'Seguir mi envío' : 'Ver mi pedido',
-          preview: `Pedido #${p.pedido_corto} · ${p.total_f}`,
-        };
+        const datos = contextoCliente(p);
 
         if (simular) {
           acciones.push({ pedido: p.pedido_corto, accion: 'simulado', estado: p.estado, plantilla, para: p.email });

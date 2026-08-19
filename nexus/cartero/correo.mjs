@@ -91,7 +91,7 @@ export function encolar(o) {
     marca: DE_NOMBRE,
     url_sitio: SITIO,
     url_baja: `${PUBLICA}/baja/${tokenBaja(para)}`,
-    url_boton: o.datos?.url_boton || `${SITIO}/pedidos`,
+    url_boton: o.datos?.url_boton || `${SITIO}/cuenta/pedidos`,
     texto_boton: o.datos?.texto_boton || 'Ver mi pedido',
     titulo: o.asunto || '',
     preview: o.datos?.preview || '',

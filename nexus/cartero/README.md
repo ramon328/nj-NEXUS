@@ -21,6 +21,26 @@ cambia de `status`, manda el correo que corresponde. La web no hace nada.
 
 Si aparece o cambia el `tracking`, tambien sale un correo nuevo.
 
+### Y al dueño le avisa de las ventas
+
+Aparte del correo al cliente, manda un aviso interno a `CARTERO_AVISO_INTERNO`
+(por defecto `info@clivox.cl`, admite varios separados por coma):
+
+| Cuando | Aviso |
+|---|---|
+| entra un pedido sin pagar | **Pedido nuevo** (barra negra) |
+| se confirma el pago | **Venta confirmada** (barra verde) |
+
+Si un pedido nace ya pagado sale UN solo aviso, no dos. Trae monto, productos,
+datos de contacto del cliente y direccion de despacho.
+
+El pago se detecta por tres señales, porque ninguna es confiable sola:
+`paid_at`, `mp_payment_id`, o que el estado sea uno que implique pago
+(pagado / preparando / enviado / entregado).
+
+Estos avisos **no llevan enlace de baja** a proposito: si el dueño le da sin
+querer, se suprimiria su propia casilla y dejaria de enterarse de las ventas.
+
 ## Puesta en marcha
 
 ```bash
@@ -61,6 +81,30 @@ Manda el enlace y el PIN por vias distintas.
 | Vista previa con un pedido real | `...&pedido=<uuid>` |
 | Panel | `http://127.0.0.1:7700/panel` |
 | Llaves | `node llaves.mjs listar` / `revocar <id>` |
+
+## Botones de los correos
+
+Apuntan a las rutas reales de la web (repo `DropoutCapital/nj-ligth-juri`):
+
+| Correo | Boton | Va a |
+|---|---|---|
+| al cliente | Ver mi pedido / Seguir mi envio | `https://www.clivox.cl/cuenta/pedidos/<id>` |
+| al dueño | Ver en el panel | `https://www.clivox.cl/admin/pedidos/<id>` |
+
+Las dos rutas piden login y redirigen con `?next=`, asi que despues de entrar
+el usuario cae justo en el pedido. El dominio va **con www**: `clivox.cl` hace
+un 308 a `www.clivox.cl`.
+
+## OJO: correo duplicado con Resend
+
+La web ya manda su propio correo de pago confirmado con Resend, en
+`src/lib/email.ts` (`sendOrderPaidEmail`, llamado desde `src/lib/payments.ts`).
+Si `RESEND_API_KEY` esta puesta en produccion, el cliente recibe DOS correos al
+pagar: el de Resend y el del Cartero.
+
+Hay que quedarse con uno. Lo razonable es dejar el Cartero (cubre todos los
+estados, reintenta, mide y avisa al dueño) y sacar la llamada a
+`sendOrderPaidEmail`, o simplemente quitar `RESEND_API_KEY` del entorno.
 
 ## Modos de envio (`CARTERO_TRANSPORTE` en .env)
 

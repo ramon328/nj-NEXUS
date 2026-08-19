@@ -178,10 +178,18 @@ const servidor = http.createServer(async (req, res) => {
           tracking: '1234567890', carrier: 'Starken', estado: 'enviado',
         };
       }
+      // Las plantillas internas necesitan sus propios campos (titular, color, etc).
+      const vg = await import('./vigia.mjs');
+      datos = nombre.startsWith('interno')
+        ? vg.contextoInterno(datos, url.searchParams.get('tipo') || 'venta')
+        : (idPedido ? vg.contextoCliente(datos) : datos);
       const ctx = {
         ...datos, marca: process.env.CARTERO_DE_NOMBRE || 'Clivox',
         url_sitio: process.env.CLIVOX_SITIO || 'https://clivox.cl',
-        url_baja: '#', url_boton: '#', texto_boton: 'Ver mi pedido',
+        url_baja: '#',
+        // no se pisan si la plantilla ya los trae: la vista debe mostrar lo mismo que se envia
+        url_boton: datos.url_boton || '#',
+        texto_boton: datos.texto_boton || 'Ver mi pedido',
         preview: '', titulo: 'vista previa',
       };
       try { return html(res, 200, armar(nombre, ctx).html); }
@@ -212,12 +220,12 @@ const servidor = http.createServer(async (req, res) => {
         const p = await traerPedido(id);
         if (!p) return json(res, 404, { error: 'pedido no encontrado' });
         if (!p.email) return json(res, 400, { error: 'el pedido no tiene email' });
-        const { plantillaDe } = await import('./vigia.mjs');
+        const { plantillaDe, contextoCliente } = await import('./vigia.mjs');
         const c = await leerCuerpo(req).catch(() => ({}));
         const r = encolar({
           para: p.email, para_nombre: p.cliente_completo || undefined,
           plantilla: c.plantilla || plantillaDe(p.estado),
-          datos: { ...p, preview: `Pedido #${p.pedido_corto} · ${p.total_f}` },
+          datos: contextoCliente(p),
           idempotencia: c.reenviar ? undefined : `pedido:${p.id}:${p.estado}:${p.tracking || '-'}`,
           forzar: true, origen: 'api:pedido',
         });
