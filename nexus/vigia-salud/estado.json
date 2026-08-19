@@ -1,22 +1,21 @@
 {
-  "ts": "2026-08-19T03:46:34.092Z",
+  "ts": "2026-08-19T03:58:37.746Z",
   "estado": "ROJO",
   "nivel": 2,
   "razones": [
-    "RAM libre baja (1128 MB)",
     "Disco casi lleno (95%)",
     "Sugerencia: 2 sesión(es) de chat llevan +6h vivas (~1.3 GB); se pueden reciclar con reciclar-sesiones.sh"
   ],
   "metricas": {
-    "load1": 1.37,
+    "load1": 1.45,
     "nucleos": 6,
-    "loadPorNucleo": 0.23,
-    "ramLibreMB": 1128,
+    "loadPorNucleo": 0.24,
+    "ramLibreMB": 2170,
     "ramTotalMB": 32768,
     "swapUsedMB": 819,
     "compresorMB": 1839,
     "discoPct": 95,
-    "procesos": 750,
+    "procesos": 742,
     "sesionesClaude": 2,
     "sesionesClaudeViejas": 2
   },
