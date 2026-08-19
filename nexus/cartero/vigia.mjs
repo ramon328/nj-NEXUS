@@ -45,21 +45,40 @@ const guardarVisto = (p) => db.prepare(
 
 // ---------- aviso al dueño ----------
 // Exportado para que la vista previa muestre lo mismo que se envia.
-export function contextoInterno(p, tipo = 'venta') {
+export function contextoInterno(p, tipo = 'venta', idioma = 'es') {
   const venta = tipo === 'venta';
+  const acento = venta ? '#15803d' : '#0f0f11';
+  const textos = idioma === 'en'
+    ? {
+        etiqueta: venta ? 'SALE CONFIRMED' : 'NEW ORDER',
+        titular: venta ? 'You sold.' : 'New order in.',
+        bajada: venta
+          ? 'Payment is confirmed. Ready to prepare for dispatch.'
+          : 'Payment not confirmed yet. We\'ll ping you again when it clears.',
+        prefijo_asunto: venta ? 'Sale confirmed' : 'New order',
+        estado_texto: venta ? 'PAID' : 'AWAITING PAYMENT',
+        texto_boton: 'Open in panel',
+      }
+    : {
+        etiqueta: venta ? 'Venta confirmada' : 'Pedido nuevo',
+        titular: venta ? '¡Vendiste!' : 'Entró un pedido nuevo',
+        bajada: venta
+          ? 'El pago está confirmado. Ya se puede preparar el despacho.'
+          : 'Todavía sin confirmar el pago. Te avisamos de nuevo cuando se confirme.',
+        prefijo_asunto: venta ? 'Venta confirmada' : 'Pedido nuevo',
+        estado_texto: venta ? 'pago confirmado' : 'esperando pago',
+        texto_boton: 'Ver en el panel',
+      };
+
   return {
     ...p,
-    etiqueta: venta ? 'Venta confirmada' : 'Pedido nuevo',
-    color_barra: venta ? '#15803d' : '#0f0f11',
-    titular: venta ? '¡Vendiste!' : 'Entró un pedido nuevo',
-    bajada: venta
-      ? 'El pago está confirmado. Ya se puede preparar el despacho.'
-      : 'Todavía sin confirmar el pago. Te avisamos de nuevo cuando se confirme.',
-    prefijo_asunto: venta ? 'Venta confirmada' : 'Pedido nuevo',
-    estado_texto: venta ? 'pago confirmado' : 'esperando pago',
+    ...textos,
+    interno: true,
+    color_barra: acento,
+    // TheArsenale usa su naranjo de marca como acento, no el verde.
+    color_acento: idioma === 'en' ? '#FC4C02' : acento,
     url_boton: `${ADMIN}/${p.id}`,
-    texto_boton: 'Ver en el panel',
-    preview: `${p.items?.length || 0} producto(s) · ${p.cliente_completo || p.email || ''}`,
+    preview: `${p.items?.length || 0} item(s) · ${p.cliente_completo || p.email || ''}`,
   };
 }
 

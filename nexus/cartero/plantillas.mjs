@@ -45,7 +45,7 @@ export function render(tpl, ctx = {}) {
   let s = String(tpl);
 
   // Parciales: {{>nombre}} inserta plantillas/nombre.html antes de todo lo demas.
-  s = s.replace(/\{\{>\s*([\w-]+)\s*\}\}/g, (_, n) => leer(n));
+  s = s.replace(/\{\{>\s*([\w/-]+)\s*\}\}/g, (_, n) => leer(limpiarNombre(n)));
 
   // Bloques (si / no / cada), con soporte de anidamiento.
   // Se va emitiendo a un buffer para no re-escanear lo ya resuelto: si un dato
@@ -87,20 +87,29 @@ function leer(nombre) {
   return t;
 }
 
+// Acepta "arsenale/order-confirmed" ademas de "pedido-enviado".
+// Se permite la barra para separar marca, pero nunca ".." (fuga de directorio).
+export function limpiarNombre(nombre) {
+  const n = String(nombre).replace(/[^\w/-]/g, '');
+  return n.includes('..') ? '' : n;
+}
+
 export function existe(nombre) {
-  return fs.existsSync(path.join(DIR, String(nombre).replace(/[^\w-]/g, '') + '.html'));
+  const n = limpiarNombre(nombre);
+  return !!n && fs.existsSync(path.join(DIR, n + '.html'));
 }
 
 // Renderiza una plantilla dentro del layout "base".
 // La plantilla puede declarar su asunto con: <!--asunto: Texto {{var}} -->
 export function armar(nombre, ctx = {}) {
-  const limpio = String(nombre).replace(/[^\w-]/g, '');
+  const limpio = limpiarNombre(nombre);
+  if (!limpio) throw new Error('nombre de plantilla invalido: ' + nombre);
   const crudo = leer(limpio);
   const m = crudo.match(/<!--\s*asunto:\s*([\s\S]*?)-->/);
   const asunto = m ? render(m[1].trim(), ctx) : '';
   // La plantilla puede pedir otro layout con: <!--layout: base-interno-->
-  const l = crudo.match(/<!--\s*layout:\s*([\w-]+)\s*-->/);
-  const layout = l ? l[1] : 'base';
+  const l = crudo.match(/<!--\s*layout:\s*([\w/-]+)\s*-->/);
+  const layout = l ? limpiarNombre(l[1]) : 'base';
   const cuerpo = render(crudo
     .replace(/<!--\s*asunto:[\s\S]*?-->/, '')
     .replace(/<!--\s*layout:[\s\S]*?-->/, '').trim(), ctx);

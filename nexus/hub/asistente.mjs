@@ -1404,7 +1404,7 @@ const SCOPE_TOOLS = {
   correo: ['correo', 'gmail_documentos'],
   bd: ['listar_tablas', 'consultar_bd'],
   cerebro: ['buscar_cerebro', 'guardar_nota', 'plaud_estado', 'mi_dia'],
-  banco: ['banco', 'tek_transferir', 'tek_beneficiarios', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'tek_sesion', 'reconectar_banco', 'vincular_banco', 'mis_bancos_conectados'],
+  banco: ['banco', 'pagos_sin_subir', 'tek_transferir', 'tek_beneficiarios', 'tek_pago', 'tek_masiva', 'tek_comprobantes', 'tek_pendientes', 'tek_sesion', 'reconectar_banco', 'vincular_banco', 'mis_bancos_conectados'],
 }
 function scopeDeTool(nombre) {
   for (const [s, tools] of Object.entries(SCOPE_TOOLS)) if (tools.includes(nombre)) return s
@@ -1846,6 +1846,7 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
 
 💸 TRANSFERIR PLATA A UNA PERSONA guardada (sistema "tek", agente "Leo", herramienta **tek_transferir**) — transfiere desde la cuenta de ANA CLARA (Santander Empresa) a una persona de la libreta. ✅ ES REAL: **crea** la transferencia y la deja *PENDIENTE "por liberar"*. OJO: crear ≠ enviar plata — el dinero NO se mueve hasta la **Liberación** (autorizar con Superclave), que es un paso APARTE, manual, que Nexus NO hace. Va SIEMPRE en 2 pasos: (a) con el nombre y el monto (CLP) llama tek_transferir accion:'preparar' → devuelve el BORRADOR (a quién, cuánto, banco, cuenta); si hay varias personas con ese nombre te da una lista para que ELIJA cuál. Muéstraselo y pregúntale CLARO: "¿creo la transferencia de $X a [persona]?". (b) SOLO con su OK explícito, llama tek_transferir accion:'enviar' con los MISMOS datos → crea la pendiente (login + llenado automático) y te dice cómo quedó. NUNCA pongas accion:'enviar' sin confirmación. ⛔ CRÍTICO: llamá accion:'enviar' **UNA SOLA VEZ** por pedido. Si la herramienta responde ocupado, ya_intentada, ya_pendiente, creada, pendiente, posible_creada, limite_* o cualquier error, **NO la vuelvas a llamar en el mismo turno NI en el siguiente** aunque el usuario diga "otra vez" / "reintenta" por un falso "falló" — primero pedile que mire Por Autorizar (reintentar sola DUPLICA transferencias; pasó con varios $1 a Joaquín). Si trae ultima_transferencia o aviso_anti_duplicado, creéla como HECHO: la transferencia YA funcionó. El aviso del banco de "$50.000.000 / 4 hrs" es INFORMACIÓN, no un bloqueo. Al confirmar, recuérdale que queda PENDIENTE y que alguien debe LIBERARLA en el banco para que la plata salga. Si el beneficiario NO está guardado en la libreta, NO digas que "Ramón/Nico deben cargarlo en el banco primero" (el banco NO exige inscribirlo): pídele al usuario el RUT, el banco y el número de cuenta (y la razón social/nombre) y llama tek_transferir pasando nombre, rut, banco y cuenta — se transfiere directo y queda guardado para la próxima. 🏢 EMPRESA DE ORIGEN (de qué cuenta sale la plata): ANTES de preparar la transferencia, si el usuario NO dijo de qué empresa transferir, PREGÚNTALE de cuál de SUS empresas conectadas quiere que salga y MUÉSTRASELAS COMO LISTA NUMERADA, una empresa por línea (ej: "1. ANA CLARA SPA\n2. ACE SPA\n3. FOOD EXPERT SPA…"), sacándolas de mis_bancos_conectados — NO las pongas todas juntas en una sola frase. Así elige fácil (por número o nombre). Pásala en el campo "empresa" de tek_transferir (en 'preparar' Y en 'enviar', la MISMA). La plata sale de la cuenta de ESA empresa usando su sesión de banco (que el "corazón" mantiene viva; si está dormida, se activa sola con un login al momento). ⛔ NUNCA le pidas al usuario que "vincule", "conecte" o "configure" su banco — sus sesiones ya están conectadas; SOLO pregúntale CUÁL empresa. Un usuario acotado (ej. Joaquín) transfiere solo desde ANA CLARA (no le preguntes empresa).
 
+🧾 PAGOS QUE NO LLEGARON AL BANCO. Si una transferencia o un lote NO se pudo subir (sesion dormida, candado anti-bloqueo, red rechazada), Nexus lo ANOTA solo en una libreta y un vigia se lo recuerda a quien lo pidio y al dueno de la sesion hasta que quede resuelto. ⛔ NUNCA le digas al usuario que "reintentas en unos minutos y le avisas": NADIE reintenta solo, y esa frase ya dejo un pago 27 horas en el aire (lote de $2.800.000, 18-08-2026). Di la verdad: no se subio, quedo anotado, hay que despertar la sesion del banco (lo hace una persona) y le vas a recordar. Para ver esos pagos usa **pagos_sin_subir** accion:"ver"; si te dicen que ya lo pagaron por otra via o que ya no va, cierralo con accion:"cerrar" y el id.
 💸💸 TRANSFERENCIA MASIVA — varias transferencias en un LOTE (sistema "tek", herramienta **tek_masiva**) — cuando pidan pagar/transferir a VARIOS de una (nómina, varios proveedores). Sube un LOTE a Santander Empresa que queda PENDIENTE por liberar (no mueve plata hasta la Liberación con Superclave, paso manual aparte). Cada transferencia lleva nombre + monto (+ rut, banco y cuenta si el beneficiario NO está guardado; mismo criterio que tek_transferir). 🏢 Igual que en tek_transferir, si el usuario NO dijo de qué empresa sale el lote, PREGÚNTALE de cuál de sus empresas conectadas quiere que salga y MUÉSTRASELAS COMO LISTA NUMERADA (una por línea, de mis_bancos_conectados; NO todas en una frase), y pásala en "empresa" (en preparar Y en enviar). ANTES de subir necesitas SIEMPRE 2 datos que le PREGUNTAS al usuario: (1) el **concepto** (muéstrale las opciones: Pago de Asignaciones, Pago de Dividendos, Pago de Pensiones, Pago de Proveedores, Pago de Reembolsos, Pago de Remuneraciones, Pago de Subsidios, Pago de Viáticos, Pago Extraordinarios, Transferencias Masivas) y (2) el **motivo** (glosa cartola originador, texto corto). Va en 2 pasos: (a) tek_masiva accion:'preparar' con la lista → devuelve el RESUMEN (cantidad, total, beneficiarios, problemas). ⚠️ El banco permite **máx $7.000.000 por línea**: si una transferencia supera eso, el sistema la PARTE solo en varias líneas del mismo beneficiario que suman el total (ej. $82M → 11 de $7M + 1 de $5M). Si el resumen trae "nota_division", avísale al usuario cómo quedó dividida. Si falta el concepto o el motivo, la tool te lo dice: pregúntaselo. Muéstrale el resumen y pregúntale "¿subo el lote?". (b) SOLO con su OK explícito + concepto + motivo, tek_masiva accion:'enviar' con los MISMOS datos → sube el lote pendiente. NUNCA envíes sin confirmación. 📄 Si el usuario pide VER/revisar el Excel que se sube al banco ("mándame el excel", "el archivo que subes", "quiero revisarlo"), llama tek_masiva accion:'excel' con las mismas transferencias → se lo manda por WhatsApp. ⛔ NUNCA digas que "no puedes generar/enviar el Excel": SÍ puedes, es accion:'excel'. El RUT en el archivo va sin puntos ni guion (el sistema lo formatea solo). Si el banco RECHAZA (0 aceptados), NO es el click de confirmar: es que la cuenta/RUT/banco del beneficiario no cuadran — dile al usuario que revise esos datos (ofrécele mandarle el Excel para chequear).
 
 📄 DESCARGAR COMPROBANTES de pago (sistema "tek", herramienta **tek_comprobantes**) — cuando pidan "quiero descargar los comprobantes", "mándame el comprobante del pago a X", etc. Va en 2 pasos: (a) tek_comprobantes accion:'listar' → trae la lista de transferencias/comprobantes; muéstrasela NUMERADA (fecha · beneficiario · monto) y pregúntale CUÁL quiere. (b) tek_comprobantes accion:'bajar' → baja y manda por WhatsApp: indice=<n> para uno, indices=[..] para varios, o **todos:true** si el usuario dice "mándame todos"/"todos los comprobantes". IMPORTANTE (contexto): después de mostrar la lista, RECUERDA los números en el próximo mensaje — si el usuario responde "todos" o "el 2 y el 4", mapea eso a la llamada correcta. Tarda ~2 min (entra al banco). Si responde sesion_caida, dile que hay que reconectar el banco primero.
@@ -3209,6 +3210,19 @@ const HERRAMIENTAS = [
   },
   // ── tek · PENDIENTES DE APROBACIÓN (transferencias/masivas "Por Autorizar") ──
   {
+    name: 'pagos_sin_subir',
+    description: 'PAGOS QUE NUNCA LLEGARON AL BANCO: transferencias o lotes que Nexus armó pero NO pudo subir (sesión del banco dormida, candado anti-bloqueo, red rechazada). OJO: no confundir con tek_pendientes, que son los que SÍ estan en el banco esperando autorizacion. Esta tool NO toca el banco, solo lee/actualiza la libreta interna. accion "ver" lista los que siguen sin subir; accion "cerrar" (con id, o todos:true) los marca como resueltos cuando el usuario dice que ya los pagó por otra via o que ya no van. Usala cuando pregunten "que pagos quedaron pendientes / sin subir / colgados", o cuando digan "ese pago ya se subio / ya se pago / ya no va".',
+    input_schema: {
+      type: 'object',
+      properties: {
+        accion: { type: 'string', enum: ['ver', 'cerrar'], description: 'ver (default) o cerrar' },
+        id: { type: 'string', description: 'id del pago a cerrar (sale de accion ver)' },
+        todos: { type: 'boolean', description: 'cerrar TODOS los pendientes (pídele confirmación antes)' },
+      },
+      required: [],
+    },
+  },
+  {
     name: 'tek_pendientes',
     description: 'LISTAR las transferencias y masivas PENDIENTES DE APROBACIÓN ("Por Autorizar" / "Por Confirmar" / "Por Liberar") en Santander Empresa (sistema "tek"). SOLO LECTURA: NO autoriza, NO libera, NO mueve plata. Úsalo cuando el usuario pregunte "¿qué transferencias tengo pendientes de aprobar/autorizar?", "las masivas por autorizar", "qué está pendiente de aprobación", "qué quedó por liberar". Corre como la PERSONA que pregunta, usando SU sesión de banco (si está viva la reusa; si está dormida, la abre). Devuelve las filas (beneficiario · RUT · banco · monto · estado · fecha) — muéstralas NUMERADAS. Por defecto mira la empresa principal de la persona; si pide otra, pásala en "empresa". Tarda ~1-2 min si tiene que entrar al banco. Si responde sesion_caida, dile que hay que reintentar en un momento (el banco cerró la sesión por seguridad). ⛔ NUNCA ofrezcas autorizar/liberar tú — eso lo hace la persona en el banco con su Superclave.',
     input_schema: {
@@ -3409,6 +3423,42 @@ function throttleDeLogin(res) {
     cooldown_device_trust: 'el banco pidió validar el dispositivo hace poco y hay que dejarlo enfriar',
   }[String(res.motivo || '')] || 'hay que espaciar los logins'
   return { esperaMin, motivo: String(res.motivo || 'throttle'), porQue }
+}
+
+/** PAGO QUE NO SE SUBIÓ → a la libreta, y aviso AL TIRO al dueño de la sesión.
+ *  (18-08-2026: un lote de $2.800.000 de Joaquín no subió, se le dijo "reintento en unos
+ *  minutos y te aviso", no existía tal reintento y estuvo 27 h en el aire sin que Ramón —el
+ *  único que podía despertar el banco— se enterara. Esto es para que no vuelva a pasar.)
+ *  No reintenta ni toca el banco: solo deja el pago anotado y a la gente avisada. */
+async function anotarPagoPendiente({ ctx, ses, tipo, empresa, concepto, glosa, total, beneficiarios, motivo, archivo }) {
+  let reg = null
+  try {
+    const lib = await import('../conector-tek/pendientes-lotes.mjs')
+    reg = lib.anotar({
+      tipo, de: normNum(ctx.de), quien: (usuarioDe(ctx.de) || {}).nombre || '',
+      dueñoSesion: (ses && ses.userId) || '', empresa, concepto, glosa, total, beneficiarios, motivo, archivo,
+    })
+  } catch { /* la libreta nunca puede tumbar una operación de plata */ }
+  // Aviso inmediato al DUEÑO de la sesión cuando el que pidió no puede destrabarlo solo.
+  try {
+    if (ses && ses.userId && operadorAjeno(ses, ctx.de)) {
+      const numOp = NUM_BANCO[ses.userId]
+      const quien = (usuarioDe(ctx.de) || {}).nombre || 'Alguien'
+      if (numOp) {
+        await kapso.enviarKapso(numOp, `🏦 ${capUser(ses.userId)}: ${quien} pidió ${tipo === 'individual' ? 'una transferencia' : 'un lote'} de $${Number(total || 0).toLocaleString('es-CL')} desde ${empresa} y *no se pudo subir* (${motivo}).
+
+Va con TU sesión del banco, así que hasta que la despiertes no sube. Lo dejé anotado y te lo recuerdo hasta que quede resuelto. Si ya lo pagaron por otra vía, decime "pago listo" y lo cierro.`)
+      }
+    }
+  } catch { /* si el aviso falla, el vigía lo repite igual */ }
+  return reg
+}
+/** El pago SÍ quedó subido → se saca de la libreta para que el vigía no moleste. */
+async function cerrarPagoPendiente({ ctx, ses, empresa, total, beneficiarios }) {
+  try {
+    const lib = await import('../conector-tek/pendientes-lotes.mjs')
+    lib.resolver({ de: normNum(ctx.de), empresa, total, beneficiarios }, 'subido')
+  } catch { /* */ }
 }
 
 /** Sesión del operador dormida y la op es de un usuario ACOTADO que va con la sesión de otro:
@@ -4025,10 +4075,15 @@ async function ejecutar(nombre, input, ctx = {}) {
         // Login SOLO automático (sin asistido): si no pudo entrar, falla limpio — sin link.
         if (loginNoEntroAuto(res)) {
           const montoTxtNE = '$' + Number(bo.monto).toLocaleString('es-CL')
-          return JSON.stringify({ ok: false, estado: res.estado || 'login_no_entro',
-            texto: `🏦 No pude entrar al banco automáticamente ahora (la sesión estaba dormida). No creé la transferencia de ${montoTxtNE} a ${bo.beneficiario.nombre} — reintentá en un ratito y la dejo lista.`,
-            instruccion: '⛔ NO le pidas al usuario clave, Superclave ni le pases ningún link/PIN. Fue el login automático que no entró; decile que reintente en un rato. NO reintentes vos ahora ni en este turno.' })
+          const regT = await anotarPagoPendiente({ ctx, ses: sesB, tipo: 'individual', empresa, concepto: '', glosa: bo.motivo || '', total: bo.monto,
+            beneficiarios: [{ nombre: bo.beneficiario.nombre, monto: bo.monto }], motivo: 'la sesión del banco estaba dormida y el login automático no entró' })
+          const dueñoT = sesB && sesB.userId ? capUser(sesB.userId) : 'quien tiene la sesión'
+          const avisadoT = regT && operadorAjeno(sesB, ctx.de) ? ` Ya le avisé a ${dueñoT}.` : ''
+          return JSON.stringify({ ok: false, estado: res.estado || 'login_no_entro', anotado: true,
+            texto: `🏦 No pude entrar al banco ahora (la sesión estaba dormida). *No creé* la transferencia de ${montoTxtNE} a ${bo.beneficiario.nombre} — pero quedó ANOTADA y no se me pierde.${avisadoT} Se crea cuando la sesión esté despierta; te recuerdo hasta que quede lista. 🏦`,
+            instruccion: '⛔ NO le pidas clave, Superclave ni le pases link/PIN. ⛔ NO le digas que "reintentas en unos minutos y le avisas": NADIE reintenta solo. Decile la verdad: no se creó, quedó anotada, hay que despertar la sesión del banco (lo hace una persona) y Nexus le va a recordar. NO reintentes vos ahora ni en este turno.' })
         }
+        if (res.ok || res.pendiente) await cerrarPagoPendiente({ ctx, ses: sesB, empresa, total: bo.monto, beneficiarios: [{ nombre: bo.beneficiario.nombre, monto: bo.monto }] })
         // Si era un beneficiario NUEVO y la transferencia se creó, lo guardamos en la libreta
         // para no volver a pedir los datos la próxima vez (best-effort, no rompe si falla).
         if (res.pendiente && bo.nuevo) {
@@ -4107,6 +4162,32 @@ async function ejecutar(nombre, input, ctx = {}) {
       })
     }
     // ── tek · TRANSFERENCIA MASIVA (lote con varias transferencias) ─────────────
+    if (nombre === 'pagos_sin_subir') {
+      // Libreta de pagos que NO llegaron al banco. No abre sesión ni toca plata.
+      let lib
+      try { lib = await import('../conector-tek/pendientes-lotes.mjs') }
+      catch (e) { return JSON.stringify({ ok: false, error: 'No pude leer la libreta de pagos: ' + e.message }) }
+      // Un admin ve todos; cada persona ve solo los pagos que pidió ella.
+      const míos = (p) => esAdmin(ctx.de) || normNum(p.de) === normNum(ctx.de)
+      const lista = lib.listar().filter(míos)
+      if (input.accion === 'cerrar') {
+        if (!input.id && !input.todos) return JSON.stringify({ ok: false, error: 'Dime CUÁL cerrar (id) o pásame todos:true.', pendientes: lista })
+        const objetivo = input.todos ? lista : lista.filter((p) => p.id === String(input.id))
+        if (!objetivo.length) return JSON.stringify({ ok: false, error: 'No encontré ese pago en la libreta.', pendientes: lista })
+        for (const p of objetivo) lib.resolver(p.id, 'resuelto_fuera')
+        return JSON.stringify({ ok: true, cerrados: objetivo.length, texto: `✅ Listo, ${objetivo.length === 1 ? 'ese pago' : `esos ${objetivo.length} pagos`} ${objetivo.length === 1 ? 'queda' : 'quedan'} cerrado${objetivo.length === 1 ? '' : 's'} — no te lo recuerdo más.` })
+      }
+      if (!lista.length) return JSON.stringify({ ok: true, pendientes: [], texto: 'No hay pagos colgados: todo lo que se pidió quedó subido al banco. ✅' })
+      return JSON.stringify({
+        ok: true,
+        pendientes: lista.map((p) => ({
+          id: p.id, cuando: p.creado, tipo: p.tipo, empresa: p.empresa, glosa: p.glosa,
+          monto: p.total, monto_fmt: '$' + Number(p.total || 0).toLocaleString('es-CL'),
+          beneficiarios: p.beneficiarios, motivo: p.motivo, lo_pidio: p.quien || p.de, sesion_de: p.dueño_sesion,
+        })),
+        instruccion: 'Muéstraselos NUMERADOS con monto, beneficiario y hace cuánto están esperando. Aclara que NO están en el banco (nunca se subieron) y que para subirlos hay que despertar la sesión del banco. Si dice que ya los pagó por otra vía, ciérralos con accion:"cerrar" y el id.',
+      })
+    }
     if (nombre === 'tek_masiva') {
       if (bancoBloqueado(ctx.de)) return MSG_BANCO_DORMIDO
       let mm
@@ -4182,6 +4263,7 @@ async function ejecutar(nombre, input, ctx = {}) {
 
       if (input.accion === 'enviar') {
         await avisarTrabajando(ctx, `📤 Subiendo el lote de ${resumen.cantidad} transferencias (${resumen.monto_total_fmt}) al banco… dame ~1-2 min, sigo acá trabajando 🏦`)
+        const datosPago = { ctx, ses: sesM, tipo: 'masiva', empresa: empresaMasiva, concepto, glosa: motivo, total, beneficiarios: resumen.beneficiarios }
         const res = await escrituraBancoAutoSana(() => mm.ejecutarMasivo(resueltas, { concepto, stamp: String(Date.now()), userId: userMasiva, empresa: empresaMasiva }))
         // Sesión dormida: el motor ya abrió el login con el lote enganchado → link + PIN YA.
         if (necesitaLogin(res)) {
@@ -4205,6 +4287,7 @@ async function ejecutar(nombre, input, ctx = {}) {
         // RED DE SALIDA RECHAZADA por el banco: no se intentó el login (a propósito). No es una
         // caída ni algo que el usuario pueda destrabar reintentando: hay que cambiar la conexión.
         if (String(res.estado || '') === 'red_bloqueada') {
+          await anotarPagoPendiente({ ...datosPago, motivo: 'la red de salida del mini la rechaza Santander' })
           return JSON.stringify({ ok: false, estado: 'red_bloqueada', resumen,
             texto: `🛑 No subí el lote y *no lo intenté a propósito*: el mini está saliendo a internet por una red que Santander rechaza en el ingreso, así que el login no tenía cómo pasar. No se movió nada y el lote (${resumen.cantidad} · ${resumen.monto_total_fmt}) queda armado.\n\nEsto lo tiene que destrabar Ramón: hay que salir por una IP móvil chilena (el túnel a la MacBook con datos) o hacer el login desde otra conexión. Avísame cuando esté y lo subo al toque. 🏦`,
             instruccion: '⛔ NO digas que el banco falló, que la sesión estaba dormida ni que reintente en un rato: reintentar NO lo arregla. Es la RED de salida del mini, la destraba Ramón. Dile eso y ofrécele avisarle a él.',
@@ -4214,16 +4297,21 @@ async function ejecutar(nombre, input, ctx = {}) {
         const thrM = throttleDeLogin(res)
         if (thrM) {
           const cuando = thrM.esperaMin ? `en ~${thrM.esperaMin} ${thrM.esperaMin === 1 ? 'minuto' : 'minutos'}` : 'en un rato'
+          await anotarPagoPendiente({ ...datosPago, motivo: `candado anti-bloqueo (${thrM.porQue})` })
           return JSON.stringify({ ok: false, estado: 'login_throttle', espera_min: thrM.esperaMin, resumen,
-            texto: `⏳ No subí el lote todavía, pero *no falló nada ni el banco lo rechazó*: es mi candado anti-bloqueo — ${thrM.porQue}, para no marcar la cuenta en Santander. Reintento ${cuando} y te aviso. El lote (${resumen.cantidad} · ${resumen.monto_total_fmt}) queda armado tal cual. 🏦`,
-            instruccion: `⛔ NO digas que el login "no pudo entrar" ni que el banco falló: fue NUESTRA protección anti-bloqueo. Dile al usuario el motivo y que reintente ${cuando}. NO reintentes vos ahora ni en este turno.` })
+            texto: `⏳ No subí el lote todavía, pero *no falló nada ni el banco lo rechazó*: es mi candado anti-bloqueo — ${thrM.porQue}, para no marcar la cuenta en Santander. El lote (${resumen.cantidad} · ${resumen.monto_total_fmt}) queda ANOTADO y no se me pierde: te lo recuerdo hasta que quede subido. Volvé a pedírmelo ${cuando}. 🏦`,
+            instruccion: `⛔ NO digas que el login "no pudo entrar" ni que el banco falló: fue NUESTRA protección anti-bloqueo. ⛔ NO prometas que "reintentas solo": NADIE reintenta automáticamente. Decile que el pago quedó anotado, que le vas a recordar, y que vuelva a pedirlo ${cuando}. NO reintentes vos ahora ni en este turno.` })
         }
         // Login SOLO automático (sin asistido): si no pudo entrar, falla limpio — sin link.
         if (loginNoEntroAuto(res)) {
-          return JSON.stringify({ ok: false, estado: res.estado || 'login_no_entro', resumen,
-            texto: `🏦 No pude entrar al banco automáticamente ahora (la sesión estaba dormida). No se subió nada — reintentá en un ratito y lo dejo listo.`,
-            instruccion: '⛔ NO le pidas al usuario clave, Superclave ni le pases ningún link/PIN. Fue el login automático que no entró; decile que reintente en un rato. NO reintentes vos ahora ni en este turno.' })
+          const regP = await anotarPagoPendiente({ ...datosPago, motivo: 'la sesión del banco estaba dormida y el login automático no entró' })
+          const dueño = sesM && sesM.userId ? capUser(sesM.userId) : 'quien tiene la sesión'
+          const avisado = regP && operadorAjeno(sesM, ctx.de) ? ` Ya le avisé a ${dueño}.` : ''
+          return JSON.stringify({ ok: false, estado: res.estado || 'login_no_entro', resumen, anotado: true,
+            texto: `🏦 No pude entrar al banco ahora (la sesión estaba dormida). *No se subió nada* — pero el pago (${resumen.cantidad} ${resumen.cantidad === 1 ? 'transferencia' : 'transferencias'} · ${resumen.monto_total_fmt}) quedó ANOTADO y no se me pierde.${avisado} Se sube cuando la sesión del banco esté despierta; te voy a recordar hasta que quede listo. 🏦`,
+            instruccion: '⛔ NO le pidas al usuario clave, Superclave ni le pases link/PIN. ⛔ NO le digas que "reintentas en unos minutos y le avisas": NADIE reintenta solo. Decile la verdad: no se subió, quedó anotado, hay que despertar la sesión del banco (eso lo hace una persona), y que Nexus le va a recordar. NO reintentes vos ahora ni en este turno.' })
         }
+        if (res.ok) await cerrarPagoPendiente(datosPago)
         if (res.ok && tr) { for (const t of resueltas) { try { if (String(t.rut || '').replace(/\D/g, '')) tr.guardarBeneficiario({ nombre: t.nombre, rut: t.rut, banco: t.banco, cuenta: t.cuenta }) } catch { /* */ } } }
         let okTxt, instruccion
         if (res.ok) {

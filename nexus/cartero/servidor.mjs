@@ -168,6 +168,20 @@ const servidor = http.createServer(async (req, res) => {
       if (idPedido) {
         datos = await traerPedido(idPedido);
         if (!datos) return html(res, 404, 'pedido no encontrado');
+      } else if (nombre.startsWith('arsenale')) {
+        // Muestra para revisar el diseno de TheArsenale (marca internacional, USD).
+        datos = {
+          cliente: 'Marcus', cliente_completo: 'Marcus Villeneuve', email: 'marcus@builder.co',
+          telefono: '+1 305 555 0142', pedido_corto: 'TA7F21C9', pago: 'Stripe',
+          items: [
+            { nombre: 'Ducati Scrambler — Custom Build Kit', cantidad: 1, total: '$14,900', imagen: '' },
+            { nombre: 'TA Carbon Fairing Set', cantidad: 2, total: '$3,180', imagen: '' },
+          ],
+          subtotal_f: '$18,080', envio_f: '$420', total_f: '$18,500',
+          direccion: '1200 NW 78th Ave, Miami, FL 33126, USA',
+          tracking: 'TA884120957US', carrier: 'DHL Express', estado: 'shipped',
+          fecha: 'August 19, 2026',
+        };
       } else {
         // Datos de muestra para revisar el diseno sin depender de la base.
         datos = {
@@ -180,8 +194,9 @@ const servidor = http.createServer(async (req, res) => {
       }
       // Las plantillas internas necesitan sus propios campos (titular, color, etc).
       const vg = await import('./vigia.mjs');
-      datos = nombre.startsWith('interno')
-        ? vg.contextoInterno(datos, url.searchParams.get('tipo') || 'venta')
+      const esInterno = nombre.includes('interno') || nombre.includes('sale-alert');
+      datos = esInterno
+        ? vg.contextoInterno(datos, url.searchParams.get('tipo') || 'venta', nombre.startsWith('arsenale') ? 'en' : 'es')
         : (idPedido ? vg.contextoCliente(datos) : datos);
       const ctx = {
         ...datos, marca: process.env.CARTERO_DE_NOMBRE || 'Clivox',
@@ -189,7 +204,8 @@ const servidor = http.createServer(async (req, res) => {
         url_baja: '#',
         // no se pisan si la plantilla ya los trae: la vista debe mostrar lo mismo que se envia
         url_boton: datos.url_boton || '#',
-        texto_boton: datos.texto_boton || 'Ver mi pedido',
+        texto_boton: datos.texto_boton ||
+          (nombre.startsWith('arsenale') ? 'Track my order' : 'Ver mi pedido'),
         preview: '', titulo: 'vista previa',
       };
       try { return html(res, 200, armar(nombre, ctx).html); }

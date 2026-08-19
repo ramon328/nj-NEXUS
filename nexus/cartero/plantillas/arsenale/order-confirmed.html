@@ -1,0 +1,27 @@
+<!--asunto: Order #{{pedido_corto}} confirmed — TheArsenale -->
+<!--layout: arsenale/base-->
+<p style="margin:0 0 6px 0;color:#FC4C02;font-size:11px;font-weight:700;letter-spacing:2px;">ORDER CONFIRMED</p>
+<h1 style="margin:0 0 14px 0;font-size:30px;font-weight:700;letter-spacing:-1px;color:#FFFFFF;line-height:1.1;">You're in.</h1>
+<p style="margin:0 0 6px 0;color:#C8C8C8;">{{cliente}}, we received your order and payment is confirmed. It's now being prepared for dispatch.</p>
+<p style="margin:0 0 4px 0;color:#7A7A7A;font-size:13px;">We'll send you the tracking number the moment it leaves the floor.</p>
+
+{{>arsenale/resumen}}
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin-top:24px;">
+  <tr>
+    <td valign="top" width="50%" style="padding-right:12px;">
+      <p style="margin:0 0 4px 0;color:#FC4C02;font-size:10px;font-weight:700;letter-spacing:1.4px;">PAYMENT</p>
+      <p style="margin:0 0 16px 0;color:#C8C8C8;font-size:13px;line-height:1.6;">{{pago}}</p>
+      <p style="margin:0 0 4px 0;color:#FC4C02;font-size:10px;font-weight:700;letter-spacing:1.4px;">DATE</p>
+      <p style="margin:0;color:#C8C8C8;font-size:13px;line-height:1.6;">{{fecha}}</p>
+    </td>
+    {{#si direccion}}
+    <td valign="top" width="50%" style="padding-left:12px;">
+      <p style="margin:0 0 4px 0;color:#FC4C02;font-size:10px;font-weight:700;letter-spacing:1.4px;">SHIP TO</p>
+      <p style="margin:0;color:#C8C8C8;font-size:13px;line-height:1.6;">{{#si cliente_completo}}{{cliente_completo}}<br>{{/si}}{{direccion}}</p>
+    </td>
+    {{/si}}
+  </tr>
+</table>
+
+{{>arsenale/boton}}

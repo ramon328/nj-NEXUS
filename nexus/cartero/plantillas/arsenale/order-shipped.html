@@ -1,0 +1,23 @@
+<!--asunto: Order #{{pedido_corto}} is on the move -->
+<!--layout: arsenale/base-->
+<p style="margin:0 0 6px 0;color:#FC4C02;font-size:11px;font-weight:700;letter-spacing:2px;">IN TRANSIT</p>
+<h1 style="margin:0 0 14px 0;font-size:30px;font-weight:700;letter-spacing:-1px;color:#FFFFFF;line-height:1.1;">On the move.</h1>
+<p style="margin:0 0 6px 0;color:#C8C8C8;">{{cliente}}, your order has left the floor{{#si carrier}} with {{carrier}}{{/si}}.</p>
+
+{{#si tracking}}
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:24px 0;background:#1F1F1F;border-left:3px solid #FC4C02;">
+  <tr><td style="padding:16px 20px;">
+    <p style="margin:0 0 5px 0;color:#FC4C02;font-size:10px;font-weight:700;letter-spacing:1.6px;">TRACKING NUMBER</p>
+    <p style="margin:0;color:#FFFFFF;font-size:20px;font-weight:700;letter-spacing:1px;font-family:'Courier New',monospace;">{{tracking}}</p>
+    {{#si carrier}}<p style="margin:6px 0 0 0;color:#7A7A7A;font-size:12px;letter-spacing:.5px;">CARRIER · {{carrier}}</p>{{/si}}
+  </td></tr>
+</table>
+{{/si}}
+
+{{#si direccion}}
+<p style="margin:0 0 4px 0;color:#FC4C02;font-size:10px;font-weight:700;letter-spacing:1.4px;">DELIVERING TO</p>
+<p style="margin:0 0 20px 0;color:#C8C8C8;font-size:13px;line-height:1.6;">{{direccion}}</p>
+{{/si}}
+
+{{>arsenale/resumen}}
+{{>arsenale/boton}}

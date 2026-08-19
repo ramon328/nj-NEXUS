@@ -1,0 +1,47 @@
+<!--asunto: {{prefijo_asunto}} {{total_f}} — order #{{pedido_corto}} -->
+<!--layout: arsenale/base-->
+<p style="margin:0 0 6px 0;color:{{color_acento}};font-size:11px;font-weight:700;letter-spacing:2px;">{{etiqueta}}</p>
+<h1 style="margin:0 0 6px 0;font-size:30px;font-weight:700;letter-spacing:-1px;color:#FFFFFF;line-height:1.1;">{{titular}}</h1>
+<p style="margin:0 0 26px 0;color:#7A7A7A;font-size:13px;">{{bajada}}</p>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 26px 0;background:#1F1F1F;border-left:3px solid {{color_acento}};">
+  <tr><td style="padding:20px 22px;">
+    <p style="margin:0 0 4px 0;color:{{color_acento}};font-size:10px;font-weight:700;letter-spacing:1.6px;">ORDER VALUE</p>
+    <p style="margin:0;color:#FFFFFF;font-size:36px;font-weight:700;letter-spacing:-1.4px;line-height:1;">{{total_f}}</p>
+    <p style="margin:8px 0 0 0;color:#7A7A7A;font-size:12px;letter-spacing:.5px;">{{pago}} · {{estado_texto}}</p>
+  </td></tr>
+</table>
+
+<p style="margin:0 0 10px 0;color:{{color_acento}};font-size:10px;font-weight:700;letter-spacing:1.6px;">WHAT SOLD</p>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0" style="margin:0 0 24px 0;">
+  {{#cada items}}
+  <tr>
+    <td valign="top" style="padding:9px 0;border-bottom:1px solid #2A2A2A;color:#FFFFFF;font-size:14px;">
+      <strong style="font-weight:700;color:{{color_acento}};">{{.cantidad}}×</strong>&nbsp; {{.nombre}}
+    </td>
+    <td valign="top" align="right" style="padding:9px 0;border-bottom:1px solid #2A2A2A;color:#FFFFFF;font-size:14px;font-weight:700;white-space:nowrap;">{{.total}}</td>
+  </tr>
+  {{/cada}}
+  <tr><td style="padding:9px 0;color:#7A7A7A;font-size:12px;letter-spacing:.5px;">SHIPPING</td>
+      <td align="right" style="padding:9px 0;color:#7A7A7A;font-size:12px;">{{envio_f}}</td></tr>
+</table>
+
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" border="0">
+  <tr>
+    <td valign="top" width="50%" style="padding-right:12px;">
+      <p style="margin:0 0 4px 0;color:{{color_acento}};font-size:10px;font-weight:700;letter-spacing:1.4px;">BUYER</p>
+      <p style="margin:0;color:#C8C8C8;font-size:13px;line-height:1.7;">
+        {{#si cliente_completo}}{{cliente_completo}}<br>{{/si}}
+        <a href="mailto:{{email}}" style="color:#FFFFFF;">{{email}}</a>
+        {{#si telefono}}<br><a href="tel:{{telefono}}" style="color:#FFFFFF;">{{telefono}}</a>{{/si}}
+      </p>
+    </td>
+    <td valign="top" width="50%" style="padding-left:12px;">
+      <p style="margin:0 0 4px 0;color:{{color_acento}};font-size:10px;font-weight:700;letter-spacing:1.4px;">SHIP TO</p>
+      <p style="margin:0;color:#C8C8C8;font-size:13px;line-height:1.7;">{{#si direccion}}{{direccion}}{{/si}}{{#no direccion}}<span style="color:#5A5A5A;">no address</span>{{/no}}</p>
+    </td>
+  </tr>
+</table>
+
+<p style="margin:20px 0 0 0;color:#5A5A5A;font-size:11px;letter-spacing:.5px;">ORDER #{{pedido_corto}} · {{fecha}}</p>
+{{>arsenale/boton}}
