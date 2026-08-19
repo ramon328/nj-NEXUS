@@ -43,7 +43,10 @@ if (!ENCENDIDO && !DRY) { log('reintento APAGADO (TEK_REINTENTO_LOGIN≠1)'); pr
 // necesita nada, NO se toca el banco: los logins se gastan solo cuando sirven.
 const pendientes = (leerJson(join(DATA, 'lotes-pendientes.json'), { pendientes: [] }).pendientes || [])
   .filter((p) => p.estado === 'pendiente')
-const selloMovs = (() => { try { return Number(readFileSync(join(DATA, '.ultimo-refresco-movs'), 'utf8').trim()) || 0 } catch { return 0 } })()
+// OJO: la señal NO es "alguien preguntó", es "alguien preguntó y NO se le pudo dar el dato
+// fresco". banco.mjs deja esta marca solo cuando el refresco no entró, y la borra cuando sí.
+// Si no, cada consulta servida bien igual haría reintentar el login y gastaría los cupos.
+const selloMovs = (() => { try { return Number(readFileSync(join(DATA, '.movs-pendiente-refresco'), 'utf8').trim()) || 0 } catch { return 0 } })()
 const pidieronDatos = selloMovs && (Date.now() - selloMovs) < NECESIDAD_MS
 if (!pendientes.length && !pidieronDatos) { log('nadie necesita el banco ahora — no reintento'); process.exit(0) }
 
