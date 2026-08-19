@@ -1,0 +1,10 @@
+{
+  "name": "nexus-hermes-gate",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "description": "Hermes tenant control plane attachment: capability registry + fail-closed policy gate. Not the Nexus agent loop.",
+  "scripts": {
+    "test": "node --test tests/*.test.mjs"
+  }
+}

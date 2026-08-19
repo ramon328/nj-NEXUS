@@ -16,6 +16,7 @@ import dns from 'node:dns'
 dns.setDefaultResultOrder('ipv4first')
 import { fileURLToPath } from 'node:url'
 import { dirname, join } from 'node:path'
+import { randomUUID } from 'node:crypto'
 import { readFileSync, writeFileSync, appendFileSync, existsSync, readdirSync, unlinkSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { readFile, readdir } from 'node:fs/promises'
@@ -48,6 +49,7 @@ import * as conciliacion from '../conector-gastos/conciliar.mjs'
 // Datos del auto DICTADOS por la persona (bloque "Marca: … / Modelo: …"): mandan
 // sobre GoAutos/CAV al armar una factura. Ver [[factura-datos-dictados]].
 import { parsearVehiculoDictado, guardarDictado, leerDictado, aplicarDictado, aplicarDictadoAItems } from './dictado-vehiculo.mjs'
+import { authorizeHubTool } from '../hermes/hub-adapter.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -3530,6 +3532,24 @@ function seguirJobBanco(ctx, job, armarTexto) {
 
 async function ejecutar(nombre, input, ctx = {}) {
   try {
+    // Hermes policy gate: adapters declare, this authorizes. Fail closed.
+    // Existing founder/scope checks below remain as a second DENY layer only.
+    const _gate = authorizeHubTool({
+      toolName: nombre,
+      input,
+      de: ctx.de,
+      web: ctx.web,
+      correlationId: ctx.correlationId,
+      ticketId: ctx.ticketId,
+      extraApproval: Boolean(ctx.extraApproval),
+      idempotencyKey: ctx.idempotencyKey || input?.idempotency_key,
+      actorRegistered: Boolean(usuarioDe(ctx.de)),
+      actorAdmin: esAdmin(ctx.de),
+      actorScopes: accesosDe(ctx.de),
+      actorProjects: empresasDe(ctx.de),
+    })
+    if (!_gate.allow) return _gate.userMessage
+
     // ── Control de acceso por usuario ───────────────────────────────────────────
     // Gestión de usuarios: SOLO los fundadores (Ramón/Nico).
     if (GESTION_USUARIOS.includes(nombre) && !esAdmin(ctx.de)) {
@@ -7501,6 +7521,7 @@ export async function responder(historial, opts = {}) {
     return { reply: repetir || avisoNoAutorizado(), herramientas: [], no_autorizado: true }
   }
   const de = destinoValido(opts.de)   // número del que escribe (vacío si no es del allowlist)
+  const correlationId = opts.correlationId || randomUUID()
   const web = Boolean(opts.web)       // canal desktop/web: los gráficos se MUESTRAN en la app, no van a WhatsApp
   const onEvento = typeof opts.onEvento === 'function' ? opts.onEvento : null   // avisa al front qué subagente/tool se usa (indicador en vivo, ej. "🧠 Segundo Cerebro")
   const breve = Boolean(opts.breve)   // SOLO la web del Centro de IAs (con voz): respuestas cortas para escuchar
@@ -7752,7 +7773,7 @@ export async function responder(historial, opts = {}) {
           const _t0 = Date.now()
           let out, _ok = true, _det = null
           try {
-            out = await ejecutar(b.name, b.input || {}, { de, media: mediaHandler, web, graficos, tarjetas, textoUsuario })
+            out = await ejecutar(b.name, b.input || {}, { de, media: mediaHandler, web, graficos, tarjetas, textoUsuario, correlationId })
             if (typeof out === 'string' && /^\s*(error|⚠️|🔒|no se pudo|no tienes acceso|hubo un error)/i.test(out)) { _ok = false; _det = out.slice(0, 200) }
           } catch (e) {
             _ok = false; _det = String(e?.message || e); throw e

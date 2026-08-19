@@ -1,0 +1,29 @@
+{
+  "tenant_id": "tenant-test-01",
+  "note": "Synthetic fixture. Not a production tenant.",
+  "lanes": ["lane-whatsapp", "lane-web", "lane-system"],
+  "actors": [
+    {
+      "actor_id": "actor-test-admin",
+      "admin": true,
+      "scopes": ["aliace", "sii", "mallorca", "correo", "bd", "cerebro", "banco", "admin"],
+      "project_ids": ["proj-001", "proj-002"]
+    },
+    {
+      "actor_id": "actor-test-reader",
+      "admin": false,
+      "scopes": ["aliace"],
+      "project_ids": ["proj-002"]
+    },
+    {
+      "actor_id": "actor-test-sii",
+      "admin": false,
+      "scopes": ["sii"],
+      "project_ids": ["proj-001"]
+    }
+  ],
+  "projects": [
+    { "project_id": "proj-test-alpha", "writable": true },
+    { "project_id": "proj-test-beta", "writable": true }
+  ]
+}
