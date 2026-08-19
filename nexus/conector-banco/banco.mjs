@@ -84,10 +84,43 @@ async function tekSaldos() {
   }
 }
 
-async function tekMovimientos({ buscar, desde, hasta, limite = 30 } = {}) {
-  const qs = new URLSearchParams()
-  if (desde) qs.set('desde', desde); if (hasta) qs.set('hasta', hasta); if (buscar) qs.set('q', buscar)
-  const d = await tekGet('/movimientos' + (qs.toString() ? '?' + qs.toString() : ''))
+// Cuánto puede tener el dato antes de ir a buscar lo nuevo al banco (default 3 h).
+const MOVS_FRESH_MS = (Number(envDe('TEK_MOVS_FRESH_MIN')) || 180) * 60_000
+// Mínimo entre dos intentos de entrar al banco a refrescar movimientos (candado anti-quemado).
+const MOVS_GAP_MS = (Number(envDe('TEK_MOVS_REFRESCO_GAP_MIN')) || 30) * 60_000
+
+// MOVIMIENTOS DE ANA CLARA. Antes esto era caché PURA: devolvía lo último capturado sin ir
+// nunca a buscar lo nuevo y —peor— SIN DECIR de cuándo era el dato. El 19-08-2026 Joaquín
+// pidió "los últimos movimientos" y se le mostraron los del 10-08 como si fueran de hoy: 9
+// días de atraso invisibles, con pagos reales del 17 y 18 que no aparecían. En plata, un dato
+// viejo presentado como actual es peor que no tener dato.
+// Ahora: (1) si lo guardado está viejo se entra al banco a buscar lo nuevo —igual que hacen
+// las demás empresas—, y (2) la respuesta SIEMPRE dice a qué fecha están los datos, aunque el
+// refresco no haya podido entrar.
+async function tekMovimientos({ buscar, desde, hasta, limite = 30, refrescar = true } = {}) {
+  const pedir = async () => {
+    const qs = new URLSearchParams()
+    if (desde) qs.set('desde', desde); if (hasta) qs.set('hasta', hasta); if (buscar) qs.set('q', buscar)
+    return tekGet('/movimientos' + (qs.toString() ? '?' + qs.toString() : ''))
+  }
+  let d = await pedir()
+  const tsDe = (x) => Date.parse(String(x || '')) || 0
+  let refresco = null
+  // ⛔ CANDADO ANTI-QUEMADO: preguntar por los movimientos NO puede gatillar un login cada
+  // vez. Si cinco personas preguntan cinco veces, son cinco logins y Santander marca la
+  // cuenta. Se intenta como mucho uno cada MOVS_GAP_MS (default 30 min), lo consiga o no.
+  const selloRefresco = join(TEK_DIR, 'data', '.ultimo-refresco-movs')
+  const ultimoIntento = (() => { try { return Number(readFileSync(selloRefresco, 'utf8').trim()) || 0 } catch { return 0 } })()
+  const puedeIntentar = (Date.now() - ultimoIntento) >= MOVS_GAP_MS
+  if (refrescar && !puedeIntentar && (Date.now() - tsDe(d.actualizado)) >= MOVS_FRESH_MS) refresco = 'en_espera'
+  if (refrescar && puedeIntentar && (Date.now() - tsDe(d.actualizado)) >= MOVS_FRESH_MS) {
+    try { writeFileSync(selloRefresco, String(Date.now())) } catch { /* */ }
+    // Misma vía que el resto de las empresas: lector rápido por endpoint y, si la sesión está
+    // muerta, el camino largo (que sí puede loguear). Si no entra, seguimos con lo guardado.
+    try { refresco = (await movimientosEmpresaVivo('ANA CLARA SPA')) ? 'ok' : 'no_entro' }
+    catch { refresco = 'no_entro' }
+    if (refresco === 'ok') { try { d = await pedir() } catch { /* nos quedamos con lo que había */ } }
+  }
   const movs = (d.movimientos || []).map((m) => {
     const monto = Number(m.abono || 0) - Number(m.cargo || 0)   // ingreso +, egreso −
     return {
@@ -96,8 +129,41 @@ async function tekMovimientos({ buscar, desde, hasta, limite = 30 } = {}) {
       estado: 'confirmado', banco: 'Santander', empresa: 'ANA CLARA SPA', cuenta: m.cuenta, ultimos4: String(m.cuenta || '').slice(-4),
     }
   })
+  // Si el refresco entró pero la API todavía no lo tiene (escribe en otro archivo), sumamos
+  // los movimientos recientes de la caché de empresa: lo que importa es que NO falte nada.
+  const cEmp = leerMovsCache('ANA CLARA SPA')
+  if (Array.isArray(cEmp?.movimientos)) {
+    // SOLO lo POSTERIOR a lo que ya trae el acumulador. Mezclar los dos históricos completos
+    // duplicaba movimientos (los dos formatos escriben la glosa distinto y el dedup no los
+    // reconocía): al usuario le aparecían dos veces el mismo Uber. Lo que falta es lo NUEVO.
+    const tope = movs.reduce((a, m) => (String(m.fecha || '') > a ? String(m.fecha || '') : a), '')
+    const clave = (m) => `${String(m.fecha || '').slice(0, 10)}|${String(m.descripcion || '').replace(/\s+/g, ' ').trim().toLowerCase()}|${m.monto}`
+    const yaEstan = new Set(movs.map(clave))
+    for (const m of cEmp.movimientos.map((x) => mapMovEmpresa(x, 'ANA CLARA SPA'))) {
+      if (tope && String(m.fecha || '').slice(0, 10) <= tope.slice(0, 10)) continue
+      if (!yaEstan.has(clave(m))) { movs.push({ ...m, ultimos4: String(m.cuenta || '').slice(-4) }); yaEstan.add(clave(m)) }
+    }
+  }
+  movs.sort((a, b) => String(b.fecha || '').localeCompare(String(a.fecha || '')))
   const total = movs.length
-  return { empresa: 'ANA CLARA SPA', total_encontrados: total, mostrando: Math.min(total, Number(limite) || 30), movimientos: movs.slice(0, Number(limite) || 30), fuente: 'tek' }
+  // A qué fecha están los datos de verdad = el movimiento más nuevo que tenemos.
+  const ultimaFecha = movs.length ? String(movs[0].fecha || '').slice(0, 10) : null
+  const hoyCL = new Date().toLocaleDateString('en-CA', { timeZone: 'America/Santiago' })
+  const diasAtraso = ultimaFecha ? Math.round((Date.parse(hoyCL) - Date.parse(ultimaFecha)) / 86400000) : null
+  const desactualizado = diasAtraso != null && diasAtraso >= 2
+  return {
+    empresa: 'ANA CLARA SPA', total_encontrados: total, mostrando: Math.min(total, Number(limite) || 30),
+    movimientos: movs.slice(0, Number(limite) || 30), fuente: 'tek',
+    datos_al: ultimaFecha, dias_atraso: diasAtraso, actualizado: d.actualizado || null,
+    refresco: refresco === 'ok' ? 'entré al banco y traje lo último'
+      : refresco === 'no_entro' ? 'no pude entrar al banco ahora (sesión dormida): esto es lo último guardado'
+      : refresco === 'en_espera' ? 'hace poco ya intenté entrar al banco y no se pudo; espero un rato antes de reintentar (candado anti-bloqueo)'
+      : 'dato reciente, no hizo falta entrar al banco',
+    desactualizado,
+    instruccion: desactualizado
+      ? `⚠️ OBLIGATORIO: estos movimientos llegan hasta el ${ultimaFecha} (${diasAtraso} días de atraso) porque no se pudo entrar al banco. DÍSELO AL USUARIO ARRIBA DE TODO, antes de la lista, con esas palabras. ⛔ NUNCA los presentes como "los últimos movimientos" a secas ni afirmes que después de esa fecha no hubo movimientos: no lo sabes. Ofrécele avisarle cuando la sesión del banco despierte.`
+      : `Los datos llegan hasta el ${ultimaFecha || 'la última captura'}. Menciónalo al pasar (ej. "al ${ultimaFecha}") para que se sepa a qué fecha están.`,
+  }
 }
 
 async function tekResumen({ anio } = {}) {
@@ -408,10 +474,10 @@ export async function saldosTodas({ userId, vivo = false } = {}) {
 }
 
 // ── Movimientos ───────────────────────────────────────────────────────
-export async function movimientos({ userId, rut, banco, empresa, buscar, desde, hasta, limite = 30 } = {}) {
+export async function movimientos({ userId, rut, banco, empresa, buscar, desde, hasta, limite = 30, refrescar = true } = {}) {
   if (esAnaClara(rut, empresa) || (!rut && !empresa)) {
     if (!banco || /santander/i.test(String(banco))) {
-      try { return await tekMovimientos({ buscar, desde, hasta, limite }) } catch (e) { return { error: `No pude leer movimientos (tek): ${e.message}` } }
+      try { return await tekMovimientos({ buscar, desde, hasta, limite, refrescar }) } catch (e) { return { error: `No pude leer movimientos (tek): ${e.message}` } }
     }
   }
   if (empresa) return movimientosEmpresa(empresa, { buscar, desde, hasta, limite })
