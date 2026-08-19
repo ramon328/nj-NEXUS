@@ -21,7 +21,7 @@
 import { readFileSync } from 'node:fs'
 import { join, dirname } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { writeFileSync, statSync } from 'node:fs'
+import { writeFileSync, statSync, existsSync, unlinkSync } from 'node:fs'
 import { spawn } from 'node:child_process'
 import * as cred from '../conector-tek/credenciales.mjs'
 
@@ -120,6 +120,11 @@ async function tekMovimientos({ buscar, desde, hasta, limite = 30, refrescar = t
     try { refresco = (await movimientosEmpresaVivo('ANA CLARA SPA')) ? 'ok' : 'no_entro' }
     catch { refresco = 'no_entro' }
     if (refresco === 'ok') { try { d = await pedir() } catch { /* nos quedamos con lo que había */ } }
+    // Marca "quedó pendiente traer lo nuevo": es lo que mira el reintentador de login para
+    // saber si HACE FALTA volver a entrar. Si el refresco entró, se borra — así el reintento
+    // no gasta logins por una consulta que ya quedó servida con datos frescos.
+    const marca = join(TEK_DIR, 'data', '.movs-pendiente-refresco')
+    try { if (refresco === 'ok') { if (existsSync(marca)) unlinkSync(marca) } else writeFileSync(marca, String(Date.now())) } catch { /* */ }
   }
   const movs = (d.movimientos || []).map((m) => {
     const monto = Number(m.abono || 0) - Number(m.cargo || 0)   // ingreso +, egreso −

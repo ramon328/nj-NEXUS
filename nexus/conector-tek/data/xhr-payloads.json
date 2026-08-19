@@ -220,7 +220,7 @@
     "headers": {
       "accept": "application/json, text/plain, */*",
       "accept-language": "es-CL",
-      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMjE4OTQ1NzgzIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg3MDA1NzE1LCJpYXQiOjE3ODcwMDM5MTUsImp0aSI6InBXS0ZZQ1ZJdm85My1OOVlYQzZ0ZnJOemVZYyIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMjE4OTQ1NzgzIn0.XZdLHjKesXYaYzA_kvpMvs4mcvb8EIezuLvA5D41fv0VlhS56PMLtNxVNnSh9pqyL5-DEJEihxlKzT-6m-E8jXPuEv0wE5sxruWm99cXugzfG9L1ZXcl5r5hYMugmcXrTmVHyytxvLn1W-zXdSrgfUfK4zEFAv_DRmKZaRdtlQ5cAE5svGgfGKuQMNbn0Rpk8og6XU88RLQqOaCJZ3VRT6GGbbW7E6jJMfBJhI5sTjWw0g3z-XUL8WgkBZ4BIGRgd2EAlbvcZv8N2WeTqPeSZar6Ll6DVMVCkIUdcPZ3oHUUKY6gW1zFQCU-czNzZeuzL859OENavyArc0uKV_wjTA",
+      "authorization": "Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCIsImtpZCI6IjIwMjMuMTIuMjAta2V5In0.eyJzdWIiOiIwMjE4OTQ1NzgzIiwidG9rZW5fdXNlIjoiaWQiLCJzY29wZSI6WyJPUEVOIl0sImlzcyI6Imh0dHBzOi8vZHNzLWlhbS1lbnRlcnByaXNlIiwiZXhwIjoxNzg3MTYxMDA5LCJpYXQiOjE3ODcxNTkyMDksImp0aSI6ImItTElNdG5HbWdkcEk1TUxzT2d2UXg4RHc3YyIsImNsaWVudF9pZCI6ImRzcy1vYiIsImF1dGhvcml0aWVzIjpbIlJPTEVfQ09SUE9SQVRFLVJPTEUiXSwidXNlcm5hbWUiOiIwMjE4OTQ1NzgzIn0.DZm9ZaSzUK0sv6OkfKM_L0pJ5Ym2dnhd5TET7o09kj9OUgkThaRek4oND9De__mlZQBB3ZocfJS2d1udmVhXeYNfkut0pncP7L3ZE2VkDoX9Z7WgWfUC31qJyMdDTXCDjJflvds8-cIgya4Y1rHyU4CW2jYhv8rcjQB6iplJ1c_ZaPtPf8-RuxP_64JHuvCLmpaNvHPuwTTb3ApOEJhdMHqPcyS9sADvqzT6C-LfX2YFPk6KLlLeaDPWrKkRow1wMDmL53R2t6VbnxMynMN-64ovsULJ1gvGziwkGSsx14BAeZhHycPN6nRq9mKedkBMNi4LS1GxN2W2SS1gsbuF-w",
       "content-type": "application/json",
       "origin": "https://privado.officebanking.cl",
       "referer": "https://privado.officebanking.cl/",
@@ -230,7 +230,7 @@
       "sec-ch-ua-platform": "\"macOS\""
     },
     "postData": "{\"enterpriserut\":\"0772711212\",\"contractcode\":\"000690026173520\",\"personnumber\":\"0218945783\",\"rolcode\":\"1\",\"isSwitchCompany\":false}",
-    "hits": 97,
+    "hits": 98,
     "ts_grabado": null
   },
   "POST eob.officebanking.cl/COPE.UI.Services/Token": {

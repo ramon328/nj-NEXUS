@@ -1,7 +1,13 @@
 {
   "_comment": "Changelog REAL de Nexus. Fuente de verdad para la pregunta '¿qué cambios/mejoras se hicieron?'. Newest first. Editar a mano cuando se agregue algo. NO inventar: solo lo que de verdad está activo.",
-  "actualizado": "2026-07-17",
+  "actualizado": "2026-08-19",
   "novedades": [
+    {
+      "fecha": "2026-08-19",
+      "area": "Facturas",
+      "titulo": "Los datos del auto que me dictas van TAL CUAL a la factura",
+      "detalle": "Si me pegas el bloque del auto (Patente / Tipo / Año / Marca / Modelo / Nro. Motor / Nro. Chasis / Color / Combustible / PBV), ahora lo guardo LITERAL apenas llega, sin pasarlo por mi cabeza. Al armar la factura ese texto manda sobre lo que diga GoAutos o el CAV: ya no se abrevia el modelo (\"Crosstrek\" por \"CROSSTREK 5P 4X4 2.0 AUT\") ni se pierde un campo. Si lo que yo había escrito era distinto, te digo qué corregí. Además, cuando me pides cambiar solo el precio, el resto del detalle del auto ya no se borra: se hereda del documento en curso. Vale para la factura de venta y para la factura de compra (DTE 46)."
+    },
     {
       "fecha": "2026-08-07",
       "area": "Banco",

@@ -47,7 +47,7 @@ import { leerCav } from '../conector-goautos/cav-store.mjs'
 import * as conciliacion from '../conector-gastos/conciliar.mjs'
 // Datos del auto DICTADOS por la persona (bloque "Marca: … / Modelo: …"): mandan
 // sobre GoAutos/CAV al armar una factura. Ver [[factura-datos-dictados]].
-import { parsearVehiculoDictado, guardarDictado, leerDictado, aplicarDictado, dictadoParaTexto } from './dictado-vehiculo.mjs'
+import { parsearVehiculoDictado, guardarDictado, leerDictado, aplicarDictado, aplicarDictadoAItems } from './dictado-vehiculo.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -6724,49 +6724,10 @@ async function ejecutar(nombre, input, ctx = {}) {
           // modelo (dictado-vehiculo.mjs lo guardó tal cual, sin pasar por el modelo), y
           // además el vehículo se HEREDA del documento en curso: corregir el precio ya no
           // borra el chasis. Todo lo que hubo que corregir se le reporta al usuario.
-          const dictadoCorregido = [], dictadoAgregado = []
-          let itemsUsar = traeItems ? input.items : null
-          if (Array.isArray(itemsUsar)) {
-            const itemsPrev = Array.isArray(previo.items) ? previo.items : []
-            itemsUsar = itemsUsar.map((it0, idx) => {
-              const it = { ...(it0 || {}) }
-              const objVeh = (o) => (o && typeof o === 'object' && !Array.isArray(o)) ? o : null
-              const vehNuevo = objVeh(it.vehiculo)
-              const vehPrev = objVeh(itemsPrev[idx]?.vehiculo)
-              const vehBase = (vehNuevo || vehPrev) ? { ...(vehPrev || {}), ...(vehNuevo || {}) } : null
-              const txtItem = `${it.nombre || ''} ${it.detalle || ''}`
-              // El dictado se empareja por PATENTE: la del ítem, o la que el modelo haya
-              // escrito dentro del texto de la línea (cuando armó el detalle a mano).
-              const dict = leerDictado(ctx.de, vehBase?.patente || '') || dictadoParaTexto(ctx.de, txtItem)
-              if (!dict && !vehBase) return it
-              if (!dict) { it.vehiculo = vehBase; return it }
-              // Si el ítem NO trae datos de vehículo, el dictado solo se aplica cuando la
-              // línea ES la del auto (nombre "Venta"/vehículo, o el texto nombra la patente
-              // o la marca dictada): en una factura de servicios no se mete nada.
-              if (!vehBase) {
-                const txt = txtItem.toLowerCase()
-                const plano = txt.replace(/[^a-z0-9]/g, '')
-                const esLineaDelAuto = /venta|veh[ií]culo|autom[oó]vil|\bauto\b/.test(txt)
-                  || (dict.patente && plano.includes(String(dict.patente).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)))
-                  || (dict.marca && txt.includes(String(dict.marca).toLowerCase()))
-                if (!esLineaDelAuto) return it
-              }
-              const { veh, corregidos, aplicados } = aplicarDictado(vehBase || {}, dict)
-              delete veh._campos; delete veh.ts
-              it.vehiculo = veh
-              // Un detalle escrito a mano por el modelo GANARÍA sobre `vehiculo` en el
-              // backend (emitir.py prioriza `detalle`). Se descarta solo si NO contiene
-              // todo lo dictado; si ya lo dice todo, se respeta la redacción.
-              if (it.detalle) {
-                const plano = String(it.detalle).replace(/\s+/g, '').toLowerCase()
-                const cubre = (dict._campos || []).every((c) => plano.includes(String(dict[c]).replace(/\s+/g, '').toLowerCase()))
-                if (!cubre) delete it.detalle
-              }
-              for (const c of corregidos) dictadoCorregido.push(c)
-              for (const a of aplicados) dictadoAgregado.push(a)
-              return it
-            })
-          }
+          const _itemsPrev = Array.isArray(previo.items) ? previo.items : []
+          const _dic = aplicarDictadoAItems({ items: traeItems ? input.items : null, itemsPrev: _itemsPrev, de: ctx.de })
+          const itemsUsar = _dic.items
+          const dictadoCorregido = _dic.corregidos, dictadoAgregado = _dic.agregados
           const body = {
             tipo_dte: input.tipo_dte || previo.tipo_dte || 33,
             receptor: { ...(previo.receptor || {}), ...(traeReceptor ? input.receptor : {}) },

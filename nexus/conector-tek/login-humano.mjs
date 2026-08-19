@@ -26,7 +26,7 @@
 // ⚠️ SOLO loguea/lee estado y guarda la sesión. NO transfiere.
 import patchright from '/Users/AIagenteia/nexus/conector-tek/node_modules/patchright/index.js'
 const { chromium } = patchright
-import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync, cpSync, rmSync, chmodSync } from 'node:fs'
+import { readFileSync, mkdirSync, writeFileSync, unlinkSync, existsSync, cpSync, rmSync, chmodSync, appendFileSync, statSync } from 'node:fs'
 import { spawn, execFile } from 'node:child_process'
 import { join } from 'node:path'
 import { obtener as obtenerCreds } from '/Users/AIagenteia/nexus/conector-tek/credenciales.mjs'
@@ -46,7 +46,18 @@ const PRIVADO = 'privado.officebanking.cl'
 // vaciar el archivo del PIN → la URL pública queda inútil hasta el próximo pedido. Atado a la
 // vida del proceso de login, no a un timer frágil.
 if (process.env.TEK_OTP_FILE) { process.on('exit', () => { try { writeFileSync(process.env.TEK_OTP_FILE, '') } catch { /* */ } }) }
-const log = (...a) => console.log('·', ...a)
+// LOG A ARCHIVO además de stdout (19-08-2026). El log del login se iba por stdout y el que
+// lo invoca (el hub, el lector de saldos) se queda solo con el JSON final: cuando el banco
+// rebotaba no quedaba NINGÚN rastro de qué había hecho el robot — si tecleó de verdad, si la
+// máscara lo obligó a caer al fallback por JS (eso sí lo marca el antifraude), o en qué paso
+// lo frenaron. Ahora cada intento queda en data/login-<user>.log para poder revisarlo después.
+const LOG_LOGIN = join(DATA, `login-${String(process.env.TEK_USER || 'ramon').toLowerCase().replace(/[^a-z0-9]/g, '') || 'ramon'}.log`)
+try { if (statSync(LOG_LOGIN).size > 2_000_000) writeFileSync(LOG_LOGIN, '') } catch { /* aún no existe */ }
+const log = (...a) => {
+  const linea = a.map((x) => (typeof x === 'string' ? x : (() => { try { return JSON.stringify(x) } catch { return String(x) } })())).join(' ')
+  console.log('·', linea)
+  try { appendFileSync(LOG_LOGIN, `${new Date().toISOString()} ${linea}\n`) } catch { /* el log nunca frena un login */ }
+}
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms))
 const rnd = (a, b) => a + Math.random() * (b - a)
 const ri = (a, b) => Math.floor(rnd(a, b))
