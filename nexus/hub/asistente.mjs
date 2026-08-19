@@ -45,6 +45,9 @@ import * as gastosDB from '../conector-gastos/gastos.mjs'
 import { leerCav } from '../conector-goautos/cav-store.mjs'
 // Conciliación — cruza SII ↔ banco sobre la BD nueva (reusa el motor de match del SAI).
 import * as conciliacion from '../conector-gastos/conciliar.mjs'
+// Datos del auto DICTADOS por la persona (bloque "Marca: … / Modelo: …"): mandan
+// sobre GoAutos/CAV al armar una factura. Ver [[factura-datos-dictados]].
+import { parsearVehiculoDictado, guardarDictado, leerDictado, aplicarDictado, dictadoParaTexto } from './dictado-vehiculo.mjs'
 
 const ejecCmd = promisify(exec)
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -1816,6 +1819,8 @@ PROCEDIMIENTO SII (sistema "Martes", herramienta sii):
    En AMBOS modos el resto es idéntico: afecta/exenta → borrador → borrador del SII en PDF → 2ª confirmación → firmar.
 1) Lo PRIMERO SIEMPRE: pregunta si la factura es **AFECTA o NO AFECTA/EXENTA** (son las dos primeras opciones del portal del SII). AFECTA = lleva IVA 19% → tipo_dte 33. NO AFECTA / EXENTA = sin IVA → tipo_dte 34. No lo asumas: pregúntalo salvo que el usuario ya lo haya dicho. (Boleta = 39, solo si lo piden explícito.) Después junta el RECEPTOR y el DETALLE: para una FACTURA el receptor necesita SOLO rut + nombre (los sacas del carnet) + dirección (la ÚNICA que preguntas); el giro queda "PARTICULAR" por defecto y la comuna la sacas de la dirección — NO los pidas aparte. El detalle es una lista de ítems {nombre, cantidad, precio}, con el precio NETO (sin IVA) — el IVA 19% lo agrega el sistema solo en las afectas. Si de verdad falta un dato obligatorio (rut, nombre o dirección), PÍDESELO al usuario (todo junto en un mensaje) y no sigas.
 1.b) 🚗 SI ES UN AUTO Y TE MANDAN EL CAV (foto o PDF del Certificado de Anotaciones Vigentes del vehículo): LÉELO tú mismo (ves la imagen/PDF adjunto) y saca estos datos → Tipo Vehículo, Marca, Modelo, Nro. Motor, Nro. Chasis, Color, Combustible, PBV, Patente, Año. 💾 **APENAS LEAS UN CAV, GUÁRDALO**: llama consultar_goautos comando:'guardar-cav' con patente + todos los datos que sacaste (sobre todo **pbv** y **tipo**, que NO existen en GoAutos). Así ese auto NUNCA más pide el CAV: tener los datos guardados es como tener el documento. Hazlo SIEMPRE, aunque la factura no se emita al final. ⚠️ REGLA FIJA: el **nombre del ítem es SIEMPRE "Venta"** cuando se vende un producto (así lo quiere Ramón, y además el campo del SII corta los nombres largos). El detalle del auto NO va en el nombre: va en "vehiculo":{tipo, marca, modelo, motor, chasis, color, combustible, pbv, patente, anio}, que se imprime como descripción bajo el ítem. Entonces: items:[{nombre:"Venta", cantidad:1, precio:<precio>, vehiculo:{…}}]. NO inventes ningún dato del auto: si el CAV no muestra alguno o no se lee, dilo y pídelo. El PRECIO no está en el CAV: pídeselo al usuario.
+1.c) ✍️ **LO QUE LA PERSONA DICTA SE COPIA TAL CUAL — NO LO ABREVIES NI LO "ORDENES".** Si te pegan el bloque del auto (Patente / Tipo Vehículo / Año / Marca / Modelo / Nro. Motor / Nro. Chasis / Color / Combustible / PBV), ESE es el detalle de la factura: cópialo LETRA POR LETRA en "vehiculo" (ej. modelo "CROSSTREK 5P 4X4 2.0 AUT" va COMPLETO, no "Crosstrek"; color "GRIS OSCURO", no "gris"). ⛔ NO lo reemplaces por lo que diga GoAutos ni por el CAV: si el dato dictado y el del sistema difieren, MANDA EL DICTADO (y avísale en una línea que hay diferencia). El sistema, además, guarda ese bloque tal cual y lo re-aplica solo sobre lo que armes; si te responde "datos_del_auto", dile a la persona qué se corrigió.
+1.d) 🧾 Si en el MISMO mensaje te dicen "se vendió tal auto, falta la factura" + los datos del comprador + el bloque del auto: son DOS cosas y las dos hay que hacerlas — registrar la venta en GoAutos Y armar la factura con ese bloque. No te quedes solo con la venta: si algo falta (afecta o exenta, forma de pago), pregunta lo que falte para AMBAS en un solo mensaje y sigue.
 2) Llama sii(accion:'emitir', ...) SIN confirmado → te devuelve el campo borrador_texto (la factura armada con neto/IVA/total y la descripción del auto). MUÉSTRASELO TAL CUAL al usuario y pregúntale: "¿te genero el borrador oficial en el SII?".
 3) 🖼️ CUANDO EL USUARIO CONFIRME —dice "sí", "dale", "emítela", "hazla", "genérala", o pide **"muéstrame el borrador en imagen / PDF"**— vuelve a llamar sii(accion:'emitir', ...) con los MISMOS datos y **confirmado=true**. Eso NO emite: corre un ROBOT que arma el borrador OFICIAL en el portal del SII y **le manda la IMAGEN del borrador por WhatsApp** (tú NO adjuntas nada, el sistema lo envía). ⛔ NUNCA le digas "no puedo generar el borrador en imagen/PDF": SÍ PUEDES, es exactamente esto (confirmado=true). Cuando la herramienta responda modo:'borrador_sii_enviado', dile al usuario que le mandaste el borrador en imagen para que lo revise; que el EMITIR final (firmar) queda para hacerlo supervisado. NUNCA pongas confirmado=true sin que el usuario haya pedido el borrador/emitir en el mensaje anterior.
 4) 🔴 EMITIR DE VERDAD (firmar): SOLO después de haberle mandado la imagen/PDF del borrador oficial (paso 3) y de que el usuario, ADVERTIDO de que es IRREVERSIBLE (consume folio y le llega al cliente), confirme de nuevo. Ahí llamas sii(accion:'emitir', ...) con los MISMOS datos y **emitir_real=true**. Eso firma en el SII y te devuelve el comprobante. NUNCA pongas emitir_real=true en la MISMA vuelta que generas el borrador.
@@ -3420,7 +3425,7 @@ function throttleDeLogin(res) {
   const porQue = {
     gap_minimo: 'tienen que pasar unos minutos entre un login y el siguiente',
     max_por_hora: 'ya se hicieron varios logins en la última hora',
-    cooldown_device_trust: 'el banco pidió validar el dispositivo hace poco y hay que dejarlo enfriar',
+    cooldown_device_trust: 'el antifraude de Santander rebotó el primer intento (le pasa seguido: NO es bloqueo de la cuenta ni clave mala) y hay que dejarlo enfriar antes de volver a entrar — normalmente el segundo intento entra',
   }[String(res.motivo || '')] || 'hay que espaciar los logins'
   return { esperaMin, motivo: String(res.motivo || 'throttle'), porQue }
 }
@@ -4080,7 +4085,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           const dueñoT = sesB && sesB.userId ? capUser(sesB.userId) : 'quien tiene la sesión'
           const avisadoT = regT && operadorAjeno(sesB, ctx.de) ? ` Ya le avisé a ${dueñoT}.` : ''
           return JSON.stringify({ ok: false, estado: res.estado || 'login_no_entro', anotado: true,
-            texto: `🏦 No pude entrar al banco ahora (la sesión estaba dormida). *No creé* la transferencia de ${montoTxtNE} a ${bo.beneficiario.nombre} — pero quedó ANOTADA y no se me pierde.${avisadoT} Se crea cuando la sesión esté despierta; te recuerdo hasta que quede lista. 🏦`,
+            texto: `🏦 No pude entrar al banco ahora: el antifraude de Santander rebotó el intento (pasa seguido, no es bloqueo ni clave mala). *No creé* la transferencia de ${montoTxtNE} a ${bo.beneficiario.nombre} — pero quedó ANOTADA y no se me pierde.${avisadoT} Se crea cuando la sesión esté despierta; te recuerdo hasta que quede lista. 🏦`,
             instruccion: '⛔ NO le pidas clave, Superclave ni le pases link/PIN. ⛔ NO le digas que "reintentas en unos minutos y le avisas": NADIE reintenta solo. Decile la verdad: no se creó, quedó anotada, hay que despertar la sesión del banco (lo hace una persona) y Nexus le va a recordar. NO reintentes vos ahora ni en este turno.' })
         }
         if (res.ok || res.pendiente) await cerrarPagoPendiente({ ctx, ses: sesB, empresa, total: bo.monto, beneficiarios: [{ nombre: bo.beneficiario.nombre, monto: bo.monto }] })
@@ -4308,7 +4313,7 @@ async function ejecutar(nombre, input, ctx = {}) {
           const dueño = sesM && sesM.userId ? capUser(sesM.userId) : 'quien tiene la sesión'
           const avisado = regP && operadorAjeno(sesM, ctx.de) ? ` Ya le avisé a ${dueño}.` : ''
           return JSON.stringify({ ok: false, estado: res.estado || 'login_no_entro', resumen, anotado: true,
-            texto: `🏦 No pude entrar al banco ahora (la sesión estaba dormida). *No se subió nada* — pero el pago (${resumen.cantidad} ${resumen.cantidad === 1 ? 'transferencia' : 'transferencias'} · ${resumen.monto_total_fmt}) quedó ANOTADO y no se me pierde.${avisado} Se sube cuando la sesión del banco esté despierta; te voy a recordar hasta que quede listo. 🏦`,
+            texto: `🏦 No pude entrar al banco ahora: el antifraude de Santander rebotó el intento (pasa seguido, no es bloqueo ni clave mala). *No se subió nada* — pero el pago (${resumen.cantidad} ${resumen.cantidad === 1 ? 'transferencia' : 'transferencias'} · ${resumen.monto_total_fmt}) quedó ANOTADO y no se me pierde.${avisado} Se sube cuando la sesión del banco esté despierta; te voy a recordar hasta que quede listo. 🏦`,
             instruccion: '⛔ NO le pidas al usuario clave, Superclave ni le pases link/PIN. ⛔ NO le digas que "reintentas en unos minutos y le avisas": NADIE reintenta solo. Decile la verdad: no se subió, quedó anotado, hay que despertar la sesión del banco (eso lo hace una persona), y que Nexus le va a recordar. NO reintentes vos ahora ni en este turno.' })
         }
         if (res.ok) await cerrarPagoPendiente(datosPago)
@@ -4998,6 +5003,7 @@ async function ejecutar(nombre, input, ctx = {}) {
       try { token = (readFileSync(join(__dirname, '..', 'sii-web', '.env'), 'utf8').match(/^API_TOKEN=(.+)$/m) || [])[1] || '' } catch { token = '' }
       if (!token) return 'No tengo el token del backend SII local para armar el borrador. Avísale a Nico.'
       let vendedor, detalle, precio, cambioSujeto, refTxt
+      const fcCorregido = []   // campos del auto que el dictado de la persona tuvo que corregir
       if (patente) {
         // CASO AUTO USADO → del expediente de compra; cambio de sujeto "Productos Usados" (sin IVA).
         const CPATH = join(__dirname, '.compras-pendientes.json')
@@ -5022,6 +5028,15 @@ async function ejecutar(nombre, input, ctx = {}) {
         a = { ...a, ...soloDef(exp.auto) }
         for (const k of ['chasis', 'motor', 'pbv', 'tipo', 'marca', 'modelo', 'anio', 'color', 'combustible']) {
           if (input[k]) a[k] = String(input[k]).trim()
+        }
+        //   5. Lo que la persona DICTÓ en el chat (bloque "Marca: … / Modelo: …"): manda
+        //      sobre TODO, incluso sobre lo que tipeó el modelo — es su texto literal.
+        const dictCompra = leerDictado(ctx.de, patente)
+        if (dictCompra) {
+          const { veh, corregidos } = aplicarDictado(a, dictCompra)
+          delete veh._campos; delete veh.ts
+          a = veh
+          for (const c of corregidos) fcCorregido.push(c)
         }
         // Chequeo de sanidad: motor == chasis es SIEMPRE un dato corrupto (pasó en la BD
         // nueva con PGXP70). Preferimos omitir el motor antes que imprimir uno falso.
@@ -5097,6 +5112,9 @@ async function ejecutar(nombre, input, ctx = {}) {
         }
         return JSON.stringify({
           ok: true, modo: 'borrador_compra_enviado', enviado, caso: patente ? 'auto' : 'gasto', cambio_sujeto: cambioSujeto,
+          datos_del_auto: fcCorregido.length
+            ? `📌 Los datos del auto quedaron TAL CUAL los dictó la persona. Corregí: ${fcCorregido.map((c) => `${c.campo} ("${c.antes}" → "${c.dictado}")`).join('; ')}. Dilo en UNA línea al mostrarle el borrador.`
+            : undefined,
           formato: esPdf ? 'pdf' : 'imagen', total: precio, archivo_local: archivo || null,
           instruccion: enviado
             ? `Le MANDÉ la VISTA PREVIA de la factura de compra (DTE 46, ${detIVA}, total $${precio.toLocaleString('es-CL')}) con la sesión del SII de Nico. ⛔ AÚN NO está emitida: dile que la revise. Si está OK y quiere EMITIRLA de verdad (⚠️ irreversible, consume folio), pídele confirmación y luego llama factura_compra con accion:"emitir" y emitir_real:true (mismos datos). Si necesita CAMBIAR algo, re-llama con el campo corregido.`
@@ -6698,10 +6716,61 @@ async function ejecutar(nombre, input, ctx = {}) {
           const mismaEmpresa = !docGuardado || String(docGuardado.empresa_id || '') === empresaId
           const heredar = docGuardado && mismoReceptor && mismaEmpresa
           const previo = heredar ? docGuardado : {}
+          // ── 🚗 LO QUE DICTA LA PERSONA MANDA (arreglo 19-08-2026, Ramón) ───────────
+          // Los datos del auto los tipeaba el modelo a mano en items[].vehiculo: a veces
+          // abreviaba el modelo ("Crosstrek" en vez de "CROSSTREK 5P 4X4 2.0 AUT"), se
+          // saltaba un campo o lo pisaba con lo que había en GoAutos. Si la persona pegó
+          // el bloque del auto en el chat, acá se copia LITERAL encima de lo que armó el
+          // modelo (dictado-vehiculo.mjs lo guardó tal cual, sin pasar por el modelo), y
+          // además el vehículo se HEREDA del documento en curso: corregir el precio ya no
+          // borra el chasis. Todo lo que hubo que corregir se le reporta al usuario.
+          const dictadoCorregido = [], dictadoAgregado = []
+          let itemsUsar = traeItems ? input.items : null
+          if (Array.isArray(itemsUsar)) {
+            const itemsPrev = Array.isArray(previo.items) ? previo.items : []
+            itemsUsar = itemsUsar.map((it0, idx) => {
+              const it = { ...(it0 || {}) }
+              const objVeh = (o) => (o && typeof o === 'object' && !Array.isArray(o)) ? o : null
+              const vehNuevo = objVeh(it.vehiculo)
+              const vehPrev = objVeh(itemsPrev[idx]?.vehiculo)
+              const vehBase = (vehNuevo || vehPrev) ? { ...(vehPrev || {}), ...(vehNuevo || {}) } : null
+              const txtItem = `${it.nombre || ''} ${it.detalle || ''}`
+              // El dictado se empareja por PATENTE: la del ítem, o la que el modelo haya
+              // escrito dentro del texto de la línea (cuando armó el detalle a mano).
+              const dict = leerDictado(ctx.de, vehBase?.patente || '') || dictadoParaTexto(ctx.de, txtItem)
+              if (!dict && !vehBase) return it
+              if (!dict) { it.vehiculo = vehBase; return it }
+              // Si el ítem NO trae datos de vehículo, el dictado solo se aplica cuando la
+              // línea ES la del auto (nombre "Venta"/vehículo, o el texto nombra la patente
+              // o la marca dictada): en una factura de servicios no se mete nada.
+              if (!vehBase) {
+                const txt = txtItem.toLowerCase()
+                const plano = txt.replace(/[^a-z0-9]/g, '')
+                const esLineaDelAuto = /venta|veh[ií]culo|autom[oó]vil|\bauto\b/.test(txt)
+                  || (dict.patente && plano.includes(String(dict.patente).toLowerCase().replace(/[^a-z0-9]/g, '').slice(0, 6)))
+                  || (dict.marca && txt.includes(String(dict.marca).toLowerCase()))
+                if (!esLineaDelAuto) return it
+              }
+              const { veh, corregidos, aplicados } = aplicarDictado(vehBase || {}, dict)
+              delete veh._campos; delete veh.ts
+              it.vehiculo = veh
+              // Un detalle escrito a mano por el modelo GANARÍA sobre `vehiculo` en el
+              // backend (emitir.py prioriza `detalle`). Se descarta solo si NO contiene
+              // todo lo dictado; si ya lo dice todo, se respeta la redacción.
+              if (it.detalle) {
+                const plano = String(it.detalle).replace(/\s+/g, '').toLowerCase()
+                const cubre = (dict._campos || []).every((c) => plano.includes(String(dict[c]).replace(/\s+/g, '').toLowerCase()))
+                if (!cubre) delete it.detalle
+              }
+              for (const c of corregidos) dictadoCorregido.push(c)
+              for (const a of aplicados) dictadoAgregado.push(a)
+              return it
+            })
+          }
           const body = {
             tipo_dte: input.tipo_dte || previo.tipo_dte || 33,
             receptor: { ...(previo.receptor || {}), ...(traeReceptor ? input.receptor : {}) },
-            items: traeItems ? input.items : (previo.items || []),
+            items: Array.isArray(itemsUsar) ? itemsUsar : (previo.items || []),
             forma_pago: input.forma_pago || previo.forma_pago || 'contado',
             fecha: input.fecha || previo.fecha || null,
             observaciones: input.observaciones ?? previo.observaciones ?? '',
@@ -6735,6 +6804,11 @@ async function ejecutar(nombre, input, ctx = {}) {
                               : `*Total: ${clp(t.total)}*${t.exento ? ' (exento)' : ''}`,
             b.observaciones ? `Obs: ${b.observaciones}` : '',
           ].filter(Boolean).join('\n')
+          // Qué datos del auto hubo que corregir para que quedaran TAL CUAL los dictó
+          // la persona. Se le dice: si el modelo había escrito otra cosa, tiene que saberlo.
+          const avisoDictado = (dictadoCorregido.length || dictadoAgregado.length)
+            ? `📌 Los datos del auto quedaron TAL CUAL los dictó la persona.${dictadoCorregido.length ? ' Corregí: ' + dictadoCorregido.map((c) => `${c.campo} ("${c.antes}" → "${c.dictado}")`).join('; ') + '.' : ''}${dictadoAgregado.length ? ' Completé: ' + [...new Set(dictadoAgregado)].join(', ') + '.' : ''} Si corregí algo, dilo en UNA línea al mostrar el borrador.`
+            : undefined
           const robot = await import('../conector-sii/factura-navegador.mjs')
           const empresaRut = (r.borrador?.emisor?.rut) || '77271121-2'
 
@@ -6840,6 +6914,7 @@ async function ejecutar(nombre, input, ctx = {}) {
             return JSON.stringify({
               ok: true, modo: hayEdicion ? 'borrador_editado' : 'borrador', borrador_texto: preview,
               cambios: hayEdicion ? cambios : undefined,
+              datos_del_auto: avisoDictado,
               instruccion: hayEdicion
                 // El usuario está CORRIGIENDO un documento cuyo borrador oficial ya recibió.
                 // No hay nada que preguntarle: quiere el borrador corregido, y hasta que la
@@ -6899,6 +6974,7 @@ async function ejecutar(nombre, input, ctx = {}) {
             return JSON.stringify({
               ok: true, modo: 'borrador_sii_enviado', formato: esPdf ? 'pdf' : 'imagen', total: (r.borrador?.totales?.total),
               cambios_aplicados: hayEdicion ? cambios : undefined,
+              datos_del_auto: avisoDictado,
               no_aplicados: noAplicados.length ? noAplicados : undefined,
               instruccion: `Le MANDÉ el borrador OFICIAL del SII en ${esPdf ? 'PDF' : 'imagen'}${hayEdicion ? `, ya con la corrección (${cambios.join(', ')})` : ''}.${noAplicados.length ? ` ⚠️ OJO: estos campos NO se pudieron aplicar en el formulario del SII: ${noAplicados.join('; ')}. DÍSELO explícitamente al usuario — no des por hecho ese cambio.` : ''} Dile que lo revise y ADVIÉRTELE que emitir es IRREVERSIBLE (consume folio y le llega al cliente): "¿la firmo y emito de verdad?". Cuando confirme (un "sí"/"emítela"/"dale" basta), vuelve a llamar emitir con **emitir_real=true** y los MISMOS datos. ⛔ NO vuelvas a llamar confirmado=true para esta misma factura MIENTRAS NO CAMBIE NINGÚN DATO: el borrador ya está enviado; repetir el borrador idéntico en vez de emitir es el error a evitar. Si el usuario corrige algo, SÍ vuelve a llamar con confirmado=true y el dato nuevo.`,
             })
@@ -7475,6 +7551,11 @@ export async function responder(historial, opts = {}) {
   // Texto del último mensaje del usuario (para resumir la conversación en el historial).
   let textoUsuario = ''
   try { textoUsuario = String([...(historial || [])].reverse().find((m) => m.role === 'user')?.content || '').trim() } catch { /* */ }
+  // 🚗 Si el mensaje TRAE un bloque con los datos del auto ("Marca : … / Modelo : …"),
+  // se guarda LITERAL acá mismo, sin pasar por el modelo. Al armar la factura eso manda
+  // sobre GoAutos y el CAV: lo que dicta la persona es lo que se imprime. (19-08-2026:
+  // el bloque del Crosstrek llegó completo y en la factura salía el modelo abreviado.)
+  try { const _d = parsearVehiculoDictado(textoUsuario); if (_d) guardarDictado(de, _d) } catch { /* nunca tumbar el turno */ }
   // Adjuntos del turno (fotos/documentos) → se inyectan como VISIÓN en el último
   // mensaje del usuario para que el modelo LEA los documentos. `mediaReciente` (los
   // mismos archivos, persistidos con TTL) se pasa a las tools para usarlos al CREAR
@@ -7710,7 +7791,7 @@ export async function responder(historial, opts = {}) {
           const _t0 = Date.now()
           let out, _ok = true, _det = null
           try {
-            out = await ejecutar(b.name, b.input || {}, { de, media: mediaHandler, web, graficos, tarjetas })
+            out = await ejecutar(b.name, b.input || {}, { de, media: mediaHandler, web, graficos, tarjetas, textoUsuario })
             if (typeof out === 'string' && /^\s*(error|⚠️|🔒|no se pudo|no tienes acceso|hubo un error)/i.test(out)) { _ok = false; _det = out.slice(0, 200) }
           } catch (e) {
             _ok = false; _det = String(e?.message || e); throw e
